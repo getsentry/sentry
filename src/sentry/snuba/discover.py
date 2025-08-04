@@ -258,7 +258,7 @@ def query(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
     if debug:
-        result["meta"]["query"] = str(builder.get_snql_query().query)
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -427,7 +427,10 @@ def create_groupby_dict(
             value = result_row.get(field)
             if isinstance(value, list):
                 if len(value) > 0:
-                    value = value[-1]
+                    # Even though frontend renders only the last element, this can cause key overlaps
+                    # For now lets just render this as a list to avoid that problem
+                    # TODO: timeseries can handle this correctly since this value isn't used as a dict key
+                    value = f"[{','.join(value)}]"
                 else:
                     value = ""
             values.append({"key": field, "value": str(value)})

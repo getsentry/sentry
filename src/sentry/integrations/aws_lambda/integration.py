@@ -11,6 +11,7 @@ from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import analytics, options
+from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -452,12 +453,13 @@ class AwsLambdaSetupLayerPipelineView:
                     )
 
         analytics.record(
-            "integrations.serverless_setup",
-            user_id=request.user.id,
-            organization_id=organization.id,
-            integration="aws_lambda",
-            success_count=success_count,
-            failure_count=len(failures),
+            IntegrationServerlessSetup(
+                user_id=request.user.id,
+                organization_id=organization.id,
+                integration="aws_lambda",
+                success_count=success_count,
+                failure_count=len(failures),
+            )
         )
 
         # if we have failures, show them to the user

@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType} from 'sentry/types/event';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -24,7 +23,6 @@ describe('FullSpanDescription', function () {
 
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';
-  const eventId = '65c7d8647b8a76ef8f4c05d41deb7860';
 
   it('uses the correct code formatting for SQL queries', async function () {
     MockApiClient.addMockResponse({
@@ -32,27 +30,9 @@ describe('FullSpanDescription', function () {
       body: {
         data: [
           {
-            'transaction.id': eventId,
             project: project.slug,
             span_id: spanId,
-          },
-        ],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
-      body: {
-        id: eventId,
-        entries: [
-          {
-            type: EntryType.SPANS,
-            data: [
-              {
-                span_id: spanId,
-                description: 'SELECT users FROM my_table LIMIT 1;',
-              },
-            ],
+            'span.description': 'SELECT users FROM my_table LIMIT 1;',
           },
         ],
       },
@@ -82,28 +62,10 @@ describe('FullSpanDescription', function () {
       body: {
         data: [
           {
-            'transaction.id': eventId,
             project: project.slug,
             span_id: spanId,
-          },
-        ],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
-      body: {
-        id: eventId,
-        entries: [
-          {
-            type: EntryType.SPANS,
-            data: [
-              {
-                span_id: spanId,
-                description: `{"insert": "my_cool_collection😎", "a": {}}`,
-                data: {'db.system': 'mongodb'},
-              },
-            ],
+            'span.description': `{"insert": "my_cool_collection😎", "a": {}}`,
+            'db.system': 'mongodb',
           },
         ],
       },
@@ -128,28 +90,10 @@ describe('FullSpanDescription', function () {
       body: {
         data: [
           {
-            'transaction.id': eventId,
             project: project.slug,
             span_id: spanId,
-          },
-        ],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
-      body: {
-        id: eventId,
-        entries: [
-          {
-            type: EntryType.SPANS,
-            data: [
-              {
-                span_id: spanId,
-                description: `{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*`,
-                data: {'db.system': 'mongodb'},
-              },
-            ],
+            'span.description': `{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*`,
+            'db.system': 'mongodb',
           },
         ],
       },

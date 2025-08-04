@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import type {
@@ -83,6 +83,12 @@ Future<void> main() async {
       // Set sessionSampleRate to 0.1 to capture 10% of sessions and onErrorSampleRate to 1.0 to capture 100% of errors.
       options.replay.sessionSampleRate = 0.1;
       options.replay.onErrorSampleRate = 1.0;`
+          : ''
+      }${
+        params.isLogsSelected
+          ? `
+      // Enable logs to be sent to Sentry
+      options.enableLogs = true;`
           : ''
       }
     },
@@ -307,7 +313,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 additionalInfo: params.isPerformanceSelected ? (
                   <Fragment>
                     <p>{configureAdditionalInfo}</p>
-                    <Alert type="info">
+                    <Alert type="info" showIcon={false}>
                       {t(
                         'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                       )}
@@ -373,29 +379,43 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               ]
             : []),
         ],
-  nextSteps: () => [
-    {
-      name: t('Upload Debug Symbols'),
-      description: t(
-        'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
-    },
-    {
-      name: t('Distributed Tracing'),
-      description: t(
-        'Connect all your services by configuring your endpoints in the Sentry init.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
-    },
-    {
-      name: t('Connect your Git Repo'),
-      description: t(
-        'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
-      ),
-      link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
-    },
-  ],
+  nextSteps: params => {
+    const steps = [
+      {
+        name: t('Upload Debug Symbols'),
+        description: t(
+          'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
+      },
+      {
+        name: t('Distributed Tracing'),
+        description: t(
+          'Connect all your services by configuring your endpoints in the Sentry init.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
+      },
+      {
+        name: t('Connect your Git Repo'),
+        description: t(
+          'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
+        ),
+        link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        name: t('Structured Logs'),
+        description: t(
+          'Learn how to send structured logs to Sentry and view them alongside your errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/dart/guides/flutter/logs/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {

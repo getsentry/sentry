@@ -51,7 +51,7 @@ function StepHeader({
       onClick={onEditClick}
       data-test-id={`header-${kebabCase(title)}`}
     >
-      <Flex justify="space-between">
+      <Flex justify="between">
         <StepTitle>
           {isCompleted ? (
             <IconCheckmark isCircled color="green300" />

@@ -7,8 +7,8 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -207,7 +207,7 @@ function CreditCardForm({
     >
       {error && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             <AlertContent>
               {error}
               {errorRetry && (
@@ -222,7 +222,7 @@ function CreditCardForm({
       {loading && <LoadingIndicator />}
       {referrer?.includes('billing-failure') && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {t('Your credit card will be charged upon update.')}
           </Alert>
         </Alert.Container>
@@ -262,7 +262,7 @@ function CreditCardForm({
         </Info>
 
         <div className={footerClassName}>
-          <StyledButtonBar gap={1}>
+          <StyledButtonBar>
             {onCancel && (
               <Button
                 data-test-id="cancel"

@@ -21,10 +21,10 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'span.op'
@@ -203,11 +203,15 @@ function renderBodyCell(
   }
 
   if (column.key === 'transaction') {
+    // In eap, blank transaction ops are set to `default` but not in non-eap.
+    // The transaction summary is not eap yet, so we should exclude the `default` transaction.op filter
+    const spanOp =
+      row['span.op'].toLowerCase() === 'default' ? undefined : row['span.op'];
     return (
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={row['span.op']}
+        transactionMethod={spanOp}
       />
     );
   }

@@ -1,9 +1,10 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps
   extends Omit<React.ComponentProps<typeof CodeSnippet>, 'onAfterHighlight'> {}
@@ -39,11 +40,18 @@ export function OnboardingCodeSnippet({
     setAuthTokenNodes(replaceTokensWithSpan(element));
   }, []);
 
+  const partialLoading = useMemo(
+    () => children.includes(PACKAGE_LOADING_PLACEHOLDER),
+    [children]
+  );
+
   return (
     <Fragment>
       <CodeSnippet
         dark
         language={language}
+        hideCopyButton={partialLoading}
+        disableUserSelection={partialLoading}
         {...props}
         onAfterHighlight={handleAfterHighlight}
       >

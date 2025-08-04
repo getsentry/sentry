@@ -14,7 +14,7 @@ from sentry.utils.strings import compress
 
 @django_db_all
 class TestDjangoNodeStorage:
-    def setup_method(self):
+    def setup_method(self) -> None:
         self.ns = DjangoNodeStorage()
 
     @pytest.mark.parametrize(
@@ -28,13 +28,13 @@ class TestDjangoNodeStorage:
             compress(b"(dp0\nS'foo'\np1\nS'bar'\np2\ns."),
         ],
     )
-    def test_get(self, node_data):
+    def test_get(self, node_data: str) -> None:
         node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=node_data)
 
         result = self.ns.get(node.id)
         assert result == {"foo": "bar"}
 
-    def test_get_multi(self):
+    def test_get_multi(self) -> None:
         Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=compress(b'{"foo": "bar"}'))
         Node.objects.create(id="5394aa025b8e401ca6bc3ddee3130edc", data=compress(b'{"foo": "baz"}'))
 
@@ -46,25 +46,25 @@ class TestDjangoNodeStorage:
             "5394aa025b8e401ca6bc3ddee3130edc": {"foo": "baz"},
         }
 
-    def test_set(self):
+    def test_set(self) -> None:
         self.ns.set("d2502ebbd7df41ceba8d3275595cac33", {"foo": "bar"})
         assert Node.objects.get(id="d2502ebbd7df41ceba8d3275595cac33").data == compress(
             b'{"foo":"bar"}'
         )
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete(node.id)
         assert not Node.objects.filter(id=node.id).exists()
 
-    def test_delete_multi(self):
+    def test_delete_multi(self) -> None:
         node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete_multi([node.id])
         assert not Node.objects.filter(id=node.id).exists()
 
-    def test_cleanup(self):
+    def test_cleanup(self) -> None:
         now = timezone.now()
         cutoff = now - timedelta(days=1)
 
@@ -81,7 +81,7 @@ class TestDjangoNodeStorage:
         assert Node.objects.filter(id=node.id).exists()
         assert not Node.objects.filter(id=node2.id).exists()
 
-    def test_cache(self):
+    def test_cache(self) -> None:
         node_1 = ("a" * 32, {"foo": "a"})
         node_2 = ("b" * 32, {"foo": "b"})
         node_3 = ("c" * 32, {"foo": "c"})

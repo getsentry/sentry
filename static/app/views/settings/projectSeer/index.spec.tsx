@@ -39,7 +39,7 @@ describe('ProjectSeer', function () {
     ModalStore.init();
     project = ProjectFixture();
     organization = OrganizationFixture({
-      features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
+      features: ['autofix-seer-preferences'],
     });
 
     // Mock the seer setup check endpoint
@@ -67,13 +67,15 @@ describe('ProjectSeer', function () {
           id: '1',
           name: 'getsentry/sentry',
           externalId: '101',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '201',
         }),
         RepositoryFixture({
           id: '2',
           name: 'getsentry/seer',
           externalId: '102',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '202',
         }),
       ],
     });
@@ -167,6 +169,8 @@ describe('ProjectSeer', function () {
                 name: 'sentry',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '201',
+                branch_overrides: [],
               },
               {
                 branch_name: '',
@@ -175,6 +179,8 @@ describe('ProjectSeer', function () {
                 name: 'seer',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '202',
+                branch_overrides: [],
               },
             ],
           },
@@ -223,6 +229,8 @@ describe('ProjectSeer', function () {
                 provider: 'github',
                 branch_name: 'develop',
                 instructions: 'Use Conventional Commits',
+                integration_id: '201',
+                branch_overrides: [],
               },
             ],
           },

@@ -48,11 +48,8 @@ export type AlertType =
   | 'eap_metrics'
   | 'trace_item_throughput'
   | 'trace_item_duration'
-  | 'trace_item_apdex'
   | 'trace_item_failure_rate'
   | 'trace_item_lcp'
-  | 'trace_item_fid'
-  | 'trace_item_cls'
   | 'trace_item_logs';
 
 export enum MEPAlertsQueryType {
@@ -104,11 +101,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   uptime_monitor: t('Uptime Monitor'),
   trace_item_throughput: t('Throughput'),
   trace_item_duration: t('Duration'),
-  trace_item_apdex: t('Apdex'),
   trace_item_failure_rate: t('Failure Rate'),
   trace_item_lcp: t('Largest Contentful Paint'),
-  trace_item_fid: t('First Input Delay'),
-  trace_item_cls: t('Cumulative Layout Shift'),
   eap_metrics: t('Spans'),
   trace_item_logs: t('Logs'),
   crons_monitor: t('Cron Monitor'),
@@ -120,6 +114,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
+  trace_item_logs: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
@@ -154,11 +149,8 @@ export const getAlertWizardCategories = (org: Organization) => {
     const traceItemAggregationOptions: AlertType[] = [
       'trace_item_throughput',
       'trace_item_duration',
-      'trace_item_apdex',
       'trace_item_failure_rate',
       'trace_item_lcp',
-      'trace_item_fid',
-      'trace_item_cls',
     ];
     result.push({
       categoryHeading: t('Performance'),
@@ -284,11 +276,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },
-  trace_item_apdex: {
-    aggregate: 'apdex(300)',
-    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRACE_ITEM_SPAN,
-  },
   trace_item_failure_rate: {
     aggregate: 'failure_rate()',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
@@ -296,16 +283,6 @@ export const AlertWizardRuleTemplates: Record<
   },
   trace_item_lcp: {
     aggregate: 'p95(measurements.lcp)',
-    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRACE_ITEM_SPAN,
-  },
-  trace_item_fid: {
-    aggregate: 'p95(measurements.fid)',
-    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRACE_ITEM_SPAN,
-  },
-  trace_item_cls: {
-    aggregate: 'p95(measurements.cls)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },

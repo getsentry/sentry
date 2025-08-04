@@ -16,6 +16,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
+            public_alias="id",
+            internal_name="sentry.item_id",
+            search_type="string",
+            validator=is_event_id_or_list,
+        ),
+        ResolvedAttribute(
             public_alias="severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",
@@ -108,7 +114,7 @@ LOGS_PRIVATE_ATTRIBUTES: set[str] = {
 }
 
 # For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
-LOGS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {"sentry._meta"}
+LOGS_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {constants.META_PREFIX}
 
 LOGS_REPLACEMENT_ATTRIBUTES: set[str] = {
     definition.replacement

@@ -1,10 +1,9 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment, memo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import Count from 'sentry/components/count';
-import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconCode, IconFire} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
@@ -12,8 +11,8 @@ import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
+import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
-import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
@@ -26,9 +25,7 @@ import {
   getIsAiRunSpan,
   getIsAiToolCallSpan,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -80,7 +77,6 @@ export function AISpanList({
   const theme = useTheme();
   const colors = [...theme.chart.getColorPalette(5), theme.red300];
 
-  const spanAttributesRequest = useEAPSpanAttributes(nodes);
   let currentTransaction: TraceTreeNode<
     TraceTree.Transaction | TraceTree.EAPSpan
   > | null = null;
@@ -124,14 +120,6 @@ export function AISpanList({
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
               colors={colors}
-              isLoadingAttributes={
-                isEAPSpanNode(node) ? spanAttributesRequest.isPending : false
-              }
-              spanAttributes={
-                isEAPSpanNode(node)
-                  ? spanAttributesRequest.data[node.value.event_id]
-                  : undefined
-              }
             />
           </Fragment>
         );
@@ -145,8 +133,6 @@ const TraceListItem = memo(function TraceListItem({
   onClick,
   isSelected,
   colors,
-  spanAttributes = {},
-  isLoadingAttributes = false,
   traceBounds,
   indent,
 }: {
@@ -155,31 +141,26 @@ const TraceListItem = memo(function TraceListItem({
   isSelected: boolean;
   node: AITraceSpanNode;
   onClick: () => void;
-  spanAttributes: Record<string, string | number> | undefined;
   traceBounds: TraceBounds;
-  isLoadingAttributes?: boolean;
 }) {
-  const {icon, title, subtitle, color} = getNodeInfo(node, colors, spanAttributes);
+  const hasErrors = hasError(node);
+  const {icon, title, subtitle, color} = getNodeInfo(node, colors);
   const safeColor = color || colors[0] || '#9ca3af';
   const relativeTiming = calculateRelativeTiming(node, traceBounds);
   const duration = getTimeBounds(node).duration;
 
   return (
     <ListItemContainer
-      hasErrors={node.errors.size > 0}
+      hasErrors={hasErrors}
       isSelected={isSelected}
       onClick={onClick}
       indent={indent}
     >
       <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
-        <ListItemHeader align="center" gap={space(0.5)}>
+        <ListItemHeader align="center" gap="xs">
           <ListItemTitle>{title}</ListItemTitle>
-          {isLoadingAttributes ? (
-            <Placeholder height="12px" width="60px" />
-          ) : (
-            subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>
-          )}
+          {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
           <FlexSpacer />
           <DurationText>{getDuration(duration, 2, true, true)}</DurationText>
         </ListItemHeader>
@@ -188,59 +169,6 @@ const TraceListItem = memo(function TraceListItem({
     </ListItemContainer>
   );
 });
-
-function useEAPSpanAttributes(nodes: Array<TraceTreeNode<TraceTree.NodeValue>>) {
-  const spans = useMemo(() => {
-    return nodes.filter(node => isEAPSpanNode(node));
-  }, [nodes]);
-  const projectIds = new Set(spans.map(span => span.value.project_id));
-  const totalStart = Math.min(
-    ...spans.map(span => new Date(span.value.start_timestamp * 1000).getTime())
-  );
-  const totalEnd = Math.max(
-    ...spans.map(span => new Date(span.value.end_timestamp * 1000).getTime())
-  );
-
-  const spanAttributesRequest = useEAPSpans(
-    {
-      search: `span_id:[${spans.map(span => `"${span.value.event_id}"`).join(',')}]`,
-      fields: [
-        'span_id',
-        AI_AGENT_NAME_ATTRIBUTE,
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-        AI_TOTAL_TOKENS_ATTRIBUTE,
-        AI_COST_ATTRIBUTE,
-        AI_TOOL_NAME_ATTRIBUTE,
-      ],
-      limit: 100,
-      // Pass custom values as the page filters are not available in the trace view
-      pageFilters: {
-        projects: Array.from(projectIds),
-        environments: [],
-        datetime: {
-          period: null,
-          start: new Date(totalStart),
-          end: new Date(totalEnd),
-          utc: true,
-        },
-      },
-    },
-    Referrer.TRACE_DRAWER
-  );
-
-  const spanAttributes = useMemo(() => {
-    return spanAttributesRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.span_id] = span;
-        return acc;
-      },
-      {} as Record<string, Record<string, string | number>>
-    );
-  }, [spanAttributesRequest.data]);
-
-  return {data: spanAttributes, isPending: spanAttributesRequest.isPending};
-}
 
 interface TraceBounds {
   duration: number;
@@ -292,12 +220,7 @@ interface NodeInfo {
   title: React.ReactNode;
 }
 
-// TODO: consider splitting this up
-function getNodeInfo(
-  node: AITraceSpanNode,
-  colors: readonly string[],
-  spanAttributes: Record<string, string | number>
-) {
+function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   // Default return value
   const nodeInfo: NodeInfo = {
     icon: <IconCode size="md" />,
@@ -318,7 +241,7 @@ function getNodeInfo(
 
   const getNodeAttribute = (key: string) => {
     if (isEAPSpanNode(node)) {
-      return spanAttributes?.[key];
+      return node.value.additional_attributes?.[key];
     }
 
     return node.value?.data?.[key];
@@ -381,12 +304,25 @@ function getNodeInfo(
   }
 
   // Override the color and icon if the node has errors
-  if (node.errors.size > 0) {
+  if (hasError(node)) {
     nodeInfo.icon = <IconFire size="md" color="red300" />;
     nodeInfo.color = colors[6];
   }
 
   return nodeInfo;
+}
+
+function hasError(node: AITraceSpanNode) {
+  if (node.errors.size > 0) {
+    return true;
+  }
+
+  // spans with status unknown are errors
+  if (isEAPSpanNode(node)) {
+    return node.value.additional_attributes?.['span.status'] === 'unknown';
+  }
+
+  return false;
 }
 
 const TraceListContainer = styled('div')`

@@ -1,7 +1,7 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {Group, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';

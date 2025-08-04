@@ -21,6 +21,7 @@ import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -33,7 +34,6 @@ import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -830,7 +830,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
+        <Alert type="error">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -956,7 +956,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1302,7 +1302,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error">
+                              <Alert type="error" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1389,7 +1389,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error">{detailedError?.filters![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.filters![0]}
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1436,7 +1438,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error">{detailedError?.actions![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.actions![0]}
+                              </Alert>
                             )
                           }
                           additionalAction={{

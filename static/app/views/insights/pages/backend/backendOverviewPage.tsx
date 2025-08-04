@@ -28,17 +28,17 @@ import OverviewCacheMissChartWidget from 'sentry/views/insights/common/component
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
 import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
-import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -55,7 +55,7 @@ import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWi
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 function BackendOverviewPage() {
@@ -72,7 +72,7 @@ function BackendOverviewPage() {
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
   }
-  return <OldBackendOverviewPage />;
+  return <Am1BackendOverviewPage />;
 }
 
 function EAPBackendOverviewPage() {
@@ -152,7 +152,7 @@ function EAPBackendOverviewPage() {
 
   const sorts: [ValidSort, ValidSort] = [
     {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -160,7 +160,7 @@ function EAPBackendOverviewPage() {
 
   existingQuery.addFilterValue('is_transaction', 'true');
 
-  const response = useEAPSpans(
+  const response = useSpans(
     {
       search: existingQuery,
       sorts,
@@ -269,7 +269,7 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 
 export default BackendOverviewPageWithProviders;
 
-const StackedWidgetWrapper = styled('div')`
+export const StackedWidgetWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -277,7 +277,7 @@ const StackedWidgetWrapper = styled('div')`
   min-height: 502px;
 `;
 
-const TripleRowWidgetWrapper = styled('div')`
+export const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: 300px;

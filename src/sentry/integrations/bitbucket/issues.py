@@ -68,7 +68,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, params)
 
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
@@ -111,7 +111,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, params)
 
         org = group.organization
         autocomplete_url = reverse(

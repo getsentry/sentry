@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 class NotificationTargetTest(TestCase):
 
-    def test_prepare_targets(self):
+    def test_prepare_targets(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"
         )

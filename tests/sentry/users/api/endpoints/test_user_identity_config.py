@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -9,7 +9,7 @@ from social_auth.models import UserSocialAuth
 
 
 class UserIdentityConfigTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.superuser = self.create_user(is_superuser=True)
@@ -50,7 +50,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
-    def test_simple(self, mock_is_login_provider):
+    def test_simple(self, mock_is_login_provider: MagicMock) -> None:
         self._setup_identities()
 
         response = self.get_success_response(self.user.id, status_code=200)
@@ -82,7 +82,9 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
-    def test_superuser_can_fetch_other_users_identities(self, mock_is_login_provider):
+    def test_superuser_can_fetch_other_users_identities(
+        self, mock_is_login_provider: MagicMock
+    ) -> None:
         self.login_as(self.superuser, superuser=True)
 
         self._setup_identities()
@@ -96,7 +98,9 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
-    def test_staff_can_fetch_other_users_identities(self, mock_is_login_provider):
+    def test_staff_can_fetch_other_users_identities(
+        self, mock_is_login_provider: MagicMock
+    ) -> None:
         self.login_as(self.staff_user, staff=True)
 
         self._setup_identities()
@@ -110,7 +114,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
-    def test_identity_needed_for_global_auth(self, mock_is_login_provider):
+    def test_identity_needed_for_global_auth(self, mock_is_login_provider: MagicMock) -> None:
         self.user.update(password="")
         identity = Identity.objects.create(user=self.user, idp=self.github_idp)
         self.login_as(self.user)
@@ -152,7 +156,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
             response_idents[self.google_idp.type]["status"] == "needed_for_global_auth"
         ), "Remaining login identity"
 
-    def test_org_identity_can_be_deleted_if_not_required(self):
+    def test_org_identity_can_be_deleted_if_not_required(self) -> None:
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
@@ -164,7 +168,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert identity["category"] == "org-identity"
         assert identity["status"] == "can_disconnect"
 
-    def test_org_identity_used_for_global_auth(self):
+    def test_org_identity_used_for_global_auth(self) -> None:
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
@@ -177,7 +181,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert identity["category"] == "org-identity"
         assert identity["status"] == "needed_for_global_auth"
 
-    def test_org_requirement_precedes_global_auth(self):
+    def test_org_requirement_precedes_global_auth(self) -> None:
         """Check that needed_for_org_auth takes precedence over
         needed_for_global_auth if both are true.
         """
@@ -218,7 +222,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         assert org_ident["status"] == "needed_for_org_auth"
         assert org_ident["organization"]["id"] == str(self.organization.id)
 
-    def test_get(self):
+    def test_get(self) -> None:
         social_obj, global_obj, org_obj = self._setup_identities()
 
         social_ident = self.get_success_response(
@@ -236,7 +240,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         assert org_ident["id"] == str(org_obj.id)
         self._verify_identities(social_ident, global_ident, org_ident)
 
-    def test_superuser_can_fetch_other_users_identity(self):
+    def test_superuser_can_fetch_other_users_identity(self) -> None:
         self.login_as(self.superuser, superuser=True)
         social_obj, global_obj, org_obj = self._setup_identities()
 
@@ -255,7 +259,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         assert org_ident["id"] == str(org_obj.id)
         self._verify_identities(social_ident, global_ident, org_ident)
 
-    def test_staff_can_fetch_other_users_identity(self):
+    def test_staff_can_fetch_other_users_identity(self) -> None:
         self.login_as(self.staff_user, staff=True)
         social_obj, global_obj, org_obj = self._setup_identities()
 
@@ -274,7 +278,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         assert org_ident["id"] == str(org_obj.id)
         self._verify_identities(social_ident, global_ident, org_ident)
 
-    def test_enforces_ownership_by_user(self):
+    def test_enforces_ownership_by_user(self) -> None:
         another_user = self.create_user()
         their_identity = Identity.objects.create(user=another_user, idp=self.github_idp)
 
@@ -288,7 +292,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "delete"
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
@@ -307,7 +311,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_success_response(self.user.id, "org-identity", str(org_obj.id), status_code=204)
         assert not AuthIdentity.objects.filter(id=org_obj.id).exists()
 
-    def test_superuser_can_delete_other_users_identity(self):
+    def test_superuser_can_delete_other_users_identity(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
@@ -327,7 +331,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_success_response(self.user.id, "org-identity", str(org_obj.id), status_code=204)
         assert not AuthIdentity.objects.filter(id=org_obj.id).exists()
 
-    def test_staff_can_delete_other_users_identity(self):
+    def test_staff_can_delete_other_users_identity(self) -> None:
         self.login_as(self.staff_user, staff=True)
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
@@ -347,7 +351,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_success_response(self.user.id, "org-identity", str(org_obj.id), status_code=204)
         assert not AuthIdentity.objects.filter(id=org_obj.id).exists()
 
-    def test_enforces_ownership_by_user(self):
+    def test_enforces_ownership_by_user(self) -> None:
         another_user = self.create_user()
         their_identity = Identity.objects.create(user=another_user, idp=self.github_idp)
 
@@ -356,7 +360,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         )
         assert Identity.objects.get(id=their_identity.id)
 
-    def test_enforces_needed_for_org_access(self):
+    def test_enforces_needed_for_org_access(self) -> None:
         ident_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
         self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=403)
         assert AuthIdentity.objects.get(id=ident_obj.id)
@@ -365,7 +369,9 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
-    def test_enforces_global_ident_needed_for_login(self, mock_is_login_provider):
+    def test_enforces_global_ident_needed_for_login(
+        self, mock_is_login_provider: MagicMock
+    ) -> None:
         self.user.update(password="")
         self.login_as(self.user)
 
@@ -373,7 +379,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_error_response(self.user.id, "global-identity", str(ident_obj.id), status_code=403)
         assert Identity.objects.get(id=ident_obj.id)
 
-    def test_enforces_org_ident_needed_for_login(self):
+    def test_enforces_org_ident_needed_for_login(self) -> None:
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 

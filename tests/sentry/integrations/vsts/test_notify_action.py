@@ -25,7 +25,7 @@ pytestmark = [requires_snuba]
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         integration, _, _, _ = self.create_identity_integration(
             user=self.user,
             organization=self.organization,
@@ -46,7 +46,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         self.integration = VstsIntegration(integration, self.organization.id)
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
         azuredevops_rule = self.get_rule(
@@ -83,7 +83,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert external_issue
 
     @responses.activate
-    def test_doesnt_create_issue(self):
+    def test_doesnt_create_issue(self) -> None:
         """Don't create an issue if one already exists on the event"""
 
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
@@ -125,7 +125,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         results[0].callback(event, futures=[])
         assert len(responses.calls) == 0
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         azuredevops_rule = self.get_rule(
             data={
                 "integration": self.integration.model.id,
@@ -179,7 +179,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             == """Create an Azure DevOps work item in fabrikam-fiber-inc with these """
         )
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="vsts",

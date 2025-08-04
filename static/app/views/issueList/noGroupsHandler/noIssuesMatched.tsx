@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import campingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';

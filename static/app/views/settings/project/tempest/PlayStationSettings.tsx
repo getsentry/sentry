@@ -48,10 +48,10 @@ export default function PlayStationSettings({organization, project}: Props) {
     {id: number}
   >({
     mutationFn: ({id}) =>
-      fetchMutation([
-        'DELETE',
-        `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
-      ]),
+      fetchMutation({
+        method: 'DELETE',
+        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
+      }),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
@@ -90,7 +90,7 @@ export default function PlayStationSettings({organization, project}: Props) {
     <Fragment>
       {credentialErrors && credentialErrors?.length > 0 && (
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {t('There was a problem with following credentials:')}
             <List symbol="bullet">
               {credentialErrors.map(credential => (
@@ -166,7 +166,7 @@ export const getPlayStationHeaderAction = (
   project: Project
 ) => (
   <Fragment>
-    <ButtonBar gap={1.5}>
+    <ButtonBar gap="lg">
       <FeedbackWidgetButton />
       <RequestSdkAccessButton organization={organization} project={project} />
       <Tooltip

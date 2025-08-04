@@ -42,6 +42,7 @@ import {
 import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
+  isByteCategory,
   isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
@@ -235,10 +236,9 @@ export function calculateCategoryPrepaidUsage(
     // Convert prepaid limits to the appropriate unit based on category
     prepaidTotal =
       prepaid *
-      (category === DataCategory.ATTACHMENTS
+      (isByteCategory(category)
         ? GIGABYTE
-        : category === DataCategory.PROFILE_DURATION ||
-            category === DataCategory.PROFILE_DURATION_UI
+        : isContinuousProfiling(category)
           ? MILLISECONDS_IN_HOUR
           : 1);
   }

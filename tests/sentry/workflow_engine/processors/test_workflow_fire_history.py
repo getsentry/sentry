@@ -5,7 +5,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestWorkflowFireHistory(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -20,9 +20,12 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def test_create_workflow_fire_histories(self):
+    def test_create_workflow_fire_histories(self) -> None:
         create_workflow_fire_histories(
-            self.detector, Action.objects.filter(id=self.action.id), self.event_data
+            self.detector,
+            Action.objects.filter(id=self.action.id),
+            self.event_data,
+            is_single_processing=True,
         )
         assert (
             WorkflowFireHistory.objects.filter(
@@ -30,6 +33,7 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
+                is_single_written=True,
             ).count()
             == 1
         )

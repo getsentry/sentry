@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectEnvironmentsTest(APITestCase):
-    def test_get(self):
+    def test_get(self) -> None:
         project = self.create_project()
 
         environment = Environment.objects.create(
@@ -50,7 +50,7 @@ class ProjectEnvironmentsTest(APITestCase):
             == 404
         )
 
-    def test_put(self):
+    def test_put(self) -> None:
         project = self.create_project()
 
         environment = Environment.objects.create(
@@ -104,7 +104,7 @@ class ProjectEnvironmentsTest(APITestCase):
             == 404
         )
 
-    def test_escaped_character_put(self):
+    def test_escaped_character_put(self) -> None:
         project = self.create_project()
 
         # "/" character will have to be escaped in url path

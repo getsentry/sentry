@@ -3,7 +3,7 @@ import pytest
 from sentry.utils.datastructures import BidirectionalMapping
 
 
-def test_bidirectional_mapping():
+def test_bidirectional_mapping() -> None:
     value = BidirectionalMapping({"a": 1, "b": 2})
 
     assert value["a"] == 1

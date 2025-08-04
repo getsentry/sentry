@@ -55,7 +55,7 @@ describe('ScreenLoadSpansTable', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['span.op', 'count()'],
           per_page: 25,
@@ -74,15 +74,15 @@ describe('ScreenLoadSpansTable', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',
             'span.op',
             'span.group',
             'span.description',
-            'avg_if(span.self_time,release,io.sentry.samples.android@7.0.0+2)',
-            'avg_if(span.self_time,release,io.sentry.samples.android@6.27.0+2)',
+            'avg_if(span.self_time,release,equals,io.sentry.samples.android@7.0.0+2)',
+            'avg_if(span.self_time,release,equals,io.sentry.samples.android@6.27.0+2)',
             'ttid_contribution_rate()',
             'ttfd_contribution_rate()',
             'count()',

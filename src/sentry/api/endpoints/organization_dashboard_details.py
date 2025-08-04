@@ -24,7 +24,14 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
@@ -133,7 +140,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         },
         examples=DashboardExamples.DASHBOARD_PUT_RESPONSE,
     )
-    def put(self, request: Request, organization, dashboard) -> Response:
+    def put(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Edit an organization's custom dashboard as well as any bulk
         edits on widgets that may have been made. (For example, widgets
@@ -196,6 +203,18 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
+        org_member = OrganizationMember.objects.filter(
+            user_id=request.user.pk, organization_id=organization.id
+        ).first()
+        if not org_member:
+            return Response(status=403)
+
+        DashboardLastVisited.objects.create_or_update(
+            dashboard=dashboard,
+            member=org_member,
+            values={"last_visited": timezone.now()},
+        )
+
         return Response(status=204)
 
 
@@ -209,7 +228,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def put(self, request: Request, organization, dashboard) -> Response:
+    def put(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites

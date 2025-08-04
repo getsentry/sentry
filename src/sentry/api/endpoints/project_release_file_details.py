@@ -15,6 +15,7 @@ from sentry.api.endpoints.project_release_files import pseudo_releasefile
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import decode_release_file_id
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, delete_from_artifact_index, read_artifact_index
@@ -114,7 +115,9 @@ class ReleaseFileDetailsMixin:
             raise ResourceDoesNotExist
         if isinstance(id, int):
             try:
-                return ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
+                releasefile = ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
+                maybe_renew_releasefiles([releasefile])
+                return releasefile
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
         else:

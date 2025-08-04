@@ -51,14 +51,14 @@ export function useLocationSyncedState<T extends Decoder>(key: string, decoder: 
 
   const updateLocation = useCallback(
     (updater: (query: LocationDescriptorObject) => LocationDescriptor) => {
-      // We need to operate on the up-to-date location, to avoid race conditions
-      const previousLocation = {
-        ...window.location,
-        query: {
-          ...qs.parse(window.location.search),
-        },
-      };
       startTransition(() => {
+        // We need to operate on the up-to-date location, to avoid race conditions
+        const previousLocation = {
+          ...window.location,
+          query: {
+            ...qs.parse(window.location.search),
+          },
+        };
         navigate(updater(previousLocation), {replace: true, preventScrollReset: true});
       });
     },

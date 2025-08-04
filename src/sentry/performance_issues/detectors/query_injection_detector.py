@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -85,7 +85,7 @@ class QueryInjectionDetector(PerformanceDetector):
         )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
-            type=DBQueryInjectionVulnerabilityGroupType,
+            type=QueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
             desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
@@ -131,11 +131,17 @@ class QueryInjectionDetector(PerformanceDetector):
             return False
 
         description = span.get("description", None)
+
         if not description:
             return False
+
+        sql_keywords = ("SELECT", "UPDATE", "INSERT")
+        if any(description.upper().startswith(keyword) for keyword in sql_keywords):
+            return False
+
         return True
 
     def _fingerprint(self, description: str) -> str:
         signature = description.encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{DBQueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"
+        return f"1-{QueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"

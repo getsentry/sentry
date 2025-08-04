@@ -6,12 +6,12 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class BitbucketDescriptorEndpointTest(APITestCase):
-    def test_default_permissions(self):
+    def test_default_permissions(self) -> None:
         # Permissions must be empty so that it will be accessible to bitbucket.
         assert BitbucketDescriptorEndpoint.authentication_classes == ()
         assert BitbucketDescriptorEndpoint.permission_classes == ()
 
-    def test_response(self):
+    def test_response(self) -> None:
         response = self.client.get("/extensions/bitbucket/descriptor/")
         assert response.status_code == 200
 

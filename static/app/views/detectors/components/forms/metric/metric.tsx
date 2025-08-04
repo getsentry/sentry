@@ -1,8 +1,7 @@
-import {useContext, useMemo} from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -12,7 +11,6 @@ import FormContext from 'sentry/components/forms/formContext';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -27,15 +25,21 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
-import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
+  metricDetectorFormDataToEndpointPayload,
+  metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
@@ -58,9 +62,10 @@ function MetricDetectorForm() {
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
     <EditDetectorLayout
-      detectorType="metric_issue"
       detector={detector}
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      savedDetectorToFormData={metricSavedDetectorToFormData}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -72,14 +77,16 @@ export function NewMetricDetectorForm() {
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>
   );
 }
 
-function MonitorKind() {
-  const options: Array<[MetricDetectorFormData['kind'], string, string]> = [
+function DetectionType() {
+  const options: Array<[MetricDetectorFormData['detectionType'], string, string]> = [
     ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
     ['percent', t('Change'), t('Percentage changes over defined time windows.')],
     [
@@ -89,20 +96,29 @@ function MonitorKind() {
     ],
   ];
 
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  // Disable choices for releases dataset, does not support
+  if (dataset === DetectorDataset.RELEASES) {
+    return null;
+  }
+
   return (
-    <MonitorKindField
+    <DetectionTypeField
       label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
-      name={METRIC_DETECTOR_FORM_FIELDS.kind}
+      name={METRIC_DETECTOR_FORM_FIELDS.detectionType}
       defaultValue="threshold"
       choices={options}
+      preserveOnUnmount
     />
   );
 }
 
 function ResolveSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   const conditionValue = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionValue
   );
@@ -118,7 +134,7 @@ function ResolveSection() {
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const description = getResolutionDescription(
-    kind === 'percent'
+    detectionType === 'percent'
       ? {
           detectionType: 'percent',
           conditionType,
@@ -126,7 +142,7 @@ function ResolveSection() {
           comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
           thresholdSuffix,
         }
-      : kind === 'static'
+      : detectionType === 'static'
         ? {
             detectionType: 'static',
             conditionType,
@@ -146,52 +162,62 @@ function ResolveSection() {
   );
 }
 
-function AutomateSection() {
-  return (
-    <Container>
-      <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
-        <Button
-          size="md"
-          style={{width: 'min-content'}}
-          priority="primary"
-          icon={<IconAdd />}
-        >
-          {t('Connect Automations')}
-        </Button>
-      </Section>
-    </Container>
-  );
-}
-
-function AssignSection() {
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-
-  return (
-    <Container>
-      <Section title={t('Assign')}>
-        <AssigneeField projectId={projectId} />
-      </Section>
-    </Container>
-  );
-}
-
 function PrioritizeSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   return (
     <Container>
       <Section
         title={t('Prioritize')}
         description={
-          kind === 'dynamic'
+          detectionType === 'dynamic'
             ? t('Sentry will automatically update priority.')
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && (
+        {detectionType !== 'dynamic' && (
           <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
         )}
       </Section>
     </Container>
+  );
+}
+
+function IntervalPicker() {
+  const formContext = useContext(FormContext);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const intervalChoices = useIntervalChoices({dataset, detectionType});
+  const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
+
+  useEffect(() => {
+    if (!intervalChoices.some(choice => choice[0] === interval)) {
+      formContext.form?.setValue(
+        METRIC_DETECTOR_FORM_FIELDS.interval,
+        intervalChoices[0]![0]
+      );
+    }
+  }, [intervalChoices, formContext.form, interval, dataset]);
+
+  return (
+    <IntervalField
+      placeholder={t('Interval')}
+      flexibleControlStateSize
+      inline={false}
+      label={
+        <Tooltip
+          title={t('The time period over which to evaluate your metric.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Interval')}</SectionLabel>
+        </Tooltip>
+      }
+      name={METRIC_DETECTOR_FORM_FIELDS.interval}
+      choices={intervalChoices}
+    />
   );
 }
 
@@ -211,7 +237,7 @@ function useDatasetChoices() {
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
-      ...(organization.features.includes('ourlogs-alerts')
+      ...(hasLogAlerts(organization)
         ? [
             {
               value: DetectorDataset.LOGS,
@@ -228,7 +254,9 @@ function useDatasetChoices() {
 }
 
 function DetectSection() {
-  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const detectionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.detectionType
+  );
   const datasetChoices = useDatasetChoices();
   const formContext = useContext(FormContext);
   const aggregate = useMetricDetectorFormField(
@@ -264,42 +292,27 @@ function DetectSection() {
                 METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
                 defaultAggregate
               );
+
+              // Reset detection type to static for releases dataset
+              if (newDataset === DetectorDataset.RELEASES) {
+                formContext.form?.setValue(
+                  METRIC_DETECTOR_FORM_FIELDS.detectionType,
+                  'static'
+                );
+              }
             }}
           />
-          <IntervalField
-            placeholder={t('Interval')}
-            flexibleControlStateSize
-            inline={false}
-            label={
-              <Tooltip
-                title={t('The time period over which to evaluate your metric.')}
-                showUnderline
-              >
-                <SectionLabel>{t('Interval')}</SectionLabel>
-              </Tooltip>
-            }
-            name={METRIC_DETECTOR_FORM_FIELDS.interval}
-            choices={[
-              // TODO: We will probably need to change these options based on dataset
-              // Similar to metric alerts see static/app/views/alerts/rules/metric/constants.tsx
-              [60, t('1 minute')],
-              [5 * 60, t('5 minutes')],
-              [15 * 60, t('15 minutes')],
-              [30 * 60, t('30 minutes')],
-              [60 * 60, t('1 hour')],
-              [4 * 60 * 60, t('4 hours')],
-              [24 * 60 * 60, t('1 day')],
-            ]}
-          />
+          <IntervalPicker />
         </DatasetRow>
         <Visualize />
-        <MonitorKind />
+        <DetectionType />
         <Flex direction="column">
-          {(!kind || kind === 'static') && (
+          {(!detectionType || detectionType === 'static') && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap={space(1)}>
+              <Flex align="center" gap="md">
                 <DirectionField
+                  aria-label={t('Threshold direction')}
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
@@ -314,6 +327,7 @@ function DetectSection() {
                   preserveOnUnmount
                 />
                 <ThresholdField
+                  aria-label={t('Threshold')}
                   flexibleControlStateSize
                   inline={false}
                   hideLabel
@@ -326,12 +340,13 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'percent' && (
+          {detectionType === 'percent' && (
             <Flex direction="column">
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap={space(1)}>
+              <Flex align="center" gap="md">
                 <ChangePercentField
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
+                  aria-label={t('Initial threshold')}
                   placeholder="0"
                   hideLabel
                   inline
@@ -377,7 +392,7 @@ function DetectSection() {
               </Flex>
             </Flex>
           )}
-          {kind === 'dynamic' && (
+          {detectionType === 'dynamic' && (
             <Flex direction="column">
               <SelectField
                 required
@@ -454,7 +469,7 @@ const DirectionField = styled(SelectField)`
   }
 `;
 
-const MonitorKindField = styled(SegmentedRadioField)`
+const DetectionTypeField = styled(SegmentedRadioField)`
   padding-left: 0;
   padding-block: ${space(1)};
   border-bottom: none;

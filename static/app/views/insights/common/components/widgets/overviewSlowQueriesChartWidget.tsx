@@ -13,8 +13,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -44,7 +44,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
 
   const fullQuery = `has:db.system has:span.group ${query}`;
 
-  const queriesRequest = useEAPSpans(
+  const queriesRequest = useSpans(
     {
       fields: [
         'span.op',
@@ -62,7 +62,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
     Referrer.QUERIES_CHART
   );
 
-  const timeSeriesRequest = useTopNSpanEAPSeries(
+  const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,

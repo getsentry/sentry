@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -19,6 +20,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -74,16 +76,26 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
+    enforce_rate_limit = True
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                limit=100, window=60
+            ),  # 100 requests per minute per org
+        }
+    }
+
     def post(self, request: Request, project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
 
         analytics.record(
-            "preprod_artifact.api.assemble",
-            organization_id=project.organization_id,
-            project_id=project.id,
-            user_id=request.user.id,
+            PreprodArtifactApiAssembleEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+            )
         )
 
         if not settings.IS_DEV and not features.has(

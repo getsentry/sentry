@@ -56,6 +56,13 @@ function SortableHeader({
   const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow size="xs" direction={arrowDirection} />;
 
+  // Remove cursor and navigation params when sorting to start from first page
+  const {
+    cursor: _cursor,
+    navigation: _navigation,
+    ...queryWithoutPagination
+  } = location.query;
+
   return (
     <HeaderCell alignment={alignment}>
       <StyledLink
@@ -70,7 +77,7 @@ function SortableHeader({
         to={{
           pathname: location.pathname,
           query: {
-            ...location.query,
+            ...queryWithoutPagination,
             sort: sort?.field.endsWith(fieldName)
               ? sort?.kind === 'desc'
                 ? fieldName

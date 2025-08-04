@@ -22,7 +22,8 @@ import {
   getErrorCellIssuesLink,
 } from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'command', name: t('Command Name'), width: COL_WIDTH_UNDEFINED},
@@ -42,8 +43,9 @@ const rightAlignColumns = new Set([
 ]);
 
 export function CommandsTable() {
-  const tableDataRequest = useTableData({
-    query: 'span.op:console.command*',
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `span.op:console.command* ${query ?? ''}`.trim(),
     fields: [
       'command',
       'project.id',
@@ -53,7 +55,7 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
+    cursorParamName: 'commandsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 

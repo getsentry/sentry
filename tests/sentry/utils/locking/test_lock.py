@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -10,7 +10,7 @@ from sentry.utils.locking.lock import Lock
 
 
 class LockTestCase(unittest.TestCase):
-    def test_procedural_interface(self):
+    def test_procedural_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
@@ -31,7 +31,7 @@ class LockTestCase(unittest.TestCase):
         with pytest.raises(UnableToAcquireLock):
             lock.acquire()
 
-    def test_context_manager_interface(self):
+    def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
@@ -46,7 +46,7 @@ class LockTestCase(unittest.TestCase):
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
     @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
-    def test_blocking_acquire(self, mock_acquire, mock_random):
+    def test_blocking_acquire(self, mock_acquire: MagicMock, mock_random: MagicMock) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60

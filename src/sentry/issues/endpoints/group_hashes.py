@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from functools import partial
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -17,6 +19,11 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
+
+
+class GroupHashesResult(TypedDict):
+    id: str
+    latestEvent: Any
 
 
 @region_silo_endpoint
@@ -99,15 +106,25 @@ class GroupHashesEndpoint(GroupEndpoint):
         return Response(status=202)
 
     def __handle_results(
-        self, project_id, group_id, user: User | RpcUser | AnonymousUser | None, full, results
-    ):
+        self,
+        project_id: int,
+        group_id: int,
+        user: User | RpcUser | AnonymousUser | None,
+        full: str | bool,
+        results: Sequence[dict[str, str]],
+    ) -> list[GroupHashesResult]:
         return [
             self.__handle_result(user, project_id, group_id, full, result) for result in results
         ]
 
     def __handle_result(
-        self, user: User | RpcUser | AnonymousUser | None, project_id, group_id, full, result
-    ):
+        self,
+        user: User | RpcUser | AnonymousUser | None,
+        project_id: int,
+        group_id: int,
+        full: str | bool,
+        result: dict[str, str],
+    ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
 
         serializer = EventSerializer if full else SimpleEventSerializer

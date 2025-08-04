@@ -985,6 +985,8 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
  */
 export type FormSize = 'xs' | 'sm' | 'md';
 
+export type Space = keyof Theme['space'];
+
 export type FormTheme = {
   form: Record<
     FormSize,
@@ -1090,6 +1092,42 @@ const iconSizes: Record<Size, string> = {
   '2xl': '72px',
 } as const;
 
+const space = {
+  '0': '0px',
+  /**
+   * Equivalent to deprecated `space(0.25)`
+   */
+  '2xs': '2px',
+  /**
+   * Equivalent to deprecated `space(0.5)`
+   */
+  xs: '4px',
+  /**
+   * Equivalent to deprecated `space(0.75)`
+   */
+  sm: '6px',
+  /**
+   * Equivalent to deprecated `space(1)`
+   */
+  md: '8px',
+  /**
+   * Equivalent to deprecated `space(1.5)`
+   */
+  lg: '12px',
+  /**
+   * Equivalent to deprecated `space(2)`
+   */
+  xl: '16px',
+  /**
+   * Equivalent to deprecated `space(3)` (was `20px`)
+   */
+  '2xl': '24px',
+  /**
+   * Equivalent to deprecated `space(4)` (was `30px`)
+   */
+  '3xl': '32px',
+} as const;
+
 /**
  * Values shared between light and dark theme
  */
@@ -1098,6 +1136,8 @@ const commonTheme = {
 
   ...lightColors,
   ...lightShadows,
+
+  space,
 
   // Icons
   iconSizes,
@@ -1172,14 +1212,14 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
-
   fontSize: {
-    xs: '11px' as const,
-    sm: '12px' as const,
-    md: '14px' as const,
-    lg: '16px' as const,
-    xl: '18px' as const,
-  },
+    xs: '11px',
+    sm: '12px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+    '2xl': '20px',
+  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
 
   fontWeight: {
     normal: 400 as const,
@@ -1236,14 +1276,6 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: lightColors.gray200,
     colors: CHART_PALETTE,
@@ -1297,14 +1329,6 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  tour: {
-    background: darkColors.purple300,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
     neutral: darkColors.gray200,
     colors: CHART_PALETTE,
@@ -1323,7 +1347,7 @@ export const darkTheme: typeof lightTheme = {
 
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
-export type IconSize = Size;
+export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;

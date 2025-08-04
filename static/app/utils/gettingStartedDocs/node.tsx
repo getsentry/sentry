@@ -1,5 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -197,6 +197,13 @@ Sentry.init({
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Send structured logs to Sentry
+  enableLogs: true,`
+      : ''
   }
 
   // Setting this option to true will send default PII data to Sentry.
@@ -359,7 +366,7 @@ export const getNodeAgentMonitoringOnboarding = ({
   basePackage?: string;
 } = {}): OnboardingConfig => ({
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {

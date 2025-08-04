@@ -191,12 +191,9 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
   };
 
   const renderObservabilityProductBreakdown = () => {
-    const paygCategories = [
-      DataCategory.MONITOR_SEATS,
-      DataCategory.PROFILE_DURATION,
-      DataCategory.PROFILE_DURATION_UI,
-      DataCategory.UPTIME,
-    ];
+    const paygCategories = activePlan.onDemandCategories.filter(
+      category => activePlan.planCategories[category]?.length === 1
+    );
 
     const budgetCategories = Object.values(
       activePlan.availableReservedBudgetTypes

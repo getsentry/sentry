@@ -9,7 +9,7 @@ from sentry.utils.outcomes import Outcome
 
 @freeze_time("2022-01-01 03:30:00")
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.key = ProjectKey.objects.create(project=self.project)
@@ -17,7 +17,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
     @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/54520")
-    def test_simple(self):
+    def test_simple(self) -> None:
         # This outcome should not be included.
         other_key = ProjectKey.objects.create(project=self.project)
         self.store_outcomes(
@@ -86,7 +86,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert result["accepted"] == 2, response.data
 
     @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/46402")
-    def test_ignore_discard(self):
+    def test_ignore_discard(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -120,13 +120,13 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert result["total"] == 2, response.data
         assert result["filtered"] == 0, response.data
 
-    def test_invalid_parameters(self):
+    def test_invalid_parameters(self) -> None:
         url = self.path + "?resolution=2d"
         response = self.client.get(url)
         assert response.status_code == 400
 
     @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/46402")
-    def test_date_conditions(self):
+    def test_date_conditions(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,

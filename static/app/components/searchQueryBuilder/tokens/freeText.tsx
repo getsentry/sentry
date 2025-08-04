@@ -253,11 +253,6 @@ function SearchQueryBuilderInputInternal({
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, []);
 
-  const resetInputValue = useCallback(() => {
-    setInputValue(trimmedTokenValue);
-    updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex]);
-
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
   const {
@@ -270,7 +265,14 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    setCurrentInputValue,
   } = useSearchQueryBuilder();
+
+  const resetInputValue = useCallback(() => {
+    setInputValue(trimmedTokenValue);
+    setCurrentInputValue(trimmedTokenValue);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -394,7 +396,7 @@ function SearchQueryBuilderInputInternal({
         onOptionSelected={option => {
           if (handleOptionSelected) {
             handleOptionSelected(option);
-            if (option.type === 'ask-seer') {
+            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
               return;
             }
           }
@@ -431,7 +433,11 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (option.type === 'raw-search-filter-value' && option.textValue) {
+          if (
+            (option.type === 'raw-search-filter-is-value' ||
+              option.type === 'raw-search-filter-has-value') &&
+            option.textValue
+          ) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -613,6 +619,7 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
+          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}

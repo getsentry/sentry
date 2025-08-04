@@ -10,7 +10,7 @@ class ProjectGroupingConfigsTest(APITestCase):
 
     endpoint = "sentry-api-0-project-grouping-configs"
 
-    def test_permissions(self):
+    def test_permissions(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
         url = reverse(self.endpoint, args=(self.project.organization.slug, self.project.slug))

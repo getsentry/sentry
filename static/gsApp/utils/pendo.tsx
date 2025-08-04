@@ -26,6 +26,8 @@ const SIZES = {
 const CUSTOM_BUCKET_FIELDS = {
   arr: getReservedTotalFromSubscription,
   accountCredit: getAccountCredit,
+  reservedTransactions: getReservedTransactions,
+  reservedErrors: getReservedErrors,
 };
 type CustomFields = keyof typeof CUSTOM_BUCKET_FIELDS;
 type Size = (typeof SIZES)[keyof typeof SIZES];
@@ -251,6 +253,14 @@ function getBucketValue(value: number, buckets: BucketRecord): Size {
   return SIZES.XXXLARGE;
 }
 
+function getReservedErrors(subscription: Subscription) {
+  return subscription.categories.errors?.reserved ?? 0;
+}
+
+function getReservedTransactions(subscription: Subscription) {
+  return subscription.categories.transactions?.reserved ?? 0;
+}
+
 /**
  * Get the value in dollars of the current subscription as the input and divide by 100
  */
@@ -278,5 +288,5 @@ function getTrialDaysLeftFromSub(subscription: Subscription) {
 
 // consider the org if they have at least 5m reserved transactions
 function getConsiderForDsUpsell(subscription: Subscription) {
-  return (subscription.reservedTransactions || 0) >= 5_000_000;
+  return (subscription.categories.transactions?.reserved ?? 0) >= 5_000_000;
 }

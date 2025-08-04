@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
-def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
+def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = False) -> list[Span]:
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -65,7 +65,10 @@ def process_segment(unprocessed_spans: list[SegmentSpan]) -> list[Span]:
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
-    _track_outcomes(segment_span, spans)
+
+    # Only track outcomes if we're actually producing the spans
+    if not skip_produce:
+        _track_outcomes(segment_span, spans)
 
     return spans
 

@@ -17,6 +17,7 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   hasCategoryFeature,
+  isByteCategory,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -398,5 +399,14 @@ describe('listDisplayNames', function () {
     ).toBe(
       'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
     );
+  });
+});
+
+describe('isByteCategory', function () {
+  it('verifies isByteCategory function handles both ATTACHMENTS and LOG_BYTE', function () {
+    expect(isByteCategory(DataCategory.ATTACHMENTS)).toBe(true);
+    expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
+    expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
+    expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
   });
 });

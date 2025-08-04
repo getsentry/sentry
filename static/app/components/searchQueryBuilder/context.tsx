@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
@@ -28,7 +29,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  autoSubmitSeer: boolean;
   committedQuery: string;
+  currentInputValue: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
@@ -39,7 +42,7 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  genAIConsent: boolean;
+  gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -48,10 +51,13 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setAutoSubmitSeer: (enabled: boolean) => void;
+  setCurrentInputValue: (value: string) => void;
   setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   filterKeyAliases?: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -81,7 +87,7 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
-  enableAISearch,
+  enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -97,13 +103,19 @@ export function SearchQueryBuilderProvider({
   getFilterTokenWarning,
   portalTarget,
   replaceRawSearchKeys,
+  matchKeySuggestions,
   filterKeyAliases,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const organization = useOrganization();
-  const genAIConsent = organization?.genAIConsent ?? false;
+
+  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
+
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
+  const [currentInputValue, setCurrentInputValue] = useState('');
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -167,8 +179,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
-      enableAISearch: Boolean(enableAISearch),
-      genAIConsent,
+      enableAISearch,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -188,8 +199,14 @@ export function SearchQueryBuilderProvider({
       portalTarget,
       displaySeerResults,
       setDisplaySeerResults,
+      autoSubmitSeer,
+      setAutoSubmitSeer,
       replaceRawSearchKeys,
+      matchKeySuggestions,
       filterKeyAliases,
+      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      currentInputValue,
+      setCurrentInputValue,
     };
   }, [
     disabled,
@@ -197,11 +214,11 @@ export function SearchQueryBuilderProvider({
     disallowWildcard,
     dispatch,
     displaySeerResults,
+    autoSubmitSeer,
     enableAISearch,
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
-    genAIConsent,
     getTagValues,
     handleSearch,
     parseQuery,
@@ -210,12 +227,16 @@ export function SearchQueryBuilderProvider({
     portalTarget,
     recentSearches,
     replaceRawSearchKeys,
+    matchKeySuggestions,
     searchSource,
+    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,
     stableGetSuggestedFilterKey,
     state,
+    currentInputValue,
+    setCurrentInputValue,
   ]);
 
   return (

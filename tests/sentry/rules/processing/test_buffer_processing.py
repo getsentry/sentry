@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry import buffer
@@ -23,7 +23,7 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 
 
-def test_bucket_num_groups():
+def test_bucket_num_groups() -> None:
     assert bucket_num_groups(1) == "1"
     assert bucket_num_groups(50) == ">10"
     assert bucket_num_groups(101) == ">100"
@@ -31,7 +31,7 @@ def test_bucket_num_groups():
 
 @freeze_time(FROZEN_TIME)
 class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -109,7 +109,7 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.tag_filter = {
@@ -206,7 +206,7 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
 
 class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
     @patch("sentry.rules.processing.buffer_processing.process_in_batches")
-    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):
+    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches: MagicMock) -> None:
         self._push_base_events()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
@@ -228,7 +228,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
         "sentry.rules.processing.delayed_processing.DelayedRule.option",
         "delayed_processing.emit_logs",
     )
-    def test_skips_processing_with_option(self, mock_process_in_batches):
+    def test_skips_processing_with_option(self, mock_process_in_batches) -> None:
         self._push_base_events()
         process_buffer()
 
@@ -244,7 +244,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
 
 
 class ProcessInBatchesTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()
@@ -254,14 +254,14 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.rule = self.create_alert_rule()
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_no_redis_data(self, mock_apply_delayed):
+    def test_no_redis_data(self, mock_apply_delayed: MagicMock) -> None:
         process_in_batches(self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_basic(self, mock_apply_delayed):
+    def test_basic(self, mock_apply_delayed: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
@@ -273,7 +273,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
 
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_batch(self, mock_apply_delayed):
+    def test_batch(self, mock_apply_delayed: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)

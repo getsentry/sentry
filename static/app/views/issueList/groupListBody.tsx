@@ -117,13 +117,12 @@ function GroupList({
 
   return (
     <PanelBody>
-      {groupIds.map((id, index) => {
+      {groupIds.map(id => {
         const hasGuideAnchor = id === topIssue;
         const group = GroupStore.get(id) as Group | undefined;
 
         return (
           <StreamGroup
-            index={index}
             key={id}
             id={id}
             statsPeriod={groupStatsPeriod}

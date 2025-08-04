@@ -60,7 +60,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
 
         action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
             condition_group_id__in=Subquery(action_filter_data_condition_groups)
-        ).values_list("id", flat=True)
+        ).values_list("action_id", flat=True)
 
         actions = Action.objects.filter(
             id__in=Subquery(action_filter_data_condition_group_action_ids)

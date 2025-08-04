@@ -25,9 +25,10 @@ def build_mock_message(data, topic=None):
 
 @override_options({"spans.process-segments.consumer.enable": True})
 @mock.patch(
-    "sentry.spans.consumers.process_segments.factory.process_segment", side_effect=lambda x: x
+    "sentry.spans.consumers.process_segments.factory.process_segment",
+    side_effect=lambda x, **kwargs: x,
 )
-def test_segment_deserialized_correctly(mock_process_segment):
+def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) -> None:
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition_1 = Partition(topic, 0)
     partition_2 = Partition(topic, 1)

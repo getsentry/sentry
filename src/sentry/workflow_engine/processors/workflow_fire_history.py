@@ -20,7 +20,10 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
 def create_workflow_fire_histories(
-    detector: Detector, actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+    detector: Detector,
+    actions_to_fire: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    is_single_processing: bool,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
@@ -45,6 +48,7 @@ def create_workflow_fire_histories(
             workflow_id=workflow_id,
             group=event_data.group,
             event_id=event_id,
+            is_single_written=is_single_processing,
         )
         for workflow_id in workflow_ids
     ]

@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -34,20 +34,18 @@ import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
-import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}>;
 
-const InstallWizard = lazy(
-  () => import('sentry/views/admin/installWizard')
-  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
-) as unknown as React.ComponentType<InstallWizardProps>;
+const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
@@ -64,19 +62,31 @@ function App({children, params}: Props) {
   const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
-  const commandPaletteHotkeys = useMemo(() => {
-    if (isModalOpen) {
-      return [];
-    }
-    return [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: () => openCommandPalette(),
-      },
-    ];
-  }, [isModalOpen]);
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => openCommandPalette(),
+          },
+        ]
+  );
 
-  useHotkeys(commandPaletteHotkeys);
+  // Seer explorer panel hook and hotkeys
+  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
+
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+/', 'ctrl+/'],
+            callback: () => toggleExplorerPanel(),
+            includeInputs: true,
+          },
+        ]
+  );
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -263,6 +273,7 @@ function App({children, params}: Props) {
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
                       <GlobalModal onClose={handleModalClose} />
+                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </DemoToursProvider>

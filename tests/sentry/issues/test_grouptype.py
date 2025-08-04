@@ -9,7 +9,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MetricIssuePOC,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
     PerformanceNPlusOneGroupType,
@@ -173,14 +172,13 @@ class GroupRegistryTest(BaseGroupTypeTest):
         class UnreleasedGroupType(GroupType):
             type_id = 9999
             slug = "unreleased_group_type"
-            description = "Mcok unreleased issue group"
+            description = "Mock unreleased issue group"
             released = False
             category = GroupCategory.ERROR.value
             category_v2 = GroupCategory.ERROR.value
 
         registry = GroupTypeRegistry()
         registry.add(UnreleasedGroupType)
-        registry.add(MetricIssuePOC)
         assert registry.get_visible(self.organization) == []
         with self.feature(UnreleasedGroupType.build_visible_feature_name()):
             assert registry.get_visible(self.organization) == [UnreleasedGroupType]

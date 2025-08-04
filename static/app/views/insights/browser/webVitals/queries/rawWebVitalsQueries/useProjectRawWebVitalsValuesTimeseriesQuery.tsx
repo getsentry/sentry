@@ -3,8 +3,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -24,13 +24,13 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     search.addFilterValue('transaction', transaction);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  const result = useMetricsSeries(
+  const result = useSpanSeries(
     {
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       interval: getInterval(pageFilters.selection.datetime, 'spans-low'),

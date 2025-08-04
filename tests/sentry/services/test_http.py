@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class HTTPServiceTest(TestCase):
-    def test_convert(self):
+    def test_convert(self) -> None:
         options = {
             "true": True,
             "false": False,
@@ -27,7 +27,7 @@ class HTTPServiceTest(TestCase):
         ]
         assert set(convert_options_to_env(options)) == set(expected)
 
-    def test_options(self):
+    def test_options(self) -> None:
         cls = SentryHTTPServer
 
         server = cls(host="1.1.1.1", port=80)
@@ -70,7 +70,7 @@ class HTTPServiceTest(TestCase):
             assert "secure_scheme_headers" not in server.options
             assert "loglevel" not in server.options
 
-    def test_format_logs(self):
+    def test_format_logs(self) -> None:
         with self.options({"system.logging-format": "human"}):
             server = SentryHTTPServer()
             assert server.options["disable-logging"] is False

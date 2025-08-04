@@ -3,7 +3,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         event1 = self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -67,7 +67,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
 
-    def test_simple_performance(self):
+    def test_simple_performance(self) -> None:
         event = self.create_performance_issue(
             tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
             fingerprint="group5",
@@ -117,14 +117,14 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
 
-    def test_invalid_env(self):
+    def test_invalid_env(self) -> None:
         this_group = self.create_group()
         self.login_as(user=self.user)
         url = f"/api/0/issues/{this_group.id}/tags/"
         response = self.client.get(url, {"environment": "notreal"}, format="json")
         assert response.status_code == 404
 
-    def test_valid_env(self):
+    def test_valid_env(self) -> None:
         event = self.store_event(
             data={
                 "tags": {"foo": "bar", "biz": "baz"},
@@ -142,7 +142,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(response.data) == 4
         assert {tag["key"] for tag in response.data} == {"foo", "biz", "environment", "level"}
 
-    def test_multi_env(self):
+    def test_multi_env(self) -> None:
         min_ago = before_now(minutes=1)
         env = self.create_environment(project=self.project, name="prod")
         env2 = self.create_environment(project=self.project, name="staging")
@@ -173,7 +173,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.status_code == 200
         assert {tag["key"] for tag in response.data} >= {"biz", "environment", "foo"}
 
-    def test_readable_tag_values(self):
+    def test_readable_tag_values(self) -> None:
         event1 = self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -217,7 +217,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[2]["value"] == "random-model"
         assert "readable" not in top_values[2]
 
-    def test_limit(self):
+    def test_limit(self) -> None:
         for _ in range(3):
             self.store_event(
                 data={
@@ -260,7 +260,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[0]["value"] == "android"
         assert top_values[1]["value"] == "iOS"
 
-    def test_device_class(self):
+    def test_device_class(self) -> None:
         for _ in range(3):
             self.store_event(
                 data={
@@ -304,7 +304,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[1]["value"] == "low"
         assert top_values[2]["value"] == "medium"
 
-    def test_flags(self):
+    def test_flags(self) -> None:
         event1 = self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -401,7 +401,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[0]["key"] == "hello"
         assert data[1]["key"] == "world"
 
-    def test_flags_limit(self):
+    def test_flags_limit(self) -> None:
         for i in range(10):
             event = self.store_event(
                 data={
@@ -477,7 +477,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[1]["value"] == "4"
         assert top_values[2]["value"] == "7"
 
-    def test_flags_reserved_tag_key(self):
+    def test_flags_reserved_tag_key(self) -> None:
         # Flag backend should not handle reserved tag keys differently.
         # The `sentry:` prefix used for reserved tags should not be stripped from the input or stored.
         event1 = self.store_event(

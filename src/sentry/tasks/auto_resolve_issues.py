@@ -8,6 +8,7 @@ from typing import Any
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
@@ -60,7 +61,11 @@ def schedule_auto_resolution():
         if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
             continue
 
-        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+        auto_resolve_project_issues.apply_async(
+            args=[project_id],
+            expires=ONE_HOUR,
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @instrumented_task(
@@ -81,7 +86,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if not age:
         return
 
-    project.update_option("sentry:_last_auto_resolve", int(time()))
+    project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
 
     if cutoff:
         cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
@@ -138,12 +143,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
             analytics.record(
-                "issue.auto_resolved",
-                project_id=project.id,
-                organization_id=project.organization_id,
-                group_id=group.id,
-                issue_type=group.issue_type.slug,
-                issue_category=group.issue_category.name.lower(),
+                IssueAutoResolvedEvent(
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    group_id=group.id,
+                    issue_type=group.issue_type.slug,
+                    issue_category=group.issue_category.name.lower(),
+                )
             )
             # auto-resolve is a kind of resolve and this signal makes
             # sure all things that need to happen after resolve are triggered
@@ -158,6 +164,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
     if might_have_more:
-        auto_resolve_project_issues.delay(
-            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+        auto_resolve_project_issues.apply_async(
+            args=[project_id],
+            kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
+            expires=ONE_HOUR,
+            headers={"sentry-propagate-traces": False},
         )

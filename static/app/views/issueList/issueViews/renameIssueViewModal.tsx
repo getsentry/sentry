@@ -70,7 +70,9 @@ export function RenameIssueViewModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="error">{t('Something went wrong. Please try again.')}</Alert>
+            <Alert type="error" showIcon={false}>
+              {t('Something went wrong. Please try again.')}
+            </Alert>
           </Alert.Container>
         )}
         <TextField

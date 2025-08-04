@@ -379,6 +379,22 @@ def resolve_eps(
     return Function("divide", [Function("count", []), interval], alias)
 
 
+def resolve_upsampled_eps(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function(
+        "divide",
+        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]), interval],
+        alias,
+    )
+
+
 def resolve_epm(
     args: Mapping[str, str | Column | SelectType | int | float],
     alias: str,
@@ -391,5 +407,24 @@ def resolve_epm(
     return Function(
         "divide",
         [Function("count", []), Function("divide", [interval, 60])],
+        alias,
+    )
+
+
+def resolve_upsampled_epm(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function(
+        "divide",
+        [
+            Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]),
+            Function("divide", [interval, 60]),
+        ],
         alias,
     )

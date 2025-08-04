@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import Stacked from 'sentry/components/container/stacked';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -8,25 +9,19 @@ import {
   MinorGridlines,
 } from 'sentry/components/replays/breadcrumbs/gridlines';
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
-import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
-import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export default function ReplayTimeline() {
-  const {replay, currentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
-
-  const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useTimelineScrubberMouseTracking(
-    {elem: panelRef},
-    timelineScale
-  );
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -58,43 +53,52 @@ export default function ReplayTimeline() {
   };
 
   return (
-    <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
-      <Stacked
-        style={{
-          width: `${toPercent(timelineScale)}`,
-          transform: `translate(${toPercent(translate())}, 0%)`,
-        }}
-        ref={stackedRef}
-      >
-        <MinorGridlines durationMs={durationMs} width={width} />
+    <CenteredStack
+      style={{
+        width: `${toPercent(timelineScale)}`,
+        translate: `${toPercent(translate())} 0%`,
+      }}
+      ref={stackedRef}
+    >
+      <VisibleStack>
+        <VisiblePanel />
         <MajorGridlines durationMs={durationMs} width={width} />
-        <TimelineScrubber />
+        <MinorGridlines durationMs={durationMs} width={width} />
         <TimelineGaps
           durationMs={durationMs}
           startTimestampMs={startTimestampMs}
           videoEvents={videoEvents}
         />
-        <TimelineEventsContainer>
-          <ReplayTimelineEvents
-            durationMs={durationMs}
-            frames={chapterFrames}
-            startTimestampMs={startTimestampMs}
-            width={width}
-          />
-        </TimelineEventsContainer>
-      </Stacked>
-    </VisiblePanel>
+      </VisibleStack>
+
+      <TimelineScrubber />
+
+      <VisibleStack>
+        <ReplayTimelineEvents
+          durationMs={durationMs}
+          frames={chapterFrames}
+          startTimestampMs={startTimestampMs}
+          width={width}
+        />
+      </VisibleStack>
+    </CenteredStack>
   );
 }
 
-const VisiblePanel = styled(Panel)`
-  margin: 0;
-  border: 0;
-  overflow: hidden;
-  background: ${p => p.theme.translucentInnerBorder};
+const CenteredStack = styled(Stacked)`
+  align-items: center;
+  position: absolute;
 `;
 
-const TimelineEventsContainer = styled('div')`
-  padding-top: 10px;
-  padding-bottom: 10px;
+const VisibleStack = styled(Stacked)`
+  height: 100%;
+  width: 100%;
+`;
+
+const VisiblePanel = styled(Panel)`
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: ${p => p.theme.translucentInnerBorder};
 `;

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import zipfile
+from base64 import b64encode
 from io import BytesIO
 from os.path import join
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import msgpack
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -27,7 +29,6 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    encode_payload,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -301,7 +302,7 @@ def sample_v2_profile_samples_not_sorted():
 
 
 @django_db_all
-def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+def test_normalize_sample_v1_profile(organization, sample_v1_profile) -> None:
     sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=sample_v1_profile, organization=organization)
@@ -312,7 +313,7 @@ def test_normalize_sample_v1_profile(organization, sample_v1_profile):
 
 
 @django_db_all
-def test_normalize_ios_profile(organization, ios_profile):
+def test_normalize_ios_profile(organization, ios_profile) -> None:
     ios_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=ios_profile, organization=organization)
@@ -323,7 +324,7 @@ def test_normalize_ios_profile(organization, ios_profile):
 
 
 @django_db_all
-def test_normalize_android_profile(organization, android_profile):
+def test_normalize_android_profile(organization, android_profile) -> None:
     android_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=android_profile, organization=organization)
@@ -334,7 +335,7 @@ def test_normalize_android_profile(organization, android_profile):
     assert android_profile["device_classification"] == "low"
 
 
-def test_process_symbolicator_results_for_sample():
+def test_process_symbolicator_results_for_sample() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
@@ -425,7 +426,7 @@ def test_process_symbolicator_results_for_sample():
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
-def test_process_symbolicator_results_for_sample_js():
+def test_process_symbolicator_results_for_sample_js() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
@@ -497,7 +498,7 @@ def test_process_symbolicator_results_for_sample_js():
 
 
 @django_db_all
-def test_decode_signature(project, android_profile):
+def test_decode_signature(project, android_profile) -> None:
     android_profile.update(
         {
             "project_id": project.id,
@@ -542,7 +543,7 @@ def test_decode_signature(project, android_profile):
         ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
-def test_calculate_profile_duration(profile, duration_ms, request):
+def test_calculate_profile_duration(profile, duration_ms, request) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
 
 
@@ -586,7 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -642,7 +643,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_inline_resolving(self):
+    def test_inline_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -734,7 +735,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -770,7 +771,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_js_symbolication_set_symbolicated_field(self):
+    def test_js_symbolication_set_symbolicated_field(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
         )
@@ -806,7 +807,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
 
 
-def test_set_frames_platform_sample():
+def test_set_frames_platform_sample() -> None:
     js_prof: Profile = {
         "version": "1",
         "platform": "javascript",
@@ -824,7 +825,7 @@ def test_set_frames_platform_sample():
     assert platforms == ["javascript", "cocoa", "javascript"]
 
 
-def test_set_frames_platform_android():
+def test_set_frames_platform_android() -> None:
     android_prof: Profile = {
         "platform": "android",
         "profile": {
@@ -1058,7 +1059,8 @@ def test_track_latest_sdk_with_payload(
         "received": "2024-01-02T03:04:05",
         "payload": json.dumps(profile),
     }
-    payload = encode_payload(kafka_payload)
+
+    payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(payload=payload)

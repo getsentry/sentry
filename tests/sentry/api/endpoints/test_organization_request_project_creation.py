@@ -9,7 +9,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
     method = "post"
 
     @mock.patch("sentry.api.endpoints.organization_request_project_creation.MessageBuilder")
-    def test_basic(self, builder):
+    def test_basic(self, builder: mock.MagicMock) -> None:
         builder.return_value.send_async = mock.Mock()
         self.login_as(user=self.user)
         with self.tasks():

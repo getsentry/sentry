@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -15,7 +16,10 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -51,7 +55,9 @@ function getTraceItemFieldDefinitionFunction(
 export function useSearchQueryBuilderProps({
   itemType,
   numberAttributes,
+  numberSecondaryAliases,
   stringAttributes,
+  stringSecondaryAliases,
   initialQuery,
   searchSource,
   getFilterTokenWarning,
@@ -62,6 +68,7 @@ export function useSearchQueryBuilderProps({
   projects,
   supportedAggregates = [],
   replaceRawSearchKeys,
+  matchKeySuggestions,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -74,24 +81,10 @@ export function useSearchQueryBuilderProps({
     projectIds: projects,
   });
 
-  const getSuggestedFilterKey = useCallback(
-    (key: string) => {
-      // prioritize exact matches first
-      if (filterTags.hasOwnProperty(key)) {
-        return key;
-      }
-
-      // try to see if there's numeric attribute by the same name
-      const explicitNumberTag = `tags[${key},number]`;
-      if (filterTags.hasOwnProperty(explicitNumberTag)) {
-        return explicitNumberTag;
-      }
-
-      // give up, and fall back to the default behaviour
-      return null;
-    },
-    [filterTags]
-  );
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes,
+    stringAttributes,
+  });
 
   return {
     placeholder: placeholderText,
@@ -104,13 +97,15 @@ export function useSearchQueryBuilderProps({
     getFilterTokenWarning,
     searchSource,
     filterKeySections,
-    getSuggestedFilterKey,
+    getSuggestedFilterKey: getSuggestedAttribute,
     getTagValues: getTraceItemAttributeValues,
     disallowUnsupportedFilters: true,
     recentSearches: itemTypeToRecentSearches(itemType),
     showUnsubmittedIndicator: true,
     portalTarget,
     replaceRawSearchKeys,
+    matchKeySuggestions,
+    filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
   };
 }
 
@@ -121,7 +116,9 @@ export function useSearchQueryBuilderProps({
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
+  numberSecondaryAliases,
   numberAttributes,
+  stringSecondaryAliases,
   searchSource,
   stringAttributes,
   itemType,
@@ -138,6 +135,8 @@ export function TraceItemSearchQueryBuilder({
     itemType,
     numberAttributes,
     stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
     initialQuery,
     searchSource,
     getFilterTokenWarning,

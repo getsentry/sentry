@@ -17,6 +17,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.release import Release
@@ -93,8 +94,11 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 source = ArtifactSource(dist, files, query, checksums)
                 data_sources.append(source)
 
-        def on_results(r):
-            return serialize(load_dist(r), request.user)
+        def on_results(release_files: list[ReleaseFile]):
+            # this should filter out all the "pseudo-ReleaseFile"s
+            maybe_renew_releasefiles([rf for rf in release_files if rf.id])
+
+            return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,
         # (i.e. per index file), but not overall

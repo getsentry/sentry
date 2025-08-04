@@ -19,7 +19,7 @@ function Onboarding({actions}: Props) {
           'Not every error is worth an email. Set your own rules for alerts you need, with information that helps.'
         )}
       </p>
-      <ButtonList gap={1}>{actions}</ButtonList>
+      <ButtonList>{actions}</ButtonList>
     </OnboardingPanel>
   );
 }

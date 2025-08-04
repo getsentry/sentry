@@ -60,6 +60,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
@@ -405,7 +406,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_groups_by_external_issue(
         self,
-        integration: RpcIntegration,
+        integration: Integration | RpcIntegration,
         organizations: Iterable[Organization],
         external_issue_key: str | None,
     ) -> QuerySet[Group]:
@@ -712,9 +713,6 @@ class Group(Model):
 
     def is_unresolved(self):
         return self.get_status() == GroupStatus.UNRESOLVED
-
-    # TODO(dcramer): remove in 9.0 / after plugins no long ref
-    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED

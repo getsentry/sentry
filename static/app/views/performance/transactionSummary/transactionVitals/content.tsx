@@ -6,8 +6,8 @@ import type {Location} from 'history';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -79,7 +79,7 @@ function VitalsContent(props: Props) {
                 <Fragment>
                   {shouldDisplayMissingVitalsAlert && (
                     <Alert.Container>
-                      <Alert type="info" showIcon>
+                      <Alert type="info">
                         {tct(
                           'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
                           {

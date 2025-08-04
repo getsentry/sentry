@@ -13,6 +13,8 @@ import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const SECOND = 1000;
 
@@ -26,10 +28,11 @@ interface Props {
 }
 
 function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
-  const {currentTime, replay, setCurrentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime, setCurrentTime} = useReplayContext();
 
   return (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -88,10 +91,12 @@ export default function ReplayController({
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar isLoading={isLoading} />
-      <Container>
+
+      <TimelineScaleContextProvider>
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
-      </Container>
-      <ButtonBar gap={1}>
+      </TimelineScaleContextProvider>
+
+      <ButtonBar>
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}
@@ -109,11 +114,4 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
 `;

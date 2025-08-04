@@ -1,5 +1,7 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -945,19 +947,6 @@ describe('SearchQueryBuilder', function () {
 
       // Should have a filter token "browser.name:foo"
       expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
-    });
-
-    it('displays ask seer button when searching free text', async function () {
-      const mockOnSearch = jest.fn();
-      render(
-        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
-      );
-
-      await userEvent.click(getLastInput());
-      await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-      expect(screen.getByRole('option', {name: 'Ask Seer'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -4400,21 +4389,46 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
 
       expect(
-        within(screen.getByRole('listbox')).getByText('span.description')
-      ).toBeInTheDocument();
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getByText('span.description')
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
         screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+
+    it('should replace raw search keys with defined key:*value*', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:*randomValue*'})
       ).toBeInTheDocument();
     });
 
@@ -4425,22 +4439,217 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'random value');
 
       expect(
-        within(screen.getByRole('listbox')).getByText('span.description')
-      ).toBeInTheDocument();
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getByText('span.description')
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('matchKeySuggestions', () => {
+    it('renders the matched key suggestions when the value matches the pattern', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+        />
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox'),
+        '12345678901234567890123456789012'
+      );
+
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('trace')).toBeInTheDocument();
+
+      await userEvent.click(within(listbox).getByText('trace'));
+
+      expect(
+        screen.getByRole('row', {name: 'trace:12345678901234567890123456789012'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('ask seer', function () {
+    it('renders ask seer button when user has given consent', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+      expect(askSeer).toBeInTheDocument();
+    });
+
+    it('renders enable ai button when user has not given consent', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      const enableAi = await screen.findByText(/Enable Gen AI/);
+      expect(enableAi).toBeInTheDocument();
+    });
+
+    describe('user clicks on enable gen ai button', () => {
+      it('calls promptsUpdate', async () => {
+        const organization = OrganizationFixture({
+          slug: 'org-slug',
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        });
+        const promptsUpdateMock = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/seer/setup-check/`,
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: false,
+              userHasAcknowledged: false,
+            },
+          }),
+        });
+
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
+
+        await userEvent.click(getLastInput());
+
+        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
+        expect(enableAi).toBeInTheDocument();
+
+        await userEvent.hover(enableAi);
+        await userEvent.keyboard('{enter}');
+
+        await waitFor(() => {
+          expect(promptsUpdateMock).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              data: {
+                feature: 'seer_autofix_setup_acknowledged',
+                organization_id: organization.id,
+                project_id: undefined,
+                status: 'dismissed',
+              },
+            })
+          );
+        });
+      });
+    });
+
+    describe('free text', function () {
+      it('displays ask seer button when searching free text', async function () {
+        const mockOnSearch = jest.fn();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/seer/setup-check/',
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: true,
+              userHasAcknowledged: true,
+            },
+          }),
+        });
+
+        render(
+          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+        expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
+      });
+    });
+
+    it('displays enable ai button when searching free text and user has not given consent', async function () {
+      const mockOnSearch = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {
+          organization: {
+            features: [
+              'gen-ai-features',
+              'gen-ai-explore-traces',
+              'gen-ai-explore-traces-consent-ui',
+            ],
+          },
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
     });
   });
 });
