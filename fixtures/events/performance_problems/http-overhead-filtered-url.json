@@ -1,0 +1,36 @@
+{
+  "event_id": "5d6401994d7949d2ac3474f472564370",
+  "platform": "php",
+  "message": "",
+  "datetime": "2025-05-12T22:42:38.642986+00:00",
+  "request": {
+    "url": "http://localhost:3001/test",
+    "method": "GET"
+  },
+  "_meta": {
+    "spans": {
+      "0": {
+        "data": {
+          "url": "http://[Filtered]/test"
+        }
+      }
+    }
+  },
+  "spans": [
+    {
+      "timestamp": 1747089758.637715,
+      "start_timestamp": 1747089758.572,
+      "exclusive_time": 65.715075,
+      "op": "http.client",
+      "span_id": "4703181ac343f71a",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "data": {
+        "url": "http://[Filtered]/test",
+        "network.protocol.version": "1.1",
+        "http.request.request_start": 1747089758.572
+      }
+    }
+  ]
+}
