@@ -139,7 +139,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     },
 
     '&:hover': {
-      color: p.disabled || p.busy ? 'inherit' : chonkButtonTheme.color,
+      color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
         transform: `translateY(calc(-${elevation} - ${chonkHoverElevation}))`,
