@@ -146,7 +146,8 @@ class TestProcessWorkflowActivity(TestCase):
             assert mock_evaluate.call_count == 0
 
     @mock.patch(
-        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers", return_value=set()
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+        return_value=(set(), {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
