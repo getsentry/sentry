@@ -1,9 +1,8 @@
 import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {debossedBackground} from 'ui/chonk';
-
 import {Button} from 'sentry/components/core/button';
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconChevron, IconClose} from 'sentry/icons';

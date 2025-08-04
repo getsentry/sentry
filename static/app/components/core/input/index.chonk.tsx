@@ -1,7 +1,6 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
-import {debossedBackground} from 'ui/chonk';
-
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
