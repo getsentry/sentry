@@ -716,8 +716,6 @@ class FlamegraphExecutor:
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
         if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
-            total_duration = 0.0
-            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
 
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
@@ -781,10 +779,8 @@ class FlamegraphExecutor:
 
                 continuous_profile_candidates.append(candidate)
 
-                total_duration += end_timestamp - start_timestamp
-
                 # can set max duration to negative to skip this check
-                if (max_duration >= 0 and total_duration >= max_duration) or (
+                if (
                     len(continuous_profile_candidates) + len(transaction_profile_candidates)
                     >= max_profiles
                 ):
