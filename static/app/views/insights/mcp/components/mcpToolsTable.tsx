@@ -100,6 +100,11 @@ export function McpToolsTable() {
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
+              issuesLink={getExploreUrl({
+                query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                organization,
+                referrer: MCPReferrer.MCP_TOOL_TABLE,
+              })}
             />
           );
         case 'count()':
@@ -111,7 +116,7 @@ export function McpToolsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    [tableDataRequest, organization, query]
   );
 
   return (
