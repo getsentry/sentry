@@ -1,5 +1,6 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
@@ -15,7 +16,7 @@ export const chonkInputStyles = ({
     display: 'block',
     width: '100%',
     color: theme.tokens.content.primary,
-    background: theme.tokens.background.secondary,
+    ...debossedBackground(theme),
     boxShadow,
     border: `1px solid ${theme.tokens.border.primary}`,
     fontWeight: theme.fontWeight.normal,
