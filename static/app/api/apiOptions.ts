@@ -57,10 +57,12 @@ function _apiOptions<
   });
 }
 
-apiOptions.as =
-  <TManualData>() =>
-  <TApiPath extends ApiPath = ApiPath>(
-    path: TApiPath,
-    options: Options & PathParamOptions<TApiPath>
-  ) =>
-    apiOptions<TManualData, TApiPath>(path, options as never);
+export const apiOptions = {
+  as:
+    <TManualData>() =>
+    <TApiPath extends ApiPath = ApiPath>(
+      path: TApiPath,
+      options: Options & PathParamOptions<TApiPath>
+    ) =>
+      _apiOptions<TManualData, TApiPath>(path, options as never),
+};
