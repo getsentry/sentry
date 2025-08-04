@@ -660,7 +660,6 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             + self.workflow2_if_dcgs
         )
 
-        self.data_condition_group_mapping = {dcg.id: dcg for dcg in self.data_condition_groups}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
         self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
@@ -724,7 +723,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
     def test_simple(self) -> None:
         result = get_groups_to_fire(
-            self.data_condition_group_mapping,
+            self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
@@ -750,7 +749,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         }
 
         result = get_groups_to_fire(
-            self.data_condition_group_mapping,
+            self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
@@ -774,7 +773,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         result = get_groups_to_fire(
-            self.data_condition_group_mapping,
+            self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,
@@ -796,7 +795,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         result = get_groups_to_fire(
-            self.data_condition_group_mapping,
+            self.data_condition_groups,
             self.workflows_to_envs,
             self.event_data,
             self.condition_group_results,

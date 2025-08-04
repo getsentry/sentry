@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, TypeAlias
@@ -31,7 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import workflow_engine_tasks
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -51,7 +51,6 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
@@ -107,9 +106,18 @@ class EventKey:
 
     workflow_id: WorkflowId
     group_id: GroupId
+
+    # workflow WHEN DataConditionGroupId with slow condition(s)
     when_dcg_id: DataConditionGroupId | None
+
+    # workflow IF DataConditionGroupIds with slow condition(s)
     if_dcg_ids: frozenset[DataConditionGroupId]
+
+    # workflow IF DataConditionGroupIds without slow conditions
+    # these depend on the WHEN DataConditionGroup passing to fire
     passing_dcg_ids: frozenset[DataConditionGroupId]
+
+    # original key from Redis
     original_key: str
 
     @classmethod
@@ -494,26 +502,22 @@ class MissingQueryResult(Exception):
 
 
 def _evaluate_group_result_for_dcg(
-    dcg_id: int,
-    data_condition_group_mapping: dict[int, DataConditionGroup],
+    dcg: DataConditionGroup,
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
-    event_key: EventKey,
+    group_id: GroupId,
     workflow_env: int | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> bool:
-    result = False
-    dcg = data_condition_group_mapping[dcg_id]
-    when_slow_conditions = dcg_to_slow_conditions[dcg_id]
-    group_id = event_key.group_id
+    slow_conditions = dcg_to_slow_conditions[dcg.id]
     try:
-        result = _group_result_for_dcg(
-            group_id, dcg, workflow_env, condition_group_results, when_slow_conditions
+        return _group_result_for_dcg(
+            group_id, dcg, workflow_env, condition_group_results, slow_conditions
         )
     except MissingQueryResult:
         # If we didn't get complete query results, don't fire.
         metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
-    return result
+        return False
 
 
 def _group_result_for_dcg(
@@ -541,46 +545,42 @@ def _group_result_for_dcg(
 
 @sentry_sdk.trace
 def get_groups_to_fire(
-    data_condition_group_mapping: dict[int, DataConditionGroup],
+    data_condition_groups: list[DataConditionGroup],
     workflows_to_envs: Mapping[WorkflowId, int | None],
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[GroupId, set[DataConditionGroup]]:
+    data_condition_group_mapping = {dcg.id: dcg for dcg in data_condition_groups}
     groups_to_fire: dict[GroupId, set[DataConditionGroup]] = defaultdict(set)
 
     for event_key in event_data.events:
+        group_id = event_key.group_id
         workflow_env = workflows_to_envs[event_key.workflow_id]
-        result = False
         if when_dcg_id := event_key.when_dcg_id:
-            result = _evaluate_group_result_for_dcg(
-                when_dcg_id,
-                data_condition_group_mapping,
+            if not _evaluate_group_result_for_dcg(
+                data_condition_group_mapping[when_dcg_id],
                 dcg_to_slow_conditions,
-                event_key,
+                group_id,
                 workflow_env,
                 condition_group_results,
-            )
-        if when_dcg_id and not result:
-            continue
+            ):
+                continue
 
         # the WHEN condition passed / was not evaluated, so we can now check the IF conditions
-        group_id = event_key.group_id
         for if_dcg_id in event_key.if_dcg_ids:
-            result = _evaluate_group_result_for_dcg(
-                if_dcg_id,
-                data_condition_group_mapping,
+            if _evaluate_group_result_for_dcg(
+                data_condition_group_mapping[if_dcg_id],
                 dcg_to_slow_conditions,
-                event_key,
+                group_id,
                 workflow_env,
                 condition_group_results,
-            )
-            if result:
+            ):
                 groups_to_fire[group_id].add(data_condition_group_mapping[if_dcg_id])
 
-        for if_dcg_id in event_key.passing_dcg_ids:
-            if_dcg = data_condition_group_mapping[if_dcg_id]
-            groups_to_fire[group_id].add(if_dcg)
+        groups_to_fire[group_id].update(
+            data_condition_group_mapping[if_dcg_id] for if_dcg_id in event_key.passing_dcg_ids
+        )
 
     return groups_to_fire
 
@@ -676,15 +676,6 @@ def fire_actions_for_groups(
     # Bulk fetch detectors
     event_id_to_detector = get_detectors_by_groupevents_bulk(list(group_to_groupevent.values()))
 
-    all_condition_groups = set().union(*list(groups_to_fire.values()))
-    dcg_to_workflow: dict[DataConditionGroup, Workflow] = {
-        wdcg.condition_group: wdcg.workflow
-        for wdcg in WorkflowDataConditionGroup.objects.select_related(
-            "workflow", "condition_group"
-        ).filter(condition_group__in=all_condition_groups)
-    }
-    workflow_to_env = {workflow.id: workflow.environment for workflow in dcg_to_workflow.values()}
-
     # Feature check caching to keep us within the trace budget.
     trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
     single_processing_ff = features.has(
@@ -746,7 +737,9 @@ def fire_actions_for_groups(
                 logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={
-                        "workflow_ids": {wfh.workflow_id for wfh in workflow_fire_histories},
+                        "workflow_ids": sorted(
+                            {wfh.workflow_id for wfh in workflow_fire_histories}
+                        ),
                         "actions": [action.id for action in filtered_actions],
                         "event_data": workflow_event_data,
                         "event_id": event_id,
@@ -756,12 +749,7 @@ def fire_actions_for_groups(
 
                 if should_trigger_actions(group_event.group.type):
                     for action in filtered_actions:
-                        action_workflow_env = workflow_to_env.get(
-                            getattr(action, "workflow_id"), None
-                        )  # populated via annotate() in filter_recently_fired_workflow_actions
-                        workflow_event_data = replace(
-                            workflow_event_data, workflow_env=action_workflow_env
-                        )
+                        # TODO: populate workflow env in WorkflowEventData correctly
                         task_params = build_trigger_action_task_params(
                             action, detector, workflow_event_data
                         )
@@ -808,7 +796,7 @@ def _summarize_by_first[T1, T2: int | str](
     time_limit=60,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=workflow_engine_tasks,
+        namespace=issues_tasks,
         processing_deadline_duration=60,
         retry=Retry(
             times=5,
@@ -902,9 +890,8 @@ def process_delayed_workflows(
     )
 
     # Evaluate DCGs
-    data_condition_group_mapping = {dcg.id: dcg for dcg in data_condition_groups}
     groups_to_dcgs = get_groups_to_fire(
-        data_condition_group_mapping,
+        data_condition_groups,
         workflows_to_envs,
         event_data,
         condition_group_results,
