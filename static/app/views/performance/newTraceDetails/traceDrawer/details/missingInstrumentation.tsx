@@ -66,7 +66,7 @@ function EAPMissingInstrumentationNodeDetails({
   const previous = node.previous as TraceTreeNode<TraceTree.EAPSpan>;
 
   const {
-    data: eventTransaction,
+    data: eventTransaction = null,
     isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
@@ -75,8 +75,10 @@ function EAPMissingInstrumentationNodeDetails({
     project_slug: previous.value.project_slug,
   });
 
-  const event = eventTransaction ?? null;
-  const profileMeta = useMemo(() => getProfileMeta(event) || '', [event]);
+  const profileMeta = useMemo(
+    () => getProfileMeta(eventTransaction) || '',
+    [eventTransaction]
+  );
 
   if (isEventTransactionLoading) {
     return <LoadingIndicator />;
@@ -86,15 +88,15 @@ function EAPMissingInstrumentationNodeDetails({
     return <LoadingError message={t('Failed to fetch span details')} />;
   }
 
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileContext = event?.contexts?.profile ?? {};
+  const project = projects.find(proj => proj.slug === eventTransaction?.projectSlug);
+  const profileContext = eventTransaction?.contexts?.profile ?? {};
 
   return (
     <BaseMissingInstrumentationNodeDetails
       {...props}
       profileMeta={profileMeta}
       project={project}
-      event={event}
+      event={eventTransaction}
       profileId={profileContext.profile_id}
       profilerId={profileContext.profiler_id}
     />
