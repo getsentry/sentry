@@ -16,6 +16,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.snuba import discover
+from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
@@ -43,7 +44,10 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
         with start_span(op="_count"):
-            query_kwargs = {"projects": projects}
+            query_kwargs = {
+                "projects": projects,
+                "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
+            }
 
             query = query.strip()
             if query:
