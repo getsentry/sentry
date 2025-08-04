@@ -817,7 +817,7 @@ def translate_response(
         if typ_ == bool:
             return result.val_bool
         if typ_ == float:
-            return result.val_float
+            return result.val_double
         if typ_ == int:
             return result.val_int
         if typ_ == str:
@@ -826,7 +826,7 @@ def translate_response(
             return None
 
     response: QueryResult = {
-        "data": [{}] * len(query_result.column_values),
+        "data": [{}] * query_result.page_token.offset,
         "meta": {
             "downsampling_mode": {
                 "can_go_to_higher_accuracy": query_result.meta.downsampled_storage_meta.can_go_to_higher_accuracy_tier,
@@ -841,8 +841,7 @@ def translate_response(
     # this is a safe assumption.
     for i, c in enumerate(query_result.column_values):
         for result in c.results:
-            item = response["data"][i]
-            item[c.attribute_name] = get_value(c.attribute_name, result)
+            response["data"][i][c.attribute_name] = get_value(c.attribute_name, result)
 
     return response
 
@@ -858,7 +857,7 @@ def type_infer(
 
     match expression.function:
         case "count" | "countIf":
-            return int
+            return float
         case "max" | "maxIf":
             return type_infer(expression.parameters[0], settings)
         case "min" | "minIf":
