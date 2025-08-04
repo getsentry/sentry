@@ -420,7 +420,7 @@ class QuantizeTimeTest(unittest.TestCase):
 
 
 class FakeConnectionPool(HTTPConnectionPool):
-    def __init__(self, connection, **kwargs):
+    def __init__(self, connection, **kwargs) -> None:
         self.connection = connection
         super().__init__(**kwargs)
 

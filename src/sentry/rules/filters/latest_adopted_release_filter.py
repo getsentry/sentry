@@ -33,7 +33,7 @@ class LatestAdoptedReleaseForm(forms.Form):
     older_or_newer = forms.ChoiceField(choices=list(age_comparison_choices))
     environment = forms.CharField()
 
-    def __init__(self, project, *args, **kwargs):
+    def __init__(self, project, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.project = project
 

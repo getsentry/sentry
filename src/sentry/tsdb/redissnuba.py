@@ -100,7 +100,7 @@ class RedisSnubaTSDBMeta(type):
 
 
 class RedisSnubaTSDB(BaseTSDB, metaclass=RedisSnubaTSDBMeta):
-    def __init__(self, switchover_timestamp=None, **options):
+    def __init__(self, switchover_timestamp=None, **options) -> None:
         """
         A TSDB backend that uses the Snuba outcomes and events datasets as far
         as possible instead of reading/writing to redis. Reading will trigger a

@@ -67,7 +67,7 @@ class ChecksumVariant(BaseVariant):
     type = "checksum"
     description = "legacy checksum"
 
-    def __init__(self, checksum: str):
+    def __init__(self, checksum: str) -> None:
         self.checksum = checksum
 
     def get_hash(self) -> str | None:
@@ -81,7 +81,7 @@ class HashedChecksumVariant(ChecksumVariant):
     type = "hashed_checksum"
     description = "hashed legacy checksum"
 
-    def __init__(self, checksum: str, raw_checksum: str):
+    def __init__(self, checksum: str, raw_checksum: str) -> None:
         self.checksum = checksum
         self.raw_checksum = raw_checksum
 
@@ -110,7 +110,7 @@ class PerformanceProblemVariant(BaseVariant):
     type = "performance_problem"
     description = "performance problem"
 
-    def __init__(self, event_performance_problem: Any):
+    def __init__(self, event_performance_problem: Any) -> None:
         self.event_performance_problem = event_performance_problem
         self.problem = event_performance_problem.problem
 
@@ -191,7 +191,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
+    def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo) -> None:
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
 

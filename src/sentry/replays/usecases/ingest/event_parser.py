@@ -226,7 +226,7 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
 
 class EAPEventsBuilder:
 
-    def __init__(self, context: EventContext):
+    def __init__(self, context: EventContext) -> None:
         self.context = context
         self.events: list[TraceItem] = []
 
@@ -560,7 +560,7 @@ class HighlightedEvents(TypedDict, total=False):
 
 class HighlightedEventsBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],

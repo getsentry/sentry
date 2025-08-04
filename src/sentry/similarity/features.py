@@ -24,7 +24,7 @@ class InterfaceDoesNotExist(KeyError):
 
 
 class ExceptionFeature:
-    def __init__(self, function):
+    def __init__(self, function) -> None:
         self.function = function
 
     def extract(self, event):
@@ -36,7 +36,7 @@ class ExceptionFeature:
 
 
 class MessageFeature:
-    def __init__(self, function):
+    def __init__(self, function) -> None:
         self.function = function
 
     def extract(self, event):

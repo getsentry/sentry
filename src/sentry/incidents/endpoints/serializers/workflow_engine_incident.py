@@ -46,7 +46,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         PriorityLevel.LOW.value: IncidentStatus.OPEN.value,
     }
 
-    def __init__(self, expand=None):
+    def __init__(self, expand=None) -> None:
         self.expand = expand or []
 
     def get_attrs(
@@ -282,7 +282,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand=None) -> None:
         if expand is None:
             expand = []
         super().__init__(expand=expand)

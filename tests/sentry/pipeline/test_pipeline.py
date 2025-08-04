@@ -33,7 +33,7 @@ class DummyProvider(PipelineProvider["DummyPipeline"]):
 class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
     pipeline_name = "test_pipeline"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.finished = False
         self.dispatch_count = 0

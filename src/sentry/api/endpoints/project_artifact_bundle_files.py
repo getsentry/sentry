@@ -17,7 +17,7 @@ from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimi
 
 
 class ArtifactFile:
-    def __init__(self, file_path: str, info: dict[str, str]):
+    def __init__(self, file_path: str, info: dict[str, str]) -> None:
         self.file_path = file_path
         self.info = info
 
@@ -32,7 +32,7 @@ class ArtifactFile:
 
 
 class ArtifactBundleSource:
-    def __init__(self, files: dict):
+    def __init__(self, files: dict) -> None:
         self._files = files
 
     @cached_property

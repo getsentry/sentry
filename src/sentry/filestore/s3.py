@@ -127,7 +127,7 @@ class S3Boto3StorageFile(File):
     #       BufferedIO streams in the Python 2.6 io module.
     buffer_size = 5242880
 
-    def __init__(self, name, mode, storage, buffer_size=None):
+    def __init__(self, name, mode, storage, buffer_size=None) -> None:
         self._storage = storage
         self.name = name[len(self._storage.location) :].lstrip("/")
         self._mode = mode
@@ -293,7 +293,7 @@ class S3Boto3Storage(Storage):
     region_name: str | None = None
     use_ssl = True
 
-    def __init__(self, acl=None, bucket=None, **settings):
+    def __init__(self, acl=None, bucket=None, **settings) -> None:
         # check if some of the settings we've provided as class attributes
         # need to be overwritten with values passed in here
         for name, value in settings.items():

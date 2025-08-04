@@ -50,7 +50,7 @@ class RedisSessionStore:
 
     redis_namespace = "session-cache"
 
-    def __init__(self, request, prefix, ttl=EXPIRATION_TTL):
+    def __init__(self, request, prefix, ttl=EXPIRATION_TTL) -> None:
         self.request = request
         self.prefix = prefix
         self.ttl = ttl

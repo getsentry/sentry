@@ -49,7 +49,7 @@ class PromptsConfig:
     required_fields available: [organization_id, project_id]
     """
 
-    def __init__(self, prompts: dict[str, _PromptConfig]):
+    def __init__(self, prompts: dict[str, _PromptConfig]) -> None:
         self.prompts = prompts
 
     def add(self, name: str, config: _PromptConfig) -> None:

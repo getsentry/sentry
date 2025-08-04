@@ -185,7 +185,7 @@ class _FilterSpec:
     config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
+    def __init__(self, id, name, description, serializer_cls=None, config_name=None) -> None:
         self.id = id
         self.name = name
         self.description = description

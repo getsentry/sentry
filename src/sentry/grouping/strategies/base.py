@@ -119,7 +119,7 @@ class GroupingContext:
         value_at_some_key = context["some_key"] # will be "original_value"
     """
 
-    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
+    def __init__(self, strategy_config: StrategyConfiguration, event: Event) -> None:
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
@@ -328,7 +328,7 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None, **extra: Any):
+    def __init__(self, enhancements: str | None = None, **extra: Any) -> None:
         if enhancements is None:
             enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:

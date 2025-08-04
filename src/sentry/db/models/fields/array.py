@@ -16,7 +16,7 @@ from sentry.utils import json
 # Adapted from django-pgfields
 # https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/array.py
 class ArrayField(models.Field):
-    def __init__(self, of=models.TextField, **kwargs):
+    def __init__(self, of=models.TextField, **kwargs) -> None:
         # Arrays in PostgreSQL are arrays of a particular type.
         # Save the subtype in our field class.
         if isinstance(of, type):

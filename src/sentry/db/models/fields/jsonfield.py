@@ -58,7 +58,7 @@ class JSONField(models.TextField):
     description = "JSON object"
     no_creator_hook = False
 
-    def __init__(self, *args, json_dumps=json.dumps, **kwargs):
+    def __init__(self, *args, json_dumps=json.dumps, **kwargs) -> None:
         self.json_dumps = json_dumps
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)

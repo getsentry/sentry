@@ -21,7 +21,7 @@ class NotifyEmailAction(EventAction):
     prompt = "Send a notification"
     metrics_slug = "EmailAction"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "targetType": {"type": "mailAction", "choices": ACTION_CHOICES},

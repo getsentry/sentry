@@ -12,7 +12,7 @@ from sentry.hybridcloud.apigateway import proxy_request_if_needed
 class ApiGatewayMiddleware:
     """Proxy requests intended for remote silos"""
 
-    def __init__(self, get_response: Callable[[Request], HttpResponseBase]):
+    def __init__(self, get_response: Callable[[Request], HttpResponseBase]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> HttpResponseBase:

@@ -8,7 +8,7 @@ from sentry.auth.staff import Staff, logger
 
 
 class StaffMiddleware:
-    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]) -> None:
         self.get_response = get_response
 
     def process_request(self, request: HttpRequest) -> None:

@@ -14,7 +14,7 @@ from sentry.users.services.user.service import user_service
 
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func=None) -> None:
         self.environment_func = environment_func
 
     def get_attrs(self, item_list, user, **kwargs):

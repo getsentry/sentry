@@ -74,7 +74,7 @@ class KeyCollection:
         { 1: {"a", "b", "c"}, 2: {"e", "f"} }
     """
 
-    def __init__(self, mapping: Mapping[OrgId, set[str]]):
+    def __init__(self, mapping: Mapping[OrgId, set[str]]) -> None:
         self.mapping = mapping
         self.size = self._size()
 
@@ -124,7 +124,9 @@ class UseCaseKeyCollection:
         {UseCaseID.TRANSACTIONS: { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[UseCaseID, Mapping[OrgId, set[str]] | KeyCollection]):
+    def __init__(
+        self, mapping: Mapping[UseCaseID, Mapping[OrgId, set[str]] | KeyCollection]
+    ) -> None:
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()

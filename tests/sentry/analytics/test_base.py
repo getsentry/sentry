@@ -1,13 +1,14 @@
 from sentry.analytics import Analytics
+from sentry.analytics.event import Event
 from sentry.testutils.cases import TestCase
 
 
 class DummyAnalytics(Analytics):
-    def __init__(self):
+    def __init__(self) -> None:
         self.events = []
         super().__init__()
 
-    def record_event(self, event):
+    def record_event(self, event: Event):
         self.events.append(event)
 
 

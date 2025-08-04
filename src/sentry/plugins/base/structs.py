@@ -4,14 +4,14 @@ import warnings
 
 
 class Annotation:
-    def __init__(self, label, url=None, description=None):
+    def __init__(self, label, url=None, description=None) -> None:
         self.label = label
         self.url = url
         self.description = description
 
 
 class Notification:
-    def __init__(self, event, rule=None, rules=None):
+    def __init__(self, event, rule=None, rules=None) -> None:
         if rule and not rules:
             rules = [rule]
 

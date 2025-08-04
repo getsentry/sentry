@@ -38,7 +38,7 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
-    def __init__(self, use_subscription_lock: bool = False):
+    def __init__(self, use_subscription_lock: bool = False) -> None:
         self.use_subscription_lock = use_subscription_lock
 
     @property

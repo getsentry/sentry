@@ -18,7 +18,7 @@ from sentry.snuba.referrer import Referrer
 class MetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: metrics.MetricsQueryBuilder):
+    def __init__(self, builder: metrics.MetricsQueryBuilder) -> None:
         self.builder = builder
         self.total_transaction_duration: float | None = None
         self.total_score_weights: dict[str, int] = {}

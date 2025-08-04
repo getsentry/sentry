@@ -22,7 +22,7 @@ class SearchBackend(Service):
     __write_methods__ = ()
     __all__ = tuple(set(__read_methods__ + __write_methods__))
 
-    def __init__(self, **options: Mapping[str, Any] | None):
+    def __init__(self, **options: Mapping[str, Any] | None) -> None:
         pass
 
     def query(

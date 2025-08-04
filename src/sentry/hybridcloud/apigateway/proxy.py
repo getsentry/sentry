@@ -75,7 +75,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 class _body_with_length:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
-    def __init__(self, request: HttpRequest):
+    def __init__(self, request: HttpRequest) -> None:
         self.request = request
 
     def __iter__(self) -> Iterator[bytes]:

@@ -3,7 +3,7 @@ def cmp(a, b):
 
 
 class Bit:
-    def __init__(self, number, is_set=True):
+    def __init__(self, number, is_set=True) -> None:
         self.number = number
         self.is_set = bool(is_set)
         self.mask = 2 ** int(number)
@@ -103,7 +103,7 @@ class BitHandler:
     Represents an array of bits, each as a ``Bit`` object.
     """
 
-    def __init__(self, value, keys, labels=None):
+    def __init__(self, value, keys, labels=None) -> None:
         # TODO: change to bitarray?
         if value:
             self._value = int(value)

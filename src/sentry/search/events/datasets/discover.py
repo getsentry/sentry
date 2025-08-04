@@ -110,7 +110,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     nullable_context_keys = {"thread.id"}
     use_entity_prefix_for_fields: bool = False
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         self.builder = builder
         self.total_count: int | None = None
         self.total_sum_transaction_duration: float | None = None

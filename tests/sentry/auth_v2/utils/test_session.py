@@ -13,7 +13,7 @@ EXPIRY_DATE = datetime(2023, 12, 31)
 class MockSession(SessionBase):
     """Mock session class for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.data = {}
 
     def get(self, key, default=None):

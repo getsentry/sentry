@@ -68,7 +68,7 @@ class InvalidFunctionArgument(Exception):
 
 
 class PseudoField:
-    def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
+    def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None) -> None:
         self.name = name
         self.alias = alias
         self.expression = expression
@@ -752,7 +752,7 @@ class Combinator:
     # The kind of combinator this is, to be overridden in the subclasses
     kind: str | None = None
 
-    def __init__(self, private: bool = True):
+    def __init__(self, private: bool = True) -> None:
         self.private = private
 
     def validate_argument(self, column: str) -> bool:
@@ -768,7 +768,7 @@ class Combinator:
 class ArrayCombinator(Combinator):
     kind = "Array"
 
-    def __init__(self, column_name: str, array_columns: set[str], private: bool = True):
+    def __init__(self, column_name: str, array_columns: set[str], private: bool = True) -> None:
         super().__init__(private=private)
         self.column_name = column_name
         self.array_columns = array_columns
@@ -792,14 +792,14 @@ COMBINATORS = [ArrayCombinator]
 
 
 class ArgValue:
-    def __init__(self, arg: str):
+    def __init__(self, arg: str) -> None:
         self.arg = arg
 
 
 class FunctionArg:
     """Parent class to function arguments, including both column references and values"""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.has_default = False
 
@@ -901,7 +901,7 @@ class NullColumn(FunctionArg):
     required argument that we ignore.
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self.has_default = True
 
@@ -913,7 +913,7 @@ class NullColumn(FunctionArg):
 
 
 class IntArg(FunctionArg):
-    def __init__(self, name: str, negative: bool):
+    def __init__(self, name: str, negative: bool) -> None:
         super().__init__(name)
         self.negative = negative
 
@@ -930,7 +930,7 @@ class IntArg(FunctionArg):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name: str, start: float | None, end: float | None):
+    def __init__(self, name: str, start: float | None, end: float | None) -> None:
         super().__init__(name)
         self.start = start
         self.end = end
@@ -953,7 +953,7 @@ class NumberRange(FunctionArg):
 
 
 class NullableNumberRange(NumberRange):
-    def __init__(self, name: str, start: float | None, end: float | None):
+    def __init__(self, name: str, start: float | None, end: float | None) -> None:
         super().__init__(name, start, end)
         self.has_default = True
 
@@ -969,7 +969,7 @@ class NullableNumberRange(NumberRange):
 
 
 class IntervalDefault(NumberRange):
-    def __init__(self, name: str, start: float | None, end: float | None):
+    def __init__(self, name: str, start: float | None, end: float | None) -> None:
         super().__init__(name, start, end)
         self.has_default = True
 
@@ -986,7 +986,7 @@ class IntervalDefault(NumberRange):
 
 
 class TimestampArg(FunctionArg):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
 
     def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> datetime:
@@ -1065,7 +1065,7 @@ class ColumnTagArg(ColumnArg):
 
 
 class CountColumn(ColumnArg):
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, **kwargs) -> None:
         super().__init__(name, **kwargs)
         self.has_default = True
 

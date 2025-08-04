@@ -20,7 +20,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
 
     integration_name = "mock_integration"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = Mock()
         self.client.base_url = "https://example.com"
 
@@ -155,7 +155,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = "https://bufo-bot.gitlab.com"
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 
@@ -181,7 +181,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = GITLAB_CLOUD_BASE_URL
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 

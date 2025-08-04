@@ -20,7 +20,7 @@ MILLISECONDS_BEFORE_EVENT = 5000
 
 
 class SessionStackClient:
-    def __init__(self, account_email, api_token, website_id, **kwargs):
+    def __init__(self, account_email, api_token, website_id, **kwargs) -> None:
         self.website_id = website_id
 
         api_url = kwargs.get("api_url") or API_URL

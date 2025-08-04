@@ -6,7 +6,7 @@ class OpsGenieApiClient(ApiClient):
     plugin_name = "opsgenie"
     allow_redirects = False
 
-    def __init__(self, api_key, alert_url, recipients=None):
+    def __init__(self, api_key, alert_url, recipients=None) -> None:
         self.api_key = api_key
         self.alert_url = alert_url
         self.recipients = recipients

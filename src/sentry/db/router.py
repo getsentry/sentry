@@ -85,7 +85,7 @@ class SiloRouter:
     we can provide compatibility for existing migrations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Memoized results of table : silo pairings
         self.__table_to_silo: dict[str, str | None] = {}
         try:

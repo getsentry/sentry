@@ -11,7 +11,7 @@ class BackendError(SocialAuthBaseException):
 
 
 class WrongBackend(BackendError):
-    def __init__(self, backend_name):
+    def __init__(self, backend_name) -> None:
         self.backend_name = backend_name
 
     def __str__(self) -> str:
@@ -30,7 +30,7 @@ class StopPipeline(SocialAuthBaseException):
 class AuthException(SocialAuthBaseException):
     """Auth process exception."""
 
-    def __init__(self, backend, *args, **kwargs):
+    def __init__(self, backend, *args, **kwargs) -> None:
         self.backend = backend
         super().__init__(*args, **kwargs)
 
@@ -71,7 +71,7 @@ class AuthTokenError(AuthException):
 class AuthMissingParameter(AuthException):
     """Missing parameter needed to start or complete the process."""
 
-    def __init__(self, backend, parameter, *args, **kwargs):
+    def __init__(self, backend, parameter, *args, **kwargs) -> None:
         self.parameter = parameter
         super().__init__(backend, *args, **kwargs)
 

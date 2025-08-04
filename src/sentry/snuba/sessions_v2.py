@@ -175,7 +175,7 @@ class DurationAverageField:
 
 
 class DurationQuantileField:
-    def __init__(self, quantile_index):
+    def __init__(self, quantile_index) -> None:
         self.quantile_index = quantile_index
 
     def get_snuba_columns(self, raw_groupby):
@@ -210,7 +210,7 @@ class _GroupBy(Protocol):
 
 
 class SimpleGroupBy:
-    def __init__(self, row_name: str, name: str | None = None):
+    def __init__(self, row_name: str, name: str | None = None) -> None:
         self.row_name = row_name
         self.name = name or row_name
 

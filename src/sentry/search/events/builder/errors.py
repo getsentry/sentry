@@ -31,7 +31,7 @@ value_converters = {"status": convert_status_value}
 
 
 class ErrorsQueryBuilderMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.match = None
         self.entities = set()
         super().__init__(*args, **kwargs)
@@ -153,7 +153,7 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
 
 
 class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     @property
@@ -179,7 +179,7 @@ class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuild
 
 
 class ErrorsTopEventsQueryBuilder(ErrorsQueryBuilderMixin, TopEventsQueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     @property

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReleaseHook:
-    def __init__(self, project):
+    def __init__(self, project) -> None:
         self.project = project
 
     # TODO(dcramer): this is being used by the release details endpoint, but

@@ -8,7 +8,7 @@ from sentry.sentry_metrics.querying.visitors.query_expression import MapperVisit
 
 
 class QueryMappingStep(PreparationStep):
-    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig) -> None:
         self.projects = projects
         self.mapper_config = mapper_config
 

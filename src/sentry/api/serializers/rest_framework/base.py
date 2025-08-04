@@ -56,7 +56,7 @@ class CamelSnakeSerializer(Serializer[T]):
     Errors are output in camel case.
     """
 
-    def __init__(self, instance=None, data=empty, **kwargs):
+    def __init__(self, instance=None, data=empty, **kwargs) -> None:
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
         super().__init__(instance=instance, data=data, **kwargs)
@@ -77,7 +77,7 @@ class CamelSnakeModelSerializer(ModelSerializer[M]):
     Errors are output in camel case.
     """
 
-    def __init__(self, instance=None, data=empty, **kwargs):
+    def __init__(self, instance=None, data=empty, **kwargs) -> None:
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
         super().__init__(instance=instance, data=data, **kwargs)

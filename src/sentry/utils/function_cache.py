@@ -120,7 +120,7 @@ class CachedFunction(Generic[*Ts, R]):
     for processing multiple sets of arguments efficiently.
     """
 
-    def __init__(self, func: Callable[[*Ts], R], cache_ttl: timedelta):
+    def __init__(self, func: Callable[[*Ts], R], cache_ttl: timedelta) -> None:
         self.func = func
         self.cache_ttl = cache_ttl
         update_wrapper(self, func)

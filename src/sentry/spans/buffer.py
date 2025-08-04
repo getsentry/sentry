@@ -151,7 +151,7 @@ class FlushedSegment(NamedTuple):
 
 
 class SpansBuffer:
-    def __init__(self, assigned_shards: list[int], slice_id: int | None = None):
+    def __init__(self, assigned_shards: list[int], slice_id: int | None = None) -> None:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None

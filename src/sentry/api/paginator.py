@@ -514,7 +514,7 @@ class GenericOffsetPaginator:
     return full object if necessary. (if isinstance statement)
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn) -> None:
         self.data_fn = data_fn
 
     def get_result(self, limit, cursor=None):
@@ -551,7 +551,7 @@ class GenericOffsetPaginator:
 class CombinedQuerysetIntermediary:
     is_empty = False
 
-    def __init__(self, queryset, order_by):
+    def __init__(self, queryset, order_by) -> None:
         assert isinstance(order_by, list), "order_by must be a list of keys/field names"
         self.queryset = queryset
         self.order_by = order_by
@@ -589,7 +589,7 @@ class CombinedQuerysetPaginator:
     multiplier = 1000000  # Use microseconds for date keys.
     using_dates = False
 
-    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
+    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False) -> None:
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
@@ -719,7 +719,7 @@ class ChainPaginator:
     assumed that sources have their data sorted already.
     """
 
-    def __init__(self, sources, max_limit=MAX_LIMIT, max_offset=None, on_results=None):
+    def __init__(self, sources, max_limit=MAX_LIMIT, max_offset=None, on_results=None) -> None:
         self.sources = sources
         self.max_limit = max_limit
         self.max_offset = max_offset

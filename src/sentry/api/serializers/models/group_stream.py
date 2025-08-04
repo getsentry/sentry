@@ -194,7 +194,7 @@ class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
-    def __init__(self, environment_func=None, stats_period=None):
+    def __init__(self, environment_func=None, stats_period=None) -> None:
         super().__init__(environment_func=environment_func)
 
         assert (

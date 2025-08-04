@@ -38,7 +38,7 @@ class DetailedIncidentSerializerResponse(IncidentSerializerResponse):
 
 @register(Incident)
 class IncidentSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand=None) -> None:
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
@@ -96,7 +96,7 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand=None) -> None:
         if expand is None:
             expand = []
         if "original_alert_rule" not in expand:

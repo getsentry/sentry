@@ -20,7 +20,7 @@ class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
     `release IN [x, y, ...]` where `x` and `y` are the latest releases belonging to the supplied projects.
     """
 
-    def __init__(self, projects: Sequence[Project]):
+    def __init__(self, projects: Sequence[Project]) -> None:
         self._projects = projects
 
     def _visit_condition(self, condition: Condition) -> QueryCondition:
@@ -52,7 +52,7 @@ class TagsTransformationVisitor(QueryConditionVisitor[QueryCondition]):
     Visitor that recursively transforms all conditions to work on tags in the form `tags[x]`.
     """
 
-    def __init__(self, check_sentry_tags: bool):
+    def __init__(self, check_sentry_tags: bool) -> None:
         self._check_sentry_tags = check_sentry_tags
 
     def _visit_condition(self, condition: Condition) -> QueryCondition:
@@ -89,7 +89,7 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
     replaces it with the mapped value.
     """
 
-    def __init__(self, mappings: Mapping[str, str]):
+    def __init__(self, mappings: Mapping[str, str]) -> None:
         self._mappings = mappings
 
     def _visit_condition(self, condition: Condition) -> QueryCondition:
@@ -104,7 +104,7 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
 
 
 class MapperConditionVisitor(QueryConditionVisitor):
-    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig) -> None:
         self.projects = projects
         self.mapper_config = mapper_config
         self.mappers: list[Mapper] = []

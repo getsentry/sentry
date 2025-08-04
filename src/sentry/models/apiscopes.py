@@ -33,7 +33,7 @@ class ApiScopes(Sequence):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.scopes = (
             self.__class__.project
             + self.__class__.team

@@ -237,7 +237,7 @@ class JiraServerSetupClient(ApiClient):
     LEGACY_WEBHOOK_URL = "/rest/webhooks/1.0/webhook"
 
     @control_silo_function
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
+    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True) -> None:
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key

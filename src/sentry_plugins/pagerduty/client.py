@@ -10,7 +10,7 @@ class PagerDutyPluginClient(ApiClient):
     plugin_name = "pagerduty"
     allow_redirects = False
 
-    def __init__(self, service_key=None):
+    def __init__(self, service_key=None) -> None:
         self.service_key = service_key
         super().__init__()
 

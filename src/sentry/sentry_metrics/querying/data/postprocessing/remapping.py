@@ -9,7 +9,7 @@ from sentry.sentry_metrics.querying.data.postprocessing.base import PostProcessi
 
 
 class QueryRemappingStep(PostProcessingStep):
-    def __init__(self, projects: Sequence[Project]):
+    def __init__(self, projects: Sequence[Project]) -> None:
         self.projects = projects
 
     def run(self, query_results: list[QueryResult]) -> list[QueryResult]:

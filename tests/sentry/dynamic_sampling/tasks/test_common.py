@@ -36,7 +36,7 @@ def test_timeout_exception() -> None:
 
 
 class FakeContextIterator:
-    def __init__(self, frozen_time, tick_seconds):
+    def __init__(self, frozen_time, tick_seconds) -> None:
         self.count = 0
         self.frozen_time = frozen_time
         self.tick_seconds = tick_seconds

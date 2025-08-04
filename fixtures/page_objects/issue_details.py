@@ -7,7 +7,7 @@ from .global_selection import GlobalSelectionPage
 
 
 class IssueDetailsPage(BasePage):
-    def __init__(self, browser, client):
+    def __init__(self, browser, client) -> None:
         super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)

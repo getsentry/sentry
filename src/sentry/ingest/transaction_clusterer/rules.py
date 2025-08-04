@@ -42,7 +42,7 @@ class RedisRuleStore:
     responsible for that.
     """
 
-    def __init__(self, namespace: ClustererNamespace):
+    def __init__(self, namespace: ClustererNamespace) -> None:
         self._rules_prefix = namespace.value.rules
 
     def _get_rules_key(self, project: Project) -> str:
@@ -79,7 +79,7 @@ class RedisRuleStore:
 
 
 class ProjectOptionRuleStore:
-    def __init__(self, namespace: ClustererNamespace):
+    def __init__(self, namespace: ClustererNamespace) -> None:
         self._storage = namespace.value.persistent_storage
         self._tracker = namespace.value.tracker
 
@@ -112,7 +112,7 @@ class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
     MERGE_MAX_RULES: int = 50
 
-    def __init__(self, namespace: ClustererNamespace, stores: list[RuleStore]):
+    def __init__(self, namespace: ClustererNamespace, stores: list[RuleStore]) -> None:
         self._namespace = namespace
         self._stores = stores
 
@@ -163,7 +163,7 @@ class CompositeRuleStore:
 
 
 class LocalRuleStore:
-    def __init__(self, rules: RuleSet):
+    def __init__(self, rules: RuleSet) -> None:
         self._rules = rules
 
     def read(self, project: Project) -> RuleSet:

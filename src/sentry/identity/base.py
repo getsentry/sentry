@@ -17,7 +17,7 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     A provider indicates how identity authenticate should happen for a given service.
     """
 
-    def __init__(self, **config):
+    def __init__(self, **config) -> None:
         super().__init__()
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")

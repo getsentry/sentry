@@ -36,7 +36,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     subscriptables_with_index = {"tags"}
     non_nullable_keys = {"id", "span_id", "trace", "trace_id"}
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         self.builder = builder
         self.total_count: int | None = None
         self.total_sum_transaction_duration: float | None = None
@@ -544,7 +544,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     sampling_weight = Column("sampling_weight")
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         super().__init__(builder)
         self._cached_count_and_weighted: tuple[float, float] | None = None
 

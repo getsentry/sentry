@@ -103,7 +103,7 @@ class EventError:
     def get_message(cls, data):
         return cls(data).message
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._data = data
 
     @property

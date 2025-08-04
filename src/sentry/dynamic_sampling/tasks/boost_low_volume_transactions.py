@@ -284,7 +284,7 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(self, orgs: Sequence[int]):
+    def __init__(self, orgs: Sequence[int]) -> None:
         self.log_state: DynamicSamplingLogState | None = None
 
         transaction_string_id = indexer.resolve_shared_org("transaction")

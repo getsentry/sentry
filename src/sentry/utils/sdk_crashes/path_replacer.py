@@ -50,7 +50,7 @@ class KeepAfterPatternMatchPathReplacer(PathReplacer):
 
 
 class KeepFieldPathReplacer(PathReplacer):
-    def __init__(self, fields: set[str]):
+    def __init__(self, fields: set[str]) -> None:
         self.fields = fields
 
     def replace_path(self, path_field: str, path_value: str) -> str | None:

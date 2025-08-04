@@ -21,7 +21,7 @@ class DiscoverProcessor:
     Processor for exports of discover data based on a provided query
     """
 
-    def __init__(self, organization, discover_query):
+    def __init__(self, organization, discover_query) -> None:
         self.projects = self.get_projects(organization.id, discover_query)
         self.environments = self.get_environments(organization.id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)

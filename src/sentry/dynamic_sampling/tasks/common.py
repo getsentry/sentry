@@ -42,7 +42,7 @@ ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
 class TimeoutException(Exception):
-    def __init__(self, task_context: TaskContext, *args):
+    def __init__(self, task_context: TaskContext, *args) -> None:
         super().__init__(
             [task_context, *args],
         )
@@ -117,7 +117,7 @@ class ContextIterator(Protocol):
 
 
 class _SimpleContextIterator(Iterator[Any]):
-    def __init__(self, inner: Iterator[Any]):
+    def __init__(self, inner: Iterator[Any]) -> None:
         self.inner = inner
         self.log_state = DynamicSamplingLogState()
 

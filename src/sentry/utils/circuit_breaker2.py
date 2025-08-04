@@ -123,7 +123,7 @@ class CircuitBreaker:
     easily monitored.
     """
 
-    def __init__(self, key: str, config: CircuitBreakerConfig):
+    def __init__(self, key: str, config: CircuitBreakerConfig) -> None:
         self.key = key
         self.broken_state_key = f"{key}.circuit_breaker.broken"
         self.recovery_state_key = f"{key}.circuit_breaker.in_recovery"

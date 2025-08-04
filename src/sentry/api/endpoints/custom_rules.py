@@ -35,7 +35,7 @@ class UnsupportedSearchQueryReason(Enum):
 
 
 class UnsupportedSearchQuery(Exception):
-    def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs):
+    def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs) -> None:
         super().__init__(error_code.value, *args, **kwargs)
         self.error_code = error_code.value
 

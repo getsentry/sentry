@@ -311,7 +311,7 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
+    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None) -> None:
         super().__init__(detector)
 
         # Default to 1 for all the possible levels on a given detector

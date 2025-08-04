@@ -36,7 +36,7 @@ class ConcurrentLimiterTest(TestCase):
 
     def test_fails_open(self) -> None:
         class FakeClient:
-            def __init__(self, real_client):
+            def __init__(self, real_client) -> None:
                 self._client = real_client
 
             def __getattr__(self, name):

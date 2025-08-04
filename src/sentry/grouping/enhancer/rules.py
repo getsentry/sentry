@@ -12,7 +12,7 @@ class EnhancementRuleDict(TypedDict):
 
 
 class EnhancementRule:
-    def __init__(self, matchers: list[EnhancementMatch], actions: list[EnhancementAction]):
+    def __init__(self, matchers: list[EnhancementMatch], actions: list[EnhancementAction]) -> None:
         self.matchers = matchers
 
         self._exception_matchers = []

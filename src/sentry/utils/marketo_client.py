@@ -15,7 +15,7 @@ class MarketoErrorResponse(TypedDict):
 
 
 class MarketoError(Exception):
-    def __init__(self, data: MarketoErrorResponse):
+    def __init__(self, data: MarketoErrorResponse) -> None:
         # just use the first error
         error = data["errors"][0]
         self.code = error["code"]

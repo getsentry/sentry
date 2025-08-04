@@ -29,7 +29,7 @@ from sentry.utils.dates import parse_stats_period
 class MetricsQueryBuilder:
     AVG_DURATION_METRIC = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
 
-    def __init__(self):
+    def __init__(self) -> None:
         now = datetime.now()
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]

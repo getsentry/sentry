@@ -55,7 +55,7 @@ class SnubaTSResultSerializer:
     Serializer for time-series Snuba data.
     """
 
-    def __init__(self, organization, lookup, user):
+    def __init__(self, organization, lookup, user) -> None:
         self.organization = organization
         self.lookup = lookup
         self.user = user

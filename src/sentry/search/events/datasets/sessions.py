@@ -22,7 +22,7 @@ from sentry.search.events.types import SelectType, WhereType
 class SessionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {"project", "project_id", "environment", "release"}
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         self.builder = builder
 
     @property

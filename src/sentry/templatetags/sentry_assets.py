@@ -68,7 +68,7 @@ def injected_script_assets() -> list[str]:
 
 
 class ScriptNode(template.Node):
-    def __init__(self, nodelist, **kwargs):
+    def __init__(self, nodelist, **kwargs) -> None:
         self.nodelist = nodelist
         self.attrs = kwargs
 

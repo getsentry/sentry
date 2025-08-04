@@ -211,7 +211,7 @@ class ProjectArtifactBundle(Model):
 class ArtifactBundleArchive:
     """Read-only view of uploaded ZIP artifact bundle."""
 
-    def __init__(self, fileobj: IO, build_memory_map: bool = True):
+    def __init__(self, fileobj: IO, build_memory_map: bool = True) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]

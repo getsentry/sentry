@@ -72,7 +72,7 @@ class ProjectContext:
     regression_substatus_count = 0
     total_substatus_count = 0
 
-    def __init__(self, project):
+    def __init__(self, project) -> None:
         self.project = project
 
         self.key_errors_by_id: list[tuple[int, int]] = []
@@ -116,7 +116,7 @@ class ProjectContext:
 
 
 class DailySummaryProjectContext:
-    def __init__(self, project: Project):
+    def __init__(self, project: Project) -> None:
         self.total_today = 0
         self.comparison_period_total = 0
         self.comparison_period_avg = 0

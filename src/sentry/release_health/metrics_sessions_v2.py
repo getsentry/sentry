@@ -303,7 +303,7 @@ class CountUniqueUser(CountField):
 
 
 class DurationField(Field):
-    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
+    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter) -> None:
         self.op = name[:3]  # That this works is just a lucky coincidence
         super().__init__(name, raw_groupby, status_filter)
 
@@ -343,7 +343,7 @@ class SimpleForwardingField(Field):
         "foreground_anr_rate()": SessionMRI.FOREGROUND_ANR_RATE,
     }
 
-    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
+    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter) -> None:
         if "session.status" in raw_groupby:
             raise InvalidParams(f"Cannot group field {name} by session.status")
         if status_filter is not None:

@@ -77,7 +77,7 @@ class OptionsStore:
     OptionsManager instead, unless you need raw access to something.
     """
 
-    def __init__(self, cache=None, ttl=None):
+    def __init__(self, cache=None, ttl=None) -> None:
         self.cache = cache
         self.ttl = ttl
         self.flush_local_cache()

@@ -43,7 +43,7 @@ class MovingAverage(ABC):
 
 
 class ExponentialMovingAverage(MovingAverage):
-    def __init__(self, weight: float):
+    def __init__(self, weight: float) -> None:
         super().__init__()
         assert 0 < weight and weight < 1
         self.weight = weight

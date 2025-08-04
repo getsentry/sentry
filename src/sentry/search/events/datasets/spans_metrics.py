@@ -33,7 +33,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         constants.SPAN_METRICS_MAP["ai.total_tokens.used"],
     }
 
-    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder) -> None:
         self.builder = builder
         self.total_span_duration: float | None = None
 

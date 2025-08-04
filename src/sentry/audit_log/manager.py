@@ -67,7 +67,7 @@ class AuditLogEvent:
     # subclass AuditLogEvent and override the render method.
     template: str | None = None
 
-    def __init__(self, event_id, name, api_name, template=None):
+    def __init__(self, event_id, name, api_name, template=None) -> None:
         self.event_id = event_id
         self.name = name
         self.api_name = api_name

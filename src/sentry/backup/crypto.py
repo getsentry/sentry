@@ -64,7 +64,7 @@ class LocalFileEncryptor(Encryptor):
     Encrypt using a public key stored on the local machine.
     """
 
-    def __init__(self, fp: IO[bytes]):
+    def __init__(self, fp: IO[bytes]) -> None:
         self.__key = fp.read()
 
     def get_public_key_pem(self) -> bytes:
@@ -79,7 +79,7 @@ class GCPKMSEncryptor(Encryptor):
 
     crypto_key_version: CryptoKeyVersion | None = None
 
-    def __init__(self, fp: IO[bytes]):
+    def __init__(self, fp: IO[bytes]) -> None:
         self.__key = fp.read()
 
     @classmethod
@@ -225,7 +225,7 @@ class LocalFileDecryptor(Decryptor):
     Decrypt using a private key stored on the local machine.
     """
 
-    def __init__(self, fp: IO[bytes]):
+    def __init__(self, fp: IO[bytes]) -> None:
         self.__key = fp.read()
 
     @classmethod
@@ -274,7 +274,7 @@ class GCPKMSDecryptor(Decryptor):
     Management Service.
     """
 
-    def __init__(self, fp: IO[bytes]):
+    def __init__(self, fp: IO[bytes]) -> None:
         self.__key = fp.read()
 
     @classmethod
@@ -338,6 +338,6 @@ class EncryptorDecryptorPair:
     An Encryptor and Decryptor that use paired public and private keys, respectively.
     """
 
-    def __init__(self, encryptor: Encryptor, decryptor: Decryptor):
+    def __init__(self, encryptor: Encryptor, decryptor: Decryptor) -> None:
         self.encryptor = encryptor
         self.decryptor = decryptor

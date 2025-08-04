@@ -12,7 +12,7 @@ class OrderedBias:
     biases.
     """
 
-    def __init__(self, bias: Bias, order_number: float):
+    def __init__(self, bias: Bias, order_number: float) -> None:
         self.bias = bias
         self.order_number = order_number
 

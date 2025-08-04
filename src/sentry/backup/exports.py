@@ -98,7 +98,7 @@ class NoopExportCheckpointer(ExportCheckpointer):
     This means that no checkpointing ever occurs.
     """
 
-    def __init__(self, crypto: EncryptorDecryptorPair | None, printer: Printer):
+    def __init__(self, crypto: EncryptorDecryptorPair | None, printer: Printer) -> None:
         pass
 
     def get(self, model_name: NormalizedModelName) -> RpcExportOk | None:

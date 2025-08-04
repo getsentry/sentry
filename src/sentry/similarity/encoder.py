@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence, Set
 class Encoder:
     number_types = (int, float)
 
-    def __init__(self, types=None):
+    def __init__(self, types=None) -> None:
         self.types = types if types is not None else {}
 
     def dumps(self, value):

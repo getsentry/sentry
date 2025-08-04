@@ -211,7 +211,7 @@ class RateLimit:
 
     __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
 
-    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
+    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None) -> None:
         self.is_limited = is_limited
         # delta of seconds in the future to retry
         self.retry_after = retry_after
@@ -238,12 +238,12 @@ class RateLimit:
 
 
 class NotRateLimited(RateLimit):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(False, **kwargs)
 
 
 class RateLimited(RateLimit):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(True, **kwargs)
 
 
@@ -316,7 +316,7 @@ class Quota(Service):
         "update_monitor_slug",
     )
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         pass
 
     def get_quotas(

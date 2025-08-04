@@ -405,7 +405,7 @@ class LoggingPrinter(Printer):
     and `export_*` backup methods rely on.
     """
 
-    def __init__(self, uuid: str):
+    def __init__(self, uuid: str) -> None:
         self.uuid = uuid
         super().__init__()
 

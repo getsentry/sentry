@@ -3,7 +3,7 @@ from sentry.utils import json
 
 
 class RedmineClient:
-    def __init__(self, host, key):
+    def __init__(self, host, key) -> None:
         self.host = host.rstrip("/")
         self.key = key
 

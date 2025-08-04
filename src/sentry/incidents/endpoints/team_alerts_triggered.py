@@ -82,7 +82,7 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint):
 
 
 class TriggeredAlertRuleSerializer(AlertRuleSerializer):
-    def __init__(self, start, end):
+    def __init__(self, start, end) -> None:
         super().__init__()
         self.start = start
         self.end = end

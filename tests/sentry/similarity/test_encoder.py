@@ -28,7 +28,7 @@ def test_builtin_types() -> None:
 
 def test_custom_types() -> None:
     class Widget:
-        def __init__(self, color):
+        def __init__(self, color) -> None:
             self.color = color
 
     encoder = Encoder({Widget: lambda i: {"color": i.color}})

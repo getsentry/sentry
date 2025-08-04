@@ -195,7 +195,7 @@ class RedisOperation(Enum):
 
 
 class PendingBuffer:
-    def __init__(self, size: int):
+    def __init__(self, size: int) -> None:
         assert size > 0
         self.buffer: list[str | None] = [None] * size
         self.size = size
@@ -225,7 +225,7 @@ class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
 
-    def __init__(self, incr_batch_size: int = 2, **options: object):
+    def __init__(self, incr_batch_size: int = 2, **options: object) -> None:
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_BUFFER_OPTIONS", options
         )

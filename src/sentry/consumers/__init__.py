@@ -665,7 +665,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
     and debugging partition-specific issues.
     """
 
-    def __init__(self, inner: ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory) -> None:
         self.inner = inner
 
     def create_with_partitions(self, commit, partitions):
@@ -680,7 +680,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
-    def __init__(self, healthcheck_file_path: str, inner: ProcessingStrategyFactory):
+    def __init__(self, healthcheck_file_path: str, inner: ProcessingStrategyFactory) -> None:
         self.healthcheck_file_path = healthcheck_file_path
         self.inner = inner
 

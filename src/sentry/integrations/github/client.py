@@ -68,7 +68,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
     base_url = "https://api.github.com"
     integration_name = "github_setup"
 
-    def __init__(self, access_token: str | None = None, verify_ssl: bool = True):
+    def __init__(self, access_token: str | None = None, verify_ssl: bool = True) -> None:
         super().__init__(verify_ssl=verify_ssl)
         self.jwt = get_jwt()
         self.access_token = access_token

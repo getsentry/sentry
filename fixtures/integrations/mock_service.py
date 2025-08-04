@@ -20,7 +20,7 @@ class MockService(StubService):
     Like stubs, mocks can make tests simpler and more reliable.
     """
 
-    def __init__(self, mode="memory"):
+    def __init__(self, mode="memory") -> None:
         """
         Initialize the mock instance. Wipe the previous instance's data if it exists.
         """

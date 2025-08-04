@@ -29,7 +29,7 @@ class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
 
 @register(OrganizationMemberTeam)
 class DetailedOrganizationMemberTeamSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.team = kwargs.pop("team", None)
         super().__init__(*args, **kwargs)
 

@@ -24,7 +24,7 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
 
 @register(GroupSearchViewStarred)
 class GroupSearchViewStarredSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
         self.organization = kwargs.pop("organization", None)

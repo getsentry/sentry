@@ -83,7 +83,7 @@ class ContextType:
     type: str
     """This should match the `type` key in context object"""
 
-    def __init__(self, alias, data):
+    def __init__(self, alias, data) -> None:
         self.alias = alias
         ctx_data = {}
         for key, value in data.items():

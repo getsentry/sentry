@@ -11,7 +11,7 @@ from sentry.processing.backpressure.health import is_consumer_healthy
 
 
 class HealthChecker:
-    def __init__(self, consumer_name: str = "default"):
+    def __init__(self, consumer_name: str = "default") -> None:
         self.consumer_name = consumer_name
         self.last_check: float = 0
         # Queue is healthy by default

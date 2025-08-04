@@ -94,7 +94,7 @@ class ServiceHook(Model):
         else:
             return app_service.get_by_application_id(application_id=self.application_id)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if self.guid is None:
             self.guid = uuid4().hex

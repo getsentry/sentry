@@ -2,7 +2,7 @@ import logging
 
 
 class InstanceManager:
-    def __init__(self, class_list=None, instances=True):
+    def __init__(self, class_list=None, instances=True) -> None:
         if class_list is None:
             class_list = []
         self.instances = instances

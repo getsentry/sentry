@@ -118,7 +118,7 @@ class ActionTrigger(FlexibleIntEnum):
 
 
 class ActionRegistration(metaclass=ABCMeta):
-    def __init__(self, action: NotificationAction):
+    def __init__(self, action: NotificationAction) -> None:
         self.action = action
 
     @abstractmethod

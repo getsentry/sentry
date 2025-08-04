@@ -89,7 +89,7 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
 
 
 class VisitableQueryExpression:
-    def __init__(self, query: QueryExpression):
+    def __init__(self, query: QueryExpression) -> None:
         self._query = query
         self._visitors: list[QueryExpressionVisitor[QueryExpression]] = []
 

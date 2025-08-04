@@ -63,7 +63,7 @@ else:
 
 
 class RequestSignatureInterceptor(InterceptorBase):
-    def __init__(self, shared_secret: list[str]):
+    def __init__(self, shared_secret: list[str]) -> None:
         self._secret = shared_secret[0].encode("utf-8")
 
     def intercept_unary_unary(

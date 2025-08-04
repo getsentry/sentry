@@ -14,7 +14,7 @@ __all__ = ("ApiClient",)
 
 
 class ApiError(Exception):
-    def __init__(self, status_code, body):
+    def __init__(self, status_code, body) -> None:
         self.status_code = status_code
         self.body = body
 

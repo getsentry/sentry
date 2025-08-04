@@ -4,7 +4,7 @@ from sentry.utils.services import Service
 class ProjectConfigCache(Service):
     __all__ = ("set_many", "delete_many", "get")
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         pass
 
     def set_many(self, configs):

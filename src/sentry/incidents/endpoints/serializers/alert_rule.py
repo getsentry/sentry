@@ -99,7 +99,9 @@ class AlertRuleSerializer(Serializer):
     Serializer for returning an alert rule to the client
     """
 
-    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+    def __init__(
+        self, expand: list[str] | None = None, prepare_component_fields: bool = False
+    ) -> None:
         self.expand = expand or []
         self.prepare_component_fields = prepare_component_fields
 
@@ -349,7 +351,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
 
 class CombinedRuleSerializer(Serializer):
-    def __init__(self, expand: list[str] | None = None):
+    def __init__(self, expand: list[str] | None = None) -> None:
         self.expand = expand or []
 
     def get_attrs(

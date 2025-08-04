@@ -211,7 +211,7 @@ class SnubaTSDB(BaseTSDB):
         )
     )
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         super().__init__(**options)
 
     def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> list[Any]:

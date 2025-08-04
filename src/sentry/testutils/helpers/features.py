@@ -143,7 +143,7 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
 
 
 class FeatureContextManagerOrDecorator:
-    def __init__(self, feature_names):
+    def __init__(self, feature_names) -> None:
         self.feature_names = feature_names
         self._context_manager = None
 

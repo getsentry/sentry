@@ -27,7 +27,7 @@ class GithubPluginClientMixin(AuthApiClient):
 
 
 class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
-    def __init__(self, url=None, auth=None):
+    def __init__(self, url=None, auth=None) -> None:
         if url is not None:
             self.base_url = url.rstrip("/")
         super().__init__(auth=auth)
@@ -73,7 +73,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
 
 
 class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
-    def __init__(self, integration: RpcIntegration):
+    def __init__(self, integration: RpcIntegration) -> None:
         self.integration = integration
         self.token: str | None = None
         self.expires_at: datetime.datetime | None = None

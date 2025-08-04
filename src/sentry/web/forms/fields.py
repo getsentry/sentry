@@ -59,7 +59,7 @@ class ReadOnlyTextWidget(Widget):
 class ReadOnlyTextField(Field):
     widget = ReadOnlyTextWidget
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs.setdefault("required", False)
         super().__init__(*args, **kwargs)
 

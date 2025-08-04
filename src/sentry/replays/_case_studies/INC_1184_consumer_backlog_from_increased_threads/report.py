@@ -22,7 +22,7 @@ from arroyo.types import FilteredPayload, Message, Value
 
 
 class Producer:
-    def __init__(self, step):
+    def __init__(self, step) -> None:
         self.step = step
         self.produced_count = 0
 
@@ -35,7 +35,7 @@ class Producer:
 
 
 class Consumer(ProcessingStrategy[FilteredPayload | None]):
-    def __init__(self):
+    def __init__(self) -> None:
         self.consumed_count = 0
 
     def submit(self, message):
@@ -51,7 +51,7 @@ class Consumer(ProcessingStrategy[FilteredPayload | None]):
 
 
 class SharedResource:
-    def __init__(self, max_workers, wait):
+    def __init__(self, max_workers, wait) -> None:
         self.lock = Semaphore(max_workers)
         self.wait = wait
 

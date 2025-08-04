@@ -17,7 +17,7 @@ class ServiceMemory:
     host: str | None = None
     port: int | None = None
 
-    def __init__(self, name: str, used: int, available: int):
+    def __init__(self, name: str, used: int, available: int) -> None:
         self.name = name
         self.used = used
         self.available = available

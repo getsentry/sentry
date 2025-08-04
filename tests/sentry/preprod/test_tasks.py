@@ -260,7 +260,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert initial_config_count == 0
 
         class MockAssembleResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.bundle = type("MockBundle", (), {"id": 12345})()
 
         with (

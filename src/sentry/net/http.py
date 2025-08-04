@@ -31,7 +31,9 @@ class SafeConnectionMixin:
 
     is_ipaddress_permitted: IsIpAddressPermitted = None
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs
+    ) -> None:
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(*args, **kwargs)
 
@@ -109,7 +111,9 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
 class SafeHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = SafeHTTPConnection
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = partial(
             self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
@@ -119,7 +123,9 @@ class SafeHTTPConnectionPool(HTTPConnectionPool):
 class SafeHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = partial(
             self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
@@ -133,7 +139,9 @@ class SafePoolManager(PoolManager):
     ConnectionPool classes to create.
     """
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs
+    ) -> None:
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
             "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
@@ -177,7 +185,7 @@ class BlacklistAdapter(HTTPAdapter):
 
 
 class TimeoutAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         timeout = kwargs.pop("timeout", None)
         HTTPAdapter.__init__(self, *args, **kwargs)
         if timeout is None:
@@ -220,7 +228,7 @@ class SafeSession(Session):
 class UnixHTTPConnection(HTTPConnection):
     default_socket_options = []
 
-    def __init__(self, host, **kwargs):
+    def __init__(self, host, **kwargs) -> None:
         # We're using the `host` as the socket path, but
         # urllib3 uses this host as the Host header by default.
         # If we send along the socket path as a Host header, this is

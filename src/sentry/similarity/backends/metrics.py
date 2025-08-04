@@ -3,7 +3,7 @@ from sentry.utils.metrics import timer
 
 
 class MetricsWrapper(AbstractIndexBackend):
-    def __init__(self, backend, template="similarity.{}", scope_tag_name="scope"):
+    def __init__(self, backend, template="similarity.{}", scope_tag_name="scope") -> None:
         self.backend = backend
         self.template = template
         self.scope_tag_name = scope_tag_name

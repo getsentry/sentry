@@ -23,7 +23,9 @@ class EvaluationContext:
     __identity_fields: set[str]
     __id: int
 
-    def __init__(self, data: EvaluationContextDict, identity_fields: set[str] | None = None):
+    def __init__(
+        self, data: EvaluationContextDict, identity_fields: set[str] | None = None
+    ) -> None:
         self.__data = deepcopy(data)
         self.__set_identity_fields(identity_fields)
         self.__id = self.__generate_id()
@@ -100,7 +102,7 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
     exception_handler: Callable[[Exception], Any] | None
     __identity_fields: set[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.context_transformers = []
         self.exception_handler = None
         self.__identity_fields = set()

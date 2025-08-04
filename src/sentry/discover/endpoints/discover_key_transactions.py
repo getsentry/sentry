@@ -182,7 +182,7 @@ class TeamKeyTransactionSerializer(Serializer):
 
 
 class KeyTransactionTeamSerializer(Serializer):
-    def __init__(self, projects):
+    def __init__(self, projects) -> None:
         self.project_ids = {project.id for project in projects}
 
     def get_attrs(self, item_list, user, **kwargs):

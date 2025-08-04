@@ -10,7 +10,7 @@ from sentry.utils.locking.backends.redis import RedisLockBackend
 class DummyLockBackend(LockBackend):
     path = "tests.sentry.utils.locking.backends.test_migration.DummyLockBackend"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._locks = {}
 
     def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:

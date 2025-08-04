@@ -315,7 +315,7 @@ def create_test_producer_factory():
 
 # Dependency injection pattern for testable Kafka producers
 class MultiProducer:
-    def __init__(self, topic: Topic, producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None):
+    def __init__(self, topic: Topic, producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None) -> None:
         self.producer_factory = producer_factory or self._default_producer_factory
         # ... setup code
 

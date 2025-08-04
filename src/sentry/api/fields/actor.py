@@ -9,7 +9,7 @@ from sentry.types.actor import Actor, parse_and_validate_actor
 
 @extend_schema_field(field=OpenApiTypes.STR)
 class ActorField(serializers.Field):
-    def __init__(self, *args, **kwds):
+    def __init__(self, *args, **kwds) -> None:
         super().__init__(*args, **kwds)
 
     def to_representation(self, value):

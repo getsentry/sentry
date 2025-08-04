@@ -65,7 +65,7 @@ class SessionBuilder:
     flow on the frontend, based on the current user's state.
     """
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         self.request = request
 
     def initialize_auth_flags(self) -> None:

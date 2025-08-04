@@ -28,7 +28,7 @@ logger = logging.getLogger("sentry.testutils")
 
 
 class Browser:
-    def __init__(self, driver, live_server):
+    def __init__(self, driver, live_server) -> None:
         self.driver = driver
         self.live_server_url = live_server.url
         self.domain = urlparse(self.live_server_url).hostname

@@ -49,7 +49,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
     aggregatedDataConsent = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]

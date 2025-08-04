@@ -103,7 +103,7 @@ class CachedAttachment:
 
 
 class BaseAttachmentCache:
-    def __init__(self, inner):
+    def __init__(self, inner) -> None:
         self.inner = inner
 
     def set(self, key, attachments, timeout=None):

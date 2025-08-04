@@ -306,7 +306,7 @@ def get_scraping_data_for_frame(
 
 
 class ReleaseLookupData:
-    def __init__(self, abs_path: str, project: Project, release: Release, event):
+    def __init__(self, abs_path: str, project: Project, release: Release, event) -> None:
         self.abs_path = abs_path
         self.project = project
         self.release = release

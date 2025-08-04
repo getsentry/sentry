@@ -65,7 +65,7 @@ def derive_code_mappings(
 class CodeMappingTreesHelper:
     platform: str | None = None
 
-    def __init__(self, trees: Mapping[str, RepoTree]):
+    def __init__(self, trees: Mapping[str, RepoTree]) -> None:
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 

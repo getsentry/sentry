@@ -493,7 +493,12 @@ class MissingQueryResult(Exception):
     Raised when a group is missing from a query result.
     """
 
-    def __init__(self, group_id: GroupId, query: UniqueConditionQuery, query_result: QueryResult):
+    def __init__(
+        self,
+        group_id: GroupId,
+        query: UniqueConditionQuery,
+        query_result: QueryResult,
+    ) -> None:
         self.group_id = group_id
         self.query = query
         self.query_result = query_result

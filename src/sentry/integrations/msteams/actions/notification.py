@@ -25,7 +25,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.MSTEAMS.value
     integration_key = "team"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "team": {

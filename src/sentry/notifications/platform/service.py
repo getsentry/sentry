@@ -17,7 +17,7 @@ class NotificationServiceError(Exception):
 
 
 class NotificationService[T: NotificationData]:
-    def __init__(self, *, data: T):
+    def __init__(self, *, data: T) -> None:
         self.data: Final[T] = data
 
     # TODO(ecosystem): Eventually this should be converted to spawn a task with the business logic below

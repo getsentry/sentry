@@ -56,7 +56,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     integration_name = IntegrationProviderSlug.BITBUCKET.value
 
-    def __init__(self, integration: RpcIntegration | Integration):
+    def __init__(self, integration: RpcIntegration | Integration) -> None:
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey

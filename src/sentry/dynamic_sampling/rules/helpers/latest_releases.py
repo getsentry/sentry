@@ -134,7 +134,7 @@ class ProjectBoostedReleases:
     # Limit of boosted releases per project.
     BOOSTED_RELEASES_HASH_EXPIRATION = 60 * 60 * 1000
 
-    def __init__(self, project_id: int):
+    def __init__(self, project_id: int) -> None:
         self.redis_client = get_redis_client_for_ds()
         self.project_id = project_id
         self.project_platform = _get_project_platform(self.project_id)
@@ -293,7 +293,7 @@ class LatestReleaseBias:
     OBSERVED_VALUE = "1"
     ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 
-    def __init__(self, latest_release_params: LatestReleaseParams):
+    def __init__(self, latest_release_params: LatestReleaseParams) -> None:
         self.redis_client = get_redis_client_for_ds()
         self.latest_release_params = latest_release_params
         self.project_boosted_releases = ProjectBoostedReleases(

@@ -38,7 +38,7 @@ class RatelimitMiddleware:
     See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
     """
 
-    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:

@@ -29,7 +29,7 @@ class EventProcessingStore(Service):
 
     __all__ = ("exists", "store", "get", "delete", "delete_by_key")
 
-    def __init__(self, inner: KVStorage[str, Event]):
+    def __init__(self, inner: KVStorage[str, Event]) -> None:
         self.inner = inner
         self.timeout = timedelta(seconds=DEFAULT_TIMEOUT)
 

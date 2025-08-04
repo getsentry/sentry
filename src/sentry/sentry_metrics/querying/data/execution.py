@@ -513,7 +513,9 @@ class QueryExecutor:
     Represents an executor that is responsible for scheduling execution of the supplied ScheduledQuery(s).
     """
 
-    def __init__(self, organization: Organization, projects: Sequence[Project], referrer: str):
+    def __init__(
+        self, organization: Organization, projects: Sequence[Project], referrer: str
+    ) -> None:
         self._organization = organization
         self._projects = projects
         self._referrer = referrer

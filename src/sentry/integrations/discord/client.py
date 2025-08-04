@@ -51,7 +51,7 @@ class DiscordClient(ApiClient):
     _METRICS_USER_ERROR_KEY: str = "sentry.integrations.discord.failure.user_error"
     _METRICS_RATE_LIMIT_KEY: str = "sentry.integrations.discord.failure.rate_limit"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.application_id = options.get("discord.application-id")
         self.client_secret = options.get("discord.client-secret")

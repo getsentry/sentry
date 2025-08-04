@@ -55,7 +55,7 @@ logger = logging.getLogger("sentry.auth")
 # is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
 # ignored. This works like HookStore in Javascript.
 class AdditionalContext:
-    def __init__(self):
+    def __init__(self) -> None:
         self._callbacks = set()
 
     def add_callback(self, callback: Any) -> None:

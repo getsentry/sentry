@@ -66,7 +66,7 @@ class BaseRequestParser(ABC):
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
 
-    def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
+    def __init__(self, request: HttpRequest, response_handler: ResponseHandler) -> None:
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
         self.view_class = None

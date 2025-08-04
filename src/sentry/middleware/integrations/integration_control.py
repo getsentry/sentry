@@ -30,7 +30,7 @@ class IntegrationControlMiddleware:
     getsentry expands this list on django initialization.
     """
 
-    def __init__(self, get_response: ResponseHandler):
+    def __init__(self, get_response: ResponseHandler) -> None:
         self.get_response = get_response
 
     def _should_operate(self, request: HttpRequest) -> bool:

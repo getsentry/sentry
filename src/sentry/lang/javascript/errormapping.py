@@ -39,7 +39,7 @@ def is_expired(ts):
 
 
 class Processor:
-    def __init__(self, vendor: str, mapping_url, regex, func):
+    def __init__(self, vendor: str, mapping_url, regex, func) -> None:
         self.vendor: str = vendor
         self.mapping_url = mapping_url
         self.regex = re.compile(regex)

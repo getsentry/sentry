@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class RetryException(Exception):
-    def __init__(self, message, exception):
+    def __init__(self, message, exception) -> None:
         super().__init__(message)
         self.message = message
         self.exception = exception

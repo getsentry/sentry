@@ -45,7 +45,7 @@ class VercelClient(ApiClient):
     # https://vercel.com/docs/rest-api#endpoints/integrations/delete-an-integration-configuration
     UNINSTALL = "/v1/integrations/configuration/%s"
 
-    def __init__(self, access_token, team_id=None):
+    def __init__(self, access_token, team_id=None) -> None:
         super().__init__()
         self.access_token = access_token
         self.team_id = team_id

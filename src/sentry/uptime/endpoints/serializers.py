@@ -54,7 +54,7 @@ class ProjectUptimeSubscriptionSerializerResponse(UptimeSubscriptionSerializerRe
 
 @register(ProjectUptimeSubscription)
 class ProjectUptimeSubscriptionSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand=None) -> None:
         self.expand = expand
 
     def get_attrs(

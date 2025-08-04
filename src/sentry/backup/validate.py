@@ -39,7 +39,7 @@ def validate(
         max_seen_ordinal_value: int | tuple | None
         next_ordinal: int
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.max_seen_ordinal_value = None
             self.next_ordinal = 1
 

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class SdkSetupState:
-    def __init__(self, sdk_name, sdk_version, modules, integrations):
+    def __init__(self, sdk_name, sdk_version, modules, integrations) -> None:
         self.sdk_name = sdk_name
         self.sdk_version = sdk_version
         self.modules = dict(modules or ())
@@ -46,7 +46,7 @@ class SdkSetupState:
 
 
 class SdkIndexState:
-    def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None):
+    def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None) -> None:
         self.sdk_versions = sdk_versions or get_sdk_versions()
         self.deprecated_sdks = deprecated_sdks or settings.DEPRECATED_SDKS
         self.sdk_supported_modules = sdk_supported_modules or SDK_SUPPORTED_MODULES
@@ -61,7 +61,7 @@ class Suggestion:
 
 
 class EnableIntegrationSuggestion(Suggestion):
-    def __init__(self, integration_name, integration_url):
+    def __init__(self, integration_name, integration_url) -> None:
         self.integration_name = integration_name
         self.integration_url = integration_url
 
@@ -82,7 +82,7 @@ class EnableIntegrationSuggestion(Suggestion):
 
 
 class UpdateSDKSuggestion(Suggestion):
-    def __init__(self, sdk_name, new_sdk_version, ignore_patch_version):
+    def __init__(self, sdk_name, new_sdk_version, ignore_patch_version) -> None:
         self.sdk_name = sdk_name
         self.new_sdk_version = new_sdk_version
         self.ignore_patch_version = ignore_patch_version
@@ -123,7 +123,7 @@ class ChangeSDKSuggestion(Suggestion):
         multiple SDKs in e.g. .NET.
     """
 
-    def __init__(self, new_sdk_name, module_names=None):
+    def __init__(self, new_sdk_name, module_names=None) -> None:
         self.new_sdk_name = new_sdk_name
         self.module_names = module_names
 

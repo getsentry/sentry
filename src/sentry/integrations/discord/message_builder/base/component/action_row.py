@@ -13,7 +13,7 @@ class DiscordActionRowError(Exception):
 
 
 class DiscordActionRow(DiscordMessageComponent):
-    def __init__(self, components: Iterable[DiscordMessageComponent]):
+    def __init__(self, components: Iterable[DiscordMessageComponent]) -> None:
         for component in components:
             if isinstance(component, DiscordActionRow):
                 raise DiscordActionRowError()

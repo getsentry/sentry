@@ -41,7 +41,7 @@ class _LatestReleaseCacheAccess(CacheAccess[Release | Literal[False]]):
     If we don't, we cache False.
     """
 
-    def __init__(self, event: GroupEvent, environment: Environment | None):
+    def __init__(self, event: GroupEvent, environment: Environment | None) -> None:
         self._key = latest_release_cache_key(
             event.group.project_id, environment.id if environment else None
         )
@@ -56,7 +56,7 @@ class _LatestAdoptedReleaseCacheAccess(CacheAccess[Release | Literal[False]]):
     If we don't, we cache False.
     """
 
-    def __init__(self, event: GroupEvent, environment: Environment):
+    def __init__(self, event: GroupEvent, environment: Environment) -> None:
         self._key = latest_adopted_release_cache_key(event.group.project_id, environment.id)
 
     def key(self) -> str:

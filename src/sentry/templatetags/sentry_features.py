@@ -29,7 +29,7 @@ def feature(parser, token):
 
 
 class FeatureNode(template.Node):
-    def __init__(self, nodelist_true, nodelist_false, name, params):
+    def __init__(self, nodelist_true, nodelist_false, name, params) -> None:
         self.nodelist_true = nodelist_true
         self.nodelist_false = nodelist_false
         self.name = name

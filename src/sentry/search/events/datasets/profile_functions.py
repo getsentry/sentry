@@ -144,7 +144,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         "platform.name",
     }
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         self.builder = builder
 
     @property

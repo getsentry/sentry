@@ -153,7 +153,7 @@ class ReleaseFile(Model):
 class ReleaseArchive:
     """Read-only view of uploaded ZIP-archive of release files"""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
@@ -205,7 +205,7 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh=False):
+    def __init__(self, data: dict, fresh=False) -> None:
         self._data = data
         self.changed = fresh
 
@@ -238,7 +238,7 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args):
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)

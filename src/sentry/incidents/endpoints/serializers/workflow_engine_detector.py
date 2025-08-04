@@ -41,7 +41,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
     A temporary serializer to be used by the old alert rule endpoints to return data read from the new ACI models
     """
 
-    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+    def __init__(
+        self, expand: list[str] | None = None, prepare_component_fields: bool = False
+    ) -> None:
         self.expand = expand or []
         self.prepare_component_fields = prepare_component_fields
 

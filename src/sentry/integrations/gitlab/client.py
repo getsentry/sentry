@@ -41,7 +41,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
 
     integration_name = "gitlab_setup"
 
-    def __init__(self, base_url: str, access_token: str, verify_ssl: bool):
+    def __init__(self, base_url: str, access_token: str, verify_ssl: bool) -> None:
         super().__init__(verify_ssl=verify_ssl)
         self.base_url = base_url
         self.token = access_token
@@ -69,7 +69,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
 
 
 class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
-    def __init__(self, installation: GitlabIntegration):
+    def __init__(self, installation: GitlabIntegration) -> None:
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False

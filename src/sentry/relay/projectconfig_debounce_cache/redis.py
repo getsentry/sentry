@@ -14,7 +14,7 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         self._key_prefix = options.pop("key_prefix", "relayconfig-debounce")
         self._debounce_ttl = options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT)
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(

@@ -50,7 +50,9 @@ class BaseRedisLockBackend(LockBackend):
 class RedisBlasterLockBackend(BaseRedisLockBackend):
     cluster: rb.Cluster
 
-    def __init__(self, cluster: str | rb.Cluster, prefix: str = "l:", uuid: str | None = None):
+    def __init__(
+        self, cluster: str | rb.Cluster, prefix: str = "l:", uuid: str | None = None
+    ) -> None:
         if isinstance(cluster, str):
             cluster = redis.clusters.get(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)

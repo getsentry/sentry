@@ -11,6 +11,6 @@ __all__ = ("FlexibleForeignKey",)
 
 
 class FlexibleForeignKey(ForeignKey[FieldSetType, FieldGetType]):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("on_delete", models.CASCADE)
         super().__init__(*args, **kwargs)

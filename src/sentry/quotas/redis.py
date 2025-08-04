@@ -28,7 +28,7 @@ class RedisQuota(Quota):
     #: metrics may not be in sync with the computer running this code.
     grace = 60
 
-    def __init__(self, **options: object):
+    def __init__(self, **options: object) -> None:
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_QUOTA_OPTIONS", options
         )

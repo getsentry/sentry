@@ -367,7 +367,7 @@ class OrganizationReportBatch:
 
 
 class _DuplicateDeliveryCheck:
-    def __init__(self, batch: OrganizationReportBatch, user_id: int, timestamp: float):
+    def __init__(self, batch: OrganizationReportBatch, user_id: int, timestamp: float) -> None:
         self.batch = batch
         self.user_id = user_id
         # note that if the timestamps between batches cross a UTC day boundary,

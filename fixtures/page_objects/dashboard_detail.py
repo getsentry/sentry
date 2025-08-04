@@ -11,7 +11,9 @@ WIDGET_TITLE_FIELD = 'input[aria-label="Widget title"]'
 
 
 class DashboardDetailPage(BasePage):
-    def __init__(self, browser, client, *, organization: Organization, dashboard: Dashboard):
+    def __init__(
+        self, browser, client, *, organization: Organization, dashboard: Dashboard
+    ) -> None:
         super().__init__(browser)
         self.client = client
         self.organization = organization

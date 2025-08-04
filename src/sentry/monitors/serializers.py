@@ -174,7 +174,7 @@ class MonitorBulkEditResponse:
 
 @register(Monitor)
 class MonitorSerializer(Serializer):
-    def __init__(self, environments=None, expand=None):
+    def __init__(self, environments=None, expand=None) -> None:
         self.environments = environments
         self.expand = expand
 
@@ -288,7 +288,9 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
-    def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
+    def __init__(
+        self, start=None, end=None, expand=None, organization_id=None, project_id=None
+    ) -> None:
         self.start = start  # timestamp of the beginning of the specified date range
         self.end = end  # timestamp of the end of the specified date range
         self.expand = expand

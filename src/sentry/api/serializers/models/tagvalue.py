@@ -6,7 +6,7 @@ from sentry.utils.eventuser import EventUser
 
 
 class UserTagValueSerializer(Serializer):
-    def __init__(self, project_id):
+    def __init__(self, project_id) -> None:
         self.project_id = project_id
 
     def get_attrs(self, item_list, user, **kwargs):

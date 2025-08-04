@@ -123,7 +123,7 @@ class VstsSetupApiClient(ApiClient):
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
 
-    def __init__(self, base_url: str, oauth_redirect_url: str, access_token: str):
+    def __init__(self, base_url: str, oauth_redirect_url: str, access_token: str) -> None:
         super().__init__()
         self.base_url = base_url
         self.oauth_redirect_url = oauth_redirect_url

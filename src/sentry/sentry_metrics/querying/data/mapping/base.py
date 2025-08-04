@@ -10,7 +10,7 @@ class Mapper(abc.ABC):
     to_key: str = ""
     applied_on_groupby: bool = False
 
-    def __init__(self):
+    def __init__(self) -> None:
         # This exists to satisfy mypy, which complains otherwise
         self.map: dict[Any, Any] = {}
 
@@ -27,7 +27,7 @@ class Mapper(abc.ABC):
 
 
 class MapperConfig:
-    def __init__(self):
+    def __init__(self) -> None:
         self.mappers: set[type[Mapper]] = set()
 
     def add(self, mapper: type[Mapper]) -> "MapperConfig":

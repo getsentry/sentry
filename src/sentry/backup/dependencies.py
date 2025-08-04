@@ -23,7 +23,7 @@ class NormalizedModelName:
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str) -> None:
         if "." not in model_name:
             raise TypeError("cannot create NormalizedModelName from invalid input string")
         self.__model_name = model_name.lower()
@@ -245,7 +245,7 @@ class PrimaryKeyMap:
 
     mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.mapping = defaultdict(dict)
 
     def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:

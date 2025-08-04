@@ -306,7 +306,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
 
 class SpanExamplesPaginator:
-    def __init__(self, data_fn: Callable[[int, int], list[_Example]]):
+    def __init__(self, data_fn: Callable[[int, int], list[_Example]]) -> None:
         self.data_fn = data_fn
 
     def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[_Example]:

@@ -303,7 +303,7 @@ def add_unsubscribe_link(context):
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview:
-    def __init__(self, html_template, text_template, context=None, subject=None):
+    def __init__(self, html_template, text_template, context=None, subject=None) -> None:
         self.html_template = html_template
         self.text_template = text_template
         self.subject = subject
@@ -372,7 +372,7 @@ class MailPreviewAdapter(MailPreview):
     This is an adapter for MailPreview that will take similar arguments to MessageBuilder
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         kwargs["text_template"] = kwargs["template"]
         del kwargs["template"]
         if "from_email" in kwargs:
@@ -382,7 +382,7 @@ class MailPreviewAdapter(MailPreview):
 
 
 class ActivityMailPreview:
-    def __init__(self, request, activity):
+    def __init__(self, request, activity) -> None:
         self.request = request
         self.email = EMAIL_CLASSES_BY_TYPE[activity.type](activity)
 

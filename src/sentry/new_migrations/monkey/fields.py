@@ -23,7 +23,7 @@ def deconstruct(self):
 
 
 class SafeRemoveField(RemoveField):
-    def __init__(self, *args, deletion_action: DeletionAction, **kwargs):
+    def __init__(self, *args, deletion_action: DeletionAction, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.deletion_action = deletion_action
 

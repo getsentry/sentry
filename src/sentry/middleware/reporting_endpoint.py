@@ -11,7 +11,7 @@ class ReportingEndpointMiddleware:
     Add ReportingEndpoint header for Sentry staff users only.
     """
 
-    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:

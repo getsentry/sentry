@@ -76,7 +76,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]  # a proxy class isn't exactly the original type
     queries_limit = 15000
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))

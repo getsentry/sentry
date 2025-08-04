@@ -12,7 +12,7 @@ class FileSystemNodeStorage(NodeStorage):
     debugging and development!
     """
 
-    def __init__(self, path: str | None = None):
+    def __init__(self, path: str | None = None) -> None:
         self.path: str = ""
 
         if not settings.DEBUG:

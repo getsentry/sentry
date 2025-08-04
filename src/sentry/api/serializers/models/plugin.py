@@ -31,7 +31,7 @@ def is_plugin_deprecated(plugin, project: Project) -> bool:
 
 
 class PluginSerializer(Serializer):
-    def __init__(self, project=None):
+    def __init__(self, project=None) -> None:
         self.project = project
 
     def serialize(self, obj, attrs, user, **kwargs):
@@ -108,7 +108,7 @@ class PluginSerializer(Serializer):
 
 
 class PluginWithConfigSerializer(PluginSerializer):
-    def __init__(self, project=None):
+    def __init__(self, project=None) -> None:
         self.project = project
 
     def get_attrs(self, item_list, user, **kwargs):

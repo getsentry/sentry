@@ -34,7 +34,7 @@ class DelayedProcessingBase(ABC):
     buffer_key: ClassVar[str]
     option: ClassVar[str | None]
 
-    def __init__(self, project_id: int):
+    def __init__(self, project_id: int) -> None:
         self.project_id = project_id
 
     @property

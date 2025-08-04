@@ -17,7 +17,7 @@ from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
 class RuleNodeField(serializers.Field):
-    def __init__(self, type):
+    def __init__(self, type) -> None:
         super().__init__()
         self.type_name = type
 

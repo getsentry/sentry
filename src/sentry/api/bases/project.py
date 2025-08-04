@@ -29,7 +29,7 @@ class ProjectEventsError(Exception):
 
 
 class ProjectMoved(Exception):
-    def __init__(self, new_url: str, slug: str):
+    def __init__(self, new_url: str, slug: str) -> None:
         self.new_url = new_url
         self.slug = slug
         super().__init__(new_url, slug)

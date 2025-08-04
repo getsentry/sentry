@@ -16,7 +16,7 @@ class TrelloApiClient(ApiClient):
     base_url = "https://api.trello.com/1"
     plugin_name = "trello"
 
-    def __init__(self, api_key, token=None, **kwargs):
+    def __init__(self, api_key, token=None, **kwargs) -> None:
         self.api_key = api_key
         self.token = token
         super().__init__(**kwargs)

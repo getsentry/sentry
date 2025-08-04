@@ -66,7 +66,7 @@ class QueryMeta:
 
     meta: dict[str, Any]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.meta = kwargs
         self._transform_meta()
 

@@ -216,7 +216,7 @@ class FakeRequestDict:
     d: Mapping[str, str | bytes | None]
     _accessed: set[str]
 
-    def __init__(self, **d: Any):
+    def __init__(self, **d: Any) -> None:
         self.d = d
         self._accessed = set()
 

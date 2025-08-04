@@ -59,7 +59,7 @@ class TagValue(TagType):
     __slots__ = ("key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, key, value, times_seen, first_seen, last_seen):
+    def __init__(self, key, value, times_seen, first_seen, last_seen) -> None:
         self.key = key
         self.value = value
         self.times_seen = times_seen
@@ -71,7 +71,7 @@ class GroupTagKey(TagType):
     __slots__ = ("group_id", "key", "values_seen", "count", "top_values")
     _sort_key = "values_seen"
 
-    def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
+    def __init__(self, group_id, key, values_seen=None, count=None, top_values=None) -> None:
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
@@ -83,7 +83,7 @@ class GroupTagValue(TagType):
     __slots__ = ("group_id", "key", "value", "times_seen", "first_seen", "last_seen")
     _sort_key = "value"
 
-    def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
+    def __init__(self, group_id, key, value, times_seen, first_seen, last_seen) -> None:
         self.group_id = group_id
         self.key = key
         self.value = value

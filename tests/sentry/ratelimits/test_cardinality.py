@@ -21,7 +21,7 @@ class LimiterHelper:
     primitive interface for more readable tests.
     """
 
-    def __init__(self, limiter: RedisCardinalityLimiter):
+    def __init__(self, limiter: RedisCardinalityLimiter) -> None:
         self.limiter = limiter
         self.quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
         self.timestamp = 3600

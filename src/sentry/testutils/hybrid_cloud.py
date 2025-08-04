@@ -103,7 +103,7 @@ class CrossTransactionAssertionError(AssertionError):
 class EnforceNoCrossTransactionWrapper:
     alias: str
 
-    def __init__(self, alias: str):
+    def __init__(self, alias: str) -> None:
         self.alias = alias
 
     def __call__(self, execute: Callable[..., Any], *params: Any) -> Any:
@@ -150,7 +150,7 @@ class TransactionDetailsWrapper:
     result: list[TransactionDetails]
     alias: str
 
-    def __init__(self, alias: str, result: list[TransactionDetails]):
+    def __init__(self, alias: str, result: list[TransactionDetails]) -> None:
         self.result = result
         self.alias = alias
 

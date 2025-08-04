@@ -143,7 +143,7 @@ class MessageContainsFilter(logging.Filter):
     contains -- a string or list of strings to match
     """
 
-    def __init__(self, contains):
+    def __init__(self, contains) -> None:
         if not isinstance(contains, list):
             contains = [contains]
         if not all(isinstance(c, str) for c in contains):
@@ -184,7 +184,7 @@ class SamplingFilter(logging.Filter):
     level  -- sampling applies to log records with this level OR LOWER. Other records always pass through.
     """
 
-    def __init__(self, p: float, level: int | None = None):
+    def __init__(self, p: float, level: int | None = None) -> None:
         super().__init__()
         assert 0.0 <= p <= 1.0
         self.sample_rate = p

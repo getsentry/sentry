@@ -279,7 +279,7 @@ def get_legacy_releasefile_by_file_url(
 
 
 class UrlConstructor:
-    def __init__(self, request: Request, project: Project):
+    def __init__(self, request: Request, project: Project) -> None:
         if is_system_auth(request.auth):
             self.base_url = get_internal_artifact_lookup_source_url(project)
         else:

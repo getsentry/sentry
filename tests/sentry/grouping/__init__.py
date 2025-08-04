@@ -58,7 +58,7 @@ register_strategy_config(
 
 
 class GroupingInput:
-    def __init__(self, inputs_dir: str, filename: str):
+    def __init__(self, inputs_dir: str, filename: str) -> None:
         self.filename = filename  # Necessary for test naming
         with open(path.join(inputs_dir, self.filename)) as f:
             self.data = json.load(f)

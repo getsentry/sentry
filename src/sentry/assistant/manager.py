@@ -1,5 +1,5 @@
 class AssistantManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._guides = {}
 
     def add(self, guides):

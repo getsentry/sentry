@@ -496,7 +496,7 @@ class CommitContextClient(ABC):
 
 
 class PRCommentWorkflow(ABC):
-    def __init__(self, integration: CommitContextIntegration):
+    def __init__(self, integration: CommitContextIntegration) -> None:
         self.integration = integration
 
     @property
@@ -611,7 +611,7 @@ class PRCommentWorkflow(ABC):
 
 
 class OpenPRCommentWorkflow(ABC):
-    def __init__(self, integration: CommitContextIntegration):
+    def __init__(self, integration: CommitContextIntegration) -> None:
         self.integration = integration
 
     @property

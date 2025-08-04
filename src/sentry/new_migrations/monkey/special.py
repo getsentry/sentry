@@ -3,7 +3,7 @@ from django.db.migrations.operations.special import RunSQL
 
 
 class SafeRunSQL(RunSQL):
-    def __init__(self, *args, use_statement_timeout=True, **kwargs):
+    def __init__(self, *args, use_statement_timeout=True, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.use_statement_timeout = use_statement_timeout
 

@@ -12,7 +12,7 @@ T = TypeVar("T", bound=Model)
 
 
 class DataSourceCreator(Generic[T]):
-    def __init__(self, create_fn: Callable[[], T]):
+    def __init__(self, create_fn: Callable[[], T]) -> None:
         self._create_fn = create_fn
         self._instance: T | None = None
 

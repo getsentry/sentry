@@ -154,7 +154,7 @@ class Timers:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.timers: dict[str, TimerState] = {}
 
     def get_timer(self, name: str) -> "NamedTimer":
@@ -209,7 +209,7 @@ class NamedTimer:
         assert t.current() == 10
     """
 
-    def __init__(self, name: str, timers: Timers):
+    def __init__(self, name: str, timers: Timers) -> None:
         self.name = name
         self.timers = timers
 

@@ -25,7 +25,7 @@ def pytest_plugin_registered(plugin: object, manager: pytest.PytestPluginManager
 
 
 class PytestRerunJSONReporter:
-    def __init__(self, json_tests: JSONTestItems):
+    def __init__(self, json_tests: JSONTestItems) -> None:
         self.json_tests = json_tests
 
     def pytest_json_runtest_stage(self, report: pytest.TestReport) -> None:

@@ -189,7 +189,7 @@ class Sanitizer:
     interned_strings: dict[str, str]
     interned_datetimes: dict[datetime, datetime]
 
-    def __init__(self, export: Any, datetime_offset: timedelta | None = None):
+    def __init__(self, export: Any, datetime_offset: timedelta | None = None) -> None:
         self.json = export
         self.interned_strings = {"": ""}  # Always map empty string to itself.
         self.interned_datetimes = dict()

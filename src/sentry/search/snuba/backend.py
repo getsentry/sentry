@@ -302,7 +302,7 @@ class Condition:
 
 
 class QCallbackCondition(Condition):
-    def __init__(self, callback: Callable[[Any], Q]):
+    def __init__(self, callback: Callable[[Any], Q]) -> None:
         self.callback = callback
 
     def apply(
@@ -327,7 +327,7 @@ class ScalarCondition(Condition):
     instances
     """
 
-    def __init__(self, field: str, extra: dict[str, Sequence[int]] | None = None):
+    def __init__(self, field: str, extra: dict[str, Sequence[int]] | None = None) -> None:
         self.field = field
         self.extra = extra
 
@@ -351,7 +351,7 @@ class ScalarCondition(Condition):
 
 
 class QuerySetBuilder:
-    def __init__(self, conditions: Mapping[str, Condition]):
+    def __init__(self, conditions: Mapping[str, Condition]) -> None:
         self.conditions = conditions
 
     def build(

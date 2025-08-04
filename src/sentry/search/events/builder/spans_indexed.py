@@ -53,7 +53,7 @@ class SpansIndexedQueryBuilder(BaseQueryBuilder):
     size_fields = SIZE_FIELDS
     config_class = SpansIndexedDatasetConfig
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.value_resolver_map[constants.SPAN_STATUS] = (
             lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)

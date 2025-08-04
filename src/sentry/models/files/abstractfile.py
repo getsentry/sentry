@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChunkedFileBlobIndexWrapper:
-    def __init__(self, indexes, mode=None, prefetch=False, prefetch_to=None, delete=True):
+    def __init__(self, indexes, mode=None, prefetch=False, prefetch_to=None, delete=True) -> None:
         # eager load from database incase its a queryset
         self._indexes = list(indexes)
         self._curfile = None

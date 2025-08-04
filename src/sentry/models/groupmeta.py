@@ -17,7 +17,7 @@ class GroupMetaCacheNotPopulated(Exception):
 
 
 class GroupMetaManager(BaseManager["GroupMeta"]):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.__local_cache = threading.local()
 

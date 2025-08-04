@@ -21,7 +21,7 @@ class SubdomainMiddleware:
     If no subdomain is extracted, then request.subdomain is None.
     """
 
-    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]) -> None:
         self.base_hostname = options.get("system.base-hostname")
 
         if self.base_hostname:

@@ -792,7 +792,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: Event) -> None:
         self.event = event
 
     def __getitem__(self, name: str) -> str:

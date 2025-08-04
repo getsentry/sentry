@@ -113,7 +113,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     service is closed, or when the backing service implementation changes.
     """
 
-    def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
+    def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]) -> None:
         self._constructors = mapping
         self._singleton: dict[SiloMode, ServiceInterface] = {}
         self._lock = threading.RLock()

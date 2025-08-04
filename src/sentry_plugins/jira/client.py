@@ -32,7 +32,7 @@ class JiraClient(ApiClient):
 
     cache_time = 60
 
-    def __init__(self, instance_uri, username, password):
+    def __init__(self, instance_uri, username, password) -> None:
         self.base_url = instance_uri.rstrip("/")
         self.username = username
         self.password = password

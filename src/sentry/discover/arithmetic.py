@@ -195,7 +195,7 @@ class ArithmeticVisitor(NodeVisitor):
         "percentile_range",
     }
 
-    def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):
+    def __init__(self, max_operators: int | None, custom_measurements: set[str] | None) -> None:
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0

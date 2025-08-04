@@ -21,7 +21,7 @@ class SentryAPIException(APIException):
     code = ""
     message = ""
 
-    def __init__(self, code=None, message=None, detail=None, **kwargs):
+    def __init__(self, code=None, message=None, detail=None, **kwargs) -> None:
         # Note that we no longer call the base `__init__` here. This is because
         # DRF now forces all detail messages that subclass `APIException` to a
         # string, which breaks our format.
@@ -77,7 +77,7 @@ class MemberDisabledOverLimit(SentryAPIException):
     code = "member-disabled-over-limit"
     message = "Organization over member limit"
 
-    def __init__(self, organization):
+    def __init__(self, organization) -> None:
         super().__init__(
             next=reverse("sentry-organization-disabled-member", args=[organization.slug])
         )
@@ -105,7 +105,7 @@ class SudoRequired(SentryAPIException):
     code = "sudo-required"
     message = "Account verification required."
 
-    def __init__(self, user):
+    def __init__(self, user) -> None:
         super().__init__(username=user.username)
 
 
@@ -114,7 +114,7 @@ class PrimaryEmailVerificationRequired(SentryAPIException):
     code = "primary-email-verification-required"
     message = "Primary email verification required."
 
-    def __init__(self, user):
+    def __init__(self, user) -> None:
         super().__init__(username=user.username)
 
 

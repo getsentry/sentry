@@ -6,7 +6,7 @@ class WebhookApiClient(ApiClient):
     allow_redirects = False
     metrics_prefix = "integrations.webhook"
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self.data = data
         super().__init__(verify_ssl=False)
 

@@ -39,7 +39,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         "30d": StatsPeriod(30, timedelta(hours=24)),
     }
 
-    def __init__(self, since=None, until=None):
+    def __init__(self, since=None, until=None) -> None:
         self.since = since
         self.until = until
 

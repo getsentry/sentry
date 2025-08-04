@@ -27,7 +27,7 @@ class Meta:
     dict. Alternatively, use the ``merge`` or ``add_error`` convenience methods.
     """
 
-    def __init__(self, meta=None, path=None):
+    def __init__(self, meta=None, path=None) -> None:
         self._meta = {} if meta is None else meta
         self._path = path or []
 

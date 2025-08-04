@@ -79,7 +79,7 @@ class IntegrationRepositoryProvider:
     name: ClassVar[str]
     repo_provider: ClassVar[str]
 
-    def __init__(self, id):
+    def __init__(self, id) -> None:
         self.id = id
         self.logger = logging.getLogger(f"sentry.integrations.{self.repo_provider}")
 

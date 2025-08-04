@@ -144,7 +144,7 @@ class SentryAppParser(Serializer):
         allow_null=True,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.active_staff = kwargs.pop("active_staff", False)
         self.access = kwargs.pop("access", None)
         Serializer.__init__(self, *args, **kwargs)

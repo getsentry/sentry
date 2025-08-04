@@ -120,7 +120,7 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 
 
 class FeatureAdoptionRedisBackend:
-    def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options):
+    def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options) -> None:
         self.key_tpl = key_tpl
         self.is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
             "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options

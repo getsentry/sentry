@@ -13,7 +13,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self._team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
 

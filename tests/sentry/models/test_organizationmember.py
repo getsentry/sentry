@@ -42,7 +42,7 @@ class MockOrganizationRoles:
         {"id": "carol", "name": "Carol", "desc": "A nanny?"},
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         from sentry.roles.manager import RoleManager
 
         self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)

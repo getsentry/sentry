@@ -50,7 +50,7 @@ def _safe_get_frames(stacktrace) -> Sequence[dict[str, Any]]:
 
 
 class ProcessableFrame:
-    def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
+    def __init__(self, frame, idx, processor, stacktrace_info, processable_frames) -> None:
         self.frame = frame
         self.idx = idx
         self.processor = processor
@@ -107,7 +107,7 @@ class ProcessableFrame:
 
 
 class StacktraceProcessingTask:
-    def __init__(self, processable_stacktraces, processors):
+    def __init__(self, processable_stacktraces, processors) -> None:
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
 
@@ -129,7 +129,7 @@ class StacktraceProcessingTask:
 
 
 class StacktraceProcessor:
-    def __init__(self, data, stacktrace_infos, project=None):
+    def __init__(self, data, stacktrace_infos, project=None) -> None:
         self.data = data
         self.stacktrace_infos = stacktrace_infos
         if project is None:

@@ -29,7 +29,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.PAGERDUTY.value
     integration_key = "account"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {

@@ -29,7 +29,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     service = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         services = kwargs.pop("services")
 

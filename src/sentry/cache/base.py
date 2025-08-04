@@ -19,7 +19,7 @@ def unwrap_key(prefix: str, version: Any, value: str) -> str:
 class BaseCache(local):
     prefix = "c"
 
-    def __init__(self, version=None, prefix=None, is_default_cache=False):
+    def __init__(self, version=None, prefix=None, is_default_cache=False) -> None:
         self.version = version or settings.CACHE_VERSION
         if prefix is not None:
             self.prefix = prefix

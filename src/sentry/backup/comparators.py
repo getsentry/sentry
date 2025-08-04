@@ -43,7 +43,7 @@ class JSONScrubbingComparator(ABC):
     the `scrub(...)` methods are. This ensures that comparators that touch the same fields do not
     have their inputs mangled by one another."""
 
-    def __init__(self, *fields: str):
+    def __init__(self, *fields: str) -> None:
         self.fields = set(fields)
 
     def check(self, side: Side, data: Any) -> None:
@@ -246,7 +246,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
 
-    def __init__(self, foreign_fields: dict[str, type[models.base.Model]]):
+    def __init__(self, foreign_fields: dict[str, type[models.base.Model]]) -> None:
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
@@ -309,7 +309,7 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
     """Comparator that compares private values, but then safely truncates them to ensure that they
     do not leak out in logs, stack traces, etc."""
 
-    def __init__(self, *fields: str):
+    def __init__(self, *fields: str) -> None:
         super().__init__(*fields)
 
     def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
@@ -393,7 +393,7 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
     - If the right side is `is_unclaimed = False`, make sure that the password stays the same.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("password")
 
     def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
@@ -503,7 +503,7 @@ class IgnoredComparator(JSONScrubbingComparator):
 class RegexComparator(JSONScrubbingComparator, ABC):
     """Comparator that ensures that both sides match a certain regex."""
 
-    def __init__(self, regex: re.Pattern, *fields: str):
+    def __init__(self, regex: re.Pattern, *fields: str) -> None:
         self.regex = regex
         super().__init__(*fields)
 
@@ -595,7 +595,7 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
 class SecretHexComparator(RegexComparator):
     """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
 
-    def __init__(self, bytes: int, *fields: str):
+    def __init__(self, bytes: int, *fields: str) -> None:
         super().__init__(re.compile(f"""^[0-9a-f]{{{bytes * 2}}}$"""), *fields)
 
 
@@ -603,7 +603,7 @@ class SubscriptionIDComparator(RegexComparator):
     """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a
     numeric prefix. Ensure that the two values are NOT equivalent."""
 
-    def __init__(self, *fields: str):
+    def __init__(self, *fields: str) -> None:
         super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
 
     def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
@@ -666,7 +666,7 @@ class UUID4Comparator(RegexComparator):
     """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator
     ensures that they retain their validity, but are not equivalent."""
 
-    def __init__(self, *fields: str):
+    def __init__(self, *fields: str) -> None:
         super().__init__(
             re.compile(
                 "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\\Z$", re.I

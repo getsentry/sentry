@@ -177,7 +177,7 @@ class OptionsManager:
     constants in the global configuration.
     """
 
-    def __init__(self, store: OptionsStore):
+    def __init__(self, store: OptionsStore) -> None:
         self.store = store
         self.registry: dict[str, Key] = {}
 

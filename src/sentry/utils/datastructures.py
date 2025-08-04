@@ -13,7 +13,7 @@ class BidirectionalMapping(MutableMapping):
     provided to ``get_key``.
     """
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self.__data = data
         self.__inverse = {v: k for k, v in self.__data.items()}
         if len(self.__data) != len(self.__inverse):

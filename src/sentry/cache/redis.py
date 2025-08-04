@@ -12,7 +12,7 @@ class CommonRedisCache(BaseCache):
     key_expire = 60 * 60  # 1 hour
     max_size = 50 * 1024 * 1024  # 50MB
 
-    def __init__(self, client, raw_client, **options):
+    def __init__(self, client, raw_client, **options) -> None:
         self._text_client = client
         self._bytes_client = raw_client
         super().__init__(**options)

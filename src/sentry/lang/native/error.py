@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class SymbolicationFailed(Exception):
-    def __init__(self, message=None, type=None, obj=None):
+    def __init__(self, message=None, type=None, obj=None) -> None:
         Exception.__init__(self)
         self.message = str(message)
         self.type = type

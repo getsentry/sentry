@@ -141,7 +141,7 @@ CannotReprocessReason = Literal[
 
 
 class CannotReprocess(Exception):
-    def __init__(self, reason: CannotReprocessReason):
+    def __init__(self, reason: CannotReprocessReason) -> None:
         Exception.__init__(self, reason)
 
 

@@ -47,7 +47,7 @@ class UUIDField(models.Field):
 
     description = "Universally unique identifier."
 
-    def __init__(self, auto_add=False, coerce_to=UUID, **kwargs):
+    def __init__(self, auto_add=False, coerce_to=UUID, **kwargs) -> None:
         """Instantiate the field."""
 
         # If the `auto_add` argument is specified as True, substitute an
@@ -152,7 +152,7 @@ class UUIDField(models.Field):
 
 
 class UUIDAdapter:
-    def __init__(self, value):
+    def __init__(self, value) -> None:
         if not isinstance(value, UUID):
             raise TypeError("UUIDAdapter only understands UUID objects.")
         self.value = value

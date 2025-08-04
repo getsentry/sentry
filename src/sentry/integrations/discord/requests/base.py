@@ -56,7 +56,7 @@ class DiscordRequest:
     appropriate response code that the endpoint should respond with.
     """
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         self.request = request
         self._body = self.request.body.decode()
         self._data: Mapping[str, object] = orjson.loads(self.request.body)

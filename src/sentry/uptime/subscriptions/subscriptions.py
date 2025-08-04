@@ -544,7 +544,7 @@ def check_and_update_regions(
 
 
 class MaxUrlsForDomainReachedException(Exception):
-    def __init__(self, domain, suffix, max_urls):
+    def __init__(self, domain, suffix, max_urls) -> None:
         self.domain = domain
         self.suffix = suffix
         self.max_urls = max_urls

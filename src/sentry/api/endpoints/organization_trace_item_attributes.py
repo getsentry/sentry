@@ -76,7 +76,7 @@ class TraceItemAttributesNamesPaginator:
     even if it exceeds limit + 1.
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn) -> None:
         self.data_fn = data_fn
 
     def get_result(self, limit, cursor=None):

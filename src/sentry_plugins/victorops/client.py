@@ -7,7 +7,7 @@ class VictorOpsClient(ApiClient):
     plugin_name = "victorops"
     allow_redirects = False
 
-    def __init__(self, api_key, routing_key=None):
+    def __init__(self, api_key, routing_key=None) -> None:
         self.api_key = api_key
 
         if routing_key:

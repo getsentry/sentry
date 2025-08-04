@@ -67,7 +67,7 @@ class Interface:
     ephemeral = False
     grouping_variants = ["default"]
 
-    def __init__(self, **data):
+    def __init__(self, **data) -> None:
         self._data = data or {}
 
     @classproperty

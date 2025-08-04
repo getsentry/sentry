@@ -8,7 +8,7 @@ class GitLabClient(ApiClient):
     allow_redirects = False
     plugin_name = "gitlab"
 
-    def __init__(self, url, token):
+    def __init__(self, url, token) -> None:
         super().__init__()
         self.base_url = url
         self.token = token

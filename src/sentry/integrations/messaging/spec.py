@@ -181,7 +181,7 @@ class MessagingIntegrationSpec(ABC):
 
 
 class MessagingActionHandler(DefaultActionHandler):
-    def __init__(self, spec: MessagingIntegrationSpec):
+    def __init__(self, spec: MessagingIntegrationSpec) -> None:
         super().__init__()
         self._spec = spec
 

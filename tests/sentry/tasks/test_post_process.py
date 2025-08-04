@@ -86,7 +86,7 @@ pytestmark = [requires_snuba]
 
 
 class EventMatcher:
-    def __init__(self, expected, group=None):
+    def __init__(self, expected, group=None) -> None:
         self.expected = expected
         self.expected_group = group
 

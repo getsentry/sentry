@@ -19,7 +19,7 @@ class ProjectConfigDebounceCache(Service):
 
     __all__ = ("is_debounced", "debounce", "mark_task_done")
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         pass
 
     def is_debounced(self, *, public_key, project_id, organization_id):

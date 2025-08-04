@@ -65,7 +65,7 @@ class EventPerformanceProblem:
     to and fetch from Nodestore
     """
 
-    def __init__(self, event: Event | GroupEvent, problem: PerformanceProblem):
+    def __init__(self, event: Event | GroupEvent, problem: PerformanceProblem) -> None:
         self.event = event
         self.problem = problem
 

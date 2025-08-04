@@ -23,7 +23,7 @@ class DatasetConfig(abc.ABC):
     optimize_wildcard_searches = False
     subscriptables_with_index: set[str] = set()
 
-    def __init__(self, builder: BaseQueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder) -> None:
         pass
 
     @property

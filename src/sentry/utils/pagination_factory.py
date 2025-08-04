@@ -11,7 +11,7 @@ from sentry.utils.numbers import format_grouped_length
 
 
 class PaginatorLike(Protocol):
-    def __init__(self, *args: Any, **kwds: Any):
+    def __init__(self, *args: Any, **kwds: Any) -> None:
         pass
 
     def get_result(

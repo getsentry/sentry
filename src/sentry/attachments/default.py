@@ -4,5 +4,5 @@ from .base import BaseAttachmentCache
 
 
 class DefaultAttachmentCache(BaseAttachmentCache):
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         super().__init__(default_cache, **options)

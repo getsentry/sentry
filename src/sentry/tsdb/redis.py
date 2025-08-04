@@ -48,7 +48,7 @@ class SuppressionWrapper(Generic[T]):
     You probably shouldn't use this.
     """
 
-    def __init__(self, wrapped: ContextManager[T]):
+    def __init__(self, wrapped: ContextManager[T]) -> None:
         self.wrapped = wrapped
 
     def __enter__(self) -> T:
@@ -123,7 +123,7 @@ class RedisTSDB(BaseTSDB):
 
     DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
 
-    def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
+    def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any) -> None:
         cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
         self.cluster = cluster
         self.prefix = prefix

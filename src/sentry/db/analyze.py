@@ -4,7 +4,7 @@ from django.db import connections, router
 
 
 class AnalyzeQuery:
-    def __init__(self, model):
+    def __init__(self, model) -> None:
         self.model = model
         self.using = router.db_for_write(model)
 

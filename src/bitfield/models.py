@@ -13,7 +13,7 @@ MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 
 
 class BitFieldFlags:
-    def __init__(self, flags):
+    def __init__(self, flags) -> None:
         if len(flags) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
         self._flags = flags
@@ -61,7 +61,7 @@ class BitFieldCreator:
     available (usually during deploys).
     """
 
-    def __init__(self, field):
+    def __init__(self, field) -> None:
         self.field = field
 
     def __set__(self, obj, value):
@@ -82,7 +82,7 @@ class BitField(BigIntegerField):
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
 
-    def __init__(self, flags, default=None, *args, **kwargs):
+    def __init__(self, flags, default=None, *args, **kwargs) -> None:
         if isinstance(flags, dict):
             # Get only integer keys in correct range
             valid_keys = (

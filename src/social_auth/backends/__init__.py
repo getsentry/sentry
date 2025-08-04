@@ -256,7 +256,7 @@ class BaseAuth:
 
     AUTH_BACKEND: type[SocialAuthBackend]
 
-    def __init__(self, request, redirect):
+    def __init__(self, request, redirect) -> None:
         self.request = request
         # TODO(python3): use {**x, **y} syntax once 2.7 support is dropped
         data = request.GET.copy()
@@ -376,7 +376,7 @@ class OAuthAuth(BaseAuth):
     DEFAULT_SCOPE: list[str] | None = None
     SCOPE_SEPARATOR = " "
 
-    def __init__(self, request, redirect):
+    def __init__(self, request, redirect) -> None:
         """Init method"""
         super().__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)

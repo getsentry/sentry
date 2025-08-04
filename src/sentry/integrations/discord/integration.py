@@ -284,7 +284,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
 
 class DiscordInstallPipeline:
-    def __init__(self, params):
+    def __init__(self, params) -> None:
         self.params = params
         super().__init__()
 

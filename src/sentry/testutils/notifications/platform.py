@@ -39,7 +39,7 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
 
 
 class MockStrategy(NotificationStrategy):
-    def __init__(self, *, targets: list[NotificationTarget]):
+    def __init__(self, *, targets: list[NotificationTarget]) -> None:
         self.targets = targets
 
     def get_targets(self) -> list[NotificationTarget]:

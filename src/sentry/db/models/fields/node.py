@@ -27,7 +27,7 @@ class NodeData(MutableMapping[str, Any]):
     data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, id, data=None, wrapper=None, ref_version=None, ref_func=None):
+    def __init__(self, id, data=None, wrapper=None, ref_version=None, ref_func=None) -> None:
         self.id = id
         self.ref = None
         # ref version is used to discredit a previous ref

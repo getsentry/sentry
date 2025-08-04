@@ -14,7 +14,7 @@ class InvalidRequest(Exception):
 
 
 class InvalidOrigin(InvalidRequest):
-    def __init__(self, origin):
+    def __init__(self, origin) -> None:
         self.origin = origin
 
     def __str__(self) -> str:
@@ -42,7 +42,7 @@ class PluginIdentityRequired(PluginError):
 
 
 class InvalidIdentity(Exception):
-    def __init__(self, message="", identity=None):
+    def __init__(self, message="", identity=None) -> None:
         super().__init__(message)
         self.identity = identity
 

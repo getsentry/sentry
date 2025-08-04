@@ -138,7 +138,7 @@ def search_term_switcheroo(term):
 
 
 class TranslationVisitor(NodeVisitor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def visit_raw_aggregate_param(self, node, children):

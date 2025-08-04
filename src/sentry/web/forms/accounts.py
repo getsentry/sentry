@@ -169,7 +169,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     )
     timezone = forms.CharField(widget=forms.HiddenInput(), required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if not newsletter.backend.is_enabled():
             del self.fields["subscribe"]

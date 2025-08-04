@@ -7,7 +7,7 @@ class ExampleIntegrationSetupWindowElement(ModalElement):
     name_field_selector = "name"
     submit_button_selector = '[type="submit"]'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = self.element.find_element(by=By.NAME, value="name")
         continue_button_element = self.element.find_element(

@@ -114,7 +114,7 @@ class FeatureManagerTest(TestCase):
         class TestProjectHandler(features.FeatureHandler):
             features = {project_flag}
 
-            def __init__(self, true_set, false_set):
+            def __init__(self, true_set, false_set) -> None:
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
@@ -222,7 +222,7 @@ class FeatureManagerTest(TestCase):
             class OrganizationTestHandler(features.BatchFeatureHandler):
                 features = set(flags)
 
-                def __init__(self):
+                def __init__(self) -> None:
                     self.hit_counter = 0
 
                 def _check_for_batch(self, feature_name, organization, actor):

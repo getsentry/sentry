@@ -21,7 +21,7 @@ class MemberTeamForm(forms.Form, Generic[T]):
     memberValue: T
     targetTypeEnum: type[T]
 
-    def __init__(self, project, *args, **kwargs):
+    def __init__(self, project, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.project = project
 

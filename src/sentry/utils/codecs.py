@@ -55,7 +55,7 @@ class BytesCodec(Codec[str, bytes]):
     constructor.
     """
 
-    def __init__(self, encoding: str = "utf8"):
+    def __init__(self, encoding: str = "utf8") -> None:
         self.encoding = encoding
 
     def encode(self, value: str) -> bytes:

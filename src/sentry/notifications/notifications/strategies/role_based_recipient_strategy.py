@@ -22,7 +22,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     role: OrganizationRole | None = None
     scope: str | None = None
 
-    def __init__(self, organization: Organization):
+    def __init__(self, organization: Organization) -> None:
         self.organization = organization
 
     def get_member(self, user: RpcUser | Actor) -> OrganizationMember:

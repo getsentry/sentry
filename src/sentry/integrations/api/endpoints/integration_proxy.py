@@ -48,7 +48,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     integration on behalf of credentials stored in the control silo.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.log_extra = dict()
 

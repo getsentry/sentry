@@ -129,7 +129,7 @@ NOOP_PRINTER = Printer()
 
 
 class ValidationError(Exception):
-    def __init__(self, info: ComparatorFindings):
+    def __init__(self, info: ComparatorFindings) -> None:
         super().__init__(info.pretty())
         self.info = info
 

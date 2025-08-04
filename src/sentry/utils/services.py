@@ -31,7 +31,7 @@ def resolve_callable[CallableT: Callable[..., object]](value: str | CallableT) -
 
 
 class Context:
-    def __init__(self, backends: dict[type[Service | None], Service]):
+    def __init__(self, backends: dict[type[Service | None], Service]) -> None:
         self.backends = backends
 
     def copy(self) -> Context:
@@ -303,7 +303,9 @@ def build_instance_from_options(
     return constructor(**options.get("options", {}))
 
 
-def build_instance_from_options_of_type[T](
+def build_instance_from_options_of_type[
+    T
+](
     tp: type[T],
     options: ServiceOptions,
     *,

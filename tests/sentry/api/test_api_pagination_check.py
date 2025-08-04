@@ -12,7 +12,7 @@ from sentry.api.paginator import MissingPaginationError, OffsetPaginator
 class APIPaginationCheckTestCase(TestCase):
     def test_if_wrong_api_method_fails(self) -> None:
         class ExampleEndpoint(TestCase, Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 
@@ -32,7 +32,7 @@ class APIPaginationCheckTestCase(TestCase):
 
     def test_endpoint_in_allowlist(self) -> None:
         class GroupTagsEndpoint(TestCase, Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 
@@ -51,7 +51,7 @@ class APIPaginationCheckTestCase(TestCase):
 
     def test_empty_payload_with_pagination(self) -> None:
         class ExampleEndpoint(Endpoint):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
                 self.access = "read"
 

@@ -97,7 +97,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = autofix_state
 
         class TestRepo:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.url = "example.com"
                 self.external_id = "id123"
                 self.name = "test_repo"
@@ -154,7 +154,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = autofix_state
 
         class TestRepo:
-            def __init__(self, external_id, name, provider, url, integration_id):
+            def __init__(self, external_id, name, provider, url, integration_id) -> None:
                 self.url = url
                 self.external_id = external_id
                 self.name = name
@@ -227,7 +227,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = autofix_state
 
         class TestRepo:
-            def __init__(self, external_id):
+            def __init__(self, external_id) -> None:
                 self.url = "example.com"
                 self.external_id = external_id
                 self.name = "test_repo"
@@ -267,7 +267,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = autofix_state
 
         class TestRepo:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.url = "example.com"
                 self.external_id = "id123"
                 self.name = "test_repo"

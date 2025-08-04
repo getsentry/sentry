@@ -31,7 +31,7 @@ class RepositoryProvider(ProviderMixin):
 
     name: ClassVar[str]
 
-    def __init__(self, id):
+    def __init__(self, id) -> None:
         self.id = id
 
     def needs_auth(self, user, **kwargs):

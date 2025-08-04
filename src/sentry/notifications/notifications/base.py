@@ -52,7 +52,7 @@ class BaseNotification(abc.ABC):
     notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
-    def __init__(self, organization: Organization, notification_uuid: str | None = None):
+    def __init__(self, organization: Organization, notification_uuid: str | None = None) -> None:
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
 

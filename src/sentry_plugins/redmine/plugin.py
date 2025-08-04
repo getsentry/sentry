@@ -51,7 +51,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     new_issue_form = RedmineNewIssueForm
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.client_errors = []
         self.fields = []

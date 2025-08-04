@@ -17,7 +17,7 @@ from sentry.utils.numbers import format_grouped_length
 
 
 class MetricsLayerDatasetConfig(MetricsDatasetConfig):
-    def __init__(self, builder: metrics.MetricsQueryBuilder):
+    def __init__(self, builder: metrics.MetricsQueryBuilder) -> None:
         self.builder = builder
 
     @property

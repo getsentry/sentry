@@ -56,7 +56,7 @@ class ArtifactBundlesSerializer(Serializer):
 
 
 class ArtifactBundleFilesSerializer(Serializer):
-    def __init__(self, archive, *args, **kwargs):
+    def __init__(self, archive, *args, **kwargs) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 

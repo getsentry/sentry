@@ -9,7 +9,7 @@ class AppPlatformEvent:
     This data structure encapsulates the payload sent to a SentryApp's webhook.
     """
 
-    def __init__(self, resource, action, install, data, actor=None):
+    def __init__(self, resource, action, install, data, actor=None) -> None:
         self.resource = resource
         self.action = action
         self.install = install

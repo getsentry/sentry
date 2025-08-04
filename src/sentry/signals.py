@@ -28,7 +28,9 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: _AllReceivers | Receiver | list[Receiver] = _AllReceivers.ALL):
+    def __init__(
+        self, receivers: _AllReceivers | Receiver | list[Receiver] = _AllReceivers.ALL
+    ) -> None:
         self.receivers = receivers
 
     def __enter__(self) -> None:

@@ -23,7 +23,7 @@ def _get_member_display(email: str | None, target_user: User | None) -> str:
 
 
 class MemberAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=2, name="MEMBER_ADD", api_name="member.add")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -35,7 +35,7 @@ class MemberAddAuditLogEvent(AuditLogEvent):
 
 
 class MemberEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=4, name="MEMBER_EDIT", api_name="member.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -50,7 +50,7 @@ class MemberEditAuditLogEvent(AuditLogEvent):
 
 
 class MemberRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=5, name="MEMBER_REMOVE", api_name="member.remove")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -62,7 +62,7 @@ class MemberRemoveAuditLogEvent(AuditLogEvent):
 
 
 class MemberJoinTeamAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=6, name="MEMBER_JOIN_TEAM", api_name="member.join-team")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -76,7 +76,7 @@ class MemberJoinTeamAuditLogEvent(AuditLogEvent):
 
 
 class MemberLeaveTeamAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=7, name="MEMBER_LEAVE_TEAM", api_name="member.leave-team")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -90,7 +90,7 @@ class MemberLeaveTeamAuditLogEvent(AuditLogEvent):
 
 
 class MemberPendingAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=8, name="MEMBER_PENDING", api_name="member.pending")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -101,7 +101,7 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
 
 
 class OrgAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -111,7 +111,7 @@ class OrgAddAuditLogEvent(AuditLogEvent):
 
 
 class OrgEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -120,7 +120,7 @@ class OrgEditAuditLogEvent(AuditLogEvent):
 
 
 class TeamEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=21, name="TEAM_EDIT", api_name="team.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -130,7 +130,7 @@ class TeamEditAuditLogEvent(AuditLogEvent):
 
 
 class ProjectEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=31, name="PROJECT_EDIT", api_name="project.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -145,7 +145,7 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
 
 
 class ProjectKeyEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=51, name="PROJECTKEY_EDIT", api_name="projectkey.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -171,7 +171,7 @@ class ProjectKeyEditAuditLogEvent(AuditLogEvent):
 
 
 class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=178,
             name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
@@ -209,7 +209,7 @@ def render_project_action(audit_log_entry: AuditLogEntry, action: str):
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=37, name="PROJECT_ENABLE", api_name="project.enable")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -217,7 +217,7 @@ class ProjectEnableAuditLogEvent(AuditLogEvent):
 
 
 class ProjectDisableAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=38, name="PROJECT_DISABLE", api_name="project.disable")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -225,7 +225,7 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
 
 
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
         )
@@ -235,7 +235,7 @@ class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
 
 
 class SSOEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=62, name="SSO_EDIT", api_name="sso.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -244,7 +244,7 @@ class SSOEditAuditLogEvent(AuditLogEvent):
 
 
 class ServiceHookAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=100, name="SERVICEHOOK_ADD", api_name="servicehook.create")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -253,7 +253,7 @@ class ServiceHookAddAuditLogEvent(AuditLogEvent):
 
 
 class ServiceHookEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=101, name="SERVICEHOOK_EDIT", api_name="servicehook.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -262,7 +262,7 @@ class ServiceHookEditAuditLogEvent(AuditLogEvent):
 
 
 class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=102, name="SERVICEHOOK_REMOVE", api_name="servicehook.remove")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -271,7 +271,7 @@ class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationDisabledAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -280,7 +280,7 @@ class IntegrationDisabledAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=109, name="INTEGRATION_UPGRADE", api_name="integration.upgrade")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -290,7 +290,7 @@ class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=110, name="INTEGRATION_ADD", api_name="integration.add")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -302,7 +302,7 @@ class IntegrationAddAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=111, name="INTEGRATION_EDIT", api_name="integration.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -314,7 +314,7 @@ class IntegrationEditAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=112, name="INTEGRATION_REMOVE", api_name="integration.remove")
 
     def render(self, audit_log_entry: AuditLogEntry):
@@ -328,7 +328,7 @@ class IntegrationRemoveAuditLogEvent(AuditLogEvent):
 
 
 class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=130, name="INTERNAL_INTEGRATION_ADD", api_name="internal-integration.create"
         )
@@ -339,7 +339,7 @@ class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
 
 
 class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=131,
             name="INTERNAL_INTEGRATION_DISABLED",
@@ -352,7 +352,7 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=120,
             name="MONITOR_ADD",

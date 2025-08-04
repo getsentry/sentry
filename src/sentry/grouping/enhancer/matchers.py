@@ -221,7 +221,7 @@ class FrameMatch(EnhancementMatch):
 
         return subclass(key, pattern, negated)
 
-    def __init__(self, key: str, pattern: str, negated: bool = False):
+    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
         super().__init__()
         try:
             self.key = MATCHERS[key]
@@ -303,7 +303,7 @@ def path_like_match(pattern: bytes, value: bytes) -> bool:
 
 
 class PathLikeMatch(FrameMatch):
-    def __init__(self, key: str, pattern: str, negated: bool = False):
+    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
         # NOTE: We do not want to mess with `pattern` directly, as that is used for the `description`.
         # We rather want to `lower()` only the encoded pattern used within glob matching.
         super().__init__(key, pattern, negated)
@@ -331,7 +331,7 @@ class PathMatch(PathLikeMatch):
 
 
 class FamilyMatch(FrameMatch):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._flags = set(self._encoded_pattern.split(b","))
 
@@ -345,7 +345,7 @@ class FamilyMatch(FrameMatch):
 
 
 class InAppMatch(FrameMatch):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._ref_val = bool_from_string(self.pattern)
 
@@ -423,7 +423,7 @@ class ExceptionMechanismMatch(ExceptionFieldMatch):
 
 
 class CallerMatch(EnhancementMatch):
-    def __init__(self, inner: FrameMatch):
+    def __init__(self, inner: FrameMatch) -> None:
         self.inner = inner
 
     @property
@@ -444,7 +444,7 @@ class CallerMatch(EnhancementMatch):
 
 
 class CalleeMatch(EnhancementMatch):
-    def __init__(self, inner: FrameMatch):
+    def __init__(self, inner: FrameMatch) -> None:
         self.inner = inner
 
     @property

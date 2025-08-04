@@ -101,7 +101,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
-    def __init__(self, *args, timeWindowSeconds=False, **kwargs):
+    def __init__(self, *args, timeWindowSeconds=False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # if true, time_window is interpreted as seconds.
         # if false, time_window is interpreted as minutes.

@@ -219,7 +219,7 @@ class OAuth2LoginView:
     client_id: str | None = None
     scope = ""
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
+    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
@@ -269,7 +269,9 @@ class OAuth2CallbackView:
     client_id: str | None = None
     client_secret: str | None = None
 
-    def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
+    def __init__(
+        self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url

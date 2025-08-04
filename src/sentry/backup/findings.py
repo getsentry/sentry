@@ -196,7 +196,7 @@ class ComparatorFinding(Finding):
 class ComparatorFindings:
     """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
 
-    def __init__(self, findings: list[ComparatorFinding]):
+    def __init__(self, findings: list[ComparatorFinding]) -> None:
         self.findings = findings
 
     def append(self, finding: ComparatorFinding) -> None:

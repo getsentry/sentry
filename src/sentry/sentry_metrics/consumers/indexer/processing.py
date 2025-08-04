@@ -37,7 +37,7 @@ INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
 
 
 class MessageProcessor:
-    def __init__(self, config: MetricsIngestConfiguration):
+    def __init__(self, config: MetricsIngestConfiguration) -> None:
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
 

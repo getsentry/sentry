@@ -79,7 +79,7 @@ def raiseHTTPError():
 
 
 class RequestMock:
-    def __init__(self):
+    def __init__(self) -> None:
         self.body = "blah blah"
 
 

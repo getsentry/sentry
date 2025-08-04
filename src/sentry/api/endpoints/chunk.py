@@ -44,7 +44,7 @@ CHUNK_UPLOAD_ACCEPT = (
 
 
 class GzipChunk(BytesIO):
-    def __init__(self, file):
+    def __init__(self, file) -> None:
         data = GzipFile(fileobj=file, mode="rb").read()
         self.size = len(data)
         self.name = file.name

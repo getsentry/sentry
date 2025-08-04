@@ -77,7 +77,7 @@ class MsTeamsClientABC(ApiClient, ABC):
 class MsTeamsPreInstallClient(MsTeamsClientABC):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, access_token: str, service_url: str):
+    def __init__(self, access_token: str, service_url: str) -> None:
         super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
@@ -91,7 +91,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, integration: Integration | RpcIntegration):
+    def __init__(self, integration: Integration | RpcIntegration) -> None:
         self.integration = integration
         self.metadata = self.integration.metadata
         self.base_url = self.metadata["service_url"].rstrip("/")
@@ -142,7 +142,7 @@ class OAuthMsTeamsClient(ApiClient):
 
     TOKEN_URL = "/oauth2/v2.0/token"
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id, client_secret) -> None:
         super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret

@@ -94,7 +94,7 @@ class UserReportSerializer(Serializer):
 
 
 class UserReportWithGroupSerializer(UserReportSerializer):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func=None) -> None:
         self.environment_func = environment_func
 
     def get_attrs(self, item_list, user, **kwargs):

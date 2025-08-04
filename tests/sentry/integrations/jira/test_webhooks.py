@@ -196,7 +196,7 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
     # kwarg we'd like to pass must already be an attibute of the class
     error = BaseException("unreachable")
 
-    def __init__(self, error: Exception = dummy_exception, *args, **kwargs):
+    def __init__(self, error: Exception = dummy_exception, *args, **kwargs) -> None:
         # We allow the error to be passed in so that we have access to it in the test for use
         # in equality checks
         self.error = error

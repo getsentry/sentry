@@ -186,7 +186,7 @@ class BaseActionTranslator(ABC):
     # Represents the mapping of a target field to a source field {target_field: FieldMapping}
     field_mappings: ClassVar[dict[str, FieldMapping]] = {}
 
-    def __init__(self, action: dict[str, Any]):
+    def __init__(self, action: dict[str, Any]) -> None:
         self.action = action
 
     @property

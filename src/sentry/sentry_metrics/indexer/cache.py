@@ -46,7 +46,7 @@ RESOLVE_CACHE_NAMESPACE = "res"
 
 
 class StringIndexerCache:
-    def __init__(self, cache_name: str, partition_key: str):
+    def __init__(self, cache_name: str, partition_key: str) -> None:
         self.version = 1
         self.cache = caches[cache_name]
         self.partition_key = partition_key

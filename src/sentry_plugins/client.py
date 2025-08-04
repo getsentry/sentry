@@ -22,7 +22,7 @@ class ApiClient(BaseApiClient):
 
 
 class AuthApiClient(ApiClient):
-    def __init__(self, auth=None, *args, **kwargs):
+    def __init__(self, auth=None, *args, **kwargs) -> None:
         self.auth = auth
         super().__init__(*args, **kwargs)
 

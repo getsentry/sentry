@@ -6,7 +6,7 @@ from sentry.testutils.pytest.selenium import Browser
 class BasePage:
     """Base class for PageObjects"""
 
-    def __init__(self, browser: Browser):
+    def __init__(self, browser: Browser) -> None:
         self.browser = browser
 
     @property
@@ -18,7 +18,7 @@ class BasePage:
 
 
 class BaseElement:
-    def __init__(self, element):
+    def __init__(self, element) -> None:
         self.element = element
 
 

@@ -12,7 +12,7 @@ class Partnership(Service):
 
     __all__ = ("get_inbound_filters",)
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
         pass
 
     def get_inbound_filters(self, organization: Organization) -> list[GenericFilter]:

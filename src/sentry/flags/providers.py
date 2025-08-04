@@ -67,7 +67,7 @@ class ProviderProtocol(Protocol[T]):
 class DeserializationError(Exception):
     """The request body could not be deserialized."""
 
-    def __init__(self, errors):
+    def __init__(self, errors) -> None:
         self.errors = errors
 
 

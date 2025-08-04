@@ -23,7 +23,7 @@ def kafka_producer():
 
 
 class _KafkaAdminWrapper:
-    def __init__(self, request, settings):
+    def __init__(self, request, settings) -> None:
         self.test_name = request.node.name
 
         kafka_config = {}

@@ -167,7 +167,7 @@ class Backoff:
     Creates a new exponential backoff.
     """
 
-    def __init__(self, initial, max):
+    def __init__(self, initial, max) -> None:
         """
         :param initial: The initial backoff time in seconds.
         :param max: The maximum backoff time in seconds.

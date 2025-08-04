@@ -90,7 +90,7 @@ class MetaClass(type):
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
-    def __init__(self, integration_id: int):
+    def __init__(self, integration_id: int) -> None:
         self.integration_id = integration_id
 
         integration: Integration | RpcIntegration | None

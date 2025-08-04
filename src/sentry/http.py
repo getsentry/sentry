@@ -43,7 +43,7 @@ class UrlResult(NamedTuple):
 class BadSource(Exception):
     error_type = EventError.UNKNOWN_ERROR
 
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         if data is None:
             data = {}
         data.setdefault("type", self.error_type)

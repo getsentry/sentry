@@ -184,7 +184,7 @@ class Superuser(ElevatedMode):
                 return False
         return self._is_active
 
-    def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
+    def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None) -> None:
         self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:

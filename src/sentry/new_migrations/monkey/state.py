@@ -14,7 +14,7 @@ class DeletionAction(Enum):
 
 
 class SentryProjectState(ProjectState):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.pending_deletion_models: dict[tuple[str, str], type[Model]] = {}
         self.pending_deletion_fields: dict[tuple[str, str, str], type[Field]] = {}

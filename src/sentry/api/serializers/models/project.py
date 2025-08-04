@@ -672,7 +672,7 @@ class _DeployDict(TypedDict):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(self, access: Access | None = None, **kwargs):
+    def __init__(self, access: Access | None = None, **kwargs) -> None:
         self.access = access
         super().__init__(**kwargs)
 

@@ -44,7 +44,7 @@ def multiply(x, y):
 
 
 class AbsoluteUriNode(template.Node):
-    def __init__(self, args, target_var):
+    def __init__(self, args, target_var) -> None:
         self.args = args
         self.target_var = target_var
 
