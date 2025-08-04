@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -16,7 +17,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useIncidentBubbles} from 'sentry/views/detectors/hooks/useIncidentBubbles';
-import {useMetricDetectorAnomalyData} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyData';
+import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
@@ -107,7 +108,11 @@ export function MetricDetectorChart({
     isAnomalyDetection && !isLoading && !isError && series.length > 0;
 
   // Fetch anomaly data when detection type is dynamic and series data is ready
-  const anomalyDataResult = useMetricDetectorAnomalyData({
+  const {
+    anomalyPeriods,
+    isLoading: isLoadingAnomalies,
+    error: anomalyErrorObject,
+  } = useMetricDetectorAnomalyPeriods({
     series: shouldFetchAnomalies ? series : [],
     dataset,
     aggregate,
@@ -123,14 +128,14 @@ export function MetricDetectorChart({
 
   // Create anomaly bubble rendering from pre-grouped anomaly periods
   const anomalyBubbleResult = useIncidentBubbles({
-    incidents: anomalyDataResult.anomalyPeriods,
+    incidents: anomalyPeriods,
     seriesName: t('Anomalies'),
     seriesId: '__anomaly_bubble__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
   });
 
-  const anomalyLoading = shouldFetchAnomalies ? anomalyDataResult.isLoading : false;
-  const anomalyError = shouldFetchAnomalies ? anomalyDataResult.error : null;
+  const anomalyLoading = shouldFetchAnomalies ? isLoadingAnomalies : false;
+  const anomalyError = shouldFetchAnomalies ? anomalyErrorObject : null;
 
   // Calculate y-axis bounds to ensure all thresholds are visible
   const maxValue = useMemo(() => {
@@ -173,7 +178,7 @@ export function MetricDetectorChart({
   ]);
 
   const yAxes = useMemo(() => {
-    const mainYAxis = {
+    const mainYAxis: YAXisComponentOption = {
       max: maxValue > 0 ? maxValue : undefined,
       min: 0,
       axisLabel: {
@@ -184,11 +189,11 @@ export function MetricDetectorChart({
       splitLine: {show: false},
     };
 
-    const axes = [mainYAxis];
+    const axes: YAXisComponentOption[] = [mainYAxis];
 
     // Add anomaly bubble Y-axis if available
     if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleYAxis) {
-      axes.push(anomalyBubbleResult.incidentBubbleYAxis as any);
+      axes.push(anomalyBubbleResult.incidentBubbleYAxis);
     }
 
     return axes;
@@ -241,8 +246,8 @@ export function MetricDetectorChart({
       stacked={false}
       series={series}
       additionalSeries={additionalSeries}
-      yAxes={yAxes.length > 1 ? (yAxes as any) : undefined}
-      yAxis={yAxes.length === 1 ? (yAxes[0] as any) : undefined}
+      yAxes={yAxes.length > 1 ? yAxes : undefined}
+      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
       grid={grid}
       xAxis={isAnomalyDetection ? anomalyBubbleResult.incidentBubbleXAxis : undefined}
       ref={
