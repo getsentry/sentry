@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
+from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
@@ -434,7 +435,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     # Step 1: Search for issues using transaction filter
     query = f'is:unresolved transaction:"{transaction_name}"'
     search_filters = parse_and_convert_issue_search_query(
-        query, project.organization, [project], [], None
+        query, project.organization, [project], [], AnonymousUser()
     )
 
     results_cursor = search.backend.query(
