@@ -2,7 +2,7 @@ from typing import cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
 
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.enrichment import Span
@@ -87,7 +87,7 @@ SPAN_KAFKA_MESSAGE = {
 }
 
 
-def test_convert_span_to_item():
+def test_convert_span_to_item() -> None:
     # Cast since the above payload does not conform to the strict schema
     item = convert_span_to_item(cast(Span, SPAN_KAFKA_MESSAGE))
 
@@ -151,35 +151,44 @@ def test_convert_span_to_item():
         "relay_use_post_or_schedule_rejected": AnyValue(string_value="version"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
         "thread.name": AnyValue(string_value="uWSGIWorker1Core0"),
-        "my.dict.field": AnyValue(
-            kvlist_value=KeyValueList(
-                values=[
-                    KeyValue(key="id", value=AnyValue(int_value=42)),
-                    KeyValue(key="name", value=AnyValue(string_value="test")),
-                ]
-            )
-        ),
+        "my.dict.field": AnyValue(string_value=r"""{"id":42,"name":"test"}"""),
         "my.u64.field": AnyValue(double_value=9447000002305251000.0),
-        "my.array.field": AnyValue(
-            array_value=ArrayValue(
-                values=[
-                    AnyValue(int_value=1),
-                    AnyValue(int_value=2),
-                    AnyValue(
-                        array_value=ArrayValue(
-                            values=[AnyValue(string_value="nested"), AnyValue(string_value="array")]
-                        )
-                    ),
-                ]
-            )
-        ),
+        "my.array.field": AnyValue(string_value=r"""[1,2,["nested","array"]]"""),
     }
 
 
-def test_convert_falsy_fields():
+def test_convert_falsy_fields() -> None:
     message = {**SPAN_KAFKA_MESSAGE, "duration_ms": 0, "is_segment": False}
 
     item = convert_span_to_item(cast(Span, message))
 
     assert item.attributes.get("sentry.duration_ms") == AnyValue(int_value=0)
     assert item.attributes.get("sentry.is_segment") == AnyValue(bool_value=False)
+
+
+def test_convert_span_links_to_json() -> None:
+    message = {
+        **SPAN_KAFKA_MESSAGE,
+        "links": [
+            # A link with all properties
+            {
+                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "span_id": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": {
+                    "sentry.link.type": "parent",
+                    "sentry.dropped_attributes_count": 2,
+                    "parent_depth": 17,
+                    "confidence": "high",
+                },
+            },
+            # A link with missing optional properties
+            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "873a988879faf06d"},
+        ],
+    }
+
+    item = convert_span_to_item(cast(Span, message))
+
+    assert item.attributes.get("sentry.links") == AnyValue(
+        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}},{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"873a988879faf06d"}]'
+    )

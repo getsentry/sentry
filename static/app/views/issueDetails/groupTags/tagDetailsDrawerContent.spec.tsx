@@ -236,7 +236,7 @@ describe('TagDetailsDrawerContent', () => {
 
     // Value and percent columns
     expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('>99%')).toBeInTheDocument(); // 996/1000 = 99.6% rounds to 100%, should show >99%
     expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
     expect(screen.getByText('<1%')).toBeInTheDocument();
 
@@ -294,16 +294,47 @@ describe('TagDetailsDrawerContent', () => {
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    // Percents will be overcounted in this edge case.
     // Value and percent columns
     expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('>99%')).toBeInTheDocument();
     expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
     expect(screen.getByText('1%')).toBeInTheDocument();
 
     // Count column
     expect(screen.getByText('995')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
+  });
+
+  it('never displays 100% when there are multiple tag values', async () => {
+    const {router} = init('user');
+
+    // Create a case where first item would round to 100% (997/1000 = 99.7%)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: VariableTagFixture([997, 3], 1000),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: VariableTagValueFixture([997, 3]),
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // Should show >99% instead of 100%
+    expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
+    expect(screen.getByText('>99%')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
+    expect(screen.getByText('<1%')).toBeInTheDocument();
+    expect(screen.queryByText('100%')).not.toBeInTheDocument(); // Should never show 100%
+
+    // Count column
+    expect(screen.getByText('997')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });
 

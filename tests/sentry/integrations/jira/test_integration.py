@@ -9,9 +9,9 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.views import SALT
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -19,7 +19,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
@@ -40,7 +43,7 @@ def get_client():
 
 
 class RegionJiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
@@ -60,7 +63,7 @@ class RegionJiraIntegrationTest(APITestCase):
             self.user.save()
         self.login_as(self.user)
 
-    def test_create_comment(self):
+    def test_create_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         group_note = mock.Mock()
@@ -74,7 +77,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
                 )
 
-    def test_update_comment(self):
+    def test_update_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         group_note = mock.Mock()
@@ -89,7 +92,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
 
-    def test_get_create_issue_config(self):
+    def test_get_create_issue_config(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -212,7 +215,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
-    def test_get_create_issue_config_with_none_issue(self):
+    def test_get_create_issue_config_with_none_issue(self) -> None:
         # Mock the paginated projects response
         responses.add(
             responses.GET,
@@ -274,7 +277,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
-    def test_get_create_issue_config_paginated_projects(self):
+    def test_get_create_issue_config_paginated_projects(self) -> None:
         """Test that projects are fetched using pagination when the feature flag is enabled"""
         event = self.store_event(
             data={
@@ -347,7 +350,7 @@ class RegionJiraIntegrationTest(APITestCase):
         ]
         assert project_field["type"] == "select"
 
-    def test_get_create_issue_config_customer_domain(self):
+    def test_get_create_issue_config_customer_domain(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -367,7 +370,7 @@ class RegionJiraIntegrationTest(APITestCase):
             issue_config = installation.get_create_issue_config(group, self.user)
             assert f"{self.organization.slug}.testserver" in issue_config[2]["default"]
 
-    def test_get_create_issue_config_with_persisted_reporter(self):
+    def test_get_create_issue_config_with_persisted_reporter(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -422,7 +425,7 @@ class RegionJiraIntegrationTest(APITestCase):
             "type": "select",
         }
 
-    def test_get_create_issue_config_with_ignored_fields(self):
+    def test_get_create_issue_config_with_ignored_fields(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -476,7 +479,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "reporter",
             ]
 
-    def test_get_create_issue_config_with_default_and_param(self):
+    def test_get_create_issue_config_with_default_and_param(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -512,7 +515,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "required": True,
             }
 
-    def test_get_create_issue_config_with_default(self):
+    def test_get_create_issue_config_with_default(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -596,7 +599,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "required": True,
             }
 
-    def test_get_create_issue_config_with_label_default(self):
+    def test_get_create_issue_config_with_label_default(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -632,7 +635,7 @@ class RegionJiraIntegrationTest(APITestCase):
             }
 
     @responses.activate
-    def test_get_create_issue_config__no_projects(self):
+    def test_get_create_issue_config__no_projects(self) -> None:
         event = self.store_event(
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -650,7 +653,7 @@ class RegionJiraIntegrationTest(APITestCase):
             installation.get_create_issue_config(event.group, self.user)
 
     @responses.activate
-    def test_get_create_issue_config__no_issue_config(self):
+    def test_get_create_issue_config__no_issue_config(self) -> None:
         event = self.store_event(
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -676,7 +679,7 @@ class RegionJiraIntegrationTest(APITestCase):
         with pytest.raises(IntegrationError):
             installation.get_create_issue_config(event.group, self.user)
 
-    def test_get_link_issue_config(self):
+    def test_get_link_issue_config(self) -> None:
         group = self.create_group()
 
         installation = self.integration.get_installation(self.organization.id)
@@ -694,7 +697,7 @@ class RegionJiraIntegrationTest(APITestCase):
             }
         ]
 
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         with mock.patch.object(installation, "get_client", get_client):
@@ -712,7 +715,7 @@ class RegionJiraIntegrationTest(APITestCase):
             }
 
     @responses.activate
-    def test_create_issue_labels_and_option(self):
+    def test_create_issue_labels_and_option(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
         responses.add(
@@ -757,7 +760,7 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         assert result["key"] == "APP-123"
 
-    def test_outbound_issue_sync(self):
+    def test_outbound_issue_sync(self) -> None:
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
         )
@@ -785,7 +788,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 mock_transition_issue.assert_called_with("SEN-5", "31")
 
     @responses.activate
-    def test_sync_assignee_outbound_case_insensitive(self):
+    def test_sync_assignee_outbound_case_insensitive(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
@@ -811,7 +814,7 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     @responses.activate
-    def test_sync_assignee_outbound_no_email(self):
+    def test_sync_assignee_outbound_no_email(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
@@ -825,7 +828,7 @@ class RegionJiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        with pytest.raises(InvalidConfiguration):
+        with pytest.raises(IntegrationSyncTargetNotFound):
             installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
@@ -833,7 +836,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @responses.activate
-    def test_sync_assignee_outbound_use_email_api(self):
+    def test_sync_assignee_outbound_use_email_api(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
@@ -866,15 +869,65 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
+    @responses.activate
+    def test_sync_assignee_outbound_api_unauthorized(self) -> None:
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/user/assignable/search",
+            json=[{"accountId": "deadbeef123", "emailAddress": "bob@example.com"}],
+        )
+
+        responses.add(responses.PUT, assign_issue_url, status=401, json={})
+
+        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+            installation.sync_assignee_outbound(external_issue, user)
+
+        assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_sync_assignee_outbound_api_error(self) -> None:
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/user/assignable/search",
+            json=[{"accountId": "deadbeef123", "emailAddress": "bob@example.com"}],
+        )
+
+        responses.add(responses.PUT, assign_issue_url, status=400, json={})
+
+        with pytest.raises(IntegrationError) as excinfo:
+            installation.sync_assignee_outbound(external_issue, user)
+
+        assert str(excinfo.value) == "There was an error assigning the issue."
+        assert len(responses.calls) == 2
+
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(self.user)
 
-    def test_update_organization_config_sync_keys(self):
+    def test_update_organization_config_sync_keys(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
@@ -986,7 +1039,7 @@ class JiraIntegrationTest(APITestCase):
             == 0
         )
 
-    def test_update_organization_config_issues_keys(self):
+    def test_update_organization_config_issues_keys(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
@@ -1020,7 +1073,7 @@ class JiraIntegrationTest(APITestCase):
             "moon",
         ]
 
-    def test_get_config_data(self):
+    def test_get_config_data(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
@@ -1057,7 +1110,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_per_project_statuses_feature(self):
+    def test_get_config_data_per_project_statuses_feature(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1118,7 +1171,7 @@ class JiraIntegrationTest(APITestCase):
             "issues_ignored_fields": "",
         }
 
-    def test_get_config_data_issues_keys(self):
+    def test_get_config_data_issues_keys(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
@@ -1142,7 +1195,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_issue_keys_per_project_statuses_feature(self):
+    def test_get_config_data_issue_keys_per_project_statuses_feature(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1196,7 +1249,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin = JiraPlugin()
         self.plugin.set_option("enabled", True, self.project)
@@ -1207,7 +1260,7 @@ class JiraMigrationIntegrationTest(APITestCase):
             self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    def test_migrate_plugin(self):
+    def test_migrate_plugin(self) -> None:
         """Test that 2 projects with the Jira plugin enabled that each have an issue created
         from the plugin are migrated along with the ignored fields
         """
@@ -1261,7 +1314,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         assert self.plugin.get_option("enabled", self.project) is False
         assert plugin2.get_option("enabled", project2) is False
 
-    def test_instance_url_mismatch(self):
+    def test_instance_url_mismatch(self) -> None:
         """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
         self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
@@ -1280,7 +1333,7 @@ class JiraMigrationIntegrationTest(APITestCase):
             key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
         ).exists()
 
-    def test_external_issue_already_exists(self):
+    def test_external_issue_already_exists(self) -> None:
         """Test that if an issue already exists during migration, we continue with no issue"""
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
@@ -1308,7 +1361,7 @@ class JiraMigrationIntegrationTest(APITestCase):
 class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.metadata = {
             "oauth_client_id": "oauth-client-id",
@@ -1335,5 +1388,5 @@ class JiraInstallationTest(IntegrationTestCase):
             integration=integration, organization_id=self.organization.id
         ).exists()
 
-    def test_installation(self):
+    def test_installation(self) -> None:
         self.assert_setup_flow()

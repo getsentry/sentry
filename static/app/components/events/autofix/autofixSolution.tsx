@@ -311,7 +311,7 @@ function CopySolutionButton({
   const text = formatSolutionText(solution, customSolution);
   return (
     <CopyToClipboardButton
-      size="sm"
+      size="zero"
       text={text}
       borderless
       title="Copy solution as Markdown"
@@ -338,7 +338,6 @@ function AutofixSolutionDisplay({
 
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
-  const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
     () => {
@@ -367,6 +366,8 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
+  const codingDisabled =
+    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -441,7 +442,9 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No solution available.')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('No solution available.')}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -473,46 +476,48 @@ function AutofixSolutionDisplay({
         <HeaderWrapper>
           <HeaderText>
             <HeaderIconWrapper ref={iconFixRef}>
-              <IconFix size="sm" color="green400" />
+              <IconFix size="md" color="green400" />
             </HeaderIconWrapper>
             {t('Solution')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Solution Chat"
-              analyticsEventKey="autofix.solution.chat"
-            >
-              <IconChat size="xs" />
-            </ChatButton>
-          </HeaderText>
-          <ButtonBar gap={1}>
-            <ButtonBar>
-              {!isEditing && (
-                <CopySolutionButton solution={solution} isEditing={isEditing} />
-              )}
+            <ButtonBar gap={'0'}>
+              <ChatButton
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectDescription}
+                analyticsEventName="Autofix: Solution Chat"
+                analyticsEventKey="autofix.solution.chat"
+              >
+                <IconChat />
+              </ChatButton>
+              <CopySolutionButton solution={solution} />
             </ButtonBar>
-            <ButtonBar>
+          </HeaderText>
+          <ButtonBar>
+            <ButtonBar gap="0">
               <Tooltip
                 isHoverable
                 title={
-                  hasNoRepos
-                    ? tct(
-                        'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
-                        {
-                          link: (
-                            <Link
-                              to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
-                            />
-                          ),
-                        }
+                  codingDisabled
+                    ? t(
+                        'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
                       )
-                    : cantReadRepos
-                      ? t(
-                          "Seer can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
+                    : hasNoRepos
+                      ? tct(
+                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                          {
+                            link: (
+                              <Link
+                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                              />
+                            ),
+                          }
                         )
-                      : undefined
+                      : cantReadRepos
+                        ? t(
+                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                          )
+                        : undefined
                 }
               >
                 <Button
@@ -523,7 +528,7 @@ function AutofixSolutionDisplay({
                       : 'default'
                   }
                   busy={isPending}
-                  disabled={hasNoRepos || cantReadRepos}
+                  disabled={hasNoRepos || cantReadRepos || codingDisabled}
                   onClick={() => {
                     handleContinue({
                       mode: 'fix',
@@ -604,7 +609,9 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning">{t('No solution found.')}</Alert>
+            <Alert type="warning" showIcon={false}>
+              {t('No solution found.')}
+            </Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -646,7 +653,7 @@ const HeaderWrapper = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -705,5 +712,4 @@ const AddInstructionWrapper = styled('div')`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
 `;

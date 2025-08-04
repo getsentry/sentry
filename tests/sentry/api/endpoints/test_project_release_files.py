@@ -12,7 +12,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -42,7 +42,7 @@ class ReleaseFilesListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(releasefile.id)
 
-    def test_with_archive(self):
+    def test_with_archive(self) -> None:
         project = self.project
         release = self.release
         self.login_as(user=self.user)
@@ -126,7 +126,7 @@ class ReleaseFilesListTest(APITestCase):
         # All returned objects have the same keys, regardless of their data source:
         assert all(data.keys() == response.data[0].keys() for data in response.data)
 
-    def test_sort_order(self):
+    def test_sort_order(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -143,7 +143,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.data[0]["name"] == "~/index.js"
         assert response.data[1]["name"] == "~/index.js.map"
 
-    def test_archive_name_search(self):
+    def test_archive_name_search(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -159,7 +159,7 @@ class ReleaseFilesListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "~/index.js.map"
 
-    def test_archive_checksum_search(self):
+    def test_archive_checksum_search(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -194,7 +194,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_archive_queries_should_be_narrowing_search(self):
+    def test_archive_queries_should_be_narrowing_search(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -221,7 +221,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_archive_paging(self):
+    def test_archive_paging(self) -> None:
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -244,7 +244,7 @@ class ReleaseFilesListTest(APITestCase):
 
 
 class ReleaseFileCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -287,7 +287,7 @@ class ReleaseFileCreateTest(APITestCase):
             "X-SourceMap": "http://example.com",
         }
 
-    def test_no_file(self):
+    def test_no_file(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -310,7 +310,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_missing_name(self):
+    def test_missing_name(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -343,7 +343,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_invalid_name(self):
+    def test_invalid_name(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -374,7 +374,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_bad_headers(self):
+    def test_bad_headers(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -419,7 +419,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_duplicate_file(self):
+    def test_duplicate_file(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")

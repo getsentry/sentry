@@ -5,8 +5,12 @@ describe('slugify', function () {
     expect(slugify('STOPYELLING')).toBe('stopyelling');
   });
 
-  it('replaces spaces with a hyphen', function () {
+  it('replaces space with a hyphen', function () {
     expect(slugify('STOP YELLING')).toBe('stop-yelling');
+  });
+
+  it('replaces all spaces with a hyphen', function () {
+    expect(slugify('STOP YELLING AT ME')).toBe('stop-yelling-at-me');
   });
 
   it('replaces accented characters', function () {

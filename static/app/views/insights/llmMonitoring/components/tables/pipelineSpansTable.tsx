@@ -18,56 +18,50 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.SPAN_DURATION
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.USER
+  SpanFields.SPAN_ID | SpanFields.SPAN_DURATION | SpanFields.TIMESTAMP | SpanFields.USER
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.SPAN_ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.USER,
+    key: SpanFields.USER,
     name: t('User'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.TIMESTAMP,
+    key: SpanFields.TIMESTAMP,
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.SPAN_DURATION,
+    key: SpanFields.SPAN_DURATION,
     name: t('Total duration'),
     width: 150,
   },
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.SPAN_ID,
-  SpanIndexedField.SPAN_DURATION,
-  SpanIndexedField.TIMESTAMP,
+  SpanFields.SPAN_ID,
+  SpanFields.SPAN_DURATION,
+  SpanFields.TIMESTAMP,
 ];
 
 type ValidSort = Sort & {
-  field:
-    | SpanIndexedField.SPAN_ID
-    | SpanIndexedField.SPAN_DURATION
-    | SpanIndexedField.TIMESTAMP;
+  field: SpanFields.SPAN_ID | SpanFields.SPAN_DURATION | SpanFields.TIMESTAMP;
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {
@@ -88,7 +82,7 @@ export function PipelineSpansTable({groupId}: Props) {
 
   let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
-    sort = {field: SpanIndexedField.TIMESTAMP, kind: 'desc'};
+    sort = {field: SpanFields.TIMESTAMP, kind: 'desc'};
   }
 
   const {
@@ -96,18 +90,18 @@ export function PipelineSpansTable({groupId}: Props) {
     meta: rawMeta,
     error,
     isPending,
-  } = useSpansIndexed(
+  } = useSpans(
     {
       limit: 30,
       sorts: [sort],
       fields: [
-        SpanIndexedField.SPAN_ID,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRANSACTION_SPAN_ID,
-        SpanIndexedField.USER,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.PROJECT,
+        SpanFields.SPAN_ID,
+        SpanFields.TRACE,
+        SpanFields.SPAN_DURATION,
+        SpanFields.TRANSACTION_SPAN_ID,
+        SpanFields.USER,
+        SpanFields.TIMESTAMP,
+        SpanFields.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
     },
@@ -169,20 +163,20 @@ function renderBodyCell(
   view: DomainView | undefined,
   theme: Theme
 ) {
-  if (column.key === SpanIndexedField.SPAN_ID) {
-    if (!row[SpanIndexedField.SPAN_ID]) {
+  if (column.key === SpanFields.SPAN_ID) {
+    if (!row[SpanFields.SPAN_ID]) {
       return <span>(unknown)</span>;
     }
-    if (!row[SpanIndexedField.TRACE]) {
-      return <span>{row[SpanIndexedField.SPAN_ID]}</span>;
+    if (!row[SpanFields.TRACE]) {
+      return <span>{row[SpanFields.SPAN_ID]}</span>;
     }
     return (
       <Link
         to={generateLinkToEventInTraceView({
           organization,
-          targetId: row[SpanIndexedField.TRANSACTION_SPAN_ID],
-          traceSlug: row[SpanIndexedField.TRACE],
-          timestamp: row[SpanIndexedField.TIMESTAMP],
+          targetId: row[SpanFields.TRANSACTION_SPAN_ID],
+          traceSlug: row[SpanFields.TRACE],
+          timestamp: row[SpanFields.TIMESTAMP],
           location: {
             ...location,
             query: {
@@ -191,12 +185,12 @@ function renderBodyCell(
             },
           },
           eventView: EventView.fromLocation(location),
-          spanId: row[SpanIndexedField.SPAN_ID],
+          spanId: row[SpanFields.SPAN_ID],
           source: TraceViewSources.LLM_MODULE,
           view,
         })}
       >
-        {row[SpanIndexedField.SPAN_ID]}
+        {row[SpanFields.SPAN_ID]}
       </Link>
     );
   }

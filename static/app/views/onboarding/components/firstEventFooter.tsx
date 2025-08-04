@@ -142,7 +142,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap={2}>
+      <OnboardingButtonBar gap="xl">
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>

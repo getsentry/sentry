@@ -6,7 +6,10 @@ from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
 from typing import Any
 
+import sentry_sdk
+
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
@@ -164,7 +167,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
-        rule_details = get_rules(self.rules, self.organization, self.project)
+        rule_details = get_rules(self.rules, self.organization, self.project, self.group.type)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
             rule.url = rule.url + sentry_query_params
@@ -262,7 +265,11 @@ class AlertRuleNotification(ProjectNotification):
             if len(self.rules) > 0:
                 context["snooze_alert"] = True
                 context["snooze_alert_url"] = get_snooze_url(
-                    self.rules[0], self.organization, self.project, sentry_query_params
+                    self.rules[0],
+                    self.organization,
+                    self.project,
+                    sentry_query_params,
+                    self.group.type,
                 )
         else:
             context["snooze_alert"] = False
@@ -359,13 +366,17 @@ class AlertRuleNotification(ProjectNotification):
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
-        analytics.record(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider=provider.name,
-            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
-            alert_type="issue_alert",
-            external_id=str(recipient.id),
-            notification_uuid=self.notification_uuid,
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    provider=provider.name,
+                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_type="issue_alert",
+                    external_id=str(recipient.id),
+                    notification_uuid=self.notification_uuid,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

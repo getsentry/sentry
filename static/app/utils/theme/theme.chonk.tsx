@@ -539,20 +539,8 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
   };
 }
 
-const space = {
-  none: '0px',
-  '2xs': '2px',
-  xs: '4px',
-  sm: '6px',
-  md: '8px',
-  lg: '12px',
-  xl: '16px',
-  '2xl': '24px',
-  '3xl': '32px',
-} as const;
-
 const radius = {
-  none: '0px',
+  '0': '0px',
   '2xs': '2px',
   xs: '3px',
   sm: '4px',
@@ -962,6 +950,20 @@ const generateAliases = (
   bannerBackground: colors.gray500,
 });
 
+const fontSize = {
+  xs: '11px' as const,
+  sm: '12px' as const,
+  md: '14px' as const,
+  lg: '16px' as const,
+  xl: '20px' as const,
+  '2xl': '24px' as const,
+} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
+
+const chonkCommonTheme = {
+  ...commonTheme,
+  fontSize,
+};
+
 // Mapping of chonk theme to sentry theme
 const chonkLightColorMapping: ColorMapping = {
   black: lightColors.black,
@@ -1094,14 +1096,12 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
     border: ReturnType<typeof generateChonkTokens>['border'];
     content: ReturnType<typeof generateChonkTokens>['content'];
   };
-  focusRing: {
+  focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
     outline: React.CSSProperties['outline'];
   };
   isChonk: true;
   radius: typeof radius;
-
-  space: typeof space;
   tokens: typeof lightTokens;
 }
 
@@ -1112,7 +1112,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
   type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkLightColorMapping,
   ...lightAliases,
@@ -1125,13 +1125,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     ...darkAliases,
     tokens: darkTokens,
   },
-
-  space,
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -1139,15 +1137,6 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkLightColorMapping, lightAliases),
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
-
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.subText,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
 
   chart: {
     neutral: color(lightColors.gray400).lighten(0.8).toString(),
@@ -1191,7 +1180,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkDarkColorMapping,
   ...darkAliases,
@@ -1204,12 +1193,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     tokens: lightTokens,
   },
 
-  space,
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
@@ -1217,15 +1205,6 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
-
-  tour: {
-    background: darkColors.blue400,
-    header: darkColors.white,
-    text: darkColors.white,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
 
   chart: {
     neutral: color(darkColors.gray400).darken(0.35).toString(),

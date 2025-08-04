@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
@@ -171,7 +171,7 @@ export function useSpanAncestryAndGroupingItems({
     subject: t('Span Group'),
     actionButton: (
       <TraceDrawerComponents.KeyValueAction
-        rowKey={SpanIndexedField.SPAN_GROUP}
+        rowKey={SpanFields.SPAN_GROUP}
         rowValue={spanGroup}
         projectIds={
           childTransaction ? String(childTransaction.value.project_id) : undefined

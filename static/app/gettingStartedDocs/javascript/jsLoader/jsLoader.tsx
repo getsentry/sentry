@@ -1,7 +1,7 @@
 import beautify from 'js-beautify';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   DocsParams,
@@ -29,7 +29,7 @@ const getInstallConfig = (params: Params) => [
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {tct(
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {

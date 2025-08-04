@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 @strategy(ids=["template:v1"], interface=Template, score=1100)
 @produces_variants(["default"])
 def template_v1(
-    interface: Template, event: Event, context: GroupingContext, **meta: Any
+    interface: Template, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     filename_component = FilenameGroupingComponent()
     if interface.filename is not None:

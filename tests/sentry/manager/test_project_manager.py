@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectManagerTest(TestCase):
-    def test_get_for_user_ids(self):
+    def test_get_for_user_ids(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -13,7 +13,7 @@ class ProjectManagerTest(TestCase):
         projects = Project.objects.get_for_user_ids({user.id})
         assert list(projects) == [project]
 
-    def test_get_for_user(self):
+    def test_get_for_user(self) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
@@ -47,11 +47,11 @@ class ProjectManagerTest(TestCase):
         )
         assert result == [project2, project]
 
-    def test_get_by_users_empty(self):
+    def test_get_by_users_empty(self) -> None:
         assert Project.objects.get_by_users([]) == {}
         assert Project.objects.get_by_users([self.user]) == {}
 
-    def test_get_by_users(self):
+    def test_get_by_users(self) -> None:
         organization = self.create_organization()
 
         user1 = self.create_user("foo@example.com")

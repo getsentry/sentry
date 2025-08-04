@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -47,11 +47,11 @@ class OpsgenieClientTest(APITestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         with pytest.raises(NotImplementedError):
             self.installation.get_client()
 
-    def test_get_keyring_client(self):
+    def test_get_keyring_client(self) -> None:
         client = self.installation.get_keyring_client("team-123")
         assert client.integration == self.installation.model
         assert client.base_url == METADATA["base_url"] + "v2"
@@ -59,7 +59,7 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_notification(self, mock_record):
+    def test_send_notification(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -119,7 +119,9 @@ class OpsgenieClientTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_send_notification_with_workflow_engine_trigger_actions(self, mock_record):
+    def test_send_notification_with_workflow_engine_trigger_actions(
+        self, mock_record: MagicMock
+    ) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -185,7 +187,7 @@ class OpsgenieClientTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_send_notification_with_workflow_engine_ui_links(self, mock_record):
+    def test_send_notification_with_workflow_engine_ui_links(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -250,7 +252,7 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_notification_unauthorized_errors(self, mock_record):
+    def test_send_notification_unauthorized_errors(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
@@ -308,7 +310,9 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_metric_alert_notification_unauthorized_errors(self, mock_record):
+    def test_send_metric_alert_notification_unauthorized_errors(
+        self, mock_record: MagicMock
+    ) -> None:
         responses.add(
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
@@ -356,7 +360,9 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_metric_alert_notification_closed_unauthorized_errors(self, mock_record):
+    def test_send_metric_alert_notification_closed_unauthorized_errors(
+        self, mock_record: MagicMock
+    ) -> None:
         identifier = "poggers"
         closed_payload = {
             "identifier": identifier,

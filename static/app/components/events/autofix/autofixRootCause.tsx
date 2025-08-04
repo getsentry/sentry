@@ -171,7 +171,7 @@ function CopyRootCauseButton({
   const text = formatRootCauseText(cause, customRootCause);
   return (
     <CopyToClipboardButton
-      size="sm"
+      size="zero"
       text={text}
       borderless
       title="Copy root cause as Markdown"
@@ -209,7 +209,9 @@ function AutofixRootCauseDisplay({
   if (!cause) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('No root cause available.')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('No root cause available.')}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -221,7 +223,7 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <IconWrapper ref={iconFocusRef}>
-                <IconFocus size="sm" color="pink400" />
+                <IconFocus size="md" color="pink400" />
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
@@ -239,23 +241,23 @@ function AutofixRootCauseDisplay({
         <HeaderWrapper>
           <HeaderText>
             <IconWrapper ref={iconFocusRef}>
-              <IconFocus size="sm" color="pink400" />
+              <IconFocus size="md" color="pink400" />
             </IconWrapper>
             {t('Root Cause')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Root Cause Chat"
-              analyticsEventKey="autofix.root_cause.chat"
-            >
-              <IconChat size="xs" />
-            </ChatButton>
+            <ButtonBar gap={'0'}>
+              <ChatButton
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectDescription}
+                analyticsEventName="Autofix: Root Cause Chat"
+                analyticsEventKey="autofix.root_cause.chat"
+              >
+                <IconChat />
+              </ChatButton>
+              <CopyRootCauseButton cause={cause} />
+            </ButtonBar>
           </HeaderText>
-          <ButtonBar>
-            <CopyRootCauseButton cause={cause} />
-          </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
@@ -299,7 +301,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
               </Alert>
             </Alert.Container>
@@ -356,7 +358,7 @@ const IconWrapper = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -378,5 +380,4 @@ const AnimationWrapper = styled(motion.div)`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
 `;

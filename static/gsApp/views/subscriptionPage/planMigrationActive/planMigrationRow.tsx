@@ -2,8 +2,7 @@ import styled from '@emotion/styled';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 
@@ -17,6 +16,8 @@ type DataRow = {
   nextValue: number | null;
   type: DataCategoryExact;
   hasCredits?: boolean;
+  previousType?: DataCategoryExact;
+  titleOverride?: string;
 };
 
 type PriceRow = {
@@ -100,34 +101,6 @@ function PlanMigrationRow(props: Props) {
       currentValue = props.currentValue;
       nextValue = props.nextValue;
       break;
-    case DataCategoryExact.ERROR:
-      currentValue = formatCategoryRowString(props.type, props.currentValue, options);
-      // eslint-disable-next-line no-case-declarations
-      const formattedErrors = formatCategoryRowString(
-        props.type,
-        props.nextValue,
-        options
-      );
-      nextValue = props.hasCredits ? `${formattedErrors}*` : formattedErrors;
-      break;
-    case DataCategoryExact.TRANSACTION:
-    case DataCategoryExact.REPLAY:
-    case DataCategoryExact.MONITOR_SEAT:
-    case DataCategoryExact.ATTACHMENT:
-    case DataCategoryExact.LOG_BYTE:
-    case DataCategoryExact.PROFILE_DURATION:
-      currentValue = formatCategoryRowString(props.type, props.currentValue, options);
-      nextValue = formatCategoryRowString(props.type, props.nextValue, options);
-      break;
-    case DataCategoryExact.SPAN:
-      currentValue = formatCategoryRowString(
-        DataCategoryExact.TRANSACTION,
-        props.currentValue,
-        options
-      );
-      nextValue = formatCategoryRowString(props.type, props.nextValue, options);
-      currentTitle = t('Tracing and Performance Monitoring');
-      break;
     case 'price':
       currentValue = displayPrice({cents: props.currentValue});
       discountPrice = displayPrice({cents: props.discountPrice});
@@ -139,8 +112,24 @@ function PlanMigrationRow(props: Props) {
       nextValue = displayPrice({cents: props.nextValue});
       currentTitle = 'renewal price';
       break;
-    default:
-      return null;
+    default: {
+      // assume DataCategoryExact
+      currentValue = formatCategoryRowString(
+        props.previousType ?? props.type,
+        props.currentValue,
+        options
+      );
+      const formattedNextValue = formatCategoryRowString(
+        props.type,
+        props.nextValue,
+        options
+      );
+      nextValue = props.hasCredits ? `${formattedNextValue}*` : formattedNextValue;
+      if (props.titleOverride) {
+        currentTitle = props.titleOverride;
+      }
+      break;
+    }
   }
 
   const hasDiscount =
@@ -171,7 +160,7 @@ const Title = styled('td')`
 
 const DiscountCell = styled('td')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: flex-end;
 `;
 

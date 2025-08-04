@@ -22,7 +22,7 @@ class GoogleRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_routing_all_to_control(self):
+    def test_routing_all_to_control(self) -> None:
         for request in self.google_dummy_requests:
             parser = GoogleRequestParser(request=request, response_handler=self.get_response)
             assert parser.get_integration_from_request() is None

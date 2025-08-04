@@ -29,7 +29,7 @@ from sentry.utils.outcomes import Outcome
     ),
 )
 class SendBeaconTest(OutcomesSnubaTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.store_outcomes(
             {

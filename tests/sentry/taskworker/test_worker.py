@@ -357,7 +357,7 @@ class TestTaskWorker(TestCase):
                     break
                 if time.time() - start > max_runtime:
                     taskworker.shutdown()
-                    raise AssertionError("Timeout waiting for get_task to be called")
+                    raise AssertionError("Timeout waiting for update_task to be called")
 
             taskworker.shutdown()
             assert mock_client.get_task.called
@@ -370,7 +370,6 @@ class TestTaskWorker(TestCase):
             assert (
                 mock_client.update_task.call_args.args[0].status == TASK_ACTIVATION_STATUS_COMPLETE
             )
-            assert mock_client.update_task.call_args.args[1] is None
 
             redis = redis_clusters.get("default")
             assert current_task() is None, "should clear current task on completion"
@@ -380,7 +379,7 @@ class TestTaskWorker(TestCase):
 
 @pytest.mark.django_db
 @mock.patch("sentry.taskworker.workerchild.capture_checkin")
-def test_child_process_complete(mock_capture_checkin) -> None:
+def test_child_process_complete(mock_capture_checkin: mock.MagicMock) -> None:
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -704,7 +703,7 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
 
 @pytest.mark.django_db
 @mock.patch("sentry.taskworker.workerchild.capture_checkin")
-def test_child_process_decompression(mock_capture_checkin) -> None:
+def test_child_process_decompression(mock_capture_checkin: mock.MagicMock) -> None:
 
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()

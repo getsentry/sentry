@@ -15,12 +15,13 @@ jest.mock('sentry/utils/usePageFilters');
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table', 'insights-initial-modules'],
+    features: ['insights-initial-modules'],
   });
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
@@ -197,23 +198,19 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
-            'span.op',
-            'span.description',
-            'span.action',
-            'span.domain',
-            'count()',
+            'sentry.normalized_description',
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'http_response_count(5)',
           ],
           per_page: 50,
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.starfish.span-summary-page-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -226,10 +223,11 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansIndexed',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
-            'project_id',
+            'project.id',
             'span.description',
             'db.system',
             'code.filepath',
@@ -258,7 +256,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -285,7 +284,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -311,7 +311,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'transaction',
@@ -327,6 +327,7 @@ describe('DatabaseSpanSummaryPage', function () {
           query: 'span.group:1756baf8fd19c116',
           sort: '-sum(span.self_time)',
           referrer: 'api.starfish.span-transaction-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })

@@ -228,6 +228,7 @@ def instrumented_task(
 def retry(
     func: Callable[..., Any] | None = None,
     on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+    on_silent: type[Exception] | tuple[type[Exception], ...] = (),
     exclude: type[Exception] | tuple[type[Exception], ...] = (),
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
@@ -246,17 +247,20 @@ def retry(
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except ignore:
+                return
             except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
-            except ignore:
-                return
             except ignore_and_capture:
                 sentry_sdk.capture_exception(level="info")
                 return
             except exclude:
                 raise
+            except on_silent as exc:
+                logger.info("silently retrying %s due to %s", func.__name__, exc)
+                retry_task(exc)
             except on as exc:
                 sentry_sdk.capture_exception()
                 retry_task(exc)

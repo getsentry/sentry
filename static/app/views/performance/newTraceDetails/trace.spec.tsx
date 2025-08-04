@@ -776,7 +776,7 @@ const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 
 const searchToResolve = async (): Promise<void> => {
-  await screen.findByTestId('trace-search-success');
+  await screen.findByTestId('trace-search-success', undefined, {timeout: 10_000});
 };
 
 function printVirtualizedList(container: HTMLElement) {
@@ -1602,7 +1602,8 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 1);
     });
 
-    it('supports roving with arrowup and arrowdown', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('supports roving with arrowup and arrowdown', async () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');

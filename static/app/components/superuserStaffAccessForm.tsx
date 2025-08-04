@@ -206,11 +206,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             <LoadingIndicator />
           ) : (
             <React.Fragment>
-              {error && (
-                <Alert type="error" showIcon>
-                  {errorType}
-                </Alert>
-              )}
+              {error && <Alert type="error">{errorType}</Alert>}
               <WebAuthn
                 mode="sudo"
                 authenticators={authenticators}
@@ -232,11 +228,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             }
             resetOnError
           >
-            {error && (
-              <Alert type="error" showIcon>
-                {errorType}
-              </Alert>
-            )}
+            {error && <Alert type="error">{errorType}</Alert>}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
               <WebAuthn

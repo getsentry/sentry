@@ -194,6 +194,8 @@ def incident_attachment_info(
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     status = get_status_text(metric_issue_context.new_status)
 
     text = ""
@@ -205,9 +207,7 @@ def incident_attachment_info(
             str(metric_issue_context.metric_value),
         )
 
-    if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
-        "organizations:anomaly-detection-rollout", organization
-    ):
+    if features.has("organizations:anomaly-detection-alerts", organization):
         text += f"\nThreshold: {alert_context.detection_type.title()}"
 
     title = get_title(status, alert_context.name)
@@ -220,7 +220,10 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    from sentry.incidents.grouptype import MetricIssue
+
+    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         try:
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id
@@ -335,9 +338,7 @@ def metric_alert_unfurl_attachment_info(
             str(metric_value),
         )
 
-    if features.has(
-        "organizations:anomaly-detection-alerts", alert_rule.organization
-    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
+    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None

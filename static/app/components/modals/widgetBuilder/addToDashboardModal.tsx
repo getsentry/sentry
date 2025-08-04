@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {
   fetchDashboard,
@@ -19,11 +20,13 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
@@ -50,6 +53,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type AddToDashboardModalActions =
@@ -110,6 +114,20 @@ function AddToDashboardModal({
   const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
     getFallbackWidgetTitle(widget)
   );
+  const [orderBy, setOrderBy] = useState<string>();
+  const [tableWidths, setTableWidths] = useState<number[]>();
+
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+
+  const handleWidgetTableSort = (sort: Sort) => {
+    const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+    setOrderBy(newOrderBy);
+  };
+
+  const handleWidgetTableColumnResize = (columns: TabularColumn[]) => {
+    const widths = columns.map(column => column.width as number);
+    setTableWidths(widths);
+  };
 
   // Set custom title, or fallback to default title for widget
   const updateWidgetTitle = (newTitle: string) => {
@@ -179,6 +197,7 @@ function AddToDashboardModal({
         query: {
           ...widgetAsQueryParams,
           title: newWidgetTitle,
+          sort: orderBy ?? widgetAsQueryParams.sort,
           source,
           ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
         },
@@ -192,13 +211,13 @@ function AddToDashboardModal({
       return;
     }
 
-    let orderby = widget.queries[0]!.orderby;
+    let newOrderBy = orderBy ?? widget.queries[0]!.orderby;
     if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
-      orderby = ''; // Clear orderby if its not a top n visualization.
+      newOrderBy = ''; // Clear orderby if its not a top n visualization.
     }
     const queries = widget.queries.map(query => ({
       ...query,
-      orderby,
+      orderby: newOrderBy,
     }));
 
     const newWidget = {
@@ -240,19 +259,24 @@ function AddToDashboardModal({
         label: t('+ Create New Dashboard'),
         value: 'new',
       },
-      ...dashboards.map(({title, id, widgetDisplay}) => ({
-        label: title,
-        value: id,
-        disabled: widgetDisplay.length >= MAX_WIDGETS,
-        tooltip:
-          widgetDisplay.length >= MAX_WIDGETS &&
-          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-            maxWidgets: MAX_WIDGETS,
-          }),
-        tooltipOptions: {position: 'right'},
-      })),
+      ...dashboards
+        .filter(dashboard =>
+          // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
+          currentDashboardId ? dashboard.id !== currentDashboardId : true
+        )
+        .map(({title, id, widgetDisplay}) => ({
+          label: title,
+          value: id,
+          disabled: widgetDisplay.length >= MAX_WIDGETS,
+          tooltip:
+            widgetDisplay.length >= MAX_WIDGETS &&
+            tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+              maxWidgets: MAX_WIDGETS,
+            }),
+          tooltipOptions: {position: 'right'},
+        })),
     ].filter(Boolean) as Array<SelectValue<string>>;
-  }, [allowCreateNewDashboard, dashboards]);
+  }, [allowCreateNewDashboard, currentDashboardId, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
@@ -264,6 +288,17 @@ function AddToDashboardModal({
   const unselectedReleasesForCharts = {
     [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend('Releases', widget.id)]:
       false,
+  };
+
+  // Used to refresh sort in table widgets
+  const getUpdatedWidgetQueries = () => {
+    if (orderBy && widget.queries[0]?.orderby) {
+      const queries = cloneDeep(widget.queries);
+      queries[0]!.orderby = orderBy;
+      return queries;
+    }
+
+    return widget.queries;
   };
 
   return (
@@ -329,7 +364,12 @@ function AddToDashboardModal({
                       dashboardFilters={
                         getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
                       }
-                      widget={{...widget, title: newWidgetTitle}}
+                      widget={{
+                        ...widget,
+                        title: newWidgetTitle,
+                        tableWidths,
+                        queries: getUpdatedWidgetQueries(),
+                      }}
                       shouldResize
                       widgetLegendState={widgetLegendState}
                       onLegendSelectChanged={() => {}}
@@ -339,6 +379,8 @@ function AddToDashboardModal({
                           : undefined
                       }
                       disableFullscreen
+                      onWidgetTableResizeColumn={handleWidgetTableColumnResize}
+                      onWidgetTableSort={handleWidgetTableSort}
                     />
                   </WidgetCardWrapper>
                   <IndexedEventsSelectionAlert widget={widget} />
@@ -350,7 +392,7 @@ function AddToDashboardModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap={1.5}>
+        <StyledButtonBar gap="lg">
           {actions.includes('add-and-stay-on-current-page') && (
             <Button
               onClick={handleAddAndStayOnCurrentPage}

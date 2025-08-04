@@ -21,7 +21,9 @@ function PerformanceContainer({organization, location, children}: Props) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );

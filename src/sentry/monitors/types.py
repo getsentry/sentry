@@ -29,6 +29,10 @@ class CheckinPayload(TypedDict):
     contexts: NotRequired[CheckinContexts]
 
 
+def slugify_monitor_slug(slug: str) -> str:
+    return slugify(slug)[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
+
+
 class CheckinItemData(TypedDict):
     """
     See `CheckinItem` for definition
@@ -70,7 +74,7 @@ class CheckinItem:
 
     @cached_property
     def valid_monitor_slug(self):
-        return slugify(self.payload["monitor_slug"])[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
+        return slugify_monitor_slug(self.payload["monitor_slug"])
 
     @property
     def processing_key(self):

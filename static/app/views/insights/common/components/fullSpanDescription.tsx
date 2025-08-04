@@ -11,10 +11,10 @@ import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
 
@@ -31,15 +31,15 @@ export function FullSpanDescription({
   filters = {},
   moduleName,
 }: Props) {
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({'span.group': group, ...filters}),
       limit: 1,
       fields: [
-        SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.DB_SYSTEM,
+        SpanFields.PROJECT_ID,
+        SpanFields.TRANSACTION_SPAN_ID,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.DB_SYSTEM,
       ],
     },
     'api.starfish.span-description'

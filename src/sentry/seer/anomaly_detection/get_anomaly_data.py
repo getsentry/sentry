@@ -42,7 +42,7 @@ def get_anomaly_data_from_seer_legacy(
     snuba_query = alert_rule.snuba_query
     extra_data = {
         "subscription_id": subscription.id,
-        "organization_id": subscription.project.organization.id,
+        "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
         "threshold_type": alert_rule.threshold_type,
@@ -180,7 +180,7 @@ def get_anomaly_data_from_seer(
 
     extra_data = {
         "subscription_id": subscription.id,
-        "organization_id": subscription.project.organization.id,
+        "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,
         "source_id": source_id,
         "source_type": source_type,
@@ -201,7 +201,7 @@ def get_anomaly_data_from_seer(
         cur_window=TimeSeriesPoint(timestamp=timestamp.timestamp(), value=aggregation_value),
     )
     detect_anomalies_request = DetectAnomaliesRequest(
-        organization_id=subscription.project.organization.id,
+        organization_id=subscription.project.organization_id,
         project_id=subscription.project_id,
         config=anomaly_detection_config,
         context=context,

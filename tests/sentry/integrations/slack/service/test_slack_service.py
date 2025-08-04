@@ -7,6 +7,7 @@ import pytest
 from django.utils import timezone
 from slack_sdk.errors import SlackApiError
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import NotificationActionNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -123,7 +124,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             group=self.group,
         )
 
-    def test_none_group(self):
+    def test_none_group(self) -> None:
         self.activity.update(group=None)
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
@@ -136,7 +137,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 },
             )
 
-    def test_none_user_id(self):
+    def test_none_user_id(self) -> None:
         self.activity.update(user_id=None)
 
         with mock.patch.object(self.service, "_logger") as mock_logger:
@@ -151,7 +152,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 },
             )
 
-    def test_disabled_option(self):
+    def test_disabled_option(self) -> None:
         OrganizationOption.objects.set_value(
             self.organization, "sentry:issue_alerts_thread_flag", False
         )
@@ -168,7 +169,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 },
             )
 
-    def test_no_message_to_send(self):
+    def test_no_message_to_send(self) -> None:
         # unsupported activity
         self.activity.update(type=ActivityType.FIRST_SEEN.value)
 
@@ -184,7 +185,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 },
             )
 
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -397,12 +398,12 @@ class TestNotifyAllThreadsForActivity(TestCase):
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
-    def test_no_parent_notification(self, mock_send):
+    def test_no_parent_notification(self, mock_send: mock.MagicMock) -> None:
         self.parent_notification.delete()
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_send.called
 
-    def test_none_user_id_uptime_resolved(self):
+    def test_none_user_id_uptime_resolved(self) -> None:
         """Test that uptime resolved notifications are allowed even without a user_id"""
         self.group.update(type=UptimeDomainCheckFailure.type_id)
         self.activity.update(
@@ -602,7 +603,7 @@ class TestSlackServiceMethods(TestCase):
             group=self.group,
         )
 
-    def test_get_channel_id_from_parent_notification(self):
+    def test_get_channel_id_from_parent_notification(self) -> None:
         # Test the channel ID extraction logic
         channel_id = self.service._get_channel_id_from_parent_notification(self.parent_notification)
         assert channel_id == self.channel_id
@@ -703,7 +704,7 @@ class TestSlackServiceMethods(TestCase):
         )
 
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_send_notification_to_slack_channel(self, mock_api_call):
+    def test_send_notification_to_slack_channel(self, mock_api_call: mock.MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -716,7 +717,7 @@ class TestSlackServiceMethods(TestCase):
             client=SlackSdkClient(integration_id=self.integration.id),
         )
 
-    def test_send_notification_to_slack_channel_error(self):
+    def test_send_notification_to_slack_channel_error(self) -> None:
         with pytest.raises(SlackApiError) as err:
             self.service._send_notification_to_slack_channel(
                 channel_id=self.channel_id,
@@ -726,13 +727,13 @@ class TestSlackServiceMethods(TestCase):
             )
         assert err.value.response["ok"] is False
 
-    def test_get_channel_id_from_parent_notification_notification_action(self):
+    def test_get_channel_id_from_parent_notification_notification_action(self) -> None:
         channel_id = self.service._get_channel_id_from_parent_notification_notification_action(
             parent_notification=self.parent_notification_action,
         )
         assert channel_id == self.channel_id
 
-    def test_get_channel_id_from_parent_notification_notification_action_no_action(self):
+    def test_get_channel_id_from_parent_notification_notification_action_no_action(self) -> None:
         parent_notification = NotificationActionNotificationMessage(
             id=123,
             date_added=datetime.now(),
@@ -748,7 +749,9 @@ class TestSlackServiceMethods(TestCase):
             == f"parent notification {parent_notification.id} does not have an action"
         )
 
-    def test_get_channel_id_from_parent_notification_notification_action_no_target_identifier(self):
+    def test_get_channel_id_from_parent_notification_notification_action_no_target_identifier(
+        self,
+    ) -> None:
         self.action.config["target_identifier"] = None
         parent_notification = NotificationActionNotificationMessage(
             id=123,
@@ -761,4 +764,29 @@ class TestSlackServiceMethods(TestCase):
         with pytest.raises(ActionDataError):
             self.service._get_channel_id_from_parent_notification_notification_action(
                 parent_notification=parent_notification,
+            )
+
+    def test_none_user_id_metric_resolved(self) -> None:
+        """Test that metric resolved notifications are ignored when user_id is None"""
+        metric_group = self.create_group(type=MetricIssue.type_id)
+
+        activity = Activity.objects.create(
+            group=metric_group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=None,
+            data={},
+        )
+
+        with mock.patch.object(self.service, "_logger") as mock_logger:
+            self.service.notify_all_threads_for_activity(activity=activity)
+
+            mock_logger.info.assert_called_with(
+                "metric resolved notification, will be sent via action.trigger - nothing to do here",
+                extra={
+                    "activity_id": activity.id,
+                    "project_id": activity.project.id,
+                    "group_id": metric_group.id,
+                    "organization_id": self.organization.id,
+                },
             )

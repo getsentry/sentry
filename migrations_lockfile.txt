@@ -17,17 +17,17 @@ hybridcloud: 0023_correct_webhook_payload_constraint
 
 insights: 0002_backfill_team_starred
 
-monitors: 0006_add_is_upserting
+monitors: 0007_monitors_json_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0001_move_notifications_models
 
-preprod: 0010_actual_drop_preprod_artifact_analysis_file_id_col
+preprod: 0013_binary_uuid
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0948_ds_waiver_org_fk_not_db_constr
+sentry: 0960_project_option_json_field
 
 social_auth: 0003_social_auth_json_field
 
@@ -35,4 +35,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0076_add_detector_group_table
+workflow_engine: 0082_disconnect_error_detector_cron_workflows

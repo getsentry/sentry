@@ -246,7 +246,7 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  return DiscoverDatasets.SPANS_EAP_RPC;
+  return DiscoverDatasets.SPANS;
 }
 
 interface UseExploreAggregateFieldsOptions {

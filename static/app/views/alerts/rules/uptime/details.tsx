@@ -24,6 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 import {
   setUptimeRuleData,
   useUptimeRule,
@@ -54,6 +55,9 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     isPending,
     isError,
   } = useUptimeRule({projectSlug: projectId, uptimeRuleId});
+
+  const {data: uptimeSummaries} = useUptimeMonitorSummaries({ruleIds: [uptimeRuleId]});
+  const summary = uptimeSummaries?.[uptimeRuleId];
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline
@@ -139,7 +143,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <StatusToggleButton
               uptimeRule={uptimeRule}
               onToggleStatus={status => handleUpdate({status})}
@@ -171,7 +175,6 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <Alert.Container>
               <Alert
                 type="muted"
-                showIcon
                 trailingItems={
                   <StatusToggleButton
                     uptimeRule={uptimeRule}
@@ -192,6 +195,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         </Layout.Main>
         <Layout.Side>
           <UptimeDetailsSidebar
+            summary={summary}
             uptimeRule={uptimeRule}
             showMissedLegend={showMissedLegend}
           />

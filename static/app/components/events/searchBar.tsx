@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
@@ -207,30 +207,20 @@ export default function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      const fetchPromise =
-        dataset === DiscoverDatasets.SPANS_INDEXED
-          ? fetchSpanFieldValues({
-              api,
-              orgSlug: organization.slug,
-              fieldKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-            })
-          : fetchTagValues({
-              api,
-              orgSlug: organization.slug,
-              tagKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-              // allows searching for tags on transactions as well
-              includeTransactions,
-              // allows searching for tags on sessions as well
-              includeSessions: includeSessionTagsValues,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
-            });
+      const fetchPromise = fetchTagValues({
+        api,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
+        endpointParams,
+        // allows searching for tags on transactions as well
+        includeTransactions,
+        // allows searching for tags on sessions as well
+        includeSessions: includeSessionTagsValues,
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+      });
 
       return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),

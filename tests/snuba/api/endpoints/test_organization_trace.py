@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -87,7 +88,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             format="json",
         )
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -105,7 +106,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 404, response.content
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -116,7 +117,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
-    def test_ignore_project_param(self):
+    def test_ignore_project_param(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
@@ -128,7 +129,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
-    def test_with_errors_data(self):
+    def test_with_errors_data(self) -> None:
         self.load_trace(is_eap=True)
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
@@ -160,7 +161,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["issue_id"] == error.group_id
         assert error_event["start_timestamp"] == error_data["timestamp"]
 
-    def test_with_errors_data_with_overlapping_span_id(self):
+    def test_with_errors_data_with_overlapping_span_id(self) -> None:
         self.load_trace(is_eap=True)
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
@@ -191,7 +192,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event_2["event_id"] in [error.event_id, error_2.event_id]
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
-    def test_with_performance_issues(self):
+    def test_with_performance_issues(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -211,7 +212,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["project_slug"] == self.project.slug
         assert error_event["level"] == "info"
 
-    def test_with_only_errors(self):
+    def test_with_only_errors(self) -> None:
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",
@@ -234,7 +235,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
 
-    def test_with_additional_attributes(self):
+    def test_with_additional_attributes(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -257,7 +258,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100
 
-    def test_with_target_error(self):
+    def test_with_target_error(self) -> None:
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",
@@ -273,7 +274,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         for _ in range(5):
             self.store_event(error_data, project_id=self.project.id)
 
-        with mock.patch("sentry.api.endpoints.organization_trace.ERROR_LIMIT", 1):
+        with mock.patch("sentry.snuba.trace.ERROR_LIMIT", 1):
             with self.feature(self.FEATURES):
                 response = self.client_get(
                     data={"timestamp": self.day_ago, "errorId": error.event_id},
@@ -283,10 +284,44 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
 
-    def test_with_invalid_error_id(self):
+    def test_with_invalid_error_id(self) -> None:
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago, "errorId": ",blah blah,"},
             )
 
         assert response.status_code == 400, response.content
+
+    def test_with_date_outside_retention(self) -> None:
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"timestamp": before_now(days=120)},
+                )
+
+        assert response.status_code == 400, response.content
+
+    def test_orphan_trace(self) -> None:
+        self.load_trace(is_eap=True)
+        orphan_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/orphan",
+            spans=[],
+            project_id=self.project.id,
+            # Random span id so there's no parent
+            parent_span_id=uuid4().hex[:16],
+            milliseconds=500,
+            is_eap=True,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 2
+        if len(data[0]["children"]) == 0:
+            orphan = data[0]
+        else:
+            orphan = data[1]
+        self.assert_event(orphan, orphan_event, "orphan")

@@ -22,20 +22,17 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
-  MetricsFields,
-  type MetricsResponse,
   ModuleName,
+  SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsResponse,
+  type SpanResponse,
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM} = SpanFunction;
-const {TRANSACTION_DURATION, SPAN_DURATION} = MetricsFields;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'project'
   | 'project.id'
   | 'transaction'
@@ -44,7 +41,7 @@ type Row = Pick<
   | 'sum(span.self_time)'
   | 'avg(cache.item_size)'
 > &
-  Pick<MetricsResponse, 'avg(span.duration)'>;
+  Pick<SpanResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
@@ -68,8 +65,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${CACHE_ITEM_SIZE})`,
-    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
+    key: `avg(${SpanFields.CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -78,8 +75,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SPAN_DURATION})`,
-    name: DataTitles[`avg(${TRANSACTION_DURATION})`],
+    key: `avg(${SpanFields.SPAN_DURATION})`,
+    name: DataTitles['avg(transaction.duration)'],
     width: COL_WIDTH_UNDEFINED,
   },
   {

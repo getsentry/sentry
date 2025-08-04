@@ -9,9 +9,23 @@ import {
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TokensPage from 'sentry/views/codecov/tokens/tokens';
 
+const mockIntegrations = [
+  {name: 'some-org-name', id: '1'},
+  {name: 'test-org', id: '2'},
+];
+
+const mockApiCall = () => {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/integrations/`,
+    method: 'GET',
+    body: mockIntegrations,
+  });
+};
+
 describe('TokensPage', () => {
   describe('when the wrapper is used', () => {
     it('renders the header', async () => {
+      mockApiCall();
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -21,7 +35,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/codecov/tokens/',
               query: {
-                integratedOrg: 'some-org-name',
+                integratedOrgId: '1',
               },
             },
           },
@@ -31,6 +45,7 @@ describe('TokensPage', () => {
     });
 
     it('displays the integrated organization name in the description', async () => {
+      mockApiCall();
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -40,7 +55,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/codecov/tokens/',
               query: {
-                integratedOrg: 'test-org',
+                integratedOrgId: '2',
               },
             },
           },
@@ -65,6 +80,7 @@ describe('TokensPage', () => {
     });
 
     it('renders a table component', async () => {
+      mockApiCall();
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -74,7 +90,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/codecov/tokens/',
               query: {
-                integratedOrg: 'some-org-name',
+                integratedOrgId: '1',
               },
             },
           },
@@ -87,6 +103,7 @@ describe('TokensPage', () => {
     });
 
     it('renders repository tokens and related data', async () => {
+      mockApiCall();
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -96,7 +113,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/codecov/tokens/',
               query: {
-                integratedOrg: 'some-org-name',
+                integratedOrgId: '1',
               },
             },
           },
@@ -113,6 +130,7 @@ describe('TokensPage', () => {
     });
 
     it('Creates new token when regenerate token button is clicked after opening the modal and clicking the Generate new token button', async () => {
+      mockApiCall();
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -122,7 +140,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/codecov/tokens/',
               query: {
-                integratedOrg: 'some-org-name',
+                integratedOrgId: '1',
               },
             },
           },

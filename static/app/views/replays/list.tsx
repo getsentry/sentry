@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -23,32 +24,34 @@ function ReplaysListContainer() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Layout.Title>
-            {t('Session Replay')}
-            <PageHeadingQuestionTooltip
-              title={t(
-                'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-              )}
-              docsUrl="https://docs.sentry.io/product/session-replay/"
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <ReplayTabs selected="replays" />
-      </Layout.Header>
-      <PageFiltersContainer>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <LayoutGap>
-              <ReplayListPageHeaderHook />
-              <ListContent />
-            </LayoutGap>
-          </Layout.Main>
-        </Layout.Body>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
+    <AnalyticsArea name="list">
+      <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>
+              {t('Session Replay')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                )}
+                docsUrl="https://docs.sentry.io/product/session-replay/"
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <ReplayTabs selected="replays" />
+        </Layout.Header>
+        <PageFiltersContainer>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <LayoutGap>
+                <ReplayListPageHeaderHook />
+                <ListContent />
+              </LayoutGap>
+            </Layout.Main>
+          </Layout.Body>
+        </PageFiltersContainer>
+      </SentryDocumentTitle>
+    </AnalyticsArea>
   );
 }
 

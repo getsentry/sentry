@@ -56,6 +56,10 @@ describe('Issues Similar View', function () {
       url: `/projects/org-slug/project-slug/`,
       body: {features: ['similarity-view']},
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/related-issues/`,
+      body: {data: [], type: 'same_root_cause'},
+    });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
   });
@@ -199,6 +203,10 @@ describe('Issues Similar Embeddings View', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/`,
       body: {features: ['similarity-embeddings']},
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/related-issues/`,
+      body: {data: [], type: 'same_root_cause'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);

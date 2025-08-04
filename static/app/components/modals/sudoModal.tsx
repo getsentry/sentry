@@ -274,11 +274,7 @@ function SudoModal({
                 )
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
-          {error && (
-            <Alert type="error" showIcon>
-              {errorType}
-            </Alert>
-          )}
+          {error && <Alert type="error">{errorType}</Alert>}
           {isSuperuser ? (
             <Form
               apiMethod="PUT"
@@ -333,11 +329,7 @@ function SudoModal({
             : t('Help us keep your account safe by confirming your identity.')}
         </StyledTextBlock>
 
-        {error && (
-          <Alert type="error" showIcon>
-            {errorType}
-          </Alert>
-        )}
+        {error && <Alert type="error">{errorType}</Alert>}
 
         <Form
           apiMethod="PUT"

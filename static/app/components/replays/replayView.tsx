@@ -2,8 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Flex} from 'sentry/components/core/layout';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -13,12 +14,15 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import ReplayViewScale from 'sentry/views/replays/detail/replayViewScale';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -31,10 +35,19 @@ type Props = {
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen, isLoading}: Props) {
+function FatalIconTooltip({error}: {error: Error | null}) {
+  return (
+    <Tooltip skipWrapper title={error?.message}>
+      <IconFatal size="sm" />
+    </Tooltip>
+  );
+}
+
+export default function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays: replay ? [replay.getReplay()] : [],
@@ -72,15 +85,19 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             ) : (
               <ReplayCurrentUrl />
             )}
-            <Flex gap={space(1)}>
+
+            <ErrorBoundary customComponent={FatalIconTooltip}>
               <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
-              {isFullscreen ? (
-                <ReplaySidebarToggleButton
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setIsSidebarOpen}
-                />
-              ) : null}
-            </Flex>
+            </ErrorBoundary>
+            <ErrorBoundary customComponent={FatalIconTooltip}>
+              <ReplayViewScale isLoading={isLoading} />
+            </ErrorBoundary>
+            {isFullscreen ? (
+              <ReplaySidebarToggleButton
+                isOpen={isSidebarOpen}
+                setIsOpen={setIsSidebarOpen}
+              />
+            ) : null}
           </ContextContainer>
           {isLoading ? (
             <FluidHeight>
@@ -156,14 +173,17 @@ const PlayerContainer = styled('div')`
 `;
 
 const BreadcrumbContainer = styled('div')`
+  display: flex;
   width: 25%;
+
+  & > div {
+    flex-grow: 1;
+  }
 `;
 
 const PlayerBreadcrumbContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  height: 100%;
+  flex-grow: 1;
   gap: ${space(1)};
 `;
-
-export default ReplayView;

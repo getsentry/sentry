@@ -730,6 +730,11 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
+                    r"^seer/",
+                    react_page_view,
+                    name="sentry-customer-domain-seer-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -755,6 +760,11 @@ urlpatterns += [
                     name="sentry-organization-auth-settings",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/seer/",
+                    react_page_view,
+                    name="sentry-organization-seer-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-sub-page-settings",
@@ -773,7 +783,7 @@ urlpatterns += [
         name="integration-installation",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-project",
     ),
@@ -783,7 +793,7 @@ urlpatterns += [
         name="sentry-customer-domain-unsubscribe-project",
     ),
     re_path(
-        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        r"^unsubscribe/(?P<organization_slug>[^/]+)/issue/(?P<issue_id>\d+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-issue",
     ),
@@ -1209,6 +1219,11 @@ urlpatterns += [
         r"^\.well-known/security\.txt$",
         api.security_txt,
         name="sentry-security-txt",
+    ),
+    re_path(
+        r"^\.well-known/mcp\.json$",
+        api.mcp_json,
+        name="sentry-mcp-json",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

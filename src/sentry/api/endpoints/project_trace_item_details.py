@@ -1,7 +1,8 @@
 import time
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
+import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
 from rest_framework import serializers
@@ -153,6 +154,67 @@ def serialize_meta(
     return meta_result
 
 
+def serialize_links(attributes: list[dict]) -> list[dict] | None:
+    """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
+    link_attribute = None
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name == "sentry.links":
+            link_attribute = attribute
+
+    if link_attribute is None:
+        return None
+
+    try:
+        value = link_attribute.get("value", {}).get("valStr", None)
+        if value is not None:
+            links = json.loads(value)
+            return [serialize_link(link) for link in links]
+        else:
+            return None
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def serialize_link(link: dict) -> dict:
+    clean_link = {
+        "itemId": link["span_id"],
+        "traceId": link["trace_id"],
+    }
+
+    if (sampled := link.get("sampled")) is not None:
+        clean_link["sampled"] = sampled
+
+    if attributes := link.get("attributes"):
+        clean_link["attributes"] = [
+            {"name": k, "value": v, "type": infer_type(v)}
+            for k, v in attributes.items()
+            if infer_type(v) is not None
+        ]
+
+    return clean_link
+
+
+def infer_type(value: Any) -> str | None:
+    """
+    Attempt to infer the type of a link attribute value. Only supports a subset
+    of types, since realistically we only store known keys. This becomes moot
+    once we start storing span links as trace items, and they follow the same
+    attribute parsing logic as spans.
+    """
+    if isinstance(value, str):
+        return "str"
+    elif isinstance(value, bool):
+        return "bool"
+    elif isinstance(value, int):
+        return "int"
+    elif isinstance(value, float):
+        return "float"
+    else:
+        return None
+
+
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
     if trace_item_type == SupportedTraceItemType.SPANS:
         return item_id[-16:]
@@ -240,6 +302,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"], item_type, use_sentry_conventions
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
+            "links": serialize_links(resp["attributes"]),
         }
 
         return Response(resp_dict)

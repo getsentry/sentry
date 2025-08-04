@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -82,10 +83,6 @@ import {
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
-interface GroupDetailsProps {
-  children: React.ReactNode;
-}
-
 type FetchGroupDetailsState = {
   error: boolean;
   errorType: Error;
@@ -96,7 +93,8 @@ type FetchGroupDetailsState = {
   refetchGroup: () => void;
 };
 
-interface GroupDetailsContentProps extends GroupDetailsProps {
+interface GroupDetailsContentProps {
+  children: React.ReactNode;
   event: Event | null;
   group: Group;
   project: Project;
@@ -519,8 +517,7 @@ function useTrackView({
   project?: Project;
 }) {
   const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
-    location.query;
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query} = location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -531,7 +528,6 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
-    stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
     query: typeof query === 'string' ? query : undefined,
     // Alert properties track if the user came from email/slack alerts
     alert_date:
@@ -746,7 +742,11 @@ function GroupDetailsContent({
   );
 }
 
-function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
+interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
+  children: React.ReactNode;
+}
+
+function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const projectSlug = props.group?.project?.slug;
   const api = useApi();
   const organization = useOrganization();
@@ -859,7 +859,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   );
 }
 
-function GroupDetails(props: GroupDetailsProps) {
+function GroupDetails() {
   const organization = useOrganization();
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
   const isSampleError = useIsSampleEvent();
@@ -897,7 +897,9 @@ function GroupDetails(props: GroupDetailsProps) {
           shouldForceProject
         >
           {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
-          <GroupDetailsPageContent {...props} {...fetchGroupDetailsProps} group={group} />
+          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+            <Outlet />
+          </GroupDetailsPageContent>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     </Fragment>

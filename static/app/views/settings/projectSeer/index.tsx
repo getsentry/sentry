@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -12,6 +13,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -153,12 +155,14 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           {t('Automation')}
           <Subheading>
             {tct(
-              "Choose how Seer automatically triages and root-causes incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
+              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
               {
-                link: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+                link: (
+                  <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />
+                ),
                 spendlink: (
-                  <Link
-                    to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+                  <ExternalLink
+                    href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
                   />
                 ),
                 bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
@@ -263,10 +267,16 @@ function ProjectSeer({project}: ProjectSeerProps) {
           ),
         })}
       />
-      {organization.features.includes('trigger-autofix-on-issue-summary') && (
-        <ProjectSeerGeneralForm project={project} />
-      )}
+      <ProjectSeerGeneralForm project={project} />
       <AutofixRepositories project={project} />
+      <Center>
+        <LinkButton
+          to={`/settings/${organization.slug}/seer/onboarding/`}
+          priority="primary"
+        >
+          {t('Set up my other projects')}
+        </LinkButton>
+      </Center>
     </Fragment>
   );
 }
@@ -295,4 +305,10 @@ const Subheading = styled('div')`
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
+`;
+
+const Center = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin-top: ${p => p.theme.space.lg};
 `;

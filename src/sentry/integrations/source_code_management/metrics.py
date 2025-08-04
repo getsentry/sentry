@@ -38,6 +38,7 @@ class SCMIntegrationInteractionType(StrEnum):
     CREATE_COMMENT = "create_comment"
     UPDATE_COMMENT = "update_comment"
     QUEUE_COMMENT_TASK = "queue_comment_task"
+    GET_PR_DIFFS = "get_pr_diffs"  # open PR comments
 
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
@@ -49,6 +50,9 @@ class SCMIntegrationInteractionType(StrEnum):
     # External Issue Comment Sync
     SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
     SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
+
+    # Releases
+    COMPARE_COMMITS = "compare_commits"
 
 
 @dataclass

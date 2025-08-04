@@ -3,8 +3,8 @@ import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -38,13 +38,13 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     search.addFilterValue('transaction', transaction);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
-  const result = useMetricsSeries(
+  const result = useSpanSeries(
     {
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       yAxis: [

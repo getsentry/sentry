@@ -77,7 +77,7 @@ describe('DatasetSelector', function () {
     ).toBeInTheDocument();
 
     // Click on the "Spans" link in the tooltip
-    const spansLink = screen.getByRole('link', {name: 'Spans'});
+    const spansLink = screen.getByRole('link', {name: 'spans'});
     await userEvent.click(spansLink);
 
     // Verify navigation to spans dataset

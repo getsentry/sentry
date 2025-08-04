@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
 import {
   AI_AGENT_NAME_ATTRIBUTE,
   AI_COST_ATTRIBUTE,
@@ -51,6 +51,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
       AI_TOTAL_TOKENS_ATTRIBUTE,
       AI_COST_ATTRIBUTE,
       AI_TOOL_NAME_ATTRIBUTE,
+      'span.status',
     ],
   });
 

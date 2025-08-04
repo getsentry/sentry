@@ -24,7 +24,8 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
@@ -69,8 +70,9 @@ export function ClientTable() {
   existingQuery.addFilterValue('is_transaction', 'true');
   existingQuery.addFilterValues('!sentry.origin', ['auto.db.*', 'auto'], false);
 
-  const tableDataRequest = useTableData({
-    query: existingQuery.formatString(),
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `${existingQuery.formatString()} ${query ?? ''}`.trim(),
     fields: [
       'transaction',
       'project.id',
@@ -80,8 +82,8 @@ export function ClientTable() {
       'avg(span.duration)',
       'p95(span.duration)',
       'performance_score(measurements.score.total)',
-      'count_if(span.op,navigation)',
-      'count_if(span.op,pageload)',
+      'count_if(span.op,equals,navigation)',
+      'count_if(span.op,equals,pageload)',
     ],
     cursorParamName: 'tableCursor',
     referrer: Referrer.CLIENT_TABLE,
@@ -105,7 +107,7 @@ export function ClientTable() {
   const renderBodyCell = useCallback(
     (column: GridColumnHeader<string>, dataRow: TableData) => {
       if (column.key === 'performance_score(measurements.score.total)') {
-        if (!dataRow['count_if(span.op,pageload)']) {
+        if (!dataRow['count_if(span.op,equals,pageload)']) {
           return <AlignCenter>{' — '}</AlignCenter>;
         }
         return (

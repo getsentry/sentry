@@ -5,13 +5,15 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     @mock.patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: mock.MagicMock) -> None:
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -33,13 +35,15 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[0]["value"] == "bar"
 
-        mock_record.assert_called_with(
-            "eventuser_endpoint.request",
-            project_id=project.id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        assert_last_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=project.id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            ),
         )
 
-    def test_simple_perf(self):
+    def test_simple_perf(self) -> None:
         key, value = "foo", "bar"
         event = self.create_performance_issue(
             tags=[[key, value]],
@@ -58,7 +62,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[0]["value"] == value
 
-    def test_user_tag(self):
+    def test_user_tag(self) -> None:
         project = self.create_project()
         project.date_added = timezone.now() - timedelta(minutes=10)
         project.save()
@@ -88,7 +92,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         assert response.data[0]["email"] == "foo@example.com"
         assert response.data[0]["value"] == "id:1"
 
-    def test_tag_value_with_backslash(self):
+    def test_tag_value_with_backslash(self) -> None:
         project = self.create_project()
         project.date_added = timezone.now() - timedelta(minutes=10)
         project.save()
@@ -121,7 +125,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[0]["value"] == "minidumpC:\\Users\\test"
 
-    def test_count_sort(self):
+    def test_count_sort(self) -> None:
         project = self.create_project()
         project.date_added = timezone.now() - timedelta(minutes=10)
         project.save()
@@ -186,7 +190,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     @mock.patch("sentry.analytics.record")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self, mock_record) -> None:
+    def test_ratelimit(self, mock_record: mock.MagicMock) -> None:
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -202,14 +206,16 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         url = f"/api/0/issues/{group.id}/tags/{key}/values/"
 
         with freeze_time(datetime.datetime.now()):
-            for i in range(10):
+            for i in range(300):
                 response = self.client.get(url)
                 assert response.status_code == 200
             response = self.client.get(url)
             assert response.status_code == 429
 
-        mock_record.assert_called_with(
-            "eventuser_endpoint.request",
-            project_id=project.id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        assert_last_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=project.id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            ),
         )

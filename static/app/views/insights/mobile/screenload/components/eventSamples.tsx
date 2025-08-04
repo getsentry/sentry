@@ -13,11 +13,11 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
-import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 // test
 const DEFAULT_SORT = {
   kind: 'desc',
@@ -45,8 +45,8 @@ export function ScreenLoadEventSamples({
   const cursor = decodeScalar(location.query?.[cursorName]);
   const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]);
-  const subregions = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]);
+  const subregions = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
     const mutableQuery = new MutableSearch([
@@ -57,10 +57,7 @@ export function ScreenLoadEventSamples({
     ]);
 
     if (subregions.length > 0) {
-      mutableQuery.addDisjunctionFilterValues(
-        SpanMetricsField.USER_GEO_SUBREGION,
-        subregions
-      );
+      mutableQuery.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
     }
 
     if (isProjectCrossPlatform) {
@@ -110,7 +107,7 @@ export function ScreenLoadEventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, meta, isPending, pageLinks} = useDiscoverOrEap(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       search: searchQuery.formatString(),
       cursor,

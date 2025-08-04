@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 ORG_ROLE_LIST = [
     {
@@ -298,6 +298,9 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "defaultSeerScannerAutomation": True,
+                "enableSeerCoding": True,
+                "enableSeerEnhancedAlerts": True,
+                "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
@@ -366,7 +369,6 @@ class OrganizationExamples:
                         "hasAccess": True,
                         "dateCreated": "2019-06-17T18:56:25.777769Z",
                         "environments": [],
-                        "eventProcessing": {"symbolicationDegraded": False},
                         "features": ["releases"],
                         "firstEvent": None,
                         "firstTransactionEvent": False,
@@ -389,6 +391,7 @@ class OrganizationExamples:
                         "hasInsightsLlmMonitoring": False,
                         "hasInsightsAgentMonitoring": False,
                         "hasInsightsMCP": False,
+                        "hasLogs": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -431,7 +434,6 @@ class OrganizationExamples:
                         }
                     ],
                     "environments": ["local"],
-                    "eventProcessing": {"symbolicationDegraded": False},
                     "features": ["releases"],
                     "firstTransactionEvent": True,
                     "hasSessions": True,
@@ -454,6 +456,7 @@ class OrganizationExamples:
                     "hasInsightsLlmMonitoring": False,
                     "hasInsightsAgentMonitoring": False,
                     "hasInsightsMCP": False,
+                    "hasLogs": False,
                     "latestRelease": None,
                 }
             ],

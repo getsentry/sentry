@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from django.db.models import Value
 
 from sentry.eventstore.models import GroupEvent
@@ -9,7 +11,10 @@ from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
+from sentry.workflow_engine.tasks.utils import (
+    build_workflow_event_data_from_activity,
+    build_workflow_event_data_from_event,
+)
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -75,6 +80,7 @@ def trigger_action(
     has_escalated: bool,
     workflow_env_id: int | None,
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -107,18 +113,29 @@ def trigger_action(
             workflow_env_id=workflow_env_id,
         )
 
-        # TODO(iamrajjoshi): remove this once we are sure everything is working as expected
+    elif activity_id is not None:
+        event_data = build_workflow_event_data_from_activity(
+            activity_id=activity_id, group_id=group_id
+        )
+    else:
+        # This should never happen, and if it does, need to investigate
+        logger.error(
+            "Exactly one of event_id or activity_id must be provided",
+            extra={"event_id": event_id, "activity_id": activity_id},
+        )
+        raise ValueError("Exactly one of event_id or activity_id must be provided")
+
+    should_trigger_actions = should_fire_workflow_actions(
+        detector.project.organization, event_data.group.type
+    )
+
+    if should_trigger_actions:
+        action.trigger(event_data, detector)
+    else:
         logger.info(
-            "workflow_engine.tasks.trigger_action.build_workflow_event_data_from_event",
+            "workflow_engine.triggered_actions.dry-run",
             extra={
-                "action_id": action_id,
-                "detector_id": detector_id,
-                "workflow_id": workflow_id,
+                "action_ids": [action_id],
+                "event_data": asdict(event_data),
             },
         )
-
-    else:
-        # Here, we probably build the event data from the activity
-        raise NotImplementedError("Activity ID is not supported yet")
-
-    action.trigger(event_data, detector)

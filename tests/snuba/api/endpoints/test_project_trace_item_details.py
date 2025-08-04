@@ -37,7 +37,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 },
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -92,7 +92,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_logs_item_type(self):
+    def test_simple_using_logs_item_type(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -143,6 +143,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {},
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -151,7 +152,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_simple_using_spans_item_type(self):
+    def test_simple_using_spans_item_type(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -214,7 +215,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_spans_item_type_with_sentry_conventions(self):
+    def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -284,7 +285,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_logs_with_a_meta_key(self):
+    def test_logs_with_a_meta_key(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "[Filtered]",
@@ -340,6 +341,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 "tags[float_attr,number]": {"unit": "float"},
                 "message": {"length": 300, "reason": "value too long"},
             },
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -348,7 +350,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_user_attributes_collide_with_sentry_attributes(self):
+    def test_user_attributes_collide_with_sentry_attributes(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -386,6 +388,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "meta": {},
+            "links": None,
             "itemId": item_id,
             "timestamp": self.one_min_ago.replace(
                 microsecond=0,
@@ -393,3 +396,74 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             ).isoformat()
             + "Z",
         }
+
+    def test_sentry_links(self) -> None:
+        span_1 = self.create_span(
+            {
+                "description": "foo",
+                "sentry_tags": {
+                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":1}}]',
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_span(span_1, is_eap=True)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {
+                "name": "precise.finish_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "precise.start_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "received",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {"name": "span.self_time", "type": "float", "value": 1000.0},
+            {"name": "project_id", "type": "int", "value": str(self.project.id)},
+            {"name": "span.duration", "type": "int", "value": "1000"},
+            {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
+            {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
+            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
+            {"name": "sdk.version", "type": "str", "value": "1.0"},
+            {"name": "span.description", "type": "str", "value": "foo"},
+            {"name": "trace", "type": "str", "value": self.trace_uuid},
+            {
+                "name": "transaction.event_id",
+                "type": "str",
+                "value": span_1["event_id"],
+            },
+            {
+                "name": "transaction.span_id",
+                "type": "str",
+                "value": span_1["segment_id"],
+            },
+        ]
+        assert trace_details_response.data["itemId"] == item_id
+        assert (
+            trace_details_response.data["timestamp"]
+            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        )
+        assert trace_details_response.data["links"] == [
+            {
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "parent", "type": "str"},
+                    {"name": "sentry.dropped_attributes_count", "value": 1, "type": "int"},
+                ],
+            }
+        ]

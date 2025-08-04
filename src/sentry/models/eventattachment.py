@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.utils import metrics
+from sentry.utils.storage import measure_storage_put
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -163,13 +164,7 @@ class EventAttachment(Model):
             storage = get_storage()
             compressed_blob = zstandard.compress(data)
 
-            metrics.distribution(
-                "storage.put.size",
-                len(compressed_blob),
-                tags={"usecase": "attachments", "compression": "zstd"},
-                unit="byte",
-            )
-            with metrics.timer("storage.put.latency", tags={"usecase": "attachments"}):
+            with measure_storage_put(len(compressed_blob), "attachments", "zstd"):
                 storage.save(blob_path, BytesIO(compressed_blob))
 
         return PutfileResult(

@@ -6,11 +6,13 @@ import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOff
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerSizeContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 interface Props {
@@ -44,16 +46,20 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       <ReplayPlayerPluginsContextProvider>
         <ReplayReaderProvider replay={replay}>
           <ReplayPlayerStateContextProvider>
-            <ReplayContextProvider
-              analyticsContext="replay_details"
-              initialTimeOffsetMs={initialTimeOffsetMs}
-              isFetching={false}
-              replay={replay}
-            >
-              <ReplayTransactionContext replayRecord={replayRecord}>
-                {children}
-              </ReplayTransactionContext>
-            </ReplayContextProvider>
+            <ReplayPlayerSizeContextProvider>
+              <ReplayContextProvider
+                analyticsContext="replay_details"
+                initialTimeOffsetMs={initialTimeOffsetMs}
+                isFetching={false}
+                replay={replay}
+              >
+                <ReplayTransactionContext replayRecord={replayRecord}>
+                  <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
+                    {children}
+                  </ReplaySummaryContextProvider>
+                </ReplayTransactionContext>
+              </ReplayContextProvider>
+            </ReplayPlayerSizeContextProvider>
           </ReplayPlayerStateContextProvider>
         </ReplayReaderProvider>
       </ReplayPlayerPluginsContextProvider>

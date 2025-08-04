@@ -8,7 +8,7 @@ from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
-REDIS_CACHE_TIMEOUT = 3600  # 1 hr
+REDIS_CACHE_TIMEOUT = 8400  # 2 hr, 20 minutes
 COMPRESSION_LEVEL = 3  # 3 is the default level of compression
 
 logger = logging.getLogger(__name__)

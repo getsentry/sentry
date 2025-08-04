@@ -6,19 +6,22 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   type Column,
   ERROR_FIELDS,
+  ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
   TRANSACTION_FIELDS,
+  TRANSACTIONS_AGGREGATION_FUNCTIONS,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
@@ -35,6 +38,7 @@ type Props = {
   organization: Organization;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
+  selectedProjects?: Project[];
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
@@ -52,6 +56,7 @@ function ColumnEditModal(props: Props) {
     closeModal,
     customMeasurements,
     dataset,
+    selectedProjects,
   } = props;
 
   // Only run once for each organization.id.
@@ -73,12 +78,24 @@ function ColumnEditModal(props: Props) {
 
   if (dataset === DiscoverDatasets.ERRORS) {
     const aggregations = getAggregations(DiscoverDatasets.ERRORS);
+
+    // Check if any selected projects have error upsampling enabled
+    const hasErrorUpsampling =
+      selectedProjects?.some((project: Project) =>
+        project.features.includes('error-upsampling')
+      ) ?? false;
+
+    // Include upsampling functions if any project has the feature enabled
+    const allowedAggregations = hasErrorUpsampling
+      ? [...ERRORS_AGGREGATION_FUNCTIONS, ...ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS]
+      : ERRORS_AGGREGATION_FUNCTIONS;
+
     fieldOptions = generateFieldOptions({
       organization,
       tagKeys,
       fieldKeys: ERROR_FIELDS,
       aggregations: Object.keys(aggregations)
-        .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+        .filter(key => allowedAggregations.includes(key as AggregationKey))
         .reduce((obj, key) => {
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           obj[key] = aggregations[key];
@@ -86,6 +103,7 @@ function ColumnEditModal(props: Props) {
         }, {}),
     });
   } else if (dataset === DiscoverDatasets.TRANSACTIONS) {
+    const aggregations = getAggregations(DiscoverDatasets.TRANSACTIONS);
     fieldOptions = generateFieldOptions({
       organization,
       tagKeys,
@@ -97,6 +115,13 @@ function ColumnEditModal(props: Props) {
           functions,
         })
       ),
+      aggregations: Object.keys(aggregations)
+        .filter(key => TRANSACTIONS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+        .reduce((obj, key) => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          obj[key] = aggregations[key];
+          return obj;
+        }, {}),
       fieldKeys: TRANSACTION_FIELDS,
     });
   } else {
@@ -151,7 +176,7 @@ function ColumnEditModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
           </LinkButton>

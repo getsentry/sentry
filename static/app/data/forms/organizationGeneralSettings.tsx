@@ -1,5 +1,6 @@
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import slugify from 'sentry/utils/slugify';
@@ -21,8 +22,13 @@ const formGroups: JsonFormObject[] = [
         transformInput: slugify,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
-        saveMessage: t(
-          'You will be redirected to the new organization slug after saving'
+        saveMessage: tct(
+          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
+          {
+            link: (
+              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+            ),
+          }
         ),
       },
       {
@@ -42,6 +48,26 @@ const formGroups: JsonFormObject[] = [
           ),
         }),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+      },
+      {
+        name: 'enablePrReviewTestGeneration',
+        type: 'boolean',
+        label: tct('Enable PR Review and Test Generation [badge]', {
+          badge: <FeatureBadge type="beta" style={{marginBottom: '2px'}} />,
+        }),
+        help: tct(
+          'Use AI to generate feedback and tests in pull requests [link:Learn more]',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+            ),
+          }
+        ),
+        visible: ({model}) => {
+          // Show field when AI features are enabled (hideAiFeatures is false)
+          const hideAiFeatures = model.getValue('hideAiFeatures');
+          return hideAiFeatures;
+        },
       },
     ],
   },

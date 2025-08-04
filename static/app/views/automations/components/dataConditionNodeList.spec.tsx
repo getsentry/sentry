@@ -2,7 +2,7 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -24,7 +24,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
     type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
   }),
   DataConditionHandlerFixture({
-    type: DataConditionType.TAGGED_EVENT,
+    type: DataConditionType.EVENT_FREQUENCY,
     handlerSubgroup: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
   }),
 ];
@@ -80,13 +80,14 @@ describe('DataConditionNodeList', function () {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
 
-    // Deescalating condition should not be shown in the dropdown
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(3);
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(4);
     expect(screen.getByRole('menuitemradio', {name: 'Issue age'})).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Issue priority'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Tagged event'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Number of events'})
+    ).toBeInTheDocument();
   });
 
   it('adds conditions', async function () {
@@ -141,66 +142,6 @@ describe('DataConditionNodeList', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
-  });
-
-  it('handles adding issue priority deescalating condition', async function () {
-    render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[
-              DataConditionFixture({
-                type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-              }),
-            ]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
-    );
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
-    expect(mockOnAddRow).toHaveBeenCalledWith(
-      DataConditionType.ISSUE_PRIORITY_DEESCALATING
-    );
-  });
-
-  it('handles deleting issue priority deescalating condition', async function () {
-    render(
-      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
-          <DataConditionNodeList
-            {...defaultProps}
-            conditions={[
-              DataConditionFixture({
-                id: 'issue-priority',
-                type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-              }),
-              DataConditionFixture({
-                id: 'deescalating',
-                type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-              }),
-            ]}
-          />
-        </AutomationBuilderConflictContext.Provider>
-      </AutomationBuilderErrorContext.Provider>,
-      {
-        organization,
-      }
-    );
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Notify on deescalation'}));
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('deescalating');
-    mockOnDeleteRow.mockClear();
-
-    // Deleting the issue priority condition should also delete the deescalating condition
-    await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
-    expect(mockOnDeleteRow).toHaveBeenCalledTimes(2);
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('issue-priority');
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('deescalating');
   });
 
   it('shows conflicting condition warning for action filters', function () {
@@ -288,5 +229,34 @@ describe('DataConditionNodeList', function () {
     );
 
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
+  });
+
+  it('shows warning message for occurrence-based monitors', async function () {
+    render(
+      <AutomationBuilderErrorContext.Provider
+        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
+      >
+        <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+          <DataConditionNodeList {...defaultProps} />
+        </AutomationBuilderConflictContext.Provider>
+      </AutomationBuilderErrorContext.Provider>,
+      {organization}
+    );
+
+    // Open dropdown
+    await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
+    // Find the "Number of events" option which should have a warning icon
+    const numberOfEventsOption = screen.getByRole('menuitemradio', {
+      name: 'Number of events',
+    });
+    // Hover over the warning icon within the "Number of events" option
+    const warningIcon = within(numberOfEventsOption).getByRole('img');
+    await userEvent.hover(warningIcon);
+
+    expect(
+      await screen.findByText(
+        'These filters will only apply to some of your monitors and triggers.'
+      )
+    ).toBeInTheDocument();
   });
 });

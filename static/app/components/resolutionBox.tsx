@@ -84,15 +84,6 @@ export function renderResolutionReason({
         })
       : t('This issue has been marked as resolved in the upcoming release.');
   }
-
-  if (statusDetails.inUpcomingRelease) {
-    return actor
-      ? tct('[actor] marked this issue as resolved in the upcoming release.', {
-          actor,
-        })
-      : t('This issue has been marked as resolved in the upcoming release.');
-  }
-
   if (statusDetails.inRelease) {
     const version = (
       <VersionHoverCard
