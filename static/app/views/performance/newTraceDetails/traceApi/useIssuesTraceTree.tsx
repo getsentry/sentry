@@ -78,7 +78,6 @@ export function useIssuesTraceTree({
 
     if (trace.data) {
       const newTree = IssuesTraceTree.FromTrace(trace.data, {
-        meta: null,
         replay,
         preferences: traceState.preferences,
       });

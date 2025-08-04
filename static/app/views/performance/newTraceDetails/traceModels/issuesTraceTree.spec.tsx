@@ -70,7 +70,6 @@ function hasErrors(n: TraceTreeNode<any>): boolean {
 describe('IssuesTraceTree', () => {
   it('collapsed nodes without errors', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
-      meta: null,
       replay: null,
     });
 
@@ -80,7 +79,6 @@ describe('IssuesTraceTree', () => {
 
   it('preserves path to child error', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithChildError, {
-      meta: null,
       replay: null,
     });
 
@@ -99,7 +97,6 @@ describe('IssuesTraceTree', () => {
   it('errors only', () => {
     // has +100 issues at the end
     const tree = IssuesTraceTree.FromTrace(errorsOnlyTrace, {
-      meta: null,
       replay: null,
     });
 
@@ -109,7 +106,6 @@ describe('IssuesTraceTree', () => {
 
   it('respects numSurroundingNodes parameter', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
-      meta: null,
       replay: null,
     });
 
@@ -129,7 +125,6 @@ describe('IssuesTraceTree', () => {
 
   it('respects minShownNodes parameter', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
-      meta: null,
       replay: null,
     });
 
@@ -170,7 +165,6 @@ describe('IssuesTraceTree', () => {
 
     it('collapses spans', async () => {
       const tree = IssuesTraceTree.FromTrace(traceWithSpans, {
-        meta: null,
         replay: null,
       });
 

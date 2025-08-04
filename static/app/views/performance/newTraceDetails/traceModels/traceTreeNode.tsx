@@ -4,10 +4,6 @@ import type {EventTransaction} from 'sentry/types/event';
 
 import type {TraceTree} from './traceTree';
 
-function isTraceTransaction(value: TraceTree.NodeValue): value is TraceTree.Transaction {
-  return !!(value && 'transaction' in value);
-}
-
 function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
   return !!(value && 'level' in value);
 }
@@ -23,6 +19,10 @@ function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
 
 function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
   return !!(value && 'is_transaction' in value);
+}
+
+function isTraceTransaction(value: TraceTree.NodeValue): value is TraceTree.Transaction {
+  return !!(value && 'transaction' in value) && !isEAPSpan(value);
 }
 
 function isTraceAutogroup(
@@ -62,7 +62,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
-    spans: undefined,
   };
 
   eapSpanOpsBreakdown: TraceTree.OpsBreakdown = [];
@@ -86,10 +85,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this.metadata = metadata;
 
     // The node can fetch its children if it has more than one span, or if we failed to fetch the span count.
-    this.canFetch =
-      typeof metadata.spans === 'number'
-        ? metadata.spans > 1
-        : isTraceTransaction(this.value);
+    this.canFetch = isTraceTransaction(this.value);
 
     // If a node has both a start and end timestamp, then we can infer a duration,
     // otherwise we can only infer a timestamp.

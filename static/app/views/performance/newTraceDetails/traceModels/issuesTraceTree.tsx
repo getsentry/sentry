@@ -1,7 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isEAPErrorNode,
   isEAPSpanNode,
@@ -44,7 +43,6 @@ export class IssuesTraceTree extends TraceTree {
   static FromTrace(
     trace: TraceTree.Trace,
     options: {
-      meta: TraceMetaQueryResults['data'] | null;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }

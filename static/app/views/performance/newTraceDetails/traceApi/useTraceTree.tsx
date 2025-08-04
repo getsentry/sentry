@@ -9,37 +9,27 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
-  meta: TraceMetaQueryResults;
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
-function getTraceViewQueryStatus(
-  traceQueryStatus: QueryStatus,
-  traceMetaQueryStatus: QueryStatus
-): QueryStatus {
-  if (traceQueryStatus === 'error' || traceMetaQueryStatus === 'error') {
+function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
+  if (traceQueryStatus === 'error') {
     return 'error';
   }
 
-  if (traceQueryStatus === 'pending' || traceMetaQueryStatus === 'pending') {
+  if (traceQueryStatus === 'pending') {
     return 'pending';
   }
 
   return 'success';
 }
 
-export function useTraceTree({
-  trace,
-  meta,
-  replay,
-  traceSlug,
-}: UseTraceTreeParams): TraceTree {
+export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -50,7 +40,7 @@ export function useTraceTree({
   const traceWaterfallSource = replay ? 'replay_details' : 'trace_view';
 
   useEffect(() => {
-    const status = getTraceViewQueryStatus(trace.status, meta.status);
+    const status = getTraceViewQueryStatus(trace.status);
 
     if (status === 'error') {
       setTree(t =>
@@ -83,9 +73,8 @@ export function useTraceTree({
       return;
     }
 
-    if (trace.data && meta.data) {
+    if (trace.data) {
       const newTree = TraceTree.FromTrace(trace.data, {
-        meta: meta.data,
         replay,
         preferences: traceState.preferences,
       });
@@ -101,10 +90,8 @@ export function useTraceTree({
     organization,
     projects,
     replay,
-    meta.status,
     trace.status,
     trace.data,
-    meta.data,
     traceSlug,
     traceWaterfallSource,
   ]);

@@ -383,7 +383,6 @@ describe('TraceTree', () => {
           ],
         }),
         {
-          meta: null,
           replay: ReplayRecordFixture({
             started_at: new Date(replayStart),
             finished_at: new Date(replayEnd),
@@ -464,7 +463,6 @@ describe('TraceTree', () => {
 
     it('inserts orphan error', () => {
       const tree = TraceTree.FromTrace(traceWithOrphanError, {
-        meta: null,
         replay: null,
       });
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -519,61 +517,6 @@ describe('TraceTree', () => {
       );
 
       expect(tree.build().serialize()).toMatchSnapshot();
-    });
-
-    it('initializes canFetch based on spanChildrenCount', () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'transaction',
-              children: [],
-            }),
-            makeTransaction({event_id: 'no-span-count-transaction'}),
-            makeTransaction({event_id: 'no-spans-transaction', children: []}),
-          ],
-        }),
-        {
-          meta: {
-            transaction_child_count_map: {
-              transaction: 10,
-              'no-spans-transaction': 1,
-              // we have no data for child transaction
-            },
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            span_count: 0,
-            span_count_map: {},
-          },
-          replay: null,
-        }
-      );
-
-      expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
-      expect(findTransactionByEventId(tree, 'no-span-count-transaction')?.canFetch).toBe(
-        true
-      );
-      expect(findTransactionByEventId(tree, 'no-spans-transaction')?.canFetch).toBe(
-        false
-      );
-    });
-
-    it('initializes canFetch to true if no spanChildrenCount', () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'transaction',
-              children: [],
-            }),
-          ],
-        }),
-        {meta: null, replay: null}
-      );
-
-      expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
     });
   });
 
@@ -687,7 +630,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null}
+        {replay: null}
       );
 
       // eap-span-1 is a transaction/segment and should be collapsed
@@ -784,7 +727,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null}
+        {replay: null}
       );
 
       expect(tree.vitals.size).toBe(1);
@@ -896,7 +839,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
-        {meta: null, replay: null}
+        {replay: null}
       );
 
       const visitedNodes: string[] = [];
@@ -1644,8 +1587,8 @@ describe('TraceTree', () => {
 
   describe('appendTree', () => {
     it('appends tree to end of current tree', () => {
-      const tree = TraceTree.FromTrace(trace, {replay: null, meta: null});
-      tree.appendTree(TraceTree.FromTrace(trace, {replay: null, meta: null}));
+      const tree = TraceTree.FromTrace(trace, {replay: null});
+      tree.appendTree(TraceTree.FromTrace(trace, {replay: null}));
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -1654,7 +1597,7 @@ describe('TraceTree', () => {
         makeTrace({
           transactions: [makeTransaction({start_timestamp: start, timestamp: start + 1})],
         }),
-        {replay: null, meta: null}
+        {replay: null}
       );
 
       const otherTree = TraceTree.FromTrace(
@@ -1663,7 +1606,7 @@ describe('TraceTree', () => {
             makeTransaction({start_timestamp: start, timestamp: start + 10}),
           ],
         }),
-        {replay: null, meta: null}
+        {replay: null}
       );
 
       tree.appendTree(otherTree);
