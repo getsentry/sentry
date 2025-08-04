@@ -100,5 +100,6 @@
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
   "prettier.configPath": "package.json",
-  "biome.enabled": false
+  "biome.enabled": false,
+  "python.languageServer": "None"
 }

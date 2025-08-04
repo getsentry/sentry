@@ -976,9 +976,12 @@ def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence
         ai_labels = [
             value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
         ]
+
+        expected_labels = ["Authentication", "Performance", "User Interface"]
+
         assert len(ai_labels) == 3
-        assert ai_labels == ["Authentication", "Performance", "User Interface"]
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(ai_labels)
+        assert set(ai_labels) == set(expected_labels)
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
 
 
 @django_db_all
@@ -1058,10 +1061,13 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
         ]
         assert len(ai_labels) == MAX_AI_LABELS, "Should be truncated to exactly MAX_AI_LABELS"
 
-        for i in range(MAX_AI_LABELS):
-            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == f"Label {alphabet[i]}"
+        # Don't use ai_labels since we don't rely on dict order
+        expected_labels = [f"Label {alphabet[i]}" for i in range(MAX_AI_LABELS)]
 
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(ai_labels)
+        for i in range(MAX_AI_LABELS):
+            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
+
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
 
         # Verify that labels beyond MAX_AI_LABELS are not present
         for i in range(MAX_AI_LABELS, MAX_AI_LABELS + 5):
