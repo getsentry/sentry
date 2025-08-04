@@ -22,4 +22,5 @@ __all__ = (
     "process_service_hook",
     "send_alert_webhook",
     "send_alert_webhook_v2",
+    "create_or_update_service_hooks_for_installation",
 )

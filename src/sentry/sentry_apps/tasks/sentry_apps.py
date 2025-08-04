@@ -830,3 +830,33 @@ def create_or_update_service_hooks_for_sentry_app(
                 events=events,
                 webhook_url=webhook_url,
             )
+
+
+@instrumented_task(
+    "sentry.sentry_apps.tasks.sentry_apps.regenerate_service_hooks_for_installation",
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
+    **TASK_OPTIONS,
+)
+def regenerate_service_hooks_for_installation(installation_id: int) -> None:
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.MANAGEMENT,
+        event_type=SentryAppEventType.INSTALLATION_WEBHOOK_UPDATE,
+    ).capture() as lifecycle:
+        installation = app_service.installation_by_id(id=installation_id)
+        if installation is None:
+            lifecycle.record_failure(
+                SentryAppWebhookFailureReason.MISSING_INSTALLATION,
+                extra={"installation_id": installation_id},
+            )
+            return
+
+        lifecycle.add_extras(
+            {"installation_id": installation_id, "sentry_app": installation.sentry_app.id}
+        )
+        create_or_update_service_hooks_for_installation(
+            installation=installation,
+            events=installation.sentry_app.events,
+            webhook_url=installation.sentry_app.webhook_url,
+        )
