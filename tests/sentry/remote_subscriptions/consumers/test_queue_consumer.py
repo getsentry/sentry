@@ -400,7 +400,7 @@ class TestThreadQueueParallelIntegration(TestCase):
         class MockFactory(ResultsStrategyFactory):
             @property
             def topic_for_codec(self):
-                return SentryTopic.SHARED_RESOURCES_USAGE
+                return SentryTopic.UPTIME_RESULTS
 
             @property
             def result_processor_cls(self):
@@ -479,7 +479,7 @@ class TestRebalancing(TestCase):
         class TestFactory(ResultsStrategyFactory):
             @property
             def topic_for_codec(self):
-                return SentryTopic.SHARED_RESOURCES_USAGE
+                return SentryTopic.UPTIME_RESULTS
 
             @property
             def result_processor_cls(self):
@@ -507,9 +507,24 @@ class TestRebalancing(TestCase):
         return commit
 
     def create_message(self, subscription_id: str, partition: int, offset: int) -> Message:
+        value = {
+            "timestamp": int(datetime.now().timestamp()),
+            "subscription_id": subscription_id,
+            "data": "test",
+            "guid": "",
+            "status": "success",
+            "status_reason": None,
+            "trace_id": "",
+            "span_id": "",
+            "scheduled_check_time_ms": 0,
+            "actual_check_time_ms": 0,
+            "duration_ms": 0,
+            "request_info": None,
+        }
+
         payload = KafkaPayload(
             key=None,
-            value=f'{{"subscription_id": "{subscription_id}", "data": "test"}}'.encode(),
+            value=json.dumps(value).encode(),
             headers=[],
         )
         return Message(
