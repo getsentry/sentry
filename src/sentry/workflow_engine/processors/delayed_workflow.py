@@ -199,7 +199,7 @@ class EventRedisData:
         """Get mapping of DCG IDs to workflow IDs, combining both trigger and action filter groups."""
         dcg_to_workflow = {}
         for key in self.events:
-            for dcg_id in self.dcg_ids:
+            for dcg_id in key.dcg_ids:
                 dcg_to_workflow[dcg_id] = key.workflow_id
 
         return dcg_to_workflow
