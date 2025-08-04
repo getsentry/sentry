@@ -133,7 +133,7 @@ access_log_fields = (
     "is_app",
     "token_type",
     "organization_id",
-    "auth_id",
+    "entity_id",
     "path",
     "caller_ip",
     "user_agent",
@@ -181,7 +181,7 @@ class LogCaptureAPITestCase(APITestCase):
 class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
     endpoint = "snuba-ratelimit-endpoint"
 
-    def test_access_log_snuba_rate_limited(self):
+    def test_access_log_snuba_rate_limited(self) -> None:
         """Test that Snuba rate limits are properly logged by access log middleware."""
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
@@ -260,6 +260,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+        assert tested_log.entity_id == str(token.id)
 
     def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
