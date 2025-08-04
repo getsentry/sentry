@@ -30,8 +30,11 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
     """
     Fetches and returns the dart symbols mapping for the given debug_id.
 
-    The file is stored as a JSON object mapping obfuscated names to deobfuscated names.
-    For backward compatibility, this function also handles the legacy array format.
+    The file can be stored in two formats:
+    - Array format: ["deobfuscated1", "obfuscated1", "deobfuscated2", "obfuscated2", ...]
+    - Map format: {"obfuscated1": "deobfuscated1", "obfuscated2": "deobfuscated2", ...}
+
+    This function returns a map regardless of the storage format.
     """
     with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
         try:
@@ -49,10 +52,10 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
                 data = orjson.loads(f.read())
 
             if isinstance(data, dict):
-                # Already in map format (preprocessed)
+                # Map format
                 return data
             elif isinstance(data, list):
-                # Legacy array format - transform it
+                # Array format - transform it to map
                 if len(data) % 2 != 0:
                     raise Exception("Debug array contains an odd number of elements")
                 # Obfuscated names are the odd indices and deobfuscated names are the even indices

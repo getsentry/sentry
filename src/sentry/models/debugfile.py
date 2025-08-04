@@ -239,19 +239,6 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
-def _transform_dartsymbolmap_array_to_map(data: list[str]) -> dict[str, str]:
-    """Transform dart symbol array format to map format.
-
-    Input: ["deobfuscated1", "obfuscated1", "deobfuscated2", "obfuscated2", ...]
-    Output: {"obfuscated1": "deobfuscated1", "obfuscated2": "deobfuscated2", ...}
-    """
-    if len(data) % 2 != 0:
-        raise ValueError("Dart symbol array must have an even number of elements")
-
-    # Obfuscated names are at odd indices, deobfuscated names at even indices
-    return dict(zip(data[1::2], data[::2]))
-
-
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -323,32 +310,7 @@ def create_dif_from_id(
             type="project.dif",
             headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
         )
-
-        # Preprocess dartsymbolmap files to convert array format to map format
-        if meta.file_format == "dartsymbolmap" and fileobj is not None:
-            import io
-
-            # Read and parse the array format
-            content = fileobj.read()
-            fileobj.seek(0)
-
-            try:
-                data = json.loads(content)
-                if isinstance(data, list):
-                    # Transform array to map format
-                    transformed_data = _transform_dartsymbolmap_array_to_map(data)
-                    # Create new file-like object with transformed content
-                    transformed_content = json.dumps(transformed_data).encode("utf-8")
-                    transformed_fileobj = io.BytesIO(transformed_content)
-                    file.putfile(transformed_fileobj)
-                else:
-                    # Already in map format or unexpected format
-                    file.putfile(fileobj)
-            except Exception:
-                # If transformation fails, store original
-                file.putfile(fileobj)
-        else:
-            file.putfile(fileobj)
+        file.putfile(fileobj)
     else:
         file.type = "project.dif"
         file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
