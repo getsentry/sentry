@@ -43,31 +43,41 @@ class InstallationActionType(SentryAppActionType):
 _sentry_app_webhook_mapping: dict[str, list[str]] = {}
 
 
-def _map_sentry_app_webhook_events(resource: str, action_type: type[SentryAppActionType]) -> str:
-    # Turn action into webhook event e.g issue.created, issue.resolved, etc.
-    webhook_events = [f"{resource}.{action.value}" for action in action_type._member_map_.values()]
-    _sentry_app_webhook_mapping[resource] = webhook_events
-    return resource
-
-
 class SentryAppResourceType(StrEnum):
-    ISSUE = _map_sentry_app_webhook_events("issue", IssueActionType)
-    ERROR = _map_sentry_app_webhook_events("error", ErrorActionType)
-    COMMENT = _map_sentry_app_webhook_events("comment", CommentActionType)
-    INSTALLATION = _map_sentry_app_webhook_events("installation", InstallationActionType)
-    METRIC_ALERT = _map_sentry_app_webhook_events("metric_alert", MetricAlertActionType)
+
+    @staticmethod
+    def map_sentry_app_webhook_events(
+        resource: str, action_type: type[SentryAppActionType]
+    ) -> list[str]:
+        # Turn resource + action into webhook event e.g issue.created, issue.resolved, etc.
+        webhook_events = [
+            f"{resource}.{action.value}" for action in action_type._member_map_.values()
+        ]
+        return webhook_events
+
+    ISSUE = "issue"
+    ERROR = "error"
+    COMMENT = "comment"
+    INSTALLATION = "installation"
+    METRIC_ALERT = "metric_alert"
 
     # Represents an issue alert resource
-    EVENT_ALERT = _map_sentry_app_webhook_events("event_alert", IssueAlertActionType)
+    EVENT_ALERT = "event_alert"
 
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
 EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
-    SentryAppResourceType.ISSUE: _sentry_app_webhook_mapping[SentryAppResourceType.ISSUE],
-    SentryAppResourceType.ERROR: _sentry_app_webhook_mapping[SentryAppResourceType.ERROR],
-    SentryAppResourceType.COMMENT: _sentry_app_webhook_mapping[SentryAppResourceType.COMMENT],
+    SentryAppResourceType.ISSUE: SentryAppResourceType.map_sentry_app_webhook_events(
+        SentryAppResourceType.ISSUE.value, IssueActionType
+    ),
+    SentryAppResourceType.ERROR: SentryAppResourceType.map_sentry_app_webhook_events(
+        SentryAppResourceType.ERROR.value, ErrorActionType
+    ),
+    SentryAppResourceType.COMMENT: SentryAppResourceType.map_sentry_app_webhook_events(
+        SentryAppResourceType.COMMENT.value, CommentActionType
+    ),
 }
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
