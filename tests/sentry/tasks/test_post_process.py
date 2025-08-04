@@ -2605,7 +2605,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_features(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2629,7 +2628,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2653,7 +2651,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_seer_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2678,7 +2675,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2704,7 +2700,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2734,7 +2729,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2763,7 +2757,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2798,7 +2791,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_start_seer_automation,
@@ -2895,7 +2887,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2947,7 +2938,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):

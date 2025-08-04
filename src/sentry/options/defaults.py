@@ -567,7 +567,7 @@ register(
 # NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
 register(
     "relay.ourlogs-ingestion.sample-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -892,6 +892,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sequential deletion of events from nodestore
+register(
+    "deletions.nodestore.parallelization-task-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -3662,3 +3669,11 @@ register(
 
 # Enable enhancing access logs with snuba responses
 register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Use "first-seen" group instead of "most-seen" group when merging
+register(
+    "issues.merging.first-seen",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

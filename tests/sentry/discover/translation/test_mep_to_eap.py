@@ -68,7 +68,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         ),
     ],
 )
-def test_mep_to_eap_simple_query(input: str, expected: str):
+def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
     old = QueryParts(
         selected_columns=["id"],
         query=input,
@@ -133,7 +133,7 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         ),
     ],
 )
-def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]):
+def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str]) -> None:
     old = QueryParts(
         selected_columns=input,
         query="",
@@ -154,7 +154,7 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
         ),
     ],
 )
-def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]):
+def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> None:
     old = QueryParts(
         selected_columns=["id"],
         query="",

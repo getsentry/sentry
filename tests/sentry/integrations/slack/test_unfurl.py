@@ -185,7 +185,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
     ],
 )
-def test_match_link(url, expected):
+def test_match_link(url, expected) -> None:
     assert match_link(url) == expected
 
 
