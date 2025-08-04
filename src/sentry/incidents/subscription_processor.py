@@ -413,9 +413,7 @@ class SubscriptionProcessor:
             metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
                 source_id=str(self.subscription.id), packet=metric_packet
             )
-            results = process_data_packet(
-                metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-            )
+            results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         if features.has(
             "organizations:workflow-engine-metric-alert-dual-processing-logs",
