@@ -11,6 +11,7 @@ import {IconClose, IconGrid, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
 import {AppSizeInsights} from 'sentry/views/preprod/main/insights/appSizeInsights';
@@ -33,7 +34,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
     'treemap'
   );
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useQueryParamState({
+    fieldName: 'search',
+  });
 
   if (isAppSizePending) {
     return (
@@ -72,20 +75,20 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // Filter data based on search query
   const filteredTreemapData = {
     ...appSizeData.treemap,
-    root: filterTreemapElement(appSizeData.treemap.root, searchQuery),
+    root: filterTreemapElement(appSizeData.treemap.root, searchQuery || ''),
   };
 
   let visualizationContent: React.ReactNode;
   if (categoriesEnabled) {
     visualizationContent =
       selectedContent === 'treemap' ? (
-        <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery} />
+        <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
       ) : (
         <AppSizeCategories treemapData={appSizeData.treemap} />
       );
   } else {
     visualizationContent = (
-      <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery} />
+      <AppSizeTreemap root={filteredTreemapData.root} searchQuery={searchQuery || ''} />
     );
   }
 
@@ -110,7 +113,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             </InputGroup.LeadingItems>
             <InputGroup.Input
               placeholder="Search files"
-              value={searchQuery}
+              value={searchQuery || ''}
               onChange={e => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
