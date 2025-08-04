@@ -122,9 +122,9 @@ describe('apiOptions', () => {
   describe('types', () => {
     test('should always require staleTime', () => {
       // @ts-expect-error staleTime is required
-      apiOptions('/projects/$orgSlug/', {path: {orgSlug: 'my-org'}});
+      apiOptions.as<unknown>()('/projects/$orgSlug/', {path: {orgSlug: 'my-org'}});
       // @ts-expect-error staleTime is required
-      apiOptions('/projects/', {});
+      apiOptions.as<unknown>()('/projects/', {});
     });
 
     test('should not allow invalid path parameters', () => {
