@@ -863,7 +863,7 @@ const AddButton = styled(Button)`
   }
 `;
 
-function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
   return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
 }
 

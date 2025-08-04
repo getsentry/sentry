@@ -17,12 +17,13 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/autofixInsightCards';
 import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconSeer} from 'sentry/icons';
+import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -399,7 +400,7 @@ function AutofixHighlightPopupContent({
                       'Seer will use this chat as context to re-work its analysis from this point.'
                     )}
                   >
-                    <IconArrow direction="right" size="xs" />
+                    <FlippedReturnIcon />
                   </ReworkArrow>
                 </ReworkHeaderSection>
                 <HeaderRight>
