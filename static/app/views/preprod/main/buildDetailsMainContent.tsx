@@ -61,13 +61,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       ? processInsights(appSizeData.insights, totalSize)
       : [];
 
-  const content =
-    selectedContent === 'treemap' ? (
-      <AppSizeTreemap treemapData={appSizeData.treemap} />
-    ) : (
-      <AppSizeCategories treemapData={appSizeData.treemap} />
-    );
-
   return (
     <MainContentContainer>
       <TreemapContainer>
@@ -80,7 +73,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
           </SegmentedControl>
         </MainContentControls>
-        {content}
+        {selectedContent === 'treemap' ? (
+          <AppSizeTreemap treemapData={appSizeData.treemap} />
+        ) : (
+          <AppSizeCategories treemapData={appSizeData.treemap} />
+        )}
       </TreemapContainer>
       {processedInsights.length > 0 && (
         <Container style={{marginTop: '20px'}}>

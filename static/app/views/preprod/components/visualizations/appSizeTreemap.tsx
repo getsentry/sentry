@@ -7,6 +7,7 @@ import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizat
 import {
   type TreemapElement,
   type TreemapResults,
+  TreemapType,
 } from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
@@ -20,7 +21,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   // TODO: Use theme colors
 
   function convertToEChartsData(element: TreemapElement): any {
-    const categoryInfo = APP_SIZE_CATEGORY_INFO[element.type];
+    const categoryInfo =
+      APP_SIZE_CATEGORY_INFO[element.type] ?? APP_SIZE_CATEGORY_INFO[TreemapType.OTHER];
     if (!categoryInfo) {
       throw new Error(`Category ${element.type} not found`);
     }

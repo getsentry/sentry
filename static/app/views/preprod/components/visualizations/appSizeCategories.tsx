@@ -4,11 +4,7 @@ import type {PieSeriesOption} from 'echarts';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
-import {
-  type TreemapElement,
-  type TreemapResults,
-  TreemapType,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeCategoriesProps {
   treemapData: TreemapResults;
@@ -18,33 +14,19 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
   const theme = useTheme();
   const {treemapData} = props;
 
-  function calculateCategorySizes(element: TreemapElement): Record<string, number> {
-    const categorySizes: Record<string, number> = {};
+  const categorySizes: Record<string, number> = {};
+  Object.entries(treemapData.category_breakdown).forEach(([categoryKey, category]) => {
+    const totalSize = Object.values(category).reduce((sum, size) => sum + size, 0);
+    categorySizes[categoryKey] = totalSize;
+  });
 
-    function traverse(node: TreemapElement) {
-      const size = node.size;
-      const category = node.element_type || TreemapType.OTHER;
-
-      if (category) {
-        categorySizes[category] = (categorySizes[category] || 0) + size;
-      }
-
-      if (node.children && node.children.length > 0) {
-        node.children.forEach((child: TreemapElement) => traverse(child));
-      }
-    }
-
-    traverse(element);
-    return categorySizes;
-  }
-
-  const categorySizes = calculateCategorySizes(treemapData.root);
   const totalSize = treemapData.root.size;
 
   const pieData = Object.entries(categorySizes)
     .filter(([_, size]) => size > 0)
     .map(([category, size]) => {
-      const categoryInfo = APP_SIZE_CATEGORY_INFO[category];
+      const categoryInfo =
+        APP_SIZE_CATEGORY_INFO[category] ?? APP_SIZE_CATEGORY_INFO[TreemapType.OTHER];
       if (!categoryInfo) {
         throw new Error(`Category ${category} not found`);
       }
