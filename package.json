@@ -180,7 +180,7 @@
   "devDependencies": {
     "@codecov/webpack-plugin": "^1.9.0",
     "@emotion/eslint-plugin": "^11.12.0",
-    "@eslint/js": "^9.22.0",
+    "@eslint/js": "9.32.0",
     "@sentry-internal/rrweb-types": "2.34.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "9.40.0",
@@ -193,16 +193,16 @@
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
     "babel-jest": "30.0.4",
-    "eslint": "^9.22.0",
-    "eslint-config-prettier": "^10.1.2",
+    "eslint": "9.32.0",
+    "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^3.8.3",
     "eslint-plugin-boundaries": "^5.0.1",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest": "29.0.1",
     "eslint-plugin-jest-dom": "^5.5.0",
-    "eslint-plugin-mdx": "^3.4.2",
+    "eslint-plugin-mdx": "3.6.2",
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
-    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
     "eslint-plugin-sentry": "^2.10.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
@@ -210,7 +210,7 @@
     "eslint-plugin-typescript-sort-keys": "^3.3.0",
     "eslint-plugin-unicorn": "^57.0.0",
     "expect-type": "1.2.1",
-    "globals": "^15.14.0",
+    "globals": "16.3.0",
     "jest": "30.0.4",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "30.0.4",
@@ -222,7 +222,7 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
-    "typescript-eslint": "^8.26.0"
+    "typescript-eslint": "8.39.0"
   },
   "pnpm": {
     "overrides": {
