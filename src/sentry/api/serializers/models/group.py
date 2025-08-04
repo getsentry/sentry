@@ -1238,6 +1238,6 @@ class SimpleGroupSerializer(Serializer):
             substatus=_get_substatus_label(obj),
             platform=obj.platform,
             project=_make_group_project_response(obj.project),
-            type=obj.type,
+            type=obj.get_event_type(),
             issueType=obj.issue_type.slug,
         )

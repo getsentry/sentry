@@ -449,5 +449,5 @@ class SimpleGroupSerializerTest(TestCase):
         assert serialized["shortId"] == group.qualified_short_id
         assert serialized["status"] == "unresolved"
         assert serialized["substatus"] == "new"
-        assert serialized["type"] == group.type
+        assert serialized["type"] == "default"
         assert serialized["issueType"] == "error"
