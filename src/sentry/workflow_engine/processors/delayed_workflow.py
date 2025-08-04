@@ -554,6 +554,10 @@ def get_groups_to_fire(
 
     for event_key in event_data.events:
         group_id = event_key.group_id
+        if event_key.workflow_id not in workflows_to_envs:
+            # The workflow is deleted, so we can skip it
+            continue
+
         workflow_env = workflows_to_envs[event_key.workflow_id]
         if when_dcg_id := event_key.when_dcg_id:
             if not (

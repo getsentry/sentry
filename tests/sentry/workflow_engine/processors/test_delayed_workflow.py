@@ -785,6 +785,27 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_if_dcgs[1]},
         }
 
+    def test_dcg_any_fails(self) -> None:
+        self.condition_group_results.update(
+            {
+                UniqueConditionQuery(
+                    handler=EventUniqueUserFrequencyQueryHandler, interval="1h", environment_id=None
+                ): {self.group2.id: 10}
+            }
+        )
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        assert result == {
+            self.group1.id: set(self.workflow1_if_dcgs),
+        }
+
     def test_ignored_deleted_dcgs(self) -> None:
         self.workflow1_if_dcgs[0].delete()
         self.workflow2_if_dcgs[1].delete()
@@ -811,14 +832,10 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group1.id: {self.workflow1_if_dcgs[1]},
         }
 
-    def test_dcg_any_fails(self) -> None:
-        self.condition_group_results.update(
-            {
-                UniqueConditionQuery(
-                    handler=EventUniqueUserFrequencyQueryHandler, interval="1h", environment_id=None
-                ): {self.group2.id: 10}
-            }
-        )
+    def test_ignored_deleted_workflow(self) -> None:
+        self.workflow1.delete()
+
+        self.workflows_to_envs = {self.workflow2.id: None}
 
         result = get_groups_to_fire(
             self.data_condition_groups,
@@ -828,9 +845,8 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        assert result == {
-            self.group1.id: set(self.workflow1_if_dcgs),
-        }
+        # NOTE: same result as test_simple but without the deleted workflow
+        assert result == {self.group2.id: {self.workflow2_if_dcgs[1]}}
 
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
