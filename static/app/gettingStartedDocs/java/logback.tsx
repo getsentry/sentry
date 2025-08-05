@@ -128,6 +128,12 @@ dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info
 send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -150,7 +156,14 @@ const getConsoleAppenderSnippet = (params: Params) => `
     <options>
       <dsn>${params.dsn.public}</dsn>
       <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
-      <sendDefaultPii>true</sendDefaultPii>
+      <sendDefaultPii>true</sendDefaultPii>${
+        params.isLogsSelected
+          ? `
+      <logs>
+        <enabled>true</enabled>
+      </logs>`
+          : ''
+      }
     </options>`
       : ''
   }
@@ -171,14 +184,27 @@ const getLogLevelSnippet = (params: Params) => `
   <options>
     <dsn>${params.dsn.public}</dsn>
     <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
-    <sendDefaultPii>true</sendDefaultPii>
+    <sendDefaultPii>true</sendDefaultPii>${
+      params.isLogsSelected
+        ? `
+    <logs>
+      <enabled>true</enabled>
+    </logs>`
+        : ''
+    }
   </options>`
     : ''
 }
   <!-- Optionally change minimum Event level. Default for Events is ERROR -->
   <minimumEventLevel>WARN</minimumEventLevel>
   <!-- Optionally change minimum Breadcrumbs level. Default for Breadcrumbs is INFO -->
-  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>
+  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>${
+    params.isLogsSelected
+      ? `
+  <!-- Optionally change minimum Log level. Default for Log Events is INFO -->
+  <minimumLevel>DEBUG</minimumLevel>`
+      : ''
+  }
 </appender>`;
 
 const getVerifyJavaSnippet = () => `
@@ -316,7 +342,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    label: 'Properties',
+                    value: 'properties',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],
