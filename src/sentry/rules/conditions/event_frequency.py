@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import inspect
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Mapping
@@ -351,19 +352,27 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         group_on_time: bool = False,
         project_ids: list[int] | None = None,
     ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
-            model=model,
-            keys=keys,
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-            jitter_value=group_id,
-            tenant_ids={"organization_id": organization_id},
-            referrer_suffix=referrer_suffix,
-            group_on_time=group_on_time,
-            project_ids=project_ids,
-        )
+        # Check if the tsdb function accepts project_ids parameter
+        sig = inspect.signature(tsdb_function)
+        accepts_project_ids = "project_ids" in sig.parameters
+
+        kwargs = {
+            "model": model,
+            "keys": keys,
+            "start": start,
+            "end": end,
+            "environment_id": environment_id,
+            "use_cache": True,
+            "jitter_value": group_id,
+            "tenant_ids": {"organization_id": organization_id},
+            "referrer_suffix": referrer_suffix,
+            "group_on_time": group_on_time,
+        }
+
+        if accepts_project_ids:
+            kwargs["project_ids"] = project_ids
+
+        result: Mapping[int, int] = tsdb_function(**kwargs)
         return result
 
     def get_chunked_result(
@@ -734,6 +743,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -762,6 +772,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -777,6 +788,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
+                project_ids=project_ids,
                 conditions=conditions,
                 group_on_time=group_on_time,
             )
