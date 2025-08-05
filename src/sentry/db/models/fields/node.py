@@ -65,7 +65,7 @@ class NodeData(MutableMapping[str, Any]):
     def __len__(self):
         return len(self.data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         cls_name = type(self).__name__
         if self._node_data:
             return f"<{cls_name}: id={self.id} data={self._node_data!r}>"

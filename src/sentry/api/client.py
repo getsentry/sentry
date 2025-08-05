@@ -21,7 +21,7 @@ class ApiError(Exception):
     def __str__(self) -> str:
         return f"status={self.status_code} body={self.body}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ApiError: {self}>"
 
 
