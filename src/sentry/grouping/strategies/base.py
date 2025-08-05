@@ -219,7 +219,7 @@ def lookup_strategy(strategy_id: str) -> Strategy[Any]:
 
 
 class Strategy(Generic[ConcreteInterface]):
-    """Baseclass for all strategies."""
+    """Base class for all strategies."""
 
     def __init__(
         self,
