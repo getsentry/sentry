@@ -128,6 +128,7 @@ class GroupingContext:
         self["variant_name"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
+        # Add the key-value pair to the context layer at the top of the stack
         self._stack[-1][key] = value
 
     def __getitem__(self, key: str) -> ContextValue:
