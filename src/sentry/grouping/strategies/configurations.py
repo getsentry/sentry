@@ -9,7 +9,7 @@ CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
-BASE_STRATEGY = create_strategy_configuration_class(
+BASE_CONFIG_CLASS = create_strategy_configuration_class(
     "BASE_CONFIG",
     # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
     # decorator (rather than by the order they're listed here), but they are nonetheless listed here
@@ -52,7 +52,7 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     # Replace the base strategy id in kwargs with the base stategy class itself (or the default
     # base class, if no base is specified)
     base_config_id = kwargs.get("base")
-    kwargs["base"] = CONFIGURATIONS[base_config_id] if base_config_id else BASE_STRATEGY
+    kwargs["base"] = CONFIGURATIONS[base_config_id] if base_config_id else BASE_CONFIG_CLASS
 
     strategy_class = create_strategy_configuration_class(id, **kwargs)
 
