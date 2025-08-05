@@ -188,26 +188,28 @@ export function searchInTraceTreeTokens(
     }
 
     if (li < tree.list.length && !(leftToken instanceof Map)) {
+      const token = leftToken as ProcessedTokenResult;
       enforceVisibilityForAllMatches(tree, node =>
-        evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))
+        evaluateTokenForValue(token, resolveValueFromKey(node, token))
       );
 
       while (li < tree.list.length && performance.now() - ts < 12) {
         const node = tree.list[li]!;
-        if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
+        if (evaluateTokenForValue(token, resolveValueFromKey(node, token))) {
           left.set(node, li);
         }
         li++;
       }
       handle.id = requestAnimationFrame(search);
     } else if (ri < tree.list.length && !(rightToken instanceof Map)) {
+      const token = rightToken as ProcessedTokenResult;
       enforceVisibilityForAllMatches(tree, node =>
-        evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))
+        evaluateTokenForValue(token, resolveValueFromKey(node, token))
       );
 
       while (ri < tree.list.length && performance.now() - ts < 12) {
         const node = tree.list[ri]!;
-        if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
+        if (evaluateTokenForValue(token, resolveValueFromKey(node, token))) {
           right.set(node, ri);
         }
         ri++;

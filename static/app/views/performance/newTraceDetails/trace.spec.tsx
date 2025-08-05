@@ -1596,7 +1596,7 @@ describe('trace view', () => {
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
 
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 1);
@@ -1633,7 +1633,7 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
 
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1659,14 +1659,16 @@ describe('trace view', () => {
 
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-1');
-      expect(searchInput).toHaveValue('transaction-op-1');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
+      await waitFor(() => expect(searchInput).toHaveValue(''));
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-5');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 6);
@@ -1678,7 +1680,7 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'trans');
-      expect(searchInput).toHaveValue('trans');
+      await waitFor(() => expect(searchInput).toHaveValue('trans'));
       // Wait for the search results to resolve
       await searchToResolve();
 
@@ -1688,7 +1690,7 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.type(searchInput, 'act');
-      expect(searchInput).toHaveValue('transact');
+      await waitFor(() => expect(searchInput).toHaveValue('transact'));
       await searchToResolve();
 
       // Highlighting is persisted on the row
@@ -1697,7 +1699,7 @@ describe('trace view', () => {
       await userEvent.clear(searchInput);
       await userEvent.click(searchInput);
       await userEvent.paste('this wont match anything');
-      expect(searchInput).toHaveValue('this wont match anything');
+      await waitFor(() => expect(searchInput).toHaveValue('this wont match anything'));
       await searchToResolve();
 
       // When there is no match, the highlighting is removed
@@ -1713,7 +1715,7 @@ describe('trace view', () => {
       // Nothing is highlighted
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
       await userEvent.type(searchInput, 't');
-      expect(searchInput).toHaveValue('t');
+      await waitFor(() => expect(searchInput).toHaveValue('t'));
 
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1728,7 +1730,7 @@ describe('trace view', () => {
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op-1');
-      expect(searchInput).toHaveValue('transaction-op-1');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
 
       await searchToResolve();
 
@@ -1862,7 +1864,7 @@ describe('trace view', () => {
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'op-0');
-      expect(searchInput).toHaveValue('op-0');
+      await waitFor(() => expect(searchInput).toHaveValue('op-0'));
 
       await searchToResolve();
 
@@ -1896,7 +1898,7 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op');
-      expect(searchInput).toHaveValue('transaction-op');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 1);
@@ -1917,13 +1919,17 @@ describe('trace view', () => {
       // row is part of the search results
       await assertHighlightedRowAtIndex(container, 6);
 
-      await userEvent.type(searchInput, '-5');
-      expect(searchInput).toHaveValue('transaction-op-5');
+      await userEvent.click(searchInput);
+      await userEvent.type(searchInput, '-');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-'));
+      await userEvent.type(searchInput, '5');
+      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
 
       await searchToResolve();
       await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.clear(searchInput);
+      await waitFor(() => expect(searchInput).toHaveValue(''));
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-none');
       await searchToResolve();
