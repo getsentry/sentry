@@ -34,7 +34,6 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
-from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
 
