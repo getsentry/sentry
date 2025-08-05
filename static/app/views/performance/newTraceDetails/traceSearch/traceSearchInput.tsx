@@ -230,6 +230,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         defaultValue={traceState.search.query}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        value={traceState.search.query ?? ''}
         onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
