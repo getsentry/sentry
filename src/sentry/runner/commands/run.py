@@ -263,6 +263,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
+    logger = logging.getLogger("sentry.runner.commands.run")
+
     run_storage = RunStorage(redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
@@ -271,6 +273,14 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             if key in enabled_schedules:
                 runner.add(key, schedule_data)
+
+        logger.info(
+            "taskworker.scheduler.schedule_data",
+            extra={
+                "enabled": enabled_schedules,
+                "available": list(settings.TASKWORKER_SCHEDULES.keys()),
+            },
+        )
 
         runner.log_startup()
         while True:
