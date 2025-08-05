@@ -1,3 +1,6 @@
+from typing import Any, TypedDict
+
+import requests
 import responses
 from django.conf import settings
 from django.urls import reverse
@@ -22,6 +25,12 @@ def mock_seer_category_response(**kwargs) -> None:
         SEER_CATEGORY_GENERATION_URL,
         **kwargs,
     )
+
+
+class FeedbackData(TypedDict):
+    fingerprint: str
+    tags: list[tuple[str, str]]
+    contexts: dict[str, Any]
 
 
 @region_silo_test
@@ -51,7 +60,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
         """Create a standard set of feedbacks for testing."""
         insert_time = before_now(hours=12)
 
-        feedback_data = [
+        feedback_data: list[FeedbackData] = [
             {
                 "fingerprint": "feedback-1",
                 "tags": [(f"{AI_LABEL_TAG_PREFIX}.label.0", "User Interface")],
@@ -247,3 +256,46 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
                 assert category["feedback_count"] == 8
             elif category["primary_label"] == "Authentication":
                 assert category["feedback_count"] == 3
+
+    @django_db_all
+    @responses.activate
+    def test_seer_timeout(self) -> None:
+        mock_seer_category_response(body=requests.exceptions.Timeout("Request timed out"))
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+
+        assert response.status_code == 500
+
+    @django_db_all
+    @responses.activate
+    def test_seer_connection_error(self) -> None:
+        mock_seer_category_response(body=requests.exceptions.ConnectionError("Connection error"))
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+
+        assert response.status_code == 500
+
+    @django_db_all
+    @responses.activate
+    def test_seer_request_error(self) -> None:
+        mock_seer_category_response(
+            body=requests.exceptions.RequestException("Generic request error")
+        )
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+
+        assert response.status_code == 500
+
+    @django_db_all
+    @responses.activate
+    def test_seer_http_errors(self) -> None:
+        for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
+            mock_seer_category_response(status=status)
+
+            with self.feature(self.features):
+                response = self.get_error_response(self.org.slug)
+
+            assert response.status_code == 500
