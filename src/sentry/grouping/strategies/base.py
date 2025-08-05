@@ -186,8 +186,9 @@ class GroupingContext:
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
-        """Invokes a delegate grouping strategy.  If no such delegate is
-        configured a fallback grouping component is returned.
+        """
+        Invoke the delegate grouping strategy corresponding to the given interface, returning the
+        grouping component for the variant set on the context.
         """
         components_by_variant = self._get_grouping_components_for_interface(
             interface, event=event, **kwargs
