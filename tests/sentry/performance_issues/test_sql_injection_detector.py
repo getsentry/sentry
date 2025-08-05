@@ -87,8 +87,11 @@ class SQLInjectionDetectorTest(TestCase):
         injection_event = get_event("sql-injection/sql-injection-query-with-bindings")
         assert len(self.find_problems(injection_event)) == 0
 
-    def test_sql_injection_on_event_with_gorm(self) -> None:
+    def test_sql_injection_on_event_with_excluded_package(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-event-gorm")
+        assert len(self.find_problems(injection_event)) == 0
+
+        injection_event = get_event("sql-injection/sql-injection-event-nestjs-typeorm")
         assert len(self.find_problems(injection_event)) == 0
 
     def test_sql_injection_on_orm_queries(self) -> None:

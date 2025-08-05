@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -210,6 +211,9 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'cloudflare',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'cloudflare',
   }),
 };

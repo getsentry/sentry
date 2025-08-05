@@ -19,6 +19,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.locks import locks
 from sentry.remote_subscriptions.consumers.queue_consumer import (
     FixedQueuePool,
     SimpleQueueProcessingStrategy,
@@ -26,6 +27,7 @@ from sentry.remote_subscriptions.consumers.queue_consumer import (
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,9 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
+    def __init__(self, use_subscription_lock: bool = False):
+        self.use_subscription_lock = use_subscription_lock
+
     @property
     @abc.abstractmethod
     def subscription_model(self) -> type[U]:
@@ -45,11 +50,21 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         try:
             # TODO: Handle subscription not existing - we should remove the subscription from
             # the remote system in that case.
-            with sentry_sdk.start_transaction(
+            with sentry_sdk.start_span(
                 name=f"monitors.{identifier}.result_consumer.ResultProcessor",
                 op="result_processor.handle_result",
             ):
-                self.handle_result(self.get_subscription(result), result)
+                subscription = self.get_subscription(result)
+                if self.use_subscription_lock and subscription:
+                    lock = locks.get(
+                        f"subscription:{subscription.type}:{subscription.subscription_id}",
+                        duration=10,
+                        name=f"subscription_{identifier}",
+                    )
+                    with TimedRetryPolicy(10)(lock.acquire):
+                        self.handle_result(subscription, result)
+                else:
+                    self.handle_result(subscription, result)
         except Exception:
             logger.exception("Failed to process message result")
 
@@ -118,7 +133,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         self.mode = mode
         self.consumer_group = consumer_group
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
-        self.result_processor = self.result_processor_cls()
+        self.result_processor = self.result_processor_cls(use_subscription_lock=mode == "parallel")
         if mode == "batched-parallel":
             self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
@@ -189,19 +204,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.queue_pool.shutdown()
             self.queue_pool = None
 
-    def decode_payload(self, topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
-        assert not isinstance(payload, FilteredPayload)
-
-        try:
-            codec = get_topic_codec(topic_for_codec)
-            return codec.decode(payload.value)
-        except Exception:
-            logger.exception(
-                "Failed to decode message payload",
-                extra={"payload": payload.value},
-            )
-        return None
-
     def create_with_partitions(
         self,
         commit: Commit,
@@ -218,14 +220,18 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
     def create_serial_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
+            function=partial(
+                process_single, self.result_processor, self.topic_for_codec, self.identifier
+            ),
             next_step=CommitOffsets(commit),
         )
 
     def create_multiprocess_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.multiprocessing_pool is not None
         return run_task_with_multiprocessing(
-            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
+            function=partial(
+                process_single, self.result_processor, self.topic_for_codec, self.identifier
+            ),
             next_step=CommitOffsets(commit),
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -258,7 +264,9 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
         return SimpleQueueProcessingStrategy(
             queue_pool=self.queue_pool,
-            decoder=partial(self.decode_payload, self.topic_for_codec),
+            decoder=partial(
+                decode_payload, self.topic_for_codec, result_processor=self.result_processor
+            ),
             grouping_fn=self.build_payload_grouping_key,
             commit_function=commit_offsets,
             partitions=set(partitions.keys()),
@@ -275,7 +283,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         for item in batch:
             assert isinstance(item, BrokerValue)
 
-            result = self.decode_payload(self.topic_for_codec, item.payload)
+            result = decode_payload(self.topic_for_codec, item.payload, self.result_processor)
             if result is None:
                 continue
 
@@ -297,16 +305,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
         return list(batch_mapping.values())
 
-    def process_single(
-        self,
-        result_processor: ResultProcessor,
-        topic: Topic,
-        message: Message[KafkaPayload | FilteredPayload],
-    ):
-        result = self.decode_payload(topic, message.payload)
-        if result is not None:
-            result_processor(self.identifier, result)
-
     def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
         """
         Receives batches of messages. This function will take the batch and group them together
@@ -320,7 +318,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
         ):
             futures = [
@@ -335,3 +333,32 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         """
         for item in items:
             self.result_processor(self.identifier, item)
+
+
+def decode_payload(
+    topic_for_codec: Topic,
+    payload: KafkaPayload | FilteredPayload,
+    result_processor: ResultProcessor[T, U] | None = None,
+) -> T | None:
+    assert not isinstance(payload, FilteredPayload)
+
+    try:
+        codec = get_topic_codec(topic_for_codec)
+        return codec.decode(payload.value)
+    except Exception:
+        logger.exception(
+            "Failed to decode message payload",
+            extra={"payload": payload.value},
+        )
+        return None
+
+
+def process_single(
+    result_processor: ResultProcessor[T, U],
+    topic: Topic,
+    identifier: str,
+    message: Message[KafkaPayload | FilteredPayload],
+) -> None:
+    result = decode_payload(topic, message.payload, result_processor)
+    if result is not None:
+        result_processor(identifier, result)
