@@ -4,12 +4,8 @@ import type {EventTransaction} from 'sentry/types/event';
 
 import type {TraceTree} from './traceTree';
 
-function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
-  return !!(value && 'is_transaction' in value);
-}
-
 function isTraceTransaction(value: TraceTree.NodeValue): value is TraceTree.Transaction {
-  return !!(value && 'transaction' in value) && !isEAPSpan(value);
+  return !!(value && 'transaction' in value);
 }
 
 function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
@@ -23,6 +19,10 @@ function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
     !isTraceAutogroup(value) &&
     !isTraceTransaction(value)
   );
+}
+
+function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
 }
 
 function isTraceAutogroup(
