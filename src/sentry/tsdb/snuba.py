@@ -817,7 +817,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             environment_ids,
             aggregation=aggregation,
-            group_on_time=group_on_time,
+            group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,
             jitter_value=jitter_value,
