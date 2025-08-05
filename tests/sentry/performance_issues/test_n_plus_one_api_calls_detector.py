@@ -371,8 +371,10 @@ def test_parameterizes_url(url, parameterized_url) -> None:
         },
     ],
 )
+@pytest.mark.django_db
 def test_allows_eligible_spans(span) -> None:
-    assert NPlusOneAPICallsDetector.is_span_eligible(span)
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -429,8 +431,10 @@ def test_allows_eligible_spans(span) -> None:
         },
     ],
 )
+@pytest.mark.django_db
 def test_rejects_ineligible_spans(span) -> None:
-    assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert not detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
