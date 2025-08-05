@@ -165,7 +165,6 @@ def query(
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -185,6 +184,8 @@ def query(
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -268,7 +269,6 @@ def timeseries_query(
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -281,6 +281,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -447,7 +449,6 @@ def top_events_timeseries(
     limit: int,
     organization: Organization,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -459,6 +460,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -805,7 +808,6 @@ def spans_histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -815,6 +817,8 @@ def spans_histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ) -> EventsResponse | SnubaData:
     """
     API for generating histograms for span exclusive time.
@@ -894,7 +898,6 @@ def histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -905,6 +908,8 @@ def histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     API for generating histograms for numeric columns.
