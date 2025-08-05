@@ -219,6 +219,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     <BaseChart
       autoHeightResize
       renderer="canvas"
+      xAxis={null}
+      yAxis={null}
       series={series}
       visualMap={visualMap}
       tooltip={tooltip}

@@ -115,6 +115,13 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
   };
 
   return (
-    <BaseChart autoHeightResize renderer="canvas" series={series} tooltip={tooltip} />
+    <BaseChart
+      autoHeightResize
+      renderer="canvas"
+      series={series}
+      tooltip={tooltip}
+      xAxis={null}
+      yAxis={null}
+    />
   );
 }
