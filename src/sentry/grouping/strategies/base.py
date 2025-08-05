@@ -185,10 +185,12 @@ class GroupingContext:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
-        rv = self._get_grouping_components_for_interface(interface, event=event, **kwargs)
+        components_by_variant = self._get_grouping_components_for_interface(
+            interface, event=event, **kwargs
+        )
 
-        assert len(rv) == 1
-        return rv[self["variant"]]
+        assert len(components_by_variant) == 1
+        return components_by_variant[self["variant"]]
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
