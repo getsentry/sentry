@@ -8,7 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.core.exceptions import SuspiciousFileOperation
 
-from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
+from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA, STATIC_ROOT
 from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
@@ -305,7 +305,7 @@ def load_data(
 
 
 def load_console_screenshot(platform):
-    expected_commonpath = os.path.realpath("./static/images/consoles")
+    expected_commonpath = os.path.realpath(os.path.join(STATIC_ROOT, "images", "consoles"))
     image_path = os.path.join(expected_commonpath, f"{platform}-screenshot.png")
     image_real_path = os.path.realpath(image_path)
 

@@ -35,6 +35,7 @@ def get_all_languages() -> list[str]:
 
 MODULE_ROOT = os.path.dirname(cast(str, __import__("sentry").__file__))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
+STATIC_ROOT = os.path.join(MODULE_ROOT, os.pardir, os.pardir, "static")
 
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
 MAX_VERSION_LENGTH = 200
