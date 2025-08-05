@@ -45,7 +45,7 @@ class QueryInjectionDetector(PerformanceDetector):
                 self.potential_unsafe_inputs.append(query_pair)
 
     def visit_span(self, span: Span) -> None:
-        if not QueryInjectionDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         if len(self.potential_unsafe_inputs) == 0:
@@ -120,8 +120,7 @@ class QueryInjectionDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         if not span.get("span_id"):
             return False
 
