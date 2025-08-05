@@ -200,8 +200,13 @@ class GroupingContext:
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
+        """
+        Apply a delegate strategy to the given interface to get a dictionary of grouping components
+        keyed by variant name.
+        """
         interface_id = interface.path
         strategy = self.config.delegates.get(interface_id)
+
         if strategy is None:
             raise RuntimeError(f"failed to dispatch interface {interface_id} to strategy")
 
