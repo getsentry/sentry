@@ -9,7 +9,11 @@ from requests import Response
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.integrations.api.endpoints.integration_proxy import (
+    IntegrationProxyFailureMetricType,
+    IntegrationProxySuccessMetricType,
+    InternalIntegrationProxyEndpoint,
+)
 from sentry.integrations.client import ApiClient
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
@@ -114,7 +118,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     def assert_failure_metric_count(
         self,
         *,
-        failure_type: str,
+        failure_type: IntegrationProxyFailureMetricType,
         count: int,
         mock_metrics: MagicMock,
         tags: Tags | None = None,
@@ -198,13 +202,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
@@ -256,13 +260,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
@@ -302,7 +306,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
         self.assert_failure_metric_count(
-            failure_type="invalid_request",
+            failure_type=IntegrationProxyFailureMetricType.INVALID_REQUEST,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -357,8 +361,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_request(request)
-        self.assert_metric_count(
-            metric_name="failure.invalid_integration",
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -375,7 +379,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_request(request)
         self.assert_failure_metric_count(
-            failure_type="invalid_client",
+            failure_type=IntegrationProxyFailureMetricType.INVALID_CLIENT,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -423,18 +427,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.data is None
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
-            failure_type="invalid_identity",
+            failure_type=IntegrationProxyFailureMetricType.INVALID_IDENTITY,
             count=1,
             mock_metrics=mock_metrics,
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=0,
             mock_metrics=mock_metrics,
         )
@@ -465,18 +469,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.data is None
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
-            failure_type="host_unreachable_error",
+            failure_type=IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR,
             count=1,
             mock_metrics=mock_metrics,
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=0,
             mock_metrics=mock_metrics,
             kwargs_to_match={"tags": None},
@@ -508,18 +512,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.data is None
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
-            failure_type="host_timeout_error",
+            failure_type=IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
             count=1,
             mock_metrics=mock_metrics,
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=0,
             mock_metrics=mock_metrics,
         )
@@ -547,18 +551,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 500
 
         self.assert_metric_count(
-            metric_name="initialize",
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": None},
         )
         self.assert_failure_metric_count(
-            failure_type="unknown_error",
+            failure_type=IntegrationProxyFailureMetricType.UNKNOWN_ERROR,
             count=1,
             mock_metrics=mock_metrics,
         )
         self.assert_metric_count(
-            metric_name="complete.response_code",
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=0,
             mock_metrics=mock_metrics,
         )
