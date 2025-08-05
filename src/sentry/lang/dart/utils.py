@@ -71,11 +71,11 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
 
     debug_ids = get_dart_symbols_images(dict(data))
     if len(debug_ids) == 0:
-        return data
+        return
 
     exceptions = data.get("exception", {}).get("values", [])
     if not exceptions:
-        return data
+        return
 
     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
 
