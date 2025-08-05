@@ -146,7 +146,9 @@ export default function MetricDetailsBody({
     });
 
   const deprecateTransactionsAlertsWarning =
-    ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
+    organization.features.includes('performance-transaction-deprecation-banner') &&
+    ruleType &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
   return (
     <Fragment>

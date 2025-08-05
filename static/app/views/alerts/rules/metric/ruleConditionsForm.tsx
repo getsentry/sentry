@@ -552,6 +552,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     const deprecateTransactionsAlertsWarning =
+      organization.features.includes('performance-transaction-deprecation-banner') &&
       DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
 
     return (

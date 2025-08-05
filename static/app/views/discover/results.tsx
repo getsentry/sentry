@@ -694,13 +694,14 @@ export class Results extends Component<Props, State> {
 
   renderTransactionsDatasetDeprecationBanner() {
     const {savedQueryDataset} = this.state;
-    const {location} = this.props;
+    const {location, organization} = this.props;
     const dataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
       savedQueryDataset
     );
     if (
       this.state.showTransactionsDeprecationAlert &&
+      organization.features.includes('performance-transaction-deprecation-banner') &&
       dataset === DiscoverDatasets.TRANSACTIONS
     ) {
       return (

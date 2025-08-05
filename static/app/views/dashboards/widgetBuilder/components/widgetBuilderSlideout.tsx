@@ -89,7 +89,9 @@ function WidgetBuilderSlideout({
   const disableTransactionWidget = useDisableTransactionWidget();
   const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
   const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
-    useState(true);
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
