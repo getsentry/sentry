@@ -4,7 +4,26 @@ import styled from '@emotion/styled';
 import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrComments from 'sentry-images/features/prevent-pr-comments.svg';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
+
+interface OnboardingStepProps {
+  description: React.ReactNode;
+  step: number;
+  title: string;
+}
+
+function OnboardingStep({step, title, description}: OnboardingStepProps) {
+  return (
+    <StepContainer>
+      <StepNumber>{step}</StepNumber>
+      <StepContent>
+        <StyledH6>{title}</StyledH6>
+        <StyledP>{description}</StyledP>
+      </StepContent>
+    </StepContainer>
+  );
+}
 
 export default function PreventAIOnboarding() {
   return (
@@ -39,22 +58,70 @@ export default function PreventAIOnboarding() {
               )}
             </StyledP>
           </HeaderContainer>
-          <StyledH6>{t(`Enable Generative AI features`)}</StyledH6>
-          <StyledP>
-            {t('Make sure AI features are enabled in your organization settings.')}
-          </StyledP>
-          <StyledH6>{t(`Setup GitHub Integration`)}</StyledH6>
-          <StyledP>
-            {t(
-              'To grant Seer access to your codebase, follow these GitHub integration instructions: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+          <OnboardingStep
+            step={1}
+            title={t(`Enable Generative AI features`)}
+            description={t(
+              'Make sure AI features are enabled in your organization settings.'
             )}
-          </StyledP>
-          <StyledH6>{t(`Setup Seer`)}</StyledH6>
-          <StyledP>
-            {t(
-              'Install the Seer by Sentry GitHub App within the same GitHub organization.'
-            )}
-          </StyledP>
+          />
+          <OnboardingStep
+            step={2}
+            title={t(`Setup GitHub Integration`)}
+            description={
+              <Fragment>
+                {t('To grant Seer access to your codebase, follow these ')}{' '}
+                <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github">
+                  {t('GitHub integration instructions')}
+                </ExternalLink>
+                {t(
+                  ': 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+                )}
+              </Fragment>
+            }
+          />
+          <OnboardingStep
+            step={3}
+            title={t(`Setup Seer`)}
+            description={
+              <Fragment>
+                {t('Install the ')}{' '}
+                <ExternalLink href="https://github.com/apps/seer-by-sentry">
+                  {t('Seer by Sentry GitHub App')}
+                </ExternalLink>{' '}
+                {t('within the same GitHub organization.')}
+              </Fragment>
+            }
+          />
+
+          <GrayContainer>
+            <BoldP>{t('How to use Prevent AI')}</BoldP>
+            <StyledP>
+              {t('Prevent AI helps you ship better code with three features')}
+            </StyledP>
+            <ul>
+              <li>
+                {t(
+                  'It reviews your code, suggesting broader fixes when you prompt @sentry review'
+                )}
+              </li>
+              <li>
+                {t(
+                  'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
+                )}
+              </li>
+              <li>
+                {t(
+                  'It generates unit tests for your PR when you prompt @sentry generate-test.'
+                )}
+              </li>
+            </ul>
+            <StyledP>
+              {t(
+                'Sentry Error Prediction works better with Sentry Issue Context. Learn more on how to set this up to get the most accurate error prediction we can offer.'
+              )}
+            </StyledP>
+          </GrayContainer>
         </LeftSideContainer>
         <StyledImg
           style={{maxWidth: '40%'}}
@@ -85,7 +152,7 @@ const LeftSideContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  max-width: 700px;
+  max-width: 600px;
 `;
 
 const HeaderContainer = styled('div')`
@@ -96,9 +163,19 @@ const HeaderContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
+const GrayContainer = styled('div')`
+  background-color: ${p => p.theme.backgroundSecondary};
+  padding: ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const BoldP = styled('p')`
+  font-weight: bold;
+  margin: 0px;
+`;
+
 const StyledH6 = styled('h6')`
   margin: 0;
-  margin-top: ${p => p.theme.space.lg};
 `;
 
 const StyledH4 = styled('h4')`
@@ -134,4 +211,29 @@ const StyledImg = styled('img')`
   max-width: 30%;
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const StepContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
+`;
+
+const StepNumber = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: ${p => p.theme.purple300};
+  color: ${p => p.theme.white};
+  border-radius: 50%;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: 600;
+  margin-top: 2px;
+`;
+
+const StepContent = styled('div')`
+  flex: 1;
 `;
