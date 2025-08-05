@@ -188,7 +188,7 @@ export function searchInTraceTreeTokens(
     }
 
     if (li < tree.list.length && !(leftToken instanceof Map)) {
-      const token = leftToken as ProcessedTokenResult;
+      const token = leftToken;
       enforceVisibilityForAllMatches(tree, node =>
         evaluateTokenForValue(token, resolveValueFromKey(node, token))
       );
@@ -202,7 +202,7 @@ export function searchInTraceTreeTokens(
       }
       handle.id = requestAnimationFrame(search);
     } else if (ri < tree.list.length && !(rightToken instanceof Map)) {
-      const token = rightToken as ProcessedTokenResult;
+      const token = rightToken;
       enforceVisibilityForAllMatches(tree, node =>
         evaluateTokenForValue(token, resolveValueFromKey(node, token))
       );
