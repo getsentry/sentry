@@ -1,19 +1,24 @@
+from __future__ import annotations
+
 import datetime
-from unittest.mock import MagicMock, patch
+import uuid
+from unittest.mock import patch
 
 from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.cursors import Cursor
 
 
 @region_silo_test
-class ProjectReplayDeletionJobsIndexTest(APITestCase):
+class ProjectReplayDeletionJobsIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-deletion-jobs-index"
 
     def setUp(self) -> None:
@@ -155,37 +160,43 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert len(response.data["data"]) == 5
         assert response.data["data"][0]["query"] == "query 4"
 
-    @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
-    def test_post_success(self, mock_task: MagicMock) -> None:
+    def test_post_success(self) -> None:
         """Test successful POST creates job and schedules task"""
+        now = datetime.datetime.now()
+        before = now - datetime.timedelta(days=1)
+        after = now + datetime.timedelta(days=1)
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(now, self.project.id, replay_id, segment_id=0, environment="prod")
+        )
+
         data = {
             "data": {
-                "rangeStart": "2023-01-01T00:00:00Z",
-                "rangeEnd": "2023-01-02T00:00:00Z",
-                "environments": ["production"],
-                "query": None,
+                "rangeStart": before.isoformat(),
+                "rangeEnd": after.isoformat(),
+                "environments": ["prod"],
+                "query": f"id:[{replay_id}]",
             }
         }
 
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="post", **data, status_code=201
-        )
+        with TaskRunner():
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="post", **data, status_code=201
+            )
 
         # Verify response structure
         assert "data" in response.data
         job_data = response.data["data"]
         assert job_data["status"] == "pending"
-        assert job_data["environments"] == ["production"]
-        assert job_data["query"] == ""
+        assert job_data["environments"] == ["prod"]
+        assert job_data["query"] == f"id:[{replay_id}]"
         assert job_data["countDeleted"] == 0  # Default offset value
 
         # Verify job was created in database
         job = ReplayDeletionJobModel.objects.get(id=job_data["id"])
         assert job.project_id == self.project.id
-        assert job.status == "pending"
-
-        # Verify task was scheduled
-        mock_task.assert_called_once_with(job.id, offset=0)
+        assert job.status == "completed"
+        assert job.offset == 1
 
         with assume_test_silo_mode(SiloMode.REGION):
             RegionOutbox(
