@@ -260,6 +260,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   padding: 0;
   width: 100%;
   position: relative;
+  height: auto;
   font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 `;
