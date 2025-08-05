@@ -937,6 +937,15 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    FEEDBACKS_QUERY_TOP_AI_LABELS_BY_FEEDBACK_COUNT = (
+        "feedbacks.query.top_ai_labels_by_feedback_count"
+    )
+    FEEDBACKS_QUERY_RECENT_FEEDBACKS_WITH_AI_LABELS = (
+        "feedbacks.query.recent_feedbacks_with_ai_labels"
+    )
+    FEEDBACKS_QUERY_GIVEN_LABELS_BY_FEEDBACK_COUNT = (
+        "feedbacks.query.given_labels_by_feedback_count"
+    )
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"

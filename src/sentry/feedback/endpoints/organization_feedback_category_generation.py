@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TypedDict
 
 import requests
@@ -12,21 +12,17 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationUserReportsPermission
-from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
-from sentry.feedback.query import (
+from sentry.feedback.lib.query import (
     query_given_labels_by_feedback_count,
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.search.events.types import SnubaParams
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.snuba import issue_platform
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -67,54 +63,12 @@ class FeedbackLabelGroup(TypedDict):
 
 
 @region_silo_endpoint
-class OrganizationFeedbackCategoryGenerationEndpoint(
-    OrganizationEventsV2EndpointBase
-):  # XXX: is this inheritance ok? this is only done since this class has the get_snuba_params method
+class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (OrganizationUserReportsPermission,)
-
-    def _get_top_10_labels(
-        self,
-        snuba_params: SnubaParams,
-        organization: Organization,
-        projects: list[Project],
-        start: datetime,
-        end: datetime,
-    ) -> list[str]:
-        # Getting from IssuePlatform seems to work for now, so we'll go with it
-        # Get the top 10 labels by feedbacks, filtered by projects and date range
-        top_10_labels = query_top_ai_labels_by_feedback_count(
-            organization_id=organization.id,
-            project_ids=[project.id for project in projects],
-            start=start,
-            end=end,
-            count=10,
-        )["data"]
-
-        top_10_labels
-
-        # Query for top tag values across all AI label keys with prefix matching
-        # This seems to work, but to be very honest I don't know how it does
-        # (nvm, https://github.com/getsentry/snuba/blob/7abc44933b261854a32afeeee3e1c3e033ea2bfb/snuba/query/parser/README.md?plain=1#L240 mentions the tags_key and tags_value virtual columns that are basically an ArrayJoin)
-        # Not filtered to only get feedbacks - how to do this? Can't seem to do this using only the issue platform dataset, it seems like we require working with events. Also AI labels are only on feedbacks for now, so maybe not an issue for now?
-        issue_platform_results = issue_platform.query(
-            selected_columns=["count()", "tags_value"],
-            query="tags_key:ai_categorization.label.*",  # Prefix pattern for all AI labels
-            snuba_params=snuba_params,
-            orderby=["-count()"],
-            limit=10,
-            referrer="api.organization-issue-replay-count",  # Change this
-        )["data"]
-
-        issue_platform_results
-
-        # This works. but we can switch to using the custom Snuba query if we don't want to do this.
-        labels = [result["tags_value"] for result in top_10_labels]
-
-        return labels
+    permission_classes = OrganizationUserReportsPermission
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -189,7 +143,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             start=start,
             end=end,
             count=MAX_FEEDBACKS_CONTEXT,
-        )["data"]
+        )
 
         # if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
         #     logger.error("Too few feedbacks to generate categories")
@@ -212,14 +166,16 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
                 LabelGroupFeedbacksContext(feedback=feedback["feedback"], labels=feedback["labels"])
             )
 
-        snuba_params = self.get_snuba_params(
-            request,
-            organization,
-            check_global_views=False,
+        # Gets the top 10 labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
+        top_10_labels_result = query_top_ai_labels_by_feedback_count(
+            organization_id=organization.id,
+            project_ids=[project.id for project in projects],
+            start=start,
+            end=end,
+            count=10,
         )
 
-        # Gets the top 10 labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
-        top_10_labels = self._get_top_10_labels(snuba_params, organization, projects, start, end)
+        top_10_labels = [result["tags_value"] for result in top_10_labels_result]
 
         seer_request = LabelGroupsRequest(
             organization_id=organization.id,
@@ -262,9 +218,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             start=start,
             end=end,
             labels_groups=label_groups_list_of_lists,
-        )["data"]
-
-        # print("\n\n\n\\QUERY RESULTS", feedback_counts_by_label_list, "\n\n\n\n")
+        )
 
         categories = []
         for i, label_group in enumerate(label_groups_list_of_lists):
@@ -302,8 +256,6 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
 
 def make_seer_request(request: LabelGroupsRequest) -> bytes:
-    # print("\n\n\n\n THIS IS THE REQUEST", request, "\n\n\n\n")
-
     serialized_request = json.dumps(request)
 
     response = requests.post(

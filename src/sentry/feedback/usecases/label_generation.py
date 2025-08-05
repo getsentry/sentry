@@ -17,7 +17,7 @@ class LabelRequest(TypedDict):
     feedback_message: str
 
 
-AI_LABEL_TAG_PREFIX = "ai_categorization.label"
+AI_LABEL_TAG_PREFIX = "ai_categorization"
 # If Seer generates more labels, we truncate it to this many labels
 MAX_AI_LABELS = 15
 
