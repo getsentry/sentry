@@ -4,14 +4,14 @@ import {apiOptions} from 'sentry/api/apiOptions';
 import type {Release} from 'sentry/types/release';
 
 export function useRelease({
-  organizationIdOrSlug,
-  projectIdOrSlug,
-  version,
+  orgSlug,
+  projectSlug,
+  releaseVersion,
   enabled,
 }: {
-  organizationIdOrSlug: string;
-  projectIdOrSlug: string;
-  version: string;
+  orgSlug: string;
+  projectSlug: string;
+  releaseVersion: string;
   enabled?: boolean;
 }) {
   return useQuery({
@@ -19,9 +19,9 @@ export function useRelease({
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/',
       {
         path: {
-          organizationIdOrSlug,
-          projectIdOrSlug,
-          version,
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          version: releaseVersion,
         },
         staleTime: Infinity,
       }
