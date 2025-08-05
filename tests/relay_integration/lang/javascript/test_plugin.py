@@ -1316,7 +1316,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # 18:63 in the minified source file is _unmapped_.
         # There are no tokens in the sourcemap for line 18.
         assert frame_list[5].abs_path == "app:///dist.bundle.js"
-        assert frame_list[5].function == "Object.<anonymous>"
+        assert frame_list[5].function == "<unknown>"
         assert frame_list[5].lineno == 18
         assert frame_list[5].colno == 63
 
