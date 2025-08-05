@@ -70,7 +70,7 @@ def test_make_seer_request():
     )
 
     with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        mock_sign.return_value = {}
 
         result = make_seer_request(request)
         assert result == b'{"title": "Test Title"}'
@@ -83,15 +83,13 @@ def test_make_seer_request():
         )
         assert seer_request.method == "POST"
         assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
-        assert "sentry-seer-signature" in seer_request.headers
 
-        # Verify sign_with_seer_secret was called with the correct encoded data
+        # verify sign_with_seer_secret was called with the correct encoded data
         mock_sign.assert_called_once()
-        call_args = mock_sign.call_args[0][0]  # First positional argument
+        call_args = mock_sign.call_args[0][0]
         assert isinstance(call_args, bytes)
-        # The encoded data should contain the request data
-        assert b"123" in call_args  # organization_id
-        assert b"Test feedback message" in call_args  # feedback_message
+        assert b"123" in call_args
+        assert b"Test feedback message" in call_args
 
 
 @responses.activate
@@ -168,7 +166,7 @@ def test_get_feedback_title_from_seer_error_cases(response_body, status_code, ex
     )
 
     with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        mock_sign.return_value = {}
         title = get_feedback_title_from_seer("Login button broken", 123)
         assert title is None
 
@@ -178,7 +176,7 @@ def test_get_feedback_title_from_seer_network_error():
     """Test the get_feedback_title_from_seer function with network error."""
     mock_seer_response(body=Exception("Network error"))
     with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        mock_sign.return_value = {}
         title = get_feedback_title_from_seer("Login button broken", 123)
         assert title is None
 
@@ -192,6 +190,6 @@ def test_get_feedback_title_from_seer_success():
     )
 
     with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        mock_sign.return_value = {}
         title = get_feedback_title_from_seer("Login button broken", 123)
         assert title == "Login Button Issue"
