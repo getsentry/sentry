@@ -110,7 +110,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def datetime(self) -> datetime:
-        column = self._get_column_name(Columns.TIMESTAMP)
+        column = self._get_column_name(Columns.TIMESTAMP_MS)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
