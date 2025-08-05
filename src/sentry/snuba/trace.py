@@ -1,20 +1,38 @@
+import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+logger = logging.getLogger(__name__)
+
 import sentry_sdk
-from snuba_sdk import Column, Function
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemTableRequest,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from snuba_sdk import Column as SnubaColumn
+from snuba_sdk import Function
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
 from sentry.utils.numbers import base32_encode
+from sentry.utils.snuba_rpc import table_rpc
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
@@ -127,21 +145,34 @@ def _serialize_rpc_event(
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
 ) -> SerializedEvent | SerializedIssue:
-    if event.get("event_type") == "span":
+    if event.get("event_type") in ("span", "uptime"):
         attribute_dict = {
             attribute: event[attribute]
             for attribute in additional_attributes or []
             if attribute in event
         }
+        children = [
+            _serialize_rpc_event(child, group_cache, additional_attributes)
+            for child in event["children"]
+        ]
+        errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
+        occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
+
+        if event.get("event_type") == "uptime":
+            uptime_data = {
+                k: v for k, v in event.items() if k not in ["children", "errors", "occurrences"]
+            }
+            return SerializedSpan(
+                children=children,
+                errors=errors,
+                occurrences=occurrences,
+                **uptime_data,  # type: ignore[typeddict-item]
+            )
+
         return SerializedSpan(
-            children=[
-                _serialize_rpc_event(child, group_cache, additional_attributes)
-                for child in event["children"]
-            ],
-            errors=[_serialize_rpc_issue(error, group_cache) for error in event["errors"]],
-            occurrences=[
-                _serialize_rpc_issue(error, group_cache) for error in event["occurrences"]
-            ],
+            children=children,
+            errors=errors,
+            occurrences=occurrences,
             event_id=event["id"],
             transaction_id=event["transaction.event_id"],
             project_id=event["project.id"],
@@ -233,13 +264,13 @@ def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQuer
     )
     occurrence_query.columns.extend(
         [
-            Function("groupArray", parameters=[Column("group_id")], alias="issue.ids"),
+            Function("groupArray", parameters=[SnubaColumn("group_id")], alias="issue.ids"),
         ]
     )
     occurrence_query.groupby = [
-        Column("event_id"),
-        Column("occurrence_id"),
-        Column("project_id"),
+        SnubaColumn("event_id"),
+        SnubaColumn("occurrence_id"),
+        SnubaColumn("project_id"),
     ]
     return occurrence_query
 
@@ -272,11 +303,135 @@ def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
     return result
 
 
+def _uptime_results_query(
+    snuba_params: SnubaParams,
+    trace_id: str,
+) -> TraceItemTableRequest:
+    """Build a TraceItemTableRequest to query uptime results for a given trace"""
+    start_timestamp = Timestamp()
+    if snuba_params.start:
+        start_timestamp.FromDatetime(snuba_params.start)
+    end_timestamp = Timestamp()
+    if snuba_params.end:
+        end_timestamp.FromDatetime(snuba_params.end)
+
+    assert snuba_params.organization
+    return TraceItemTableRequest(
+        meta=RequestMeta(
+            organization_id=snuba_params.organization.id,
+            project_ids=snuba_params.project_ids,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+            referrer="api.trace-view.get-uptime-results",
+            downsampled_storage_config=DownsampledStorageConfig(
+                mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+            ),
+        ),
+        columns=get_columns_for_uptime_trace_item_type(TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT),
+        filter=TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="sentry.trace_id",
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str=trace_id),
+            )
+        ),
+    )
+
+
+def _run_uptime_results_query(uptime_query: TraceItemTableRequest) -> list[TraceItemTableResponse]:
+    return table_rpc([uptime_query])
+
+
+def _serialize_columnar_uptime_item(
+    row_dict: dict[str, AttributeValue],
+    project_slugs: dict[int, str],
+) -> dict[str, Any]:
+    """Convert a columnar uptime row to a serialized span format"""
+    columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
+    common_column_names = {col.internal_name for col in COMMON_COLUMNS}
+
+    guid = row_dict["guid"].val_str
+    trace_id = row_dict["sentry.trace_id"].val_str
+    check_status = row_dict["check_status"].val_str
+    http_status_code = (
+        row_dict["http_status_code"].val_int if "http_status_code" in row_dict else None
+    )
+    request_url = row_dict["request_url"].val_str
+    scheduled_check_time_us = row_dict["scheduled_check_time_us"].val_int
+    check_duration_us = (
+        row_dict["check_duration_us"].val_int if "check_duration_us" in row_dict else 0
+    )
+    project_id = row_dict["sentry.project_id"].val_int
+    project_slug = project_slugs[project_id]
+
+    span = {
+        "event_id": guid,
+        "project_id": project_id,
+        "project_slug": project_slug,
+        "transaction_id": trace_id,
+        "transaction": "uptime.check",
+        "event_type": "uptime",
+        "children": [],
+        "errors": [],
+        "occurrences": [],
+        "measurements": {},
+        "op": "uptime.request",
+        "parent_span_id": None,
+        "profile_id": "",
+        "profiler_id": "",
+        "sdk_name": "uptime-monitor",
+        "is_transaction": False,
+    }
+
+    def get_value(attr_name: str, attr_value: AttributeValue):
+        if attr_value.is_null:
+            return None
+        resolved_column = columns_by_name[attr_name]
+        if resolved_column.search_type == "integer":
+            return attr_value.val_int
+        elif resolved_column.search_type == "string":
+            return attr_value.val_str
+        elif resolved_column.search_type == "number":
+            return attr_value.val_double
+        elif resolved_column.search_type == "boolean":
+            return attr_value.val_bool
+        elif resolved_column.search_type == "byte":
+            return attr_value.val_int
+        raise ValueError("Unknown column type")
+
+    additional_attrs = {}
+    for attr_name, attr_value in row_dict.items():
+        if attr_name in columns_by_name and attr_name not in common_column_names:
+            resolved_column = columns_by_name[attr_name]
+            resolved_val = get_value(attr_name, attr_value)
+            if resolved_val is not None:
+                additional_attrs[resolved_column.public_alias] = resolved_val
+
+    span["start_timestamp"] = datetime.fromtimestamp(scheduled_check_time_us / 1_000_000)
+    span["end_timestamp"] = datetime.fromtimestamp(
+        (scheduled_check_time_us + check_duration_us) / 1_000_000
+    )
+    span["duration"] = check_duration_us / 1_000.0
+    description = f"Uptime Check [{check_status}] - {request_url}"
+    if http_status_code:
+        description += f" ({http_status_code})"
+    span["description"] = description
+
+    span["name"] = request_url
+    span["additional_attributes"] = additional_attrs
+    return span
+
+
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
+    include_uptime: bool = False,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -289,9 +444,11 @@ def query_trace_data(
     # to the database preventing a DROP.
     errors_query = _errors_query(snuba_params, trace_id, error_id)
     occurrence_query = _perf_issues_query(snuba_params, trace_id)
+    uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
-    # 1 worker each for spans, errors, performance issues
-    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
+    # 1 worker each for spans, errors, performance issues, and optionally uptime
+    max_workers = 4 if include_uptime else 3
+    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=max_workers)
     with query_thread_pool:
         spans_future = query_thread_pool.submit(
             Spans.run_trace_query,
@@ -309,12 +466,47 @@ def query_trace_data(
             _run_perf_issues_query,
             occurrence_query,
         )
+        uptime_future = None
+        if include_uptime and uptime_query:
+            uptime_future = query_thread_pool.submit(_run_uptime_results_query, uptime_query)
 
     spans_data = spans_future.result()
     errors_data = errors_future.result()
     occurrence_data = occurrence_future.result()
-
+    uptime_data = uptime_future.result() if uptime_future else []
     result = []
+    root_span = None
+    if uptime_data:
+        trace_items = []
+        for response in uptime_data:
+            column_values = response.column_values
+            if not column_values:
+                continue
+            column_names = [cv.attribute_name for cv in column_values]
+            num_rows = len(column_values[0].results)
+            for row_idx in range(num_rows):
+                row_dict = {}
+                for col_idx, col_name in enumerate(column_names):
+                    attr_value = column_values[col_idx].results[row_idx]
+                    row_dict[col_name] = attr_value
+                trace_items.append(row_dict)
+
+        if trace_items:
+            project_slugs = {
+                p["id"]: p["slug"]
+                for p in Project.objects.filter(id__in=snuba_params.project_ids).values(
+                    "id", "slug"
+                )
+            }
+            uptime_spans = [
+                _serialize_columnar_uptime_item(item, project_slugs) for item in trace_items
+            ]
+            uptime_spans.sort(
+                key=lambda s: s.get("additional_attributes", {}).get("request_sequence", 0)
+            )
+            root_span = uptime_spans[-1]
+            result.extend(uptime_spans)
+
     id_to_span = {event["id"]: event for event in spans_data}
     id_to_error: dict[str, Any] = {}
     for event in errors_data:
@@ -331,6 +523,9 @@ def query_trace_data(
         if span["parent_span"] in id_to_span:
             parent = id_to_span[span["parent_span"]]
             parent["children"].append(span)
+        elif root_span:
+            span["parent_span"] = root_span.get("event_id", root_span.get("id"))
+            root_span["children"].append(span)
         else:
             result.append(span)
         if span["id"] in id_to_error:
