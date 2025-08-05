@@ -10,9 +10,7 @@ from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.rule import Rule
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -20,7 +18,6 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleWorkflow,
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
@@ -89,29 +86,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_error_event(self) -> None:
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
-
-    @with_feature("organizations:workflow-engine-process-workflows-logs")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_error_event__logger(self, mock_logger: MagicMock) -> None:
-        self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
-
-        rule = Rule.objects.get(project=self.project)
-        AlertRuleWorkflow.objects.create(workflow=self.error_workflow, rule_id=rule.id)
-
-        triggered_workflows = process_workflows(self.event_data)
-        assert triggered_workflows == {self.error_workflow}
-
-        mock_logger.debug.assert_any_call(
-            "workflow_engine.evaluate_workflows_action_filters",
-            extra={
-                "group_id": self.group.id,
-                "event_id": self.event.event_id,
-                "workflow_ids": [self.error_workflow.id],
-                "action_conditions": [self.action_group.id],
-                "filtered_action_groups": [self.action_group.id],
-                "queue_workflows": [],
-            },
-        )
 
     @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
@@ -636,8 +610,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    @with_feature("organizations:workflow-engine-process-workflows")
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
         with self.tasks():
