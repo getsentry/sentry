@@ -108,7 +108,10 @@ def enqueue_workflows(
         project_id = queue_item.event.project_id
         items_by_project_id[project_id].append(queue_item)
 
+    items = 0
+    project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
+        sentry_sdk.set_tag("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -117,6 +120,14 @@ def enqueue_workflows(
             filters={"project_id": project_id},
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
         )
+        items += len(queue_items)
+        project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
+
+    sentry_sdk.set_tag("delayed_workflow_items", items)
+    logger.debug(
+        "workflow_engine.workflows.enqueued",
+        extra={"project_to_workflow": project_to_workflow},
+    )
 
     buffer.backend.push_to_sorted_set(
         key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
@@ -195,6 +206,7 @@ def evaluate_workflow_triggers(
             "event_data": asdict(event_data),
             "event_environment_id": environment.id if environment else None,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
+            "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
         },
     )
 
@@ -292,6 +304,7 @@ def evaluate_workflows_action_filters(
                 action_condition.id for action_condition in action_conditions_to_workflow.keys()
             ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+            "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
         },
     )
 
@@ -434,6 +447,7 @@ def process_workflows(
     )
     enqueue_workflows(queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
