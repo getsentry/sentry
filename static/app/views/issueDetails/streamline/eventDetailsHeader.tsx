@@ -242,7 +242,13 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       }}
     />
   ) : (
-    <EnvironmentPageFilter />
+    <EnvironmentPageFilter
+      triggerProps={{
+        style: {
+          padding: `${theme.space.md} ${theme.space.lg}`,
+        },
+      }}
+    />
   );
 }
 
