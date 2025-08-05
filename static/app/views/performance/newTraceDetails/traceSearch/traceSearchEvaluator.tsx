@@ -79,6 +79,9 @@ export function searchInTraceTreeTokens(
   function searchSingleToken() {
     // TODO Abdullah Khan: This implementation can be optimized;
     // it should be possible to achieve the desired outcome in a single traversal.
+    // Currently, we first enforce that any matching node is visible, then we compute the results.
+    // Just have to figure out how to track the indices of the nodes as enforceVisibility adds new nodes
+    // to the visible list.s
     enforceVisibilityForAllMatches(tree, node =>
       evaluateTokenForValue(postfix[0]!, resolveValueFromKey(node, postfix[0]!))
     );
