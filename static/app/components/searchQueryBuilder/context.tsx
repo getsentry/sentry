@@ -29,6 +29,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  askSeerNLQueryRef: React.RefObject<string | null>;
+  askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
   committedQuery: string;
   currentInputValue: string;
@@ -36,7 +38,8 @@ interface SearchQueryBuilderContextData {
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
-  displaySeerResults: boolean;
+  displayAskSeer: boolean;
+  displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
@@ -53,7 +56,8 @@ interface SearchQueryBuilderContextData {
   searchSource: string;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setCurrentInputValue: (value: string) => void;
-  setDisplaySeerResults: (enabled: boolean) => void;
+  setDisplayAskSeer: (enabled: boolean) => void;
+  setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   filterKeyAliases?: TagCollection;
@@ -92,7 +96,7 @@ export function SearchQueryBuilderProvider({
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
-  filterKeyMenuWidth = 360,
+  filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
   getTagValues,
@@ -113,9 +117,12 @@ export function SearchQueryBuilderProvider({
   const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
   const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
-  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [currentInputValue, setCurrentInputValue] = useState('');
+  const [displayAskSeer, setDisplayAskSeer] = useState(false);
+  const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
+  const askSeerNLQueryRef = useRef<string | null>(null);
+  const askSeerSuggestedQueryRef = useRef<string | null>(null);
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -197,37 +204,43 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
-      displaySeerResults,
-      setDisplaySeerResults,
       autoSubmitSeer,
       setAutoSubmitSeer,
+      displayAskSeer,
+      setDisplayAskSeer,
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
       gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
       currentInputValue,
       setCurrentInputValue,
+      displayAskSeerFeedback,
+      setDisplayAskSeerFeedback,
+      askSeerNLQueryRef,
+      askSeerSuggestedQueryRef,
     };
   }, [
+    autoSubmitSeer,
+    currentInputValue,
     disabled,
     disallowFreeText,
     disallowWildcard,
     dispatch,
-    displaySeerResults,
-    autoSubmitSeer,
+    displayAskSeer,
+    displayAskSeerFeedback,
     enableAISearch,
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
     getTagValues,
     handleSearch,
+    matchKeySuggestions,
     parseQuery,
     parsedQuery,
     placeholder,
     portalTarget,
     recentSearches,
     replaceRawSearchKeys,
-    matchKeySuggestions,
     searchSource,
     setupAcknowledgement.orgHasAcknowledged,
     size,
@@ -235,8 +248,6 @@ export function SearchQueryBuilderProvider({
     stableFilterKeys,
     stableGetSuggestedFilterKey,
     state,
-    currentInputValue,
-    setCurrentInputValue,
   ]);
 
   return (

@@ -325,7 +325,7 @@ function TableView(props: TableViewProps) {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
