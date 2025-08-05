@@ -84,9 +84,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this.value = value;
     this.metadata = metadata;
 
-    // The node can fetch its children if it has more than one span, or if we failed to fetch the span count.
-    this.canFetch = isTraceTransaction(this.value);
-
     // If a node has both a start and end timestamp, then we can infer a duration,
     // otherwise we can only infer a timestamp.
     if (

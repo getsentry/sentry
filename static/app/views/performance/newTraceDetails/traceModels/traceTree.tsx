@@ -445,6 +445,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tree.transactions_count++;
       }
 
+      if (isTransactionNode(node)) {
+        node.canFetch = true;
+      }
+
       if (isEAPSpanNode(node)) {
         tree.eap_spans_count++;
       }
