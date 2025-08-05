@@ -470,3 +470,88 @@ const result = await generateText({
   ],
   verify: () => [],
 });
+
+export const getNodeMcpOnboarding = ({
+  basePackage = 'node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  introduction: () => (
+    <Alert type="info" showIcon={false}>
+      {tct(
+        'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
+        {
+          mcp: (
+            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
+          ),
+        }
+      )}
+    </Alert>
+  ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: `@sentry/${basePackage}`,
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for MCP monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+const { McpServer } = require("@modelcontextprotocol/sdk");
+
+const server = Sentry.wrapMcpServerWithSentry(new McpServer({
+    name: "my-mcp-server",
+    version: "1.0.0",
+}));
+`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+});
