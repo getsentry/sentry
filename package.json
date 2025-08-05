@@ -115,7 +115,7 @@
     "diff": "5.2.0",
     "dompurify": "3.2.5",
     "downsample": "1.4.0",
-    "echarts": "5.4.0",
+    "echarts": "6.0.0",
     "echarts-for-react": "3.0.2",
     "esbuild": "0.25.3",
     "focus-trap": "^7.3.1",
@@ -174,7 +174,7 @@
     "ts-checker-rspack-plugin": "1.1.4",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3",
-    "zrender": "5.4.0",
+    "zrender": "6.0.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
