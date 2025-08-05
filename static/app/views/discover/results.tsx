@@ -29,7 +29,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
@@ -719,8 +719,8 @@ export class Results extends Component<Props, State> {
               />
             }
           >
-            {t(
-              'The transactions dataset is going to be deprecated soon. Please use Explore->Traces with the `is_transaction:true` filter instead.'
+            {tctCode(
+              'The transactions dataset is going to be deprecated soon. Please use Explore->Traces with the [code:is_transaction:true] filter instead.'
             )}
           </Alert>
         </Alert.Container>

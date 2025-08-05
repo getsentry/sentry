@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -235,8 +235,8 @@ function WidgetBuilderSlideout({
                 ? t(
                     'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
                   )
-                : t(
-                    'The transactions dataset is going to be deprecated soon. Please use the Spans dataset with the `is_transaction:true` filter instead.'
+                : tctCode(
+                    'The transactions dataset is going to be deprecated soon. Please use the Spans dataset with the [code:is_transaction:true] filter instead.'
                   )}
             </Alert>
           </Section>
