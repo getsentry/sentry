@@ -16,6 +16,7 @@ import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
+  areWildcardOperatorsAllowed,
   formatFilterValue,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -80,7 +81,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
               stripWildcards:
                 allContains &&
                 hasWildcardOperators &&
-                !fieldDefinition?.disallowWildcardOperators,
+                areWildcardOperatorsAllowed(fieldDefinition),
             })}
           </FilterValueSingleTruncatedValue>
         );
@@ -101,7 +102,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
                   stripWildcards:
                     allContains &&
                     hasWildcardOperators &&
-                    !fieldDefinition?.disallowWildcardOperators,
+                    areWildcardOperatorsAllowed(fieldDefinition),
                 })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -130,7 +131,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             stripWildcards:
               allContains &&
               hasWildcardOperators &&
-              !fieldDefinition?.disallowWildcardOperators,
+              areWildcardOperatorsAllowed(fieldDefinition),
           })}
         </FilterValueSingleTruncatedValue>
       );
