@@ -10,8 +10,10 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_model,
 )
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 
 logger = logging.getLogger(__name__)
 
@@ -51,21 +53,14 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             open_period: The GroupOpenPeriod for the group
         """
         try:
-            # Extract alert_id from evidence_data
-            alert_id = occurrence.evidence_data.get("alert_id")
-            if not alert_id:
-                logger.warning(
-                    "No alert_id found in evidence_data for metric issue",
-                    extra={
-                        "group_id": group.id,
-                        "occurrence_id": occurrence.id,
-                    },
-                )
-                return None
+            # Extract alert_id from evidence_data using the detector_id
+            detector_id = occurrence.evidence_data.get("detector_id")
+            if detector_id:
+                alert_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+            else:
+                raise Exception("No detector_id found in evidence_data for metric issue")
 
             # Try to find the active incident for this alert rule and project
-            from sentry.incidents.models.alert_rule import AlertRule
-
             try:
                 alert_rule = AlertRule.objects.get(id=alert_id)
                 incident = Incident.objects.get_active_incident(
@@ -88,7 +83,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             else:
                 # Incident doesn't exist yet, create a placeholder relationship
                 # that will be updated when the incident is created
-                return self.create_placeholder_relationship(alert_id, open_period, group.project)
+                return self.create_placeholder_relationship(detector_id, open_period, group.project)
 
         except Exception as e:
             logger.exception(
@@ -133,20 +128,20 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def create_placeholder_relationship(self, alert_id, open_period, project):
+    def create_placeholder_relationship(self, detector_id, open_period, project):
         """
         Creates a placeholder relationship when the incident doesn't exist yet.
         This will be updated when the incident is created.
 
         Args:
-            alert_id: The alert rule ID
+            detector_id: The detector ID
             open_period: The GroupOpenPeriod to link
             project: The project for the group
         """
         try:
             # Store the alert_id in the open_period data for later lookup
             data = open_period.data or {}
-            data["pending_incident_alert_id"] = alert_id
+            data["pending_incident_detector_id"] = detector_id
             open_period.update(data=data)
 
             return None
@@ -155,7 +150,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             logger.exception(
                 "Failed to create placeholder IncidentGroupOpenPeriod relationship",
                 extra={
-                    "alert_id": alert_id,
+                    "detector_id": detector_id,
                     "open_period_id": open_period.id,
                     "error": str(e),
                 },
@@ -174,9 +169,10 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             alert_rule: The AlertRule that triggered the incident
         """
         try:
-            # Find all open periods that have a pending incident alert_id for this alert rule
+            # Find all open periods that have a pending incident detector_id for this alert rule
+            detector_id = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector_id
             pending_open_periods = GroupOpenPeriod.objects.filter(
-                data__pending_incident_alert_id=alert_rule.id,
+                data__pending_incident_detector_id=detector_id,
                 group__project__in=incident.projects.all(),
             )
 
@@ -186,7 +182,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 if relationship:
                     # Remove the pending flag from the open_period data
                     data = open_period.data or {}
-                    data.pop("pending_incident_alert_id", None)
+                    data.pop("pending_incident_detector_id", None)
                     open_period.update(data=data)
 
         except Exception as e:
