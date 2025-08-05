@@ -224,6 +224,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
+  mcpOnboarding?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   profilingOnboarding?: OnboardingConfig<PlatformOptions>;
