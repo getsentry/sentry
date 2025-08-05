@@ -208,7 +208,21 @@ class AuthIdentityHandler:
     def _get_login_redirect(self, subdomain: str | None) -> str:
         # TODO(domains) Passing this method the organization should let us consolidate and simplify subdomain
         # state tracking.
+        from urllib.parse import urlparse
+        
         login_redirect_url = auth.get_login_redirect(self.request)
+        
+        # Check if this is a mobile app custom URL scheme redirect
+        parsed_url = urlparse(login_redirect_url)
+        allowed_mobile_schemes = [
+            "sentry-mobile-agent",
+            # Add other mobile app schemes here as needed
+        ]
+        
+        # Don't modify mobile app custom URL schemes - return them as-is
+        if parsed_url.scheme in allowed_mobile_schemes:
+            return login_redirect_url
+        
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)

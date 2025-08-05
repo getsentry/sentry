@@ -194,6 +194,18 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
 
 def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     login_redirect = _get_login_redirect(request, default)
+    
+    # Check if this is a mobile app custom URL scheme redirect
+    parsed_url = urlparse(login_redirect)
+    allowed_mobile_schemes = [
+        "sentry-mobile-agent",
+        # Add other mobile app schemes here as needed
+    ]
+    
+    # Don't modify mobile app custom URL schemes - return them as-is
+    if parsed_url.scheme in allowed_mobile_schemes:
+        return login_redirect
+    
     url_prefix = None
     if hasattr(request, "subdomain") and request.subdomain:
         url_prefix = generate_organization_url(request.subdomain)
@@ -206,7 +218,18 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         return False
     if url.startswith(get_login_url()):
         return False
+    
     parsed_url = urlparse(url)
+    
+    # Allow mobile app custom URL schemes for authentication redirects
+    allowed_mobile_schemes = [
+        "sentry-mobile-agent",
+        # Add other mobile app schemes here as needed
+    ]
+    
+    if parsed_url.scheme in allowed_mobile_schemes:
+        return True
+    
     url_host = parsed_url.netloc
     base_hostname = options.get("system.base-hostname")
     if url_host.endswith(f".{base_hostname}"):
