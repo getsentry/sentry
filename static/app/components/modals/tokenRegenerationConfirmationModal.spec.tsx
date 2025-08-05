@@ -10,10 +10,12 @@ import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
 describe('TokenRegenerationConfirmationModal', function () {
-  function renderComponent() {
+  function renderComponent(token?: string) {
     renderGlobalModal();
     act(() =>
-      openModal(modalProps => <TokenRegenerationConfirmationModal {...modalProps} />)
+      openModal(modalProps => (
+        <TokenRegenerationConfirmationModal token={token} {...modalProps} />
+      ))
     );
   }
 
@@ -33,16 +35,18 @@ describe('TokenRegenerationConfirmationModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays both token inputs', function () {
-    renderComponent();
+  it('displays both token inputs with correct values', function () {
+    const testToken = 'test-token-12345';
+    renderComponent(testToken);
 
     const tokenInputs = screen.getAllByRole('textbox');
     expect(tokenInputs).toHaveLength(2);
 
     expect(screen.getByDisplayValue('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('91b57316-b1ff-4884-8d55-92b9936a05a3')
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Prevent Variable')).toBeInTheDocument();
+
+    expect(screen.getByDisplayValue(testToken)).toBeInTheDocument();
+    expect(screen.getByLabelText('Token')).toBeInTheDocument();
   });
 
   it('renders Done button', function () {
@@ -63,10 +67,11 @@ describe('TokenRegenerationConfirmationModal', function () {
     });
   });
 
-  it('has copy functionality for both tokens', function () {
-    renderComponent();
+  it('renders copy buttons for both tokens', function () {
+    const testToken = 'test-token-12345';
+    renderComponent(testToken);
 
-    const copyButtons = screen.getAllByRole('button', {name: /copy/i});
+    const copyButtons = screen.getAllByRole('button', {name: 'Copy'});
     expect(copyButtons).toHaveLength(2);
   });
 });

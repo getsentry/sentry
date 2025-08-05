@@ -34,10 +34,13 @@ function TokenRegenerationConfirmationModal({
             </Alert>
           </Alert.Container>
           <TokenRow>
-            <StyledTextCopyInput style={{minWidth: '230px'}}>
+            <StyledTextCopyInput
+              style={{minWidth: '230px'}}
+              aria-label={t('Prevent Variable')}
+            >
               SENTRY_PREVENT_TOKEN
             </StyledTextCopyInput>
-            <StyledTextCopyInput style={{minWidth: '310px'}}>
+            <StyledTextCopyInput style={{minWidth: '310px'}} aria-label={t('Token')}>
               {token || ''}
             </StyledTextCopyInput>
           </TokenRow>

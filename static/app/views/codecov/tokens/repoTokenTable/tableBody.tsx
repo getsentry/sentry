@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
 
-import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRegenerateRepositoryToken} from 'sentry/views/codecov/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 import {
   type Column,
   type Row,
@@ -17,26 +16,11 @@ interface TableBodyProps {
   row: Row;
 }
 
-async function regenerateRepositoryToken(
-  api: ReturnType<typeof useApi>,
-  orgSlug: string,
-  integratedOrgId: string | undefined,
-  repository: string | undefined
-): Promise<string> {
-  const result = await api.requestPromise(
-    `/organizations/${orgSlug}/prevent/owner/${integratedOrgId}/repository/${repository}/token/regenerate/`,
-    {
-      method: 'POST',
-    }
-  );
-
-  return result.token;
-}
-
 function TableBodyCell({column, row}: TableBodyProps) {
-  const api = useApi();
   const organization = useOrganization();
-  const {integratedOrgId, repository} = useCodecovContext();
+  const {integratedOrgId} = useCodecovContext();
+
+  const {mutate: regenerateToken} = useRegenerateRepositoryToken();
 
   const key = column.key;
   const alignment = ['regenerateToken', 'token'].includes(key) ? 'right' : 'left';
@@ -45,23 +29,12 @@ function TableBodyCell({column, row}: TableBodyProps) {
     return (
       <AlignmentContainer alignment={alignment}>
         <Confirm
-          onConfirm={async () => {
-            try {
-              // Trigger the regeneration
-              const newToken = await regenerateRepositoryToken(
-                api,
-                organization.slug,
-                integratedOrgId,
-                repository
-              );
-
-              // Open modal with the new token
-              openTokenRegenerationConfirmationModal({token: newToken});
-            } catch (error) {
-              // TODO: Handle error (show toast notification, etc.)
-              // eslint-disable-next-line no-console
-              console.error('Failed to regenerate token:', error);
-            }
+          onConfirm={() => {
+            regenerateToken({
+              orgSlug: organization.slug,
+              integratedOrgId: integratedOrgId ?? '',
+              repository: row.name,
+            });
           }}
           header={<h5>{t('Generate new token')}</h5>}
           cancelText={t('Return')}
