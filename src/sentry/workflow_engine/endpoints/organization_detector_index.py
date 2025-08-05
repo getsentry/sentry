@@ -3,7 +3,7 @@ from functools import partial
 from typing import assert_never
 
 from django.db import router, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
@@ -43,7 +43,6 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
-from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
@@ -51,6 +50,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -82,13 +82,18 @@ def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], u
     return assignee_query
 
 
-# Maps API field name to database field name, with synthetic aggregate fields keeping
-# to our field naming scheme for consistency.
-SORT_ATTRS = {
+# Maps API field name to database ordering expressions
+SORT_MAP = {
     "name": "name",
+    "-name": "-name",
     "id": "id",
+    "-id": "-id",
     "type": "type",
+    "-type": "-type",
     "connectedWorkflows": "connected_workflows",
+    "-connectedWorkflows": "-connected_workflows",
+    "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
+    "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
 }
 
 DETECTOR_TYPE_ALIASES = {
@@ -226,17 +231,30 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
-        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
-        if sort_by.db_field_name == "connected_workflows":
-            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
+        sort_by = request.GET.get("sortBy", "id")
+        sort_by_field = sort_by.lstrip("-")
+        if sort_by not in SORT_MAP:
+            raise ValidationError({"sortBy": ["Invalid sort field"]})
 
-        queryset = queryset.order_by(*sort_by.db_order_by)
+        if sort_by_field == "connectedWorkflows":
+            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
+        elif sort_by_field == "latestGroup":
+            latest_detector_group_subquery = (
+                DetectorGroup.objects.filter(detector=OuterRef("pk"))
+                .order_by("-date_added")
+                .values("date_added")[:1]
+            )
+            queryset = queryset.annotate(
+                latest_group_date_added=Subquery(latest_detector_group_subquery)
+            )
+
+        order_by_field = [SORT_MAP[sort_by]]
 
         return self.paginate(
             request=request,
             paginator_cls=OffsetPaginator,
             queryset=queryset,
-            order_by=sort_by.db_order_by,
+            order_by=order_by_field,
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
