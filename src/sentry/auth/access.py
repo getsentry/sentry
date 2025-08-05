@@ -273,8 +273,8 @@ class DbAccess(Access):
                 .distinct()
                 .values_list("id", flat=True)
             )
-            span.set_attribute("Project Count", len(projects))
-            span.set_attribute("Team Count", len(teams))
+            span.set_data("Project Count", len(projects))
+            span.set_data("Team Count", len(teams))
 
         return projects
 
@@ -353,7 +353,7 @@ class DbAccess(Access):
                 ]
                 span.set_tag("organization", self._member.organization.id)
                 span.set_tag("organization.slug", self._member.organization.slug)
-                span.set_attribute("membership_count", len(memberships))
+                span.set_data("membership_count", len(memberships))
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
@@ -564,7 +564,7 @@ class RpcBackedAccess(Access):
                 span.set_tag(
                     "organization.slug", self.rpc_user_organization_context.organization.slug
                 )
-                span.set_attribute("membership_count", len(orgmember_teams))
+                span.set_data("membership_count", len(orgmember_teams))
 
             for member_team in orgmember_teams:
                 if not member_team.role:
