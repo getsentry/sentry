@@ -1,10 +1,16 @@
 import type {ApiPath} from './apiDefinition';
 
+type StripDollar<T extends string> = T extends `$${infer Name}` ? Name : T;
+
+type SplitColon<T extends string> = T extends `${infer A}:${infer B}`
+  ? StripDollar<A> | SplitColon<B>
+  : StripDollar<T>;
+
 export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
-    ? Param | ExtractPathParams<`/${Rest}`>
+    ? SplitColon<Param> | ExtractPathParams<`/${Rest}`>
     : TApiPath extends `${string}$${infer Param}`
-      ? Param
+      ? SplitColon<Param>
       : never;
 
 export type PathParamOptions<TApiPath extends string> =

@@ -32,6 +32,21 @@ describe('getApiUrl', () => {
     expect(url).toBe('/projects/my-org/my-project/releases/v%201.0.0/');
   });
 
+  test('advanced path params case', () => {
+    const url = getApiUrl(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: 'my-org',
+          projectIdOrSlug: 'my-project',
+          eventId: '12345',
+        },
+      }
+    );
+
+    expect(url).toBe('/organizations/my-org/events/my-project:12345/');
+  });
+
   test('should stringify number path params', () => {
     const url = getApiUrl('/items/$id/', {
       path: {id: 123},
