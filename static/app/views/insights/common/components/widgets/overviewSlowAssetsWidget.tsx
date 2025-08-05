@@ -102,7 +102,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        id: 'overviewSlowQueriesChartWidget',
+        id: 'overviewSlowAssetsWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
         plottables: timeSeries.map(
           (ts, index) =>
