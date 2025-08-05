@@ -832,8 +832,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -927,8 +927,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -1654,8 +1654,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -1749,8 +1749,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -2441,8 +2441,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -3130,8 +3130,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -3174,7 +3174,7 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 500, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
-      logBytes: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
@@ -3214,7 +3214,7 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 10, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
-      logBytes: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
@@ -3711,8 +3711,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -4261,8 +4261,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -4826,8 +4826,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -4921,8 +4921,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -5015,8 +5015,8 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],

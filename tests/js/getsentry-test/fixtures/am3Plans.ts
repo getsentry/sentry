@@ -955,10 +955,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 50.0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 60.0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS,
@@ -1461,10 +1461,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 50.0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 60.0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_ANNUAL,
@@ -1565,10 +1565,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1669,10 +1669,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1781,10 +1781,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1893,10 +1893,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1997,10 +1997,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_DEVELOPER,
@@ -2101,10 +2101,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2213,10 +2213,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2719,10 +2719,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 50.0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 60.0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS,
@@ -3225,10 +3225,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 50.0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 60.0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_ANNUAL,
@@ -3321,10 +3321,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       logBytes: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 0.5,
         },
       ],
     },
