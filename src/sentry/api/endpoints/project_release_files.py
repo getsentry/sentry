@@ -205,7 +205,7 @@ class ArtifactSource:
 
         return files
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sorted_and_filtered_files)
 
     def __getitem__(self, range):

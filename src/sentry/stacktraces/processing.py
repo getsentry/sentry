@@ -60,7 +60,7 @@ class ProcessableFrame:
         self.cache_value = None
         self.processable_frames = processable_frames
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<ProcessableFrame {!r} #{!r} at {!r}>".format(
             self.frame.get("function") or "unknown",
             self.idx,

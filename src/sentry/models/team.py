@@ -146,7 +146,7 @@ class Team(ReplicatedRegionModel):
     def class_name(self):
         return "Team"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:

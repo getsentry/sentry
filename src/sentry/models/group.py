@@ -648,7 +648,7 @@ class Group(Model):
 
     __repr__ = sane_repr("project_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"({self.times_seen}) {self.title}"
 
     def save(self, *args, **kwargs):
