@@ -63,7 +63,7 @@ class DartPluginDeobfuscationTest(TestCase):
                 "values": [
                     {
                         "type": "xyz",
-                        "value": "Error: xyz was thrown",
+                        "value": "Instance of 'xyz' was thrown",
                         "stacktrace": {
                             "frames": [
                                 {
@@ -89,9 +89,9 @@ class DartPluginDeobfuscationTest(TestCase):
         preprocessor = preprocessors[0]
         preprocessor(data)
 
-        # Verify the exception type was deobfuscated
+        # Verify the exception type was deobfuscated, value remains unchanged
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Error: NetworkException was thrown"
+        assert data["exception"]["values"][0]["value"] == "Instance of 'xyz' was thrown"
 
     def test_dart_multiple_exceptions_deobfuscation_direct(self) -> None:
         """Test that multiple Dart exceptions are deobfuscated."""
@@ -134,14 +134,14 @@ class DartPluginDeobfuscationTest(TestCase):
         assert len(preprocessors) == 1
         preprocessors[0](data)
 
-        # Verify all exceptions were deobfuscated
+        # Verify all exception types were deobfuscated, values remain unchanged
         exception_values = data["exception"]["values"]
         assert exception_values[0]["type"] == "NetworkException"
-        assert exception_values[0]["value"] == "NetworkException: NetworkException"
+        assert exception_values[0]["value"] == "NetworkException: xyz"
         assert exception_values[1]["type"] == "DatabaseException"
-        assert exception_values[1]["value"] == "Database error: DatabaseException occurred"
+        assert exception_values[1]["value"] == "Database error: abc occurred"
         assert exception_values[2]["type"] == "FileNotFoundException"
-        assert exception_values[2]["value"] == "File error: FileNotFoundException not found"
+        assert exception_values[2]["value"] == "File error: def not found"
 
     def test_dart_partial_deobfuscation_direct(self) -> None:
         """Test partial deobfuscation when some symbols are not in the map."""
@@ -181,10 +181,10 @@ class DartPluginDeobfuscationTest(TestCase):
         assert len(preprocessors) == 1
         preprocessors[0](data)
 
-        # Only xyz should be deobfuscated
+        # Only xyz type should be deobfuscated, values remain unchanged
         exception_values = data["exception"]["values"]
         assert exception_values[0]["type"] == "NetworkException"
-        assert exception_values[0]["value"] == "Error: NetworkException was thrown"
+        assert exception_values[0]["value"] == "Error: xyz was thrown"
         # Unknown symbol should remain unchanged
         assert exception_values[1]["type"] == "unknown_symbol"
         assert exception_values[1]["value"] == "Error: unknown_symbol occurred"

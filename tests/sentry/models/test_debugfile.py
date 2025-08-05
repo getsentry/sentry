@@ -124,6 +124,29 @@ class DebugFileTest(TestCase):
         ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
         assert ret == ["a" * 40]
 
+    def test_file_extension_dartsymbolmap(self) -> None:
+        """Test that dartsymbolmap files return .json file extension."""
+        # Create a file with dartsymbolmap content type
+        file = File.objects.create(
+            name="dartsymbolmap",
+            type="project.dif",
+            headers={"Content-Type": "application/x-dartsymbolmap+json"},
+        )
+
+        # Create a ProjectDebugFile
+        dif = ProjectDebugFile.objects.create(
+            file=file,
+            checksum="test-checksum",
+            object_name="dartsymbolmap",
+            cpu_name="any",
+            project_id=self.project.id,
+            debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75",
+            data={"features": ["mapping"]},
+        )
+
+        # Verify that file_extension returns .json
+        assert dif.file_extension == ".json"
+
 
 class CreateDebugFileTest(APITestCase):
     @property

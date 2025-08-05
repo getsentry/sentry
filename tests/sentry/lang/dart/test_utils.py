@@ -159,15 +159,13 @@ def test_deobfuscate_exception_type() -> None:
     ):
         deobfuscate_exception_type(data)
 
-        # Check that exception types and values were deobfuscated
+        # Check that exception types are deobfuscated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert (
-            data["exception"]["values"][0]["value"] == "Error: NetworkException occurred in the app"
-        )
+        # Values without "Instance of" pattern should remain unchanged
+        assert data["exception"]["values"][0]["value"] == "Error: xyz occurred in the app"
+
         assert data["exception"]["values"][1]["type"] == "DatabaseException"
-        assert (
-            data["exception"]["values"][1]["value"] == "Another error: DatabaseException was thrown"
-        )
+        assert data["exception"]["values"][1]["value"] == "Another error: abc was thrown"
 
 
 def test_deobfuscate_exception_type_no_debug_ids() -> None:
@@ -285,6 +283,192 @@ def test_deobfuscate_exception_type_no_mapping_file() -> None:
 
         # Should remain unchanged
         assert data["exception"]["values"][0]["type"] == original_type
+
+
+def test_deobfuscate_exception_type_non_string_value() -> None:
+    """Test that non-string exception values don't cause AttributeError."""
+    mock_project = mock.Mock(id=123)
+
+    data: dict[str, Any] = {
+        "project": 123,
+        "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
+        "exception": {
+            "values": [
+                {
+                    "type": "xyz",
+                    "value": 12345,  # Non-string value
+                },
+                {
+                    "type": "abc",
+                    "value": {"error": "details"},  # Dict value
+                },
+                {
+                    "type": "def",
+                    "value": ["list", "of", "errors"],  # List value
+                },
+            ]
+        },
+    }
+
+    mock_map = {
+        "xyz": "NetworkException",
+        "abc": "DatabaseException",
+        "def": "FileException",
+    }
+
+    with (
+        mock.patch(
+            "sentry.models.Project.objects.get_from_cache",
+            return_value=mock_project,
+        ),
+        mock.patch(
+            "sentry.lang.dart.utils.generate_dart_symbols_map",
+            return_value=mock_map,
+        ),
+    ):
+        # Should not raise AttributeError
+        deobfuscate_exception_type(data)
+
+        # Types should be deobfuscated, but values should remain unchanged
+        assert data["exception"]["values"][0]["type"] == "NetworkException"
+        assert data["exception"]["values"][0]["value"] == 12345  # Unchanged
+
+        assert data["exception"]["values"][1]["type"] == "DatabaseException"
+        assert data["exception"]["values"][1]["value"] == {"error": "details"}  # Unchanged
+
+        assert data["exception"]["values"][2]["type"] == "FileException"
+        assert data["exception"]["values"][2]["value"] == ["list", "of", "errors"]  # Unchanged
+
+
+def test_deobfuscate_exception_type_instance_of_pattern() -> None:
+    """Test that 'Instance of' patterns are properly deobfuscated."""
+    mock_project = mock.Mock(id=123)
+
+    data: dict[str, Any] = {
+        "project": 123,
+        "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
+        "exception": {
+            "values": [
+                {
+                    "type": "xyz",
+                    "value": "Instance of 'xyz'",
+                },
+                {
+                    "type": "abc",
+                    "value": "Unhandled Exception: Instance of 'abc' was thrown",
+                },
+                {
+                    "type": "def",
+                    "value": "Error: def occurred outside of Instance pattern",
+                },
+                {
+                    "type": "ghi",
+                    "value": "Instance of 'xyz' and Instance of 'ghi' both occurred",
+                },
+            ]
+        },
+    }
+
+    mock_map = {
+        "xyz": "NetworkException",
+        "abc": "DatabaseException",
+        "def": "FileException",
+        "ghi": "IOException",
+    }
+
+    with (
+        mock.patch(
+            "sentry.models.Project.objects.get_from_cache",
+            return_value=mock_project,
+        ),
+        mock.patch(
+            "sentry.lang.dart.utils.generate_dart_symbols_map",
+            return_value=mock_map,
+        ),
+    ):
+        deobfuscate_exception_type(data)
+
+        # Only exception types should be deobfuscated, values remain unchanged
+        assert data["exception"]["values"][0]["type"] == "NetworkException"
+        assert data["exception"]["values"][0]["value"] == "Instance of 'xyz'"
+
+        assert data["exception"]["values"][1]["type"] == "DatabaseException"
+        assert (
+            data["exception"]["values"][1]["value"]
+            == "Unhandled Exception: Instance of 'abc' was thrown"
+        )
+
+        assert data["exception"]["values"][2]["type"] == "FileException"
+        # No 'Instance of' pattern, so value should remain unchanged
+        assert (
+            data["exception"]["values"][2]["value"]
+            == "Error: def occurred outside of Instance pattern"
+        )
+
+        assert data["exception"]["values"][3]["type"] == "IOException"
+        # Values remain unchanged
+        assert (
+            data["exception"]["values"][3]["value"]
+            == "Instance of 'xyz' and Instance of 'ghi' both occurred"
+        )
+
+
+def test_deobfuscate_exception_type_special_regex_chars() -> None:
+    """Test that symbols containing regex special characters are handled correctly in Instance of patterns."""
+    mock_project = mock.Mock(id=123)
+
+    data: dict[str, Any] = {
+        "project": 123,
+        "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
+        "exception": {
+            "values": [
+                {
+                    "type": "a.b",
+                    "value": "Instance of 'a.b'",
+                },
+                {
+                    "type": "x+y",
+                    "value": "Instance of 'x+y' occurred",
+                },
+                {
+                    "type": "test[0]",
+                    "value": "Instance of 'test[0]' and Instance of 'other' patterns",
+                },
+            ]
+        },
+    }
+
+    mock_map = {
+        "a.b": "NetworkException",
+        "x+y": "MathException",
+        "test[0]": "ArrayException",
+    }
+
+    with (
+        mock.patch(
+            "sentry.models.Project.objects.get_from_cache",
+            return_value=mock_project,
+        ),
+        mock.patch(
+            "sentry.lang.dart.utils.generate_dart_symbols_map",
+            return_value=mock_map,
+        ),
+    ):
+        deobfuscate_exception_type(data)
+
+        # Exception types deobfuscated, values remain unchanged
+        assert data["exception"]["values"][0]["type"] == "NetworkException"
+        assert data["exception"]["values"][0]["value"] == "Instance of 'a.b'"
+
+        assert data["exception"]["values"][1]["type"] == "MathException"
+        assert data["exception"]["values"][1]["value"] == "Instance of 'x+y' occurred"
+
+        assert data["exception"]["values"][2]["type"] == "ArrayException"
+        # Values remain unchanged
+        assert (
+            data["exception"]["values"][2]["value"]
+            == "Instance of 'test[0]' and Instance of 'other' patterns"
+        )
 
 
 # @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)

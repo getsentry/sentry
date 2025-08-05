@@ -102,11 +102,12 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
                     continue
                 exception["type"] = symbolicated_symbol
 
-                exception_value = exception.get("value")
-                if exception_value is None:
-                    continue
-
-                exception["value"] = exception_value.replace(obfuscated_symbol, symbolicated_symbol)
+                # TODO: Future enhancement - deobfuscate exception values
+                # Exception values may contain obfuscated symbols in patterns like:
+                # - "Instance of 'obfuscated_symbol'"
+                # - General text containing obfuscated symbols
+                # This could be implemented by extracting symbols from these patterns
+                # and looking them up in the symbol map for replacement.
 
 
 # TODO: Add this back in when we decide to deobfuscate view hierarchies

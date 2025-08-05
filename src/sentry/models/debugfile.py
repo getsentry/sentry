@@ -184,6 +184,8 @@ class ProjectDebugFile(Model):
             return ".plist"
         if self.file_format == "il2cpp":
             return ".json"
+        if self.file_format == "dartsymbolmap":
+            return ".json"
 
         return ""
 
