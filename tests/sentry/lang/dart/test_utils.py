@@ -43,7 +43,7 @@ def test_generate_dart_symbols_map() -> None:
             "sentry.models.ProjectDebugFile.difcache.fetch_difs",
             return_value={"test-uuid": mocked_debug_file.name},
         ):
-            map = generate_dart_symbols_map("test-uuid", mock.Mock())
+            map = generate_dart_symbols_map(["test-uuid"], mock.Mock())
 
             assert map == MOCK_DEBUG_MAP
 
@@ -66,7 +66,7 @@ def test_generate_dart_symbols_map_dict_format_fails() -> None:
             return_value={"test-uuid": mocked_debug_file.name},
         ):
             # Should return None because dict format is not supported
-            map = generate_dart_symbols_map("test-uuid", mock.Mock())
+            map = generate_dart_symbols_map(["test-uuid"], mock.Mock())
             assert map is None
 
 
@@ -82,7 +82,7 @@ def test_generate_dart_symbols_map_odd_array_fails() -> None:
             "sentry.models.ProjectDebugFile.difcache.fetch_difs",
             return_value={"test-uuid": mocked_debug_file.name},
         ):
-            map = generate_dart_symbols_map("test-uuid", mock.Mock())
+            map = generate_dart_symbols_map(["test-uuid"], mock.Mock())
             assert map is None
 
 
@@ -92,8 +92,31 @@ def test_generate_dart_symbols_map_no_file() -> None:
         "sentry.models.ProjectDebugFile.difcache.fetch_difs",
         return_value={},  # No file found
     ):
-        map = generate_dart_symbols_map("test-uuid", mock.Mock())
+        map = generate_dart_symbols_map(["test-uuid"], mock.Mock())
         assert map is None
+
+
+def test_generate_dart_symbols_map_multiple_debug_ids() -> None:
+    """Test that the function tries multiple debug IDs and returns the first valid mapping."""
+    with tempfile.NamedTemporaryFile() as mocked_debug_file:
+        mocked_debug_file.write(MOCK_DEBUG_FILE)
+        mocked_debug_file.seek(0)
+
+        # Mock so that first debug ID has no file, but second one does
+        def mock_fetch_difs(project, debug_ids, features):
+            if debug_ids == ["first-uuid"]:
+                return {}  # No file for first UUID
+            elif debug_ids == ["second-uuid"]:
+                return {"second-uuid": mocked_debug_file.name}  # File found for second UUID
+            return {}
+
+        with mock.patch(
+            "sentry.models.ProjectDebugFile.difcache.fetch_difs",
+            side_effect=mock_fetch_difs,
+        ):
+            # Should return the mapping from the second debug ID
+            map = generate_dart_symbols_map(["first-uuid", "second-uuid"], mock.Mock())
+            assert map == MOCK_DEBUG_MAP
 
 
 def test_get_debug_meta_image_ids() -> None:
