@@ -83,10 +83,10 @@ class GroupingConfigLoader:
     def get_config_dict(self, project: Project) -> GroupingConfig:
         return {
             "id": self._get_config_id(project),
-            "enhancements": self._get_enhancements(project),
+            "enhancements": self._get_base64_enhancements(project),
         }
 
-    def _get_enhancements(self, project: Project) -> str:
+    def _get_base64_enhancements(self, project: Project) -> str:
         derived_enhancements = project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
         project_enhancements = project.get_option("sentry:grouping_enhancements")
 
