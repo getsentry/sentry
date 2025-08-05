@@ -109,6 +109,7 @@ def enqueue_workflows(
         items_by_project_id[project_id].append(queue_item)
 
     items = 0
+    project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
         sentry_sdk.set_tag("delayed_workflow_items", items)
         return
@@ -120,8 +121,13 @@ def enqueue_workflows(
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
         )
         items += len(queue_items)
+        project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
+    logger.debug(
+        "workflow_engine.workflows.enqueued",
+        extra={"project_to_workflow": project_to_workflow},
+    )
 
     buffer.backend.push_to_sorted_set(
         key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
