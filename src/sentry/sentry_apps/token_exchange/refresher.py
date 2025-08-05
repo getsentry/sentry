@@ -6,7 +6,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError
-from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -155,3 +155,106 @@ class Refresher:
                     "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
                 },
             )
+
+
+@dataclass
+class IntegratorTokenRefresher:
+    client_id: str
+    client_secret: str
+    user: User
+    installation: SentryAppInstallation
+
+    def run(self) -> ApiToken:
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.AUTHORIZATIONS,
+            event_type=SentryAppEventType.REFRESHER,
+        ).capture() as lifecycle:
+            context = {
+                "installation_uuid": self.installation.uuid,
+                "client_id": self.client_id,
+                "sentry_app_id": self.installation.sentry_app.id,
+            }
+            lifecycle.add_extras(context)
+            try:
+                self._validate()
+            except SentryAppIntegratorError as e:
+                return e
+
+            try:
+                application = self._validate_application()
+            except SentryAppIntegratorError as e:
+                return e
+            try:
+                with transaction.atomic(router.db_for_write(ApiToken)):
+                    old_token = self._get_token(application)
+                    old_token.delete()
+
+                    new_token = self._create_new_token()
+                    logger.info(
+                        "integrator.manual_token_refresh",
+                        extra={
+                            "installation_id": self.installation.id,
+                            "sentry_app_id": self.installation.sentry_app.id,
+                        },
+                    )
+                    return new_token
+            except OutboxDatabaseError as e:
+                raise SentryAppSentryError(
+                    message="Failed to refresh given token",
+                    status_code=500,
+                    webhook_context={
+                        "installation_uuid": self.installation.uuid,
+                    },
+                ) from e
+
+    def _validate(self) -> None:
+        # 1. validate the sentry app is owned by the user
+        # 2. validate the sentry app is making the request
+        # 3. validate the installation is owned by the sentry app for the given client_id
+        Validator(install=self.installation, client_id=self.client_id, user=self.user).run()
+
+    def _validate_application(self) -> ApiApplication:
+        # 4. validate the client_id and client_secret pair is valid
+        try:
+            application = ApiApplication.objects.get(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                status=ApiApplicationStatus.active,
+            )
+        except ApiApplication.DoesNotExist as e:
+            raise SentryAppIntegratorError(
+                message="Could not find matching Application for given client_id and client_secret",
+                status_code=401,
+                webhook_context={
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret[:SENSITIVE_CHARACTER_LIMIT],
+                    "installation_uuid": self.installation.uuid,
+                },
+            ) from e
+
+        return application
+
+    def _get_token(self, application: ApiApplication) -> ApiToken:
+        try:
+            return ApiToken.objects.get(application=application)
+        except ApiToken.DoesNotExist:
+            raise SentryAppSentryError(
+                message="Could not find matching token for client_id and client_secret pair",
+                status_code=401,
+                webhook_context={
+                    "installation_uuid": self.installation.uuid,
+                },
+            )
+
+    def _create_new_token(self, application: ApiApplication) -> ApiToken:
+        token = ApiToken.objects.create(
+            user=self.user,
+            application=application,
+            scope_list=self.installation.sentry_app.scope_list,
+            expires_at=token_expiration(),
+        )
+        try:
+            SentryAppInstallation.objects.get(id=self.installation.id).update(api_token=token)
+        except SentryAppInstallation.DoesNotExist:
+            pass
+        return token
