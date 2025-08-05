@@ -39,19 +39,19 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
 
   const columnNameMap = {
     transaction: t('Screen'),
-    [`avg_if(measurements.app_start_cold,release,${primaryRelease})`]: t(
+    [`avg_if(measurements.app_start_cold,release,equals,${primaryRelease})`]: t(
       'Avg Cold Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.app_start_cold,release,${secondaryRelease})`]: t(
+    [`avg_if(measurements.app_start_cold,release,equals,${secondaryRelease})`]: t(
       'Avg Cold Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.app_start_warm,release,${primaryRelease})`]: t(
+    [`avg_if(measurements.app_start_warm,release,equals,${primaryRelease})`]: t(
       'Avg Warm Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.app_start_warm,release,${secondaryRelease})`]: t(
+    [`avg_if(measurements.app_start_warm,release,equals,${secondaryRelease})`]: t(
       'Avg Warm Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -135,8 +135,8 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
       pageLinks={pageLinks}
       columnOrder={[
         'transaction',
-        `avg_if(measurements.app_start_${startType},release,${primaryRelease})`,
-        `avg_if(measurements.app_start_${startType},release,${secondaryRelease})`,
+        `avg_if(measurements.app_start_${startType},release,equals,${primaryRelease})`,
+        `avg_if(measurements.app_start_${startType},release,equals,${secondaryRelease})`,
         `avg_compare(measurements.app_start_${startType},release,${primaryRelease},${secondaryRelease})`,
         'app_start_breakdown',
         `count_starts(measurements.app_start_${startType})`,

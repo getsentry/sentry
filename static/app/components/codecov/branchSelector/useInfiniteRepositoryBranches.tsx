@@ -70,12 +70,12 @@ export function useInfiniteRepositoryBranches({term}: Props) {
 
       return result as ApiResult<RepositoryBranches>;
     },
-    getNextPageParam: ([lastPage]) => {
-      return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    getNextPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasNextPage ? pageData.pageInfo.endCursor : undefined;
     },
-    getPreviousPageParam: ([firstPage]) => {
-      return firstPage.pageInfo?.hasPreviousPage
-        ? firstPage.pageInfo.startCursor
+    getPreviousPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasPreviousPage
+        ? pageData.pageInfo.startCursor
         : undefined;
     },
     initialPageParam: undefined,

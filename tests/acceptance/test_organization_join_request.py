@@ -9,7 +9,7 @@ class OrganizationJoinRequestTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
 
-    def test_view(self):
+    def test_view(self) -> None:
         self.browser.get(f"/join-request/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="join-request"]')
         assert self.browser.element_exists('[data-test-id="join-request"]')

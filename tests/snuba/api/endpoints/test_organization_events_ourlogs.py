@@ -9,7 +9,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 
 class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
-    dataset = "ourlogs"
+    dataset = "logs"
 
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
@@ -21,7 +21,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         }
 
     @pytest.mark.querybuilder
-    def test_simple(self):
+    def test_simple(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
@@ -59,7 +59,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.querybuilder
-    def test_timestamp_order(self):
+    def test_timestamp_order(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
@@ -103,7 +103,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == self.dataset
 
-    def test_free_text_wildcard_filter(self):
+    def test_free_text_wildcard_filter(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "bar"},
@@ -133,7 +133,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == self.dataset
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
@@ -168,7 +168,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
     @pytest.mark.xfail(
         reason="Failing because of https://github.com/getsentry/eap-planning/issues/238"
     )
-    def test_project_slug_field(self):
+    def test_project_slug_field(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "bar"},
@@ -192,7 +192,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == self.dataset
 
-    def test_trace_id_list_filter(self):
+    def test_trace_id_list_filter(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         logs = [
@@ -226,7 +226,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_filter_timestamp(self):
+    def test_filter_timestamp(self) -> None:
         one_day_ago = before_now(days=1).replace(microsecond=0)
         three_days_ago = before_now(days=3).replace(microsecond=0)
 
@@ -276,7 +276,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"message": "bar"}]
 
-    def test_count_meta_type_is_integer(self):
+    def test_count_meta_type_is_integer(self) -> None:
         one_day_ago = before_now(days=1).replace(microsecond=0)
 
         log1 = self.create_ourlog(
@@ -301,7 +301,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.data["data"] == [{"message": "foo", "count()": 1}]
         assert response.data["meta"]["fields"]["count()"] == "integer"
 
-    def test_pagelimit(self):
+    def test_pagelimit(self) -> None:
         log = self.create_ourlog(
             {"body": "test"},
             timestamp=self.ten_mins_ago,
@@ -331,7 +331,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
 
-    def test_homepage_query(self):
+    def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""
         logs = [
@@ -350,7 +350,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "cursor": "",
-                "dataset": "ourlogs",
+                "dataset": "logs",
                 "field": [
                     "sentry.item_id",
                     "project.id",

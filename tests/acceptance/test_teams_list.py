@@ -17,7 +17,7 @@ class TeamsListTest(AcceptanceTestCase):
         # this should redirect to /settings/{}/teams/
         self.path = f"/organizations/{self.org.slug}/teams/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

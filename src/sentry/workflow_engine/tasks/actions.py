@@ -11,7 +11,10 @@ from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
+from sentry.workflow_engine.tasks.utils import (
+    build_workflow_event_data_from_activity,
+    build_workflow_event_data_from_event,
+)
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -19,7 +22,14 @@ logger = log_context.get_logger(__name__)
 
 
 def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
-    """Build parameters for trigger_action.delay() call."""
+    """
+    Build parameters for trigger_action task invocation.
+
+    Args:
+        action: The action to trigger.
+        detector: The detector that triggered the action.
+        event_data: The event data to use for the action.
+    """
     event_id = None
     activity_id = None
     occurrence_id = None
@@ -110,9 +120,17 @@ def trigger_action(
             workflow_env_id=workflow_env_id,
         )
 
+    elif activity_id is not None:
+        event_data = build_workflow_event_data_from_activity(
+            activity_id=activity_id, group_id=group_id
+        )
     else:
-        # Here, we probably build the event data from the activity
-        raise NotImplementedError("Activity ID is not supported yet")
+        # This should never happen, and if it does, need to investigate
+        logger.error(
+            "Exactly one of event_id or activity_id must be provided",
+            extra={"event_id": event_id, "activity_id": activity_id},
+        )
+        raise ValueError("Exactly one of event_id or activity_id must be provided")
 
     should_trigger_actions = should_fire_workflow_actions(
         detector.project.organization, event_data.group.type

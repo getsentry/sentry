@@ -109,7 +109,7 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @django_db_all
-def test_relays_dyamic_sampling(call_endpoint, default_projectkey):
+def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
@@ -160,7 +160,9 @@ def test_external_relays_do_not_get_project_configuration(
 
 
 @django_db_all
-def test_untrusted_external_relays_should_not_receive_configs(call_endpoint, no_internal_networks):
+def test_untrusted_external_relays_should_not_receive_configs(
+    call_endpoint, no_internal_networks
+) -> None:
     result, status_code = call_endpoint()
 
     assert status_code == 403
@@ -199,7 +201,7 @@ def test_relay_projectconfig_cache_full_config(
 
 
 @django_db_all
-def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
+def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner) -> None:
     wrong_public_key = ProjectKey.generate_api_key()
 
     with task_runner():
@@ -245,7 +247,7 @@ def test_relay_disabled_key(
 
 
 @django_db_all
-def test_session_metrics_extraction(call_endpoint, task_runner):
+def test_session_metrics_extraction(call_endpoint, task_runner) -> None:
     with task_runner():
         result, status_code = call_endpoint()
         assert status_code < 400

@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
-import {captureFeedback} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -10,6 +11,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUser} from 'sentry/utils/useUser';
 
 const PRIVATE_GAMING_SDK_OPTIONS = [
@@ -47,6 +49,7 @@ export function PrivateGamingSdkAccessModal({
   const [gamingPlatforms, setGamingPlatforms] = useState<string[]>(
     gamingPlatform ? [gamingPlatform] : []
   );
+  const [requestError, setRequestError] = useState<string | undefined>(undefined);
 
   const isFormValid = !!githubProfile.trim() && gamingPlatforms.length > 0;
 
@@ -58,12 +61,13 @@ export function PrivateGamingSdkAccessModal({
     });
   }, [gamingPlatform, organization, projectId]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!isFormValid) {
       return;
     }
 
     setIsSubmitting(true);
+    setRequestError(undefined);
 
     trackAnalytics('gaming.private_sdk_access_modal_submitted', {
       platforms: gamingPlatforms,
@@ -93,36 +97,51 @@ export function PrivateGamingSdkAccessModal({
 
     const source = `${sdkName.toLowerCase()}-sdk-access`;
 
-    // Use captureFeedback with proper user context instead of tags
-    captureFeedback(
-      {
-        message: messageBody,
-        name: user.name,
-        email: user.email,
-        source,
-        tags: {
-          feature: source,
-        },
-      },
-      {
-        captureContext: {
-          user: {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            name: user.name,
+    try {
+      await Sentry.sendFeedback(
+        {
+          message: messageBody,
+          name: user.name,
+          email: user.email,
+          source,
+          tags: {
+            feature: source,
           },
         },
-      }
-    );
+        {
+          captureContext: {
+            user: {
+              id: user.id,
+              email: user.email,
+              username: user.username,
+              name: user.name,
+            },
+          },
+        }
+      );
 
-    addSuccessMessage(
-      tct('Your [sdkName] SDK access request has been submitted.', {
-        sdkName,
-      })
-    );
-    setIsSubmitting(false);
-    closeModal();
+      addSuccessMessage(
+        tct('Your [sdkName] SDK access request has been submitted.', {
+          sdkName,
+        })
+      );
+      closeModal();
+    } catch (error) {
+      handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
+
+      setRequestError(
+        // Ideally, we’d get an error code to use with our translation functions for showing the right message, but the API currently only returns a plain string.
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : t(
+                'Unable to submit the request. This could be because of network issues, or because you are using an ad-blocker.'
+              )
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -174,6 +193,7 @@ export function PrivateGamingSdkAccessModal({
             inline={false}
           />
         )}
+        {requestError && <Alert type="error">{requestError}</Alert>}
       </Body>
       <Footer>
         <ButtonBar>
@@ -181,7 +201,8 @@ export function PrivateGamingSdkAccessModal({
           <Button
             priority="primary"
             onClick={handleSubmit}
-            disabled={!isFormValid || isSubmitting}
+            disabled={!isFormValid}
+            busy={isSubmitting}
           >
             {isSubmitting ? t('Submitting\u2026') : t('Submit Request')}
           </Button>
