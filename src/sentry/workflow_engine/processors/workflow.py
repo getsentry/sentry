@@ -445,6 +445,6 @@ def process_workflows(
 
     for action in actions:
         task_params = build_trigger_action_task_params(action, detector, event_data)
-        trigger_action.delay(**task_params)
+        trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
     return triggered_workflows

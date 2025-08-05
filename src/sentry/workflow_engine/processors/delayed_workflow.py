@@ -759,7 +759,9 @@ def fire_actions_for_groups(
                         task_params = build_trigger_action_task_params(
                             action, detector, workflow_event_data
                         )
-                        trigger_action.delay(**task_params)
+                        trigger_action.apply_async(
+                            kwargs=task_params, headers={"sentry-propagate-traces": False}
+                        )
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
@@ -783,9 +785,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
     return {repr(key): value for key, value in d.items()}
 
 
-def _summarize_by_first[T1, T2: int | str](
-    it: Iterable[tuple[T1, T2]],
-) -> dict[T1, list[T2]]:
+def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[T1, list[T2]]:
     "Logging helper to allow pairs to be summarized as a mapping from first to list of second"
     result = defaultdict(set)
     for key, value in it:
