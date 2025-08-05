@@ -102,9 +102,9 @@ class GroupingConfigLoader:
                 f"{enhancements_base}|{derived_enhancements}|{project_enhancements}"
             ).hexdigest()
         )
-        enhancements = cache.get(cache_key)
-        if enhancements is not None:
-            return enhancements
+        base64_enhancements = cache.get(cache_key)
+        if base64_enhancements is not None:
+            return base64_enhancements
 
         try:
             # Automatic enhancements are always applied first, so they can be overridden by
@@ -116,16 +116,16 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            enhancements = Enhancements.from_rules_text(
+            base64_enhancements = Enhancements.from_rules_text(
                 enhancements_string,
                 bases=[enhancements_base] if enhancements_base else [],
                 version=enhancements_version,
                 referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
-            enhancements = _get_default_base64_enhancements()
-        cache.set(cache_key, enhancements)
-        return enhancements
+            base64_enhancements = _get_default_base64_enhancements()
+        cache.set(cache_key, base64_enhancements)
+        return base64_enhancements
 
     def _get_config_id(self, project: Project) -> str:
         raise NotImplementedError
