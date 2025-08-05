@@ -541,7 +541,6 @@ describe('IssueListActions', function () {
           screen.getByText(/Select all 100 issues that match this search query/)
         );
 
-        // Click the merge button directly since it's now a standalone button
         await userEvent.click(screen.getByRole('button', {name: 'Merge'}));
 
         const modal = screen.getByRole('dialog');
