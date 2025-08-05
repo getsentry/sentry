@@ -66,7 +66,6 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
     "organizations:ourlogs-ingestion",
-    "organizations:ourlogs-meta-attributes",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
@@ -301,7 +300,7 @@ def get_project_config(
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         with (
-            sentry_sdk.start_transaction(name="get_project_config"),
+            sentry_sdk.start_span(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
             return _get_project_config(project, project_keys=project_keys)

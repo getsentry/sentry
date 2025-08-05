@@ -17,7 +17,7 @@ pytest-django>=4.9.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=15
-pytest-sentry>=0.3.0,<0.4.0
+pytest-sentry>=0.5.1
 pytest-workaround-12888
 pytest-xdist>=3
 responses>=0.23.1
@@ -26,7 +26,7 @@ sentry-cli>=2.16.0
 
 # pre-commit dependencies
 pre-commit>=4.2
-black>=24.10.0
+black>=25
 flake8>=7.3
 flake8-bugbear>=22.10
 flake8-logging>=1.5

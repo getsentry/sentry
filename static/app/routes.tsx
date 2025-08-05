@@ -1726,9 +1726,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(
-        () => import('sentry/views/replays/deadRageClick/deadRageClickList')
-      ),
+      component: make(() => import('sentry/views/replays/selectors')),
     },
     {
       path: ':replaySlug/',
@@ -2478,6 +2476,22 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               component: make(() => import('sentry/views/codecov/tests/onboarding')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'prevent-ai/',
+      children: [
+        // Render prevent AI onboarding with layout wrapper
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/preventAI/wrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/preventAI/onboarding')),
             },
           ],
         },
