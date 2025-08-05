@@ -116,6 +116,10 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
+        span_data = span.get("data", {})
+        if span_data and span_data.get("http.request.prefetch"):
+            return False
+
         return True
 
     def _fingerprint(self, span: Span) -> str:
