@@ -4,18 +4,25 @@ import {useTheme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
@@ -31,12 +38,21 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const theme = useTheme();
   const {query} = useTransactionNameQuery();
   const releaseBubbleProps = useReleaseBubbleProps(props);
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const project = useAlertsProject();
 
   const resourceQuery = getResourcesEventViewQuery({}, DEFAULT_RESOURCE_TYPES).join(' ');
-
   const search = new MutableSearch(`has:span.group ${resourceQuery} ${query}`);
+  const referrer = Referrer.ASSETS_BY_TIME_SPENT;
+  const groupBy = SpanFields.NORMALIZED_DESCRIPTION;
+  const yAxes = 'sum(span.self_time)';
 
-  const assetRequest = useSpans(
+  const {
+    data: assetListData,
+    isLoading: isAssetListLoading,
+    error: assetListError,
+  } = useSpans(
     {
       fields: [
         'span.group',
@@ -49,36 +65,33 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       limit: 3,
       noPagination: true,
     },
-    Referrer.ASSETS_BY_TIME_SPENT
+    referrer
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const {
+    data: assetSeriesData,
+    isLoading: isAssetSeriesLoading,
+    error: assetSeriesError,
+  } = useTopNSpanSeries(
     {
-      search: `span.group:[${assetRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      fields: ['span.group', 'sum(span.self_time)'],
-      yAxis: ['sum(span.self_time)'],
-      sort: {field: 'sum(span.self_time)', kind: 'desc'},
+      search: `span.group:[${assetListData?.map(item => `"${item['span.group']}"`).join(',')}]`,
+      fields: [groupBy, yAxes],
+      yAxis: [yAxes],
+      sort: {field: yAxes, kind: 'desc'},
       topN: 3,
-      enabled: assetRequest.data.length > 0,
+      enabled: assetListData.length > 0,
     },
-    Referrer.ASSETS_BY_TIME_SPENT
+    referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = assetSeriesData.filter(ts => ts.seriesName !== 'Other');
 
-  const isLoading = timeSeriesRequest.isLoading || assetRequest.isLoading;
-  const error = timeSeriesRequest.error || assetRequest.error;
+  const isLoading = isAssetSeriesLoading || isAssetListLoading;
+  const error = assetSeriesError || assetListError;
 
-  const hasData =
-    assetRequest.data && assetRequest.data.length > 0 && timeSeries.length > 0;
+  const hasData = assetListData && assetListData.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
-
-  const aliases: Record<string, string> = {};
-
-  assetRequest.data?.forEach(asset => {
-    aliases[asset['span.group']] = asset['sentry.normalized_description'];
-  });
 
   const visualization = (
     <WidgetVisualizationStates
@@ -94,7 +107,6 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
-              alias: aliases[ts.seriesName],
             })
         ),
         ...props,
@@ -105,7 +117,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {assetRequest.data?.map((item, index) => (
+      {assetListData?.map((item, index) => (
         <Fragment
           key={`${item['project.id']}-${item['span.group']}-${item['sentry.normalized_description']}`}
         >
@@ -130,25 +142,49 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     </WidgetFooterTable>
   );
 
+  const exploreUrl = getExploreUrl({
+    selection,
+    organization,
+    visualize: [
+      {
+        chartType: ChartType.LINE,
+        yAxes: [yAxes],
+      },
+    ],
+    mode: Mode.AGGREGATE,
+    title: t('Assets by Time Spent'),
+    query: search?.formatString(),
+    sort: undefined,
+    groupBy: [groupBy],
+    referrer,
+  });
+
+  const chartActions = (
+    <BaseChartActionDropdown
+      key="http response chart widget"
+      exploreUrl={exploreUrl}
+      referrer={referrer}
+      alertMenuOptions={assetSeriesData.map(series => ({
+        key: series.seriesName,
+        label: series.seriesName,
+        to: getAlertsUrl({
+          project,
+          aggregate: yAxes,
+          organization,
+          pageFilters: selection,
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          query: `sentry.normalized_description:${series.seriesName}`,
+          referrer,
+        }),
+      }))}
+    />
+  );
+
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Assets by Time Spent')} />}
       Visualization={visualization}
-      Actions={
-        hasData && (
-          <Widget.WidgetToolbar>
-            <ChartActionDropdown
-              chartType={ChartType.LINE}
-              yAxes={['sum(span.self_time)']}
-              groupBy={[SpanFields.NORMALIZED_DESCRIPTION]}
-              title={t('Assets by Time Spent')}
-              search={search}
-              aliases={aliases}
-              referrer={Referrer.ASSETS_BY_TIME_SPENT}
-            />
-          </Widget.WidgetToolbar>
-        )
-      }
+      Actions={hasData && <Widget.WidgetToolbar>{chartActions}</Widget.WidgetToolbar>}
       noFooterPadding
       Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />
