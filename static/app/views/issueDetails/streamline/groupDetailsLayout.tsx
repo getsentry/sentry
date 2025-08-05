@@ -143,8 +143,8 @@ const NavigationSidebarWrapper = withChonk(
     gap: ${space(0.5)};
     padding: ${p =>
       p.hasToggleSidebar
-        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
-        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
   `
 );
 
