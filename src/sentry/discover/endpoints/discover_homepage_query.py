@@ -30,7 +30,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.EXPLORE
 
     permission_classes = (
         SentryIsAuthenticated,
