@@ -4,6 +4,7 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils.helpers.datetime import before_now
+from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
@@ -61,6 +62,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["performance_issues"] == 0
         assert data["span_count"] == 0
         assert data["span_count_map"] == {}
+        assert "uptime_checks" not in data  # Should not be present without include_uptime param
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -146,3 +148,98 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
                     format="json",
                 )
         assert response.status_code == 400, response.content
+
+
+class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
+    url_name = "sentry-api-0-organization-trace-meta"
+    FEATURES = ["organizations:trace-spans-format"]
+
+    def create_uptime_check(self, trace_id=None, **kwargs):
+        defaults = {
+            "trace_id": trace_id or self.trace_id,
+            "scheduled_check_time": self.day_ago,
+        }
+        defaults.update(kwargs)
+        return self.create_eap_uptime_result(**defaults)
+
+    def test_trace_meta_without_uptime_param(self) -> None:
+        """Test that uptime_checks field is NOT present when include_uptime is not set"""
+        self.load_trace(is_eap=True)
+        uptime_result = self.create_uptime_check()
+        self.store_uptime_results([uptime_result])
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200
+        data = response.data
+        assert "uptime_checks" not in data
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+
+    def test_trace_meta_with_uptime_param(self) -> None:
+        """Test that uptime_checks shows correct count when include_uptime=1"""
+        self.load_trace(is_eap=True)
+
+        uptime_results = [
+            self.create_uptime_check(check_status="success"),
+            self.create_uptime_check(check_status="failure"),
+            self.create_uptime_check(check_status="success"),
+        ]
+        self.store_uptime_results(uptime_results)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": "-1", "include_uptime": "1"},
+                format="json",
+            )
+
+        assert response.status_code == 200
+        data = response.data
+        assert "uptime_checks" in data
+        assert data["uptime_checks"] == 3
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+
+    def test_trace_meta_no_uptime_results(self) -> None:
+        """Test that uptime_checks is 0 when there are no uptime results"""
+        self.load_trace(is_eap=True)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": "-1", "include_uptime": "1"},
+                format="json",
+            )
+
+        assert response.status_code == 200
+        data = response.data
+        assert "uptime_checks" in data
+        assert data["uptime_checks"] == 0
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+
+    def test_trace_meta_different_trace_id(self) -> None:
+        """Test that uptime results from different traces are not counted"""
+        self.load_trace(is_eap=True)
+        other_trace_id = uuid4().hex
+        uptime_result = self.create_uptime_check(trace_id=other_trace_id)
+        self.store_uptime_results([uptime_result])
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": "-1", "include_uptime": "1"},
+                format="json",
+            )
+        assert response.status_code == 200
+        data = response.data
+        assert "uptime_checks" in data
+        assert data["uptime_checks"] == 0
