@@ -108,10 +108,7 @@ function FeedbackLink() {
       {t('Send us feedback')}
     </a>
   ) : (
-    <a
-      href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load"
-      onClick={e => e.preventDefault()}
-    >
+    <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
       {t('Send us feedback')}
     </a>
   );

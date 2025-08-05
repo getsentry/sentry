@@ -953,7 +953,7 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
+      await screen.findByText(/Woof, we failed to load your trace/i)
     ).toBeInTheDocument();
   });
 
@@ -982,7 +982,9 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+      await screen.findByText(
+        /We were unable to find any spans for this trace. Seeing this often?/i
+      )
     ).toBeInTheDocument();
   });
 
