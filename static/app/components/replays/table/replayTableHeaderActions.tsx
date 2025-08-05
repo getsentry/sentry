@@ -71,7 +71,7 @@ export default function ReplayTableHeaderActions({
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > replays.length
-                  ? t('Select all %s+ replays.', replays.length)
+                  ? t('Selected all %s+ replays.', replays.length)
                   : tn(
                       'Selected all %s replay.',
                       'Selected all %s replays.',
