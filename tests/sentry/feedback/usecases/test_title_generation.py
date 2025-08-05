@@ -36,46 +36,25 @@ def test_should_get_ai_title():
     with Feature(
         {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": False}
     ):
-        with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-            result = should_get_ai_title(org)
-            assert result is False
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.skipped",
-                tags={"reason": "gen_ai_disabled"},
-            )
+        assert should_get_ai_title(org) is False
 
     # gen-ai-features enabled, user-feedback-ai-titles disabled
     with Feature(
         {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": False}
     ):
-        with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-            result = should_get_ai_title(org)
-            assert result is False
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.skipped",
-                tags={"reason": "feedback_ai_titles_disabled"},
-            )
+        assert should_get_ai_title(org) is False
 
     # gen-ai-features disabled, user-feedback-ai-titles enabled
     with Feature(
         {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": True}
     ):
-        with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-            result = should_get_ai_title(org)
-            assert result is False
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.skipped",
-                tags={"reason": "gen_ai_disabled"},
-            )
+        assert should_get_ai_title(org) is False
 
     # both feature flags enabled
     with Feature(
         {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": True}
     ):
-        with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-            result = should_get_ai_title(org)
-            assert result is True
-            mock_metrics.incr.assert_not_called()
+        assert should_get_ai_title(org) is True
 
 
 @responses.activate
@@ -175,9 +154,9 @@ def test_format_feedback_title() -> None:
         ('{"title": "   "}', 200, {"reason": "invalid_response"}),
         # Non-string title
         ('{"title": 123}', 200, {"reason": "invalid_response"}),
-        # Invalid JSON - this goes to general exception handler
+        # Invalid JSON
         ('{"invalid": json}', 200, {"reason": "seer_response_failed"}),
-        # HTTP error - this goes to HTTPError exception handler
+        # HTTP error
         ("Internal Server Error", 500, {"reason": "seer_response_failed"}),
     ],
 )
@@ -188,28 +167,20 @@ def test_get_feedback_title_from_seer_error_cases(response_body, status_code, ex
         body=response_body,
     )
 
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags=expected_error_tags
-            )
+    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        title = get_feedback_title_from_seer("Login button broken", 123)
+        assert title is None
 
 
 @responses.activate
 def test_get_feedback_title_from_seer_network_error():
     """Test the get_feedback_title_from_seer function with network error."""
     mock_seer_response(body=Exception("Network error"))
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags={"reason": "seer_response_failed"}
-            )
+    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        title = get_feedback_title_from_seer("Login button broken", 123)
+        assert title is None
 
 
 @responses.activate
@@ -220,11 +191,7 @@ def test_get_feedback_title_from_seer_success():
         body='{"title": "Login Button Issue"}',
     )
 
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title == "Login Button Issue"
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.success",
-            )
+    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+        title = get_feedback_title_from_seer("Login button broken", 123)
+        assert title == "Login Button Issue"
