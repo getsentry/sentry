@@ -45,7 +45,7 @@ function useShouldRenderBulkDeleteAlert({
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
 
-  const hasAnyInProgressRef = useRef(false); // Assume there's something to see
+  const hasAnyInProgressRef = useRef(false);
 
   const {data} = useReplayBulkDeleteAuditLog({
     enabled: Boolean(project && (hasWriteAccess || hasAdminAccess)),
