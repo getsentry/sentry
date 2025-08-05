@@ -1,4 +1,4 @@
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
 import type FormModel from 'sentry/components/forms/model';
