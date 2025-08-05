@@ -205,7 +205,11 @@ class OnDemandBudgetEdit extends Component<Props> {
       categories: getOnDemandCategories({
         plan: activePlan,
         budgetMode: selectedBudgetMode,
-      }).filter(category => category !== DataCategory.LOG_BYTE),
+      }).filter(category =>
+        selectedBudgetMode === OnDemandBudgetMode.PER_CATEGORY
+          ? category !== DataCategory.LOG_BYTE
+          : true
+      ),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {

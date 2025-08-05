@@ -213,7 +213,11 @@ class OnDemandBudgets extends Component<Props> {
       categories: getOnDemandCategories({
         plan: subscription.planDetails,
         budgetMode: onDemandBudgets.budgetMode,
-      }).filter(category => category !== DataCategory.LOG_BYTE),
+      }).filter(category =>
+        onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+          ? category !== DataCategory.LOG_BYTE
+          : true
+      ),
     });
     let description = t('Applies to %s.', oxfordCategories);
 
