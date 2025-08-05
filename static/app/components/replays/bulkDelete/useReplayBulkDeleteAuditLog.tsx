@@ -10,19 +10,21 @@ interface Props {
     per_page?: number;
   };
   enabled?: boolean;
+  refetchIntervalMs?: number;
 }
 
 export default function useReplayBulkDeleteAuditLog({
-  projectSlug,
   enabled,
+  projectSlug,
   query,
+  refetchIntervalMs,
 }: Props) {
   const organization = useOrganization();
   const {data, error, getResponseHeader, isPending, refetch} = useApiQuery<{
     data: ReplayBulkDeleteAuditLog[];
   }>([`/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`, {query}], {
     enabled,
-    refetchInterval: 1000,
+    refetchInterval: refetchIntervalMs ?? 1_000,
     retry: false,
     staleTime: 0,
   });

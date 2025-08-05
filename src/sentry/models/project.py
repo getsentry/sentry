@@ -369,7 +369,7 @@ class Project(Model):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self, delta: int = 1) -> int:
@@ -379,8 +379,8 @@ class Project(Model):
             sentry_sdk.start_span(op="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_attribute("project_id", self.id)
-            span.set_attribute("project_slug", self.slug)
+            span.set_data("project_id", self.id)
+            span.set_data("project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):
