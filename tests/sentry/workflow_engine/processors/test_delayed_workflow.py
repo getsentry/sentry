@@ -877,13 +877,13 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert mock_trigger.call_count == 2
 
         # First call should be for workflow1/group1
-        first_call_kwargs = mock_trigger.call_args_list[0].kwargs
+        first_call_kwargs = mock_trigger.call_args_list[0].kwargs["kwargs"]
         assert first_call_kwargs["detector_id"] == self.detector.id
         assert first_call_kwargs["event_id"] == self.event1.event_id
         assert first_call_kwargs["group_id"] == self.group1.id
 
         # Second call should be for workflow2/group2
-        second_call_kwargs = mock_trigger.call_args_list[1].kwargs
+        second_call_kwargs = mock_trigger.call_args_list[1].kwargs["kwargs"]
         assert second_call_kwargs["detector_id"] == self.detector.id
         assert second_call_kwargs["event_id"] == self.event2.event_id
         assert second_call_kwargs["group_id"] == self.group2.id
