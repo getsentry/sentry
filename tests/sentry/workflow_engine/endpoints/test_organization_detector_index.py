@@ -66,6 +66,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == serialize([detector, detector_2])
 
+        # Verify X-Hits header is present and correct
+        assert "X-Hits" in response
+        hits = int(response["X-Hits"])
+        assert hits == 2
+
     def test_uptime_detector(self) -> None:
         subscription = self.create_uptime_subscription()
         data_source = self.create_data_source(
