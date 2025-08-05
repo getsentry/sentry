@@ -188,8 +188,13 @@ class SecondaryGroupingTest(TestCase):
             default_config_hash = event2.get_primary_hash()
             assert no_msg_param_hash != default_config_hash
 
-            # Even though `get_or_create_grouphashes` was called for secondary grouping, no
-            # grouphash was created for the new secondary hash "additional_secondary_hash_value"
+            # This has the hash it had before, and a new hash from the default config, but not one
+            # for the additional secondary hash, even though we know that
+            # `get_or_create_grouphashes` was called for secondary grouping and was passed that hash
+            assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
+                no_msg_param_hash,
+                default_config_hash,
+            }
             get_or_create_grouphashes_spy.assert_any_call(
                 event2,
                 project,
@@ -197,10 +202,6 @@ class SecondaryGroupingTest(TestCase):
                 [no_msg_param_hash, "additional_secondary_hash_value"],
                 NO_MSG_PARAM_CONFIG,
             )
-            assert set(GroupHash.objects.all().values_list("hash", flat=True)) == {
-                no_msg_param_hash,
-                default_config_hash,
-            }
 
     @patch("sentry.grouping.ingest.hashing._calculate_secondary_hashes")
     @patch(
