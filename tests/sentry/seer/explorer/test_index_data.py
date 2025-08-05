@@ -251,7 +251,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
                     response.status = 200
                     response.data = orjson.dumps({"profile": "transaction_data2"})
                     return response
-                elif f"chunks/{profiler_id}" in path:
+                elif "/chunks" in path:
                     response = mock.Mock()
                     response.status = 200
                     response.data = orjson.dumps({"profile": "continuous_data"})
@@ -343,9 +343,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
             # Check continuous profile call uses /chunks/ endpoint
             mock_service.assert_any_call(
-                "GET",
-                f"/organizations/{self.organization.id}/projects/{self.project.id}/chunks/{profiler_id}",
-                params={"format": "sample"},
+                method="POST",
+                path=f"/organizations/{self.organization.id}/projects/{self.project.id}/chunks",
+                json_data=mock.ANY,
             )
 
 
@@ -416,11 +416,11 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert result.project_id == self.project.id
         assert len(result.issues) == 3
 
-        issues = sorted(result.issues, key=lambda x: x.issue_id)
+        issues = sorted(result.issues, key=lambda x: x.id)
         sorted_groups = sorted(groups, key=lambda x: x.id)
 
         for i, (issue, group) in enumerate(zip(issues, sorted_groups)):
-            assert issue.issue_id == group.id
+            assert issue.id == group.id
             assert issue.title == group.title
             assert issue.culprit == group.culprit
             assert issue.transaction == transaction_name

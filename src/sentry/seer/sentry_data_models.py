@@ -59,7 +59,7 @@ class TraceProfiles(BaseModel):
 
 
 class IssueDetails(BaseModel):
-    issue_id: int
+    id: int
     title: str
     culprit: str | None
     transaction: str | None
