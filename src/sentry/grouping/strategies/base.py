@@ -208,7 +208,7 @@ class GroupingContext:
         strategy = self.config.delegates.get(interface_id)
 
         if strategy is None:
-            raise RuntimeError(f"failed to dispatch interface {interface_id} to strategy")
+            raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
 
         kwargs["context"] = self
         kwargs["event"] = event
