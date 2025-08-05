@@ -909,7 +909,7 @@ def test_create_feedback_issue_updates_project_flag(default_project) -> None:
 
 @django_db_all
 def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka) -> None:
-    """Test that create_feedback_issue uses the generated title."""
+    """Test that create_feedback_issue uses the formatted feedback message title."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
     with Feature({"organizations:user-feedback-ai-titles": False}):
