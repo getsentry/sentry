@@ -103,8 +103,7 @@ export function getValidOpsForFilter(
   // Special case for text, add contains operator
   if (
     hasWildcardOperators &&
-    fieldDefinition?.allowWildcard !== false &&
-    !fieldDefinition?.disallowWildcardOperators &&
+    areWildcardOperatorsAllowed(fieldDefinition) &&
     (filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN)
   ) {
     validOps.add(WildcardOperators.CONTAINS);
@@ -229,7 +228,7 @@ export function getLabelAndOperatorFromToken(
   if (
     token.value.type === Token.VALUE_TEXT &&
     hasWildcardOperators &&
-    !fieldDefinition?.disallowWildcardOperators
+    areWildcardOperatorsAllowed(fieldDefinition)
   ) {
     if (getIsContains(token.value.wildcard)) {
       return {
@@ -256,7 +255,7 @@ export function getLabelAndOperatorFromToken(
   } else if (
     token.value.type === Token.VALUE_TEXT_LIST &&
     hasWildcardOperators &&
-    !fieldDefinition?.disallowWildcardOperators
+    areWildcardOperatorsAllowed(fieldDefinition)
   ) {
     if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
       return {
@@ -289,4 +288,25 @@ export function getLabelAndOperatorFromToken(
     label,
     operator,
   };
+}
+
+/**
+ * Determines if wildcard operators should be allowed for a field.
+ *
+ * The logic is:
+ * - If `disallowWildcardOperators` is explicitly true, wildcard operators are not allowed
+ * - If `disallowWildcardOperators` is explicitly false or undefined, check `allowWildcard` (defaults to true)
+ */
+export function areWildcardOperatorsAllowed(
+  fieldDefinition: FieldDefinition | null
+): boolean {
+  if (!fieldDefinition) {
+    return false;
+  }
+
+  if (fieldDefinition.disallowWildcardOperators === true) {
+    return false;
+  }
+
+  return fieldDefinition.allowWildcard ?? true;
 }
