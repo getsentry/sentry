@@ -400,11 +400,8 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             project_id=self.project.id,
         )
 
-        # Since search backend indexing doesn't work reliably in tests,
-        # let's mock the search backend to return our created groups
         groups = [event1.group, event2.group, event3.group]
 
-        # Verify transaction tags are set correctly
         for group in groups:
             latest_event = group.get_latest_event()
             transaction_tag = latest_event.get_tag("transaction")
@@ -412,34 +409,23 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
                 transaction_tag == transaction_name
             ), f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
 
-        # Mock the search backend to return our groups
-        with mock.patch("sentry.seer.explorer.index_data.search.backend.query") as mock_search:
-            mock_search.return_value = iter(groups)
+        result = get_issues_for_transaction(transaction_name, self.project.id)
 
-            # Call the function
-            result = get_issues_for_transaction(transaction_name, self.project.id)
+        assert result is not None
+        assert result.transaction_name == transaction_name
+        assert result.project_id == self.project.id
+        assert len(result.issues) == 3
 
-            # Verify the result
-            assert result is not None
-            assert result.transaction_name == transaction_name
-            assert result.project_id == self.project.id
-            assert len(result.issues) == 3
+        issues = sorted(result.issues, key=lambda x: x.issue_id)
+        sorted_groups = sorted(groups, key=lambda x: x.id)
 
-            # Get the issues and sort them by ID for consistent ordering
-            issues = sorted(result.issues, key=lambda x: x.issue_id)
-            sorted_groups = sorted(groups, key=lambda x: x.id)
-
-            # Check each issue matches the corresponding group
-            for i, (issue, group) in enumerate(zip(issues, sorted_groups)):
-                assert issue.issue_id == group.id
-                assert issue.title == group.title
-                assert issue.culprit == group.culprit
-                # transaction field in issue should come from the event tags
-                assert issue.transaction == transaction_name
-                assert "id" in issue.events[0]
-                assert "message" in issue.events[0]
-                # Check that the event has the transaction in its tags or serialized data
-                assert (
-                    "tags" in issue.events[0]
-                    or issue.events[0].get("transaction") == transaction_name
-                )
+        for i, (issue, group) in enumerate(zip(issues, sorted_groups)):
+            assert issue.issue_id == group.id
+            assert issue.title == group.title
+            assert issue.culprit == group.culprit
+            assert issue.transaction == transaction_name
+            assert "id" in issue.events[0]
+            assert "message" in issue.events[0]
+            assert (
+                "tags" in issue.events[0] or issue.events[0].get("transaction") == transaction_name
+            )
