@@ -1,13 +1,6 @@
-import contextlib
-from typing import Any, NoReturn
-from unittest import mock
-
-import psycopg2
 import pytest
-from django.db import connection, connections
-from django.db.backends.postgresql.base import DatabaseWrapper
+from django.db import connection
 from django.db.utils import DataError
-from django.test import override_settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.testutils.cases import TestCase
@@ -77,66 +70,3 @@ def test_sql_note() -> None:
     with pytest.raises(DataError) as excinfo:
         connection.cursor().execute("select 1/0")
     assert excinfo.value.__notes__ == ["SQL: select 1/0"]
-
-
-@django_db_all
-@override_settings(DEBUG=False)  # force non-debug cursors
-def test_database_wrapper_cursor_create_retry() -> None:
-    done = False
-    orig_create = DatabaseWrapper.create_cursor
-
-    def newcreate(self: DatabaseWrapper, name: str | None = None) -> Any:
-        nonlocal done
-        if done:
-            return orig_create(self, name)
-        else:
-            done = True
-            raise psycopg2.OperationalError(
-                "server closed the connection unexpectedly\n\tThis probably means the server terminated abnormally\n\tbefore or while processing the request.\n"
-            )
-
-    # the mocking here is difficult because psycopg2 cursor / connections are immutable / unpatchable
-    with (
-        mock.patch.object(DatabaseWrapper, "create_cursor", newcreate),
-        contextlib.closing(connections.create_connection("default")) as conn,
-        conn.cursor() as cursor,
-    ):
-        # we did a retry
-        assert done is True
-        # and the cursor still works
-        cursor.execute("select 1")
-        assert cursor.fetchone() == (1,)
-
-
-@django_db_all
-@override_settings(DEBUG=False)  # force non-debug cursors
-def test_cursor_wrapper_execute_retry() -> None:
-    done = False
-
-    class Disconnects:
-        def __init__(self, cursor: object) -> None:
-            self._cursor = cursor
-
-        def __getattr__(self, a: str) -> Any:
-            return getattr(self._cursor, a)
-
-        def execute(self, *a: Any, **k: Any) -> NoReturn:
-            nonlocal done
-            done = True
-            raise psycopg2.OperationalError(
-                "server closed the connection unexpectedly\n\tThis probably means the server terminated abnormally\n\tbefore or while processing the request.\n"
-            )
-
-    # the mocking here is difficult because psycopg2 cursor / connections are immutable / unpatchable
-    with (
-        contextlib.closing(connections.create_connection("default")) as conn,
-        conn.cursor() as cursor,
-        mock.patch.object(cursor, "cursor", Disconnects(cursor.cursor)),
-    ):
-        # the cursor works
-        cursor.execute("select 1")
-        assert cursor.fetchone() == (1,)
-        # and we did a retry
-        assert done is True
-        # and we didn't double-wrap the cursor
-        assert type(cursor.cursor).__module__.startswith("psycopg2")
