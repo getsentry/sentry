@@ -1138,6 +1138,23 @@ def _get_project_config(
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 
+    if features.has("organizations:log-project-config", project.organization):
+        sentry_sdk.capture_message(
+            f"Project config for project {project.id} in org {project.organization.id}.",
+            attachments=[
+                {
+                    "filename": "project_config.json",
+                    "content_type": "application/json",
+                    "data": config,
+                }
+            ],
+            tags={
+                "project_id": str(project.id),
+                "org_id": str(project.organization.id),
+                "has_dynamic_sampling_config": bool("dynamicSampling" in config),
+            },
+        )
+
     return ProjectConfig(project, **cfg)
 
 
