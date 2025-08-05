@@ -25,7 +25,7 @@ class RetryException(Exception):
     def __str__(self) -> str:
         return force_bytes(self.message, errors="replace")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.message!r}>"
 
 

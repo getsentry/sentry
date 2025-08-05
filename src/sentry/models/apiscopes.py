@@ -49,7 +49,7 @@ class ApiScopes(Sequence):
     def __len__(self):
         return len(self.scopes)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.scopes.__repr__()
 
 
