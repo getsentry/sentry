@@ -23,16 +23,6 @@ export function SeerSearchListBox(props: SeerSearchListBoxProps) {
   );
 }
 
-const StyledUl = styled('ul')`
-  width: 100%;
-  max-height: 18rem;
-  overflow: auto;
-  outline: none;
-  background-color: ${p => p.theme.background};
-  margin: 0;
-  padding: 0;
-`;
-
 interface SeerSearchOptionProps {
   item: Node<unknown>;
   state: ListState<unknown>;
@@ -49,32 +39,41 @@ function SeerSearchOption({item, state}: SeerSearchOptionProps) {
   );
 }
 
+const StyledUl = styled('ul')`
+  width: 100%;
+  max-height: 18rem;
+  overflow: auto;
+  outline: none;
+  margin: 0;
+  padding: 0;
+
+  & > :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+`;
+
 const StyledOption = styled('li')<{isFocused: boolean}>`
   width: 100%;
   cursor: pointer;
   list-style: none;
   transition: background-color 0.2s ease;
-  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-  background-color: ${p => (p.isFocused ? p.theme.backgroundSecondary : 'transparent')};
-
-  &:last-child {
-    border-bottom: none;
-  }
+  background-color: ${p => (p.isFocused ? p.theme.purple100 : 'transparent')};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
   &:focus {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.purple100};
   }
 
-  &[data-is-none-of-these] {
+  &[data-is-none-of-these],
+  &[data-is-example] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }
 `;
