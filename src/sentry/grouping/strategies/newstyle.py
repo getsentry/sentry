@@ -370,7 +370,7 @@ def frame(
     if context["is_recursion"]:
         frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant"]: frame_component}
+    return {context["variant_name"]: frame_component}
 
 
 def get_contextline_component(
@@ -408,7 +408,7 @@ def get_contextline_component(
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    assert context["variant"] is None
+    assert context["variant_name"] is None
 
     return call_with_variants(
         _single_stacktrace_variant,
@@ -423,7 +423,7 @@ def stacktrace(
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
-    variant_name = context["variant"]
+    variant_name = context["variant_name"]
 
     frames = stacktrace.frames
 

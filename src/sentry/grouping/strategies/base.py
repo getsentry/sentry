@@ -125,7 +125,7 @@ class GroupingContext:
         self.config = strategy_config
         self.event = event
         self._push_context_layer()
-        self["variant"] = None
+        self["variant_name"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
         self._stack[-1][key] = value
@@ -190,7 +190,7 @@ class GroupingContext:
         )
 
         assert len(components_by_variant) == 1
-        return components_by_variant[self["variant"]]
+        return components_by_variant[self["variant_name"]]
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
@@ -479,7 +479,7 @@ def produces_variants(
         #
         # Return value is a dictionary of `{"!system": ..., "app": ...}`,
         # however function is still called with `"system"` as
-        # `context["variant"]`.
+        # `context["variant_name"]`.
         @produces_variants(["!system", "app"])
     """
 
@@ -501,7 +501,7 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    incoming_variant_name = context["variant"]
+    incoming_variant_name = context["variant_name"]
 
     if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a
@@ -520,7 +520,7 @@ def call_with_variants(
     for variant_name in variants_to_produce:
         with context:
             stripped_variant_name = variant_name.lstrip("!")
-            context["variant"] = stripped_variant_name
+            context["variant_name"] = stripped_variant_name
 
             components_by_stripped_variant = strategy_func(*args, **kwargs)
             assert len(components_by_stripped_variant) == 1
