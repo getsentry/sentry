@@ -142,10 +142,12 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
+                data={
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "environment": self.environment.name,
+                },
                 project_id=self.project.id,
             )
-
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
         # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
@@ -189,7 +191,10 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
+                data={
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "environment": self.environment.name,
+                },
                 project_id=self.project.id,
             )
 
@@ -240,6 +245,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         for i in range(4):
             data = {
                 "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "environment": self.environment.name,
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group2"],
                 "level": "error",
@@ -302,6 +308,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
             self.store_event(
                 data={
                     "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "environment": self.environment.name,
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,
