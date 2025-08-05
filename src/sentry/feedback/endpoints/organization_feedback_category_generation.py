@@ -195,15 +195,23 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
             logger.error("LLM returned no label groups")
             return Response({"detail": "No label groups generated"}, status=500)
 
-        # If the LLM just forgets or hallucinates primary labels, we still generate categories but log it
+        # If the LLM just forgets or adds extra primary labels, we still generate categories but log it
         if len(label_groups) != len(top_10_labels):
-            logger.error(
+            logger.warning(
                 "Number of label groups does not match number of primary labels passed in Seer",
                 extra={
                     "label_groups": label_groups,
                     "top_10_labels": top_10_labels,
                 },
             )
+
+        # If the LLM hallucinates primary label(s), log it but still generate categories
+        for label_group in label_groups:
+            if label_group["primary_label"] not in top_10_labels:
+                logger.warning(
+                    "LLM hallucinated primary label",
+                    extra={"label_group": label_group},
+                )
 
         # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
         label_groups_list_of_lists: list[list[str]] = [
@@ -221,9 +229,9 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
         )
 
         categories = []
-        for i, label_group in enumerate(label_groups_list_of_lists):
-            primary_label = label_group[0]
-            associated_labels = label_group[1:]
+        for i, list_group in enumerate(label_groups_list_of_lists):
+            primary_label = list_group[0]
+            associated_labels = list_group[1:]
 
             # Query gives us one row with the countIf results
             feedback_count_in_group = feedback_counts_by_label_list[0][f"count_if_{i}"]
@@ -238,6 +246,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
 
         categories.sort(key=lambda x: x["feedback_count"], reverse=True)
         # XXX: maybe we should do something like figure out where the biggest drop of feedback count is and then stop there? Instead of just hardcoding getting top 4 groups
+        # Another good idea is to remove categories that have a big overlap with another category - to do in the future
         categories = categories[:4]
 
         cache.set(
