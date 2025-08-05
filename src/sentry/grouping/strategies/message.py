@@ -74,9 +74,9 @@ def message_v1(
 ) -> ReturnedVariants:
     # This is true for all but our test config
     if context["normalize_message"]:
-        raw = interface.message or interface.formatted or ""
-        normalized = normalize_message_for_grouping(raw, event)
-        hint = "stripped event-specific values" if raw != normalized else None
+        raw_message = interface.message or interface.formatted or ""
+        normalized = normalize_message_for_grouping(raw_message, event)
+        hint = "stripped event-specific values" if raw_message != normalized else None
         return {context["variant_name"]: MessageGroupingComponent(values=[normalized], hint=hint)}
     else:
         return {
