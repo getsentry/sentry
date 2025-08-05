@@ -395,12 +395,12 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        ...(params.isPerformanceSelected
+        ...(params.isPerformanceSelected || params.isLogsSelected
           ? [
               {
                 type: StepType.CONFIGURE,
                 description: tct(
-                  'Add a [code:sentry.properties] file to enable Performance:',
+                  'Add a [code:sentry.properties] file to enable Performance or Logs:',
                   {
                     code: <code />,
                   }
