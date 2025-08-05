@@ -71,7 +71,9 @@ export default function MetricDetailsBody({
   const location = useLocation();
   const navigate = useNavigate();
   const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
-    useState(true);
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
@@ -146,9 +148,7 @@ export default function MetricDetailsBody({
     });
 
   const deprecateTransactionsAlertsWarning =
-    organization.features.includes('performance-transaction-deprecation-banner') &&
-    ruleType &&
-    DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
+    ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
   return (
     <Fragment>
