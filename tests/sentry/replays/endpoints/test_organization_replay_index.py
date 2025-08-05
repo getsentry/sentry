@@ -484,7 +484,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 cursor=Cursor(0, 0),
                 per_page=1,
             )
-            response_data = response.json()
+            response_data = response.data
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay2_id
@@ -497,7 +497,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 cursor=Cursor(0, 1),
                 per_page=1,
             )
-            response_data = response.json()
+            response_data = response.data
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay1_id
@@ -511,7 +511,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 per_page=1,
             )
 
-            response_data = response.json()
+            response_data = response.data
             assert "data" in response_data
             assert len(response_data["data"]) == 0
             link_header = response.headers["Link"]

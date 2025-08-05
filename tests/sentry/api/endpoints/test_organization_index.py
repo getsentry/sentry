@@ -4,6 +4,7 @@ import re
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.http.response import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import reverse
 
@@ -359,6 +360,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
 
     def assert_redirected_to_2fa(self):
         response = self.get_success_response(self.org_2fa.slug, status_code=302)
+        assert isinstance(response, HttpResponseRedirect)
         assert self.path_2fa in response.url
 
     def test_preexisting_members_must_enable_2fa(self) -> None:
@@ -413,6 +415,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     def test_member_limit_redirect(self) -> None:
         self.setup_user()
         response = self.get_success_response(self.organization.slug, status_code=302)
+        assert isinstance(response, HttpResponseRedirect)
         assert f"/organizations/{self.organization.slug}/disabled-member/" in response.url
 
     def test_member_limit_superuser_no_redirect(self) -> None:

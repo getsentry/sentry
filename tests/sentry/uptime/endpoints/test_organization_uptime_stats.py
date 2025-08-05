@@ -184,7 +184,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid project uptime subscription ids provided"
+            assert response.data == "Invalid project uptime subscription ids provided"
 
     def test_no_uptime_subscription_id(self) -> None:
         """
@@ -201,7 +201,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "No project uptime subscription ids provided"
+            assert response.data == "No project uptime subscription ids provided"
 
     def test_too_many_periods(self) -> None:
         """
@@ -218,7 +218,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1m",
             )
             assert response.status_code == 400
-            assert response.json() == "error making request"
+            assert response.data == "error making request"
 
     def test_too_many_uptime_subscription_ids(self) -> None:
         """
@@ -236,8 +236,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             )
             assert response.status_code == 400
             assert (
-                response.json()
-                == "Too many project uptime subscription ids provided. Maximum is 100"
+                response.data == "Too many project uptime subscription ids provided. Maximum is 100"
             )
 
 

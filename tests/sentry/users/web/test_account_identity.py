@@ -11,7 +11,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 @control_silo_test
 class AccountIdentityTest(TestCase):
     @pytest.fixture(autouse=True)
-    def setup_dummy_identity_provider(self):
+    def setup_dummy_identity_provider(self) -> None:
         identity.register(DummyProvider)
         self.addCleanup(identity.unregister, DummyProvider)
 
