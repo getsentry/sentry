@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';

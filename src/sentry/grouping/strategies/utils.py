@@ -2,9 +2,11 @@ from sentry.grouping.strategies.base import ReturnedVariants
 
 
 def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVariants:
-    """This is a utility function that when given multiple variants will
-    mark all variants as non contributing that do not contain any stacktraces
-    if any of the other variants contain a stacktrace that contributes.
+    """
+    Given multiple variants, if at least one variant has a contributing stacktrace, mark all
+    variants without a stacktrace as non-contributing.
+
+    This is a no-op if there is only one variant.
     """
     if len(variants) <= 1:
         return variants
