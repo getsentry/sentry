@@ -175,6 +175,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   const {data, meta} = tableData;
   const locationSort = decodeSorts(location?.query?.sort)[0];
+
   const numColumns = columns?.length ?? Object.keys(meta.fields).length;
 
   let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
