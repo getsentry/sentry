@@ -108,7 +108,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursive_frames(frame1: Frame, frame2: Frame | None) -> bool:
+def _is_recursive_frame(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -434,7 +434,7 @@ def _single_stacktrace_variant(
 
     for frame in frames:
         with context:
-            context["is_recursion"] = is_recursive_frames(frame, prev_frame)
+            context["is_recursion"] = _is_recursive_frame(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
 
         if variant_name == "app":
