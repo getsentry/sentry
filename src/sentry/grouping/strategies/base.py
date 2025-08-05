@@ -148,12 +148,12 @@ class GroupingContext:
         return self
 
     def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
-        self.pop()
+        self._pop_context_layer()
 
     def _push_context_layer(self) -> None:
         self._stack.append({})
 
-    def pop(self) -> None:
+    def _pop_context_layer(self) -> None:
         self._stack.pop()
 
     def get_grouping_components_by_variant(
