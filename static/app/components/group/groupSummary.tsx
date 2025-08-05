@@ -265,39 +265,41 @@ function GroupSummaryCollapsed({
   return (
     <div data-testid="group-summary-collapsed">
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      <CollapsedContent>
-        <CollapsedHeader onClick={handleToggle}>
-          <CollapsedHeaderContent>
-            {isPending ? (
-              <Placeholder height="1.5rem" width="80%" />
-            ) : (
-              <Text size="md" bold ellipsis>
-                {data?.headline || t('Issue Summary')}
-              </Text>
-            )}
-            <ChevronIcon>
-              {isExpanded ? (
-                <IconChevron direction="up" size="sm" />
+      {!isError && (
+        <CollapsedContent>
+          <CollapsedHeader onClick={handleToggle}>
+            <CollapsedHeaderContent>
+              {isPending ? (
+                <Placeholder height="1.5rem" width="80%" />
               ) : (
-                <IconChevron direction="down" size="sm" />
+                <Text size="md" bold ellipsis>
+                  {data?.headline || t('Issue Summary')}
+                </Text>
               )}
-            </ChevronIcon>
-          </CollapsedHeaderContent>
-        </CollapsedHeader>
+              <ChevronIcon>
+                {isExpanded ? (
+                  <IconChevron direction="up" size="sm" />
+                ) : (
+                  <IconChevron direction="down" size="sm" />
+                )}
+              </ChevronIcon>
+            </CollapsedHeaderContent>
+          </CollapsedHeader>
 
-        <ExpandableContent isExpanded={isExpanded}>
-          <GroupSummaryFull
-            group={group}
-            project={project}
-            data={data}
-            isPending={isPending}
-            isError={isError}
-            preview={false}
-            setForceEvent={setForceEvent}
-            event={event}
-          />
-        </ExpandableContent>
-      </CollapsedContent>
+          <ExpandableContent isExpanded={isExpanded}>
+            <GroupSummaryFull
+              group={group}
+              project={project}
+              data={data}
+              isPending={isPending}
+              isError={isError}
+              preview={false}
+              setForceEvent={setForceEvent}
+              event={event}
+            />
+          </ExpandableContent>
+        </CollapsedContent>
+      )}
     </div>
   );
 }
