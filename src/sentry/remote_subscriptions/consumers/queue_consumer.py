@@ -168,7 +168,7 @@ class OrderedQueueWorker(threading.Thread, Generic[T]):
 
             try:
                 with (
-                    sentry_sdk.start_transaction(
+                    sentry_sdk.start_span(
                         op="queue_worker.process",
                         name=f"monitors.{self.identifier}.worker_{self.worker_id}",
                     ),

@@ -61,7 +61,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         components = []
         errors = {}
 
-        with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
+        with sentry_sdk.start_span(name="sentry.api.sentry_app_components.get"):
             with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
