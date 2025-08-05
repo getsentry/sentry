@@ -13,7 +13,7 @@ class TraceItem(TypedDict):
     attributes: dict[str, bool | float | int | None | str]
     client_sample_rate: float
     organization_id: int
-    project_ids: list[int]
+    project_id: int
     received: datetime
     retention_days: int
     server_sample_rate: float
@@ -23,7 +23,7 @@ class TraceItem(TypedDict):
     trace_item_type: TRACE_ITEM_TYPES
 
 
-def as_trace_item(trace_item: TraceItem) -> EAPTraceItem:
+def new_trace_item(trace_item: TraceItem) -> EAPTraceItem:
     timestamp = Timestamp()
     timestamp.FromDatetime(trace_item["timestamp"])
 
@@ -45,13 +45,12 @@ def as_trace_item(trace_item: TraceItem) -> EAPTraceItem:
     )
 
 
-def test_suite_insert_trace_items(trace_items: list[TraceItem]) -> None:
+def test_suite_insert_trace_items(trace_items: list[EAPTraceItem]) -> None:
     """Insert a trace-item for use within the test-suite."""
     response = requests.post(
         settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
         files={
-            f"item_{i}": as_trace_item(trace_item).SerializeToString()
-            for i, trace_item in enumerate(trace_items)
+            f"item_{i}": trace_item.SerializeToString() for i, trace_item in enumerate(trace_items)
         },
     )
     assert response.status_code == 200
