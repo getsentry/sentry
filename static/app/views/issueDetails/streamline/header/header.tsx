@@ -121,7 +121,7 @@ export default function StreamlinedGroupHeader({
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <Breadcrumbs
+            <StyledBreadcrumbs
               crumbs={[
                 {
                   label: 'Issues',
@@ -314,7 +314,7 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('header')`
   background-color: ${p => p.theme.background};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
 const HeaderGrid = styled('div')`
@@ -417,6 +417,10 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
 `;
 
 const StyledTag = styled(Tag)`
