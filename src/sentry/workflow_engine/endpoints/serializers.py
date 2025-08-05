@@ -11,7 +11,7 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
@@ -28,6 +28,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorGroup,
     Workflow,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
@@ -326,6 +327,25 @@ class DetectorSerializer(Serializer):
             for mapping in alert_rule_mappings
         }
 
+        latest_detector_groups = (
+            DetectorGroup.objects.filter(detector__in=item_list)
+            .select_related("group", "group__project")
+            .order_by("detector_id", "-date_added")
+            .distinct("detector_id")
+        )
+        latest_groups_map = {
+            dg.detector_id: (
+                None
+                if dg.group is None
+                else serialize(
+                    dg.group,
+                    user=user,
+                    serializer=SimpleGroupSerializer(),
+                )
+            )
+            for dg in latest_detector_groups
+        }
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -354,6 +374,7 @@ class DetectorSerializer(Serializer):
                     "rule_id": None,
                 },
             )
+            attrs[item]["latest_group"] = latest_groups_map.get(item.id)
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -382,6 +403,7 @@ class DetectorSerializer(Serializer):
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),
+            "latestGroup": attrs.get("latest_group"),
         }
 
 
