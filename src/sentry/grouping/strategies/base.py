@@ -504,11 +504,11 @@ def call_with_variants(
     incoming_variant_name = context["variant_name"]
 
     if incoming_variant_name is not None:
-        # For the case where the variant is already determined, we act as a
-        # delegate strategy.
+        # For the case where the variant is already determined, we act as a delegate strategy. To
+        # ensure the function can deal with the given value, we assert the variant name is one
+        # of our own.
         #
-        # To ensure the function can deal with the particular value we assert
-        # the variant name is one of our own though.
+        # Note that this branch is not currently used by any strategies.
         assert (
             incoming_variant_name in variants_to_produce
             or "!" + incoming_variant_name in variants_to_produce
