@@ -46,7 +46,7 @@ class ApiScopes(Sequence):
     def __getitem__(self, value):
         return self.scopes.__getitem__(value)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.scopes)
 
     def __repr__(self) -> str:
