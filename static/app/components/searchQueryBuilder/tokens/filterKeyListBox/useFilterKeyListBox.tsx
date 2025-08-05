@@ -167,8 +167,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const {
     filterKeys,
     getFieldDefinition,
-    setDisplaySeerResults,
     setAutoSubmitSeer,
+    setDisplayAskSeer,
     enableAISearch,
     gaveSeerConsent,
     currentInputValue,
@@ -392,13 +392,14 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           organization,
           action: 'opened',
         });
-        setDisplaySeerResults(true);
+        setDisplayAskSeer(true);
 
         if (currentInputValue?.trim()) {
           setAutoSubmitSeer(true);
         } else {
           setAutoSubmitSeer(false);
         }
+
         return;
       }
 
@@ -412,11 +413,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
     },
     [
+      currentInputValue,
       organization,
       seerAcknowledgeMutate,
-      setDisplaySeerResults,
       setAutoSubmitSeer,
-      currentInputValue,
+      setDisplayAskSeer,
     ]
   );
 
