@@ -73,9 +73,7 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     return title
 
 
-def get_feedback_title_from_seer(
-    feedback_message: str, organization_id: int, max_words: int = 10
-) -> str | None:
+def get_feedback_title_from_seer(feedback_message: str, organization_id: int) -> str | None:
     """
     Generate an AI-powered title for user feedback using Seer, or None if generation fails.
     Format: "User Feedback: [AI-generated title]"
@@ -120,22 +118,7 @@ def get_feedback_title_from_seer(
     metrics.incr(
         "feedback.ai_title_generation.success",
     )
-    return format_feedback_title(title, max_words)
-
-
-def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
-    """
-    Generate a descriptive title for user feedback issues.
-    Format: "User Feedback: [first few words of message]"
-
-    Args:
-        feedback_message: The user's feedback message
-        max_words: Maximum number of words to include from the message
-
-    Returns:
-        A formatted title string
-    """
-    return format_feedback_title(feedback_message, max_words)
+    return title
 
 
 def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:

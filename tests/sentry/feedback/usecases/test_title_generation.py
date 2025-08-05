@@ -8,7 +8,7 @@ from django.conf import settings
 
 from sentry.feedback.usecases.title_generation import (
     GenerateFeedbackTitleRequest,
-    get_feedback_title,
+    format_feedback_title,
     get_feedback_title_from_seer,
     make_seer_request,
     should_get_ai_title,
@@ -128,31 +128,31 @@ def test_make_seer_request_http_error():
         make_seer_request(request)
 
 
-def test_get_feedback_title() -> None:
-    """Test the get_feedback_title function with various message types."""
+def test_format_feedback_title() -> None:
+    """Test the format_feedback_title function with various message types."""
 
     # Test normal short message
-    assert get_feedback_title("Login button broken") == "User Feedback: Login button broken"
+    assert format_feedback_title("Login button broken") == "User Feedback: Login button broken"
 
     # Test message with exactly 10 words (default max_words)
     message_10_words = "This is a test message with exactly ten words total"
-    assert get_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
+    assert format_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
 
     # Test message with more than 10 words (should truncate)
     long_message = "This is a very long feedback message that goes on and on and describes many different issues"
     expected = "User Feedback: This is a very long feedback message that goes on..."
-    assert get_feedback_title(long_message) == expected
+    assert format_feedback_title(long_message) == expected
 
     # Test very short message
-    assert get_feedback_title("Bug") == "User Feedback: Bug"
+    assert format_feedback_title("Bug") == "User Feedback: Bug"
 
     # Test custom max_words parameter
     message = "This is a test with custom word limit"
-    assert get_feedback_title(message, max_words=3) == "User Feedback: This is a..."
+    assert format_feedback_title(message, max_words=3) == "User Feedback: This is a..."
 
     # Test message that would create a title longer than 200 characters
     very_long_message = "a" * 300  # 300 character message
-    result = get_feedback_title(very_long_message)
+    result = format_feedback_title(very_long_message)
     assert len(result) <= 200
     assert result.endswith("...")
     assert result.startswith("User Feedback: ")
@@ -160,7 +160,7 @@ def test_get_feedback_title() -> None:
     # Test message with special characters
     special_message = "The @login button doesn't work! It's broken & needs fixing."
     expected_special = "User Feedback: The @login button doesn't work! It's broken & needs fixing."
-    assert get_feedback_title(special_message) == expected_special
+    assert format_feedback_title(special_message) == expected_special
 
 
 @responses.activate
@@ -188,7 +188,7 @@ def test_get_feedback_title_from_seer_success():
         with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
             mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
             title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title == "User Feedback: Login Button Issue"
+            assert title == "Login Button Issue"
             mock_metrics.incr.assert_called_once_with(
                 "feedback.ai_title_generation.success",
             )

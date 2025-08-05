@@ -18,7 +18,7 @@ from sentry.feedback.usecases.label_generation import (
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.feedback.usecases.title_generation import (
-    get_feedback_title,
+    format_feedback_title,
     get_feedback_title_from_seer,
     should_get_ai_title,
 )
@@ -300,17 +300,16 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam
     )
     issue_fingerprint = [uuid4().hex]
-    issue_title = None
+    ai_title = None
     if should_get_ai_title(project.organization):
-        issue_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
-    if issue_title is None:
-        issue_title = get_feedback_title(feedback_message)
+        ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
+    formatted_title = format_feedback_title(ai_title or feedback_message)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=issue_title,
+        issue_title=formatted_title,
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
