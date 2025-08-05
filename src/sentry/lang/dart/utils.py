@@ -19,9 +19,13 @@ from sentry.utils.safe import get_path
 
 
 def get_dart_symbols_images(event: dict[str, Any]) -> set[str]:
+    images = get_path(event, "debug_meta", "images", default=())
+    if not isinstance(images, (list, tuple)):
+        return set()
     return {
         str(image["debug_id"]).lower()
-        for image in get_path(event, "debug_meta", "images", default=())
+        for image in images
+        if isinstance(image, dict) and "debug_id" in image
     }
 
 
@@ -57,7 +61,12 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
             return
 
 
-def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
+def deobfuscate_exception_type(data: MutableMapping[str, Any]):
+    """
+    Deobfuscates exception types in-place.
+
+    If we're unable to fetch a dart symbols mapping file, then the exception types remain unmodified.
+    """
     project = Project.objects.get_from_cache(id=data["project"])
 
     debug_ids = get_dart_symbols_images(dict(data))
@@ -98,8 +107,6 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> MutableMapping
                     continue
 
                 exception["value"] = exception_value.replace(obfuscated_symbol, symbolicated_symbol)
-
-    return data
 
 
 # TODO: Add this back in when we decide to deobfuscate view hierarchies

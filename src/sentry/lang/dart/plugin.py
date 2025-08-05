@@ -27,16 +27,16 @@ class DartPlugin(Plugin2):
 
         # Check if any stacktrace contains native platform frames.
         # This indicates that the Flutter build is most likely obfuscated.
-        has_native_frames = False
-        for stacktrace_info in find_stacktraces_in_data(data):
-            frames = stacktrace_info.get_frames()
-            if frames:
-                for frame in frames:
-                    if frame.get("platform") == "native":
-                        has_native_frames = True
-                        break
-
+        has_native_frames = _has_native_frames_in_stacktraces(data)
         if not has_native_frames:
             return []
 
         return [deobfuscate_exception_type]
+
+
+def _has_native_frames_in_stacktraces(data):
+    for stacktrace_info in find_stacktraces_in_data(data):
+        frames = stacktrace_info.get_frames()
+        if frames and any(frame.get("platform") == "native" for frame in frames):
+            return True
+    return False

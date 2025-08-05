@@ -55,7 +55,6 @@ class DartPluginDeobfuscationTest(TestCase):
             "debug_meta": {
                 "images": [
                     {
-                        "type": "dartsymbolmap",
                         "debug_id": DART_SYMBOLS_UUID,
                     }
                 ]
@@ -105,7 +104,6 @@ class DartPluginDeobfuscationTest(TestCase):
             "debug_meta": {
                 "images": [
                     {
-                        "type": "dartsymbolmap",
                         "debug_id": DART_SYMBOLS_UUID,
                     }
                 ]
@@ -158,7 +156,6 @@ class DartPluginDeobfuscationTest(TestCase):
             "debug_meta": {
                 "images": [
                     {
-                        "type": "dartsymbolmap",
                         "debug_id": DART_SYMBOLS_UUID,
                     }
                 ]
@@ -203,7 +200,6 @@ class DartPluginDeobfuscationTest(TestCase):
             "debug_meta": {
                 "images": [
                     {
-                        "type": "dartsymbolmap",
                         "debug_id": DART_SYMBOLS_UUID,
                     }
                 ]

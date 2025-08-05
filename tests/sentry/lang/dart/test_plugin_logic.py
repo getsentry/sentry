@@ -10,11 +10,7 @@ class DartPluginTest(TestCase):
         self.data = {
             "project": self.project.id,
             "sdk": {"name": "sentry.dart.flutter"},
-            "debug_meta": {
-                "images": [
-                    {"debug_id": "b8e43a-f242-3d73-a453-aeb6a777ef75", "type": "dart_symbols"}
-                ]
-            },
+            "debug_meta": {"images": [{"debug_id": "b8e43a-f242-3d73-a453-aeb6a777ef75"}]},
             "exception": {
                 "values": [
                     {
@@ -65,11 +61,7 @@ class DartPluginTest(TestCase):
         data = {
             "project": self.project.id,
             "sdk": {"name": "sentry.dart.flutter"},
-            "debug_meta": {
-                "images": [
-                    {"debug_id": "b8e43a-f242-3d73-a453-aeb6a777ef75", "type": "dart_symbols"}
-                ]
-            },
+            "debug_meta": {"images": [{"debug_id": "b8e43a-f242-3d73-a453-aeb6a777ef75"}]},
             "exception": {
                 "values": [
                     {
