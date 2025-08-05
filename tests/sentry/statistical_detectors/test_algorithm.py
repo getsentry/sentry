@@ -10,6 +10,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
 )
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
+from sentry.testutils import thread_leaks
 from sentry.utils.math import ExponentialMovingAverage
 
 
@@ -183,6 +184,7 @@ def test_moving_average_detector_state_from_redis_dict(data, expected):
         ),
     ],
 )
+@thread_leaks.allowlist(issue=-13, reason="spans flusher database access")
 def test_moving_average_detector_state_from_redis_dict_error(data, error):
     with pytest.raises(error):
         MovingAverageDetectorState.from_redis_dict(data)

@@ -29,6 +29,7 @@ from sentry.backup.imports import ImportingError
 from sentry.backup.services.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.runner.commands.backup import backup, export, import_
 from sentry.silo.base import SiloMode
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import clear_database, generate_rsa_key_pair
@@ -523,6 +524,7 @@ def cli_import_then_export(
             assert len(findings) == 0
 
 
+@thread_leaks.allowlist(issue=-10, reason="backup command")
 class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting

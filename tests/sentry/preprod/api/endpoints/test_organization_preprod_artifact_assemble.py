@@ -15,6 +15,7 @@ from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import 
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.outbox import outbox_runner
@@ -524,6 +525,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert org_token.date_last_used is not None
         assert org_token.project_last_used_id == self.project.id
 
+    @thread_leaks.allowlist(issue=-12, reason="preprod background processing")
     def test_poll_request(self):
         checksum = sha1(b"test poll").hexdigest()
 

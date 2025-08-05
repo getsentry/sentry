@@ -9,6 +9,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.transport
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -312,6 +313,132 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     return sdk_options, dsns
 
 
+class __MultiplexingTransport(sentry_sdk.transport.Transport):
+    """
+    Sends all envelopes and events to two Sentry instances:
+    - Sentry SaaS (aka Sentry.io) and
+    - Sentry4Sentry (aka S4S)
+    """
+
+    def __init__(
+        self,
+        sentry4sentry_transport: sentry_sdk.transport.Transport | None,
+        sentry_saas_transport: sentry_sdk.transport.Transport | None,
+    ):
+        self.sentry4sentry_transport = sentry4sentry_transport
+        self.sentry_saas_transport = sentry_saas_transport
+        self.transports: list[sentry_sdk.transport.Transport] = []
+        if self.sentry4sentry_transport:
+            self.transports.append(self.sentry4sentry_transport)
+        if self.sentry_saas_transport:
+            self.transports.append(self.sentry_saas_transport)
+
+    def capture_envelope(self, envelope):
+        # Temporarily capture envelope counts to compare to ingested
+        # transactions.
+        metrics.incr("internal.captured.events.envelopes")
+        transaction = envelope.get_transaction_event()
+
+        if transaction:
+            metrics.incr("internal.captured.events.transactions")
+
+        # Assume only transactions get sent via envelopes
+        if options.get("transaction-events.force-disable-internal-project"):
+            return
+
+        self._capture_anything("capture_envelope", envelope)
+
+    def capture_event(self, event):
+        if event.get("type") == "transaction" and options.get(
+            "transaction-events.force-disable-internal-project"
+        ):
+            return
+
+        self._capture_anything("capture_event", event)
+
+    def _capture_anything(self, method_name, *args, **kwargs):
+        # Sentry4Sentry (upstream) should get the event first because
+        # it is most isolated from the sentry installation.
+        if self.sentry4sentry_transport:
+            metrics.incr("internal.captured.events.upstream")
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
+            s4s_args = args
+            # We want to control whether we want to send metrics at the
+            # sentry4sentry_transport upstream.
+            if (
+                not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                and method_name == "capture_envelope"
+            ):
+                args_list = list(args)
+                envelope = args_list[0]
+                # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                # unless we allow them via a separate sample rate.
+                safe_items = [
+                    x
+                    for x in envelope.items
+                    if x.data_category != "statsd"
+                    or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                ]
+                if len(safe_items) != len(envelope.items):
+                    relay_envelope = copy.copy(envelope)
+                    relay_envelope.items = safe_items
+                    s4s_args = (relay_envelope, *args_list[1:])
+
+            getattr(self.sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
+
+        if self.sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            # If this is an envelope ensure envelope and its items are distinct references
+            if method_name == "capture_envelope":
+                args_list = list(args)
+                envelope = args_list[0]
+                relay_envelope = copy.copy(envelope)
+                relay_envelope.items = envelope.items.copy()
+                args = (relay_envelope, *args_list[1:])
+
+            if self.sentry_saas_transport:
+                if is_current_event_safe():
+                    metrics.incr("internal.captured.events.relay")
+                    getattr(self.sentry_saas_transport, method_name)(*args, **kwargs)
+                else:
+                    metrics.incr(
+                        "internal.uncaptured.events.relay",
+                        skip_internal=False,
+                        tags={"reason": "unsafe"},
+                    )
+
+    def record_lost_event(self, *args, **kwargs):
+        # pass through client report recording to sentry_saas_transport
+        # not entirely accurate for some cases like rate limiting but does the job
+        if self.sentry_saas_transport:
+            record = getattr(self.sentry_saas_transport, "record_lost_event", None)
+            if record:
+                record(*args, **kwargs)
+
+    def is_healthy(self):
+        for transport in self.transports:
+            if not transport.is_healthy():
+                return False
+        else:
+            return True
+
+    def flush(
+        self,
+        timeout,
+        callback=None,
+    ):
+        # flush transports in case we received a kill signal
+        for transport in self.transports:
+            transport.flush(timeout, callback)
+
+    def kill(self):
+        for transport in self.transports:
+            transport.kill()
+
+
 def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
@@ -350,117 +477,6 @@ def configure_sdk():
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
-    class MultiplexingTransport(sentry_sdk.transport.Transport):
-        """
-        Sends all envelopes and events to two Sentry instances:
-        - Sentry SaaS (aka Sentry.io) and
-        - Sentry4Sentry (aka S4S)
-        """
-
-        def capture_envelope(self, envelope):
-            # Temporarily capture envelope counts to compare to ingested
-            # transactions.
-            metrics.incr("internal.captured.events.envelopes")
-            transaction = envelope.get_transaction_event()
-
-            if transaction:
-                metrics.incr("internal.captured.events.transactions")
-
-            # Assume only transactions get sent via envelopes
-            if options.get("transaction-events.force-disable-internal-project"):
-                return
-
-            self._capture_anything("capture_envelope", envelope)
-
-        def capture_event(self, event):
-            if event.get("type") == "transaction" and options.get(
-                "transaction-events.force-disable-internal-project"
-            ):
-                return
-
-            self._capture_anything("capture_event", event)
-
-        def _capture_anything(self, method_name, *args, **kwargs):
-            # Sentry4Sentry (upstream) should get the event first because
-            # it is most isolated from the sentry installation.
-            if sentry4sentry_transport:
-                metrics.incr("internal.captured.events.upstream")
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                s4s_args = args
-                # We want to control whether we want to send metrics at the s4s upstream.
-                if (
-                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                    and method_name == "capture_envelope"
-                ):
-                    args_list = list(args)
-                    envelope = args_list[0]
-                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    # unless we allow them via a separate sample rate.
-                    safe_items = [
-                        x
-                        for x in envelope.items
-                        if x.data_category != "statsd"
-                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                    ]
-                    if len(safe_items) != len(envelope.items):
-                        relay_envelope = copy.copy(envelope)
-                        relay_envelope.items = safe_items
-                        s4s_args = (relay_envelope, *args_list[1:])
-
-                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
-
-            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-                # If this is an envelope ensure envelope and its items are distinct references
-                if method_name == "capture_envelope":
-                    args_list = list(args)
-                    envelope = args_list[0]
-                    relay_envelope = copy.copy(envelope)
-                    relay_envelope.items = envelope.items.copy()
-                    args = (relay_envelope, *args_list[1:])
-
-                if sentry_saas_transport:
-                    if is_current_event_safe():
-                        metrics.incr("internal.captured.events.relay")
-                        getattr(sentry_saas_transport, method_name)(*args, **kwargs)
-                    else:
-                        metrics.incr(
-                            "internal.uncaptured.events.relay",
-                            skip_internal=False,
-                            tags={"reason": "unsafe"},
-                        )
-
-        def record_lost_event(self, *args, **kwargs):
-            # pass through client report recording to sentry_saas_transport
-            # not entirely accurate for some cases like rate limiting but does the job
-            if sentry_saas_transport:
-                record = getattr(sentry_saas_transport, "record_lost_event", None)
-                if record:
-                    record(*args, **kwargs)
-
-        def is_healthy(self):
-            if sentry4sentry_transport:
-                if not sentry4sentry_transport.is_healthy():
-                    return False
-            if sentry_saas_transport:
-                if not sentry_saas_transport.is_healthy():
-                    return False
-            return True
-
-        def flush(
-            self,
-            timeout,
-            callback=None,
-        ):
-            # flush transports in case we received a kill signal
-            if sentry4sentry_transport:
-                getattr(sentry4sentry_transport, "flush")(timeout, callback)
-            if sentry_saas_transport:
-                getattr(sentry_saas_transport, "flush")(timeout, callback)
-
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
@@ -477,11 +493,14 @@ def configure_sdk():
         "schedule-digests",
     ]
 
-    sentry_sdk.init(
+    return sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
-        transport=MultiplexingTransport(),
+        transport=__MultiplexingTransport(
+            sentry4sentry_transport,
+            sentry_saas_transport,
+        ),
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(signals_spans=False, cache_spans=True),

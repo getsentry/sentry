@@ -21,9 +21,11 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
 )
+from sentry.testutils import thread_leaks
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 class AssemblePreprodArtifactTest(BaseAssembleTest):
     def tearDown(self):
         """Clean up assembly status to prevent test pollution"""

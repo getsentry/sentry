@@ -32,6 +32,7 @@ from sentry.profiles.task import (
 )
 from sentry.profiles.utils import Profile
 from sentry.signals import first_profile_received
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
@@ -547,6 +548,7 @@ def test_calculate_profile_duration(profile, duration_ms, request):
 
 
 @pytest.mark.django_db(transaction=True)
+@thread_leaks.allowlist(issue=-5, reason="Django test server")
 class DeobfuscationViaSymbolicator(TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
@@ -586,6 +588,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    @thread_leaks.allowlist(issue=-7, reason="profile deobfuscation")
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -642,6 +645,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    @thread_leaks.allowlist(issue=-7, reason="profile deobfuscation")
     def test_inline_resolving(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")

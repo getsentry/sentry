@@ -3,6 +3,7 @@ from unittest import mock
 
 from sentry.replays.usecases.ingest.event_logger import emit_click_events, gen_rage_clicks
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.testutils import thread_leaks
 
 
 def test_gen_rage_clicks():
@@ -31,6 +32,7 @@ def test_gen_rage_clicks():
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
+@thread_leaks.allowlist(issue=-1, reason="KafkaProducer cleanup")
 def test_emit_click_events_environment_handling():
     click_events = [
         ClickEvent(

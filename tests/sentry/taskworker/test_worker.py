@@ -22,6 +22,7 @@ from sentry.taskworker.retry import NoRetriesRemainingError
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.redis import redis_clusters
@@ -224,6 +225,7 @@ class TestTaskWorker(TestCase):
             )
             assert mock_client.update_task.call_args.args[1] is None
 
+    @thread_leaks.allowlist(issue=-14, reason="taskworker queue threads")
     def test_run_once_with_update_failure(self) -> None:
         # Cover the scenario where update_task fails a few times in a row
         # We should retain the result until RPC succeeds.

@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
@@ -395,6 +396,7 @@ class AnotherClassInSameFile {
 
 
 @pytest.mark.django_db(transaction=True)
+@thread_leaks.allowlist(issue=-8, reason="relay integration")
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):

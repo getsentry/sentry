@@ -19,6 +19,7 @@ from arroyo.types import Value
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,9 @@ def _get_dlq_producer(topic: Topic | None) -> KafkaDlqProducer | None:
     topic_defn = get_topic_definition(topic)
     config = get_kafka_producer_cluster_options(topic_defn["cluster"])
     real_topic = topic_defn["real_topic_name"]
-    return KafkaDlqProducer(KafkaProducer(config), ArroyoTopic(real_topic))
+    return KafkaDlqProducer(
+        SingletonProducer(lambda: KafkaProducer(config)), ArroyoTopic(real_topic)
+    )
 
 
 def maybe_build_dlq_producer(

@@ -9,6 +9,7 @@ from django.test import override_settings
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -18,6 +19,7 @@ def _payload(span_id: str) -> bytes:
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
+@thread_leaks.allowlist(issue=-1)
 def test_backpressure(monkeypatch):
     # Flush very aggressively to make join() faster
     monkeypatch.setattr("time.sleep", lambda _: None)
