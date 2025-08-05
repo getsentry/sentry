@@ -16,6 +16,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -497,6 +498,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
+@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 def test_invalidate_hierarchy(
     default_project,
