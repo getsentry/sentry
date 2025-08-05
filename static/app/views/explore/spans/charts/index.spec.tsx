@@ -2,9 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {defaultVisualizes} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 describe('ExploreCharts', () => {
   it('renders the high accuracy message when the widget is loading more data', async () => {
@@ -16,14 +18,18 @@ describe('ExploreCharts', () => {
     } as any;
 
     render(
-      <ExploreCharts
-        confidences={[]}
-        query={''}
-        timeseriesResult={mockTimeseriesResult}
-        visualizes={defaultVisualizes()}
-        setVisualizes={() => {}}
-        samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
-      />,
+      <SpansQueryParamsProvider>
+        <PageParamsProvider>
+          <ExploreCharts
+            confidences={[]}
+            query={''}
+            timeseriesResult={mockTimeseriesResult}
+            visualizes={defaultVisualizes()}
+            setVisualizes={() => {}}
+            samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
+          />
+        </PageParamsProvider>
+      </SpansQueryParamsProvider>,
       {
         organization: OrganizationFixture(),
       }
