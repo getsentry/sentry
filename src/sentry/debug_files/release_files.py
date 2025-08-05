@@ -5,12 +5,13 @@ from datetime import timedelta
 from django.db import router
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.releasefile import ReleaseFile
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
 # Number of days that determine whether a release file is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
+AVAILABLE_FOR_RENEWAL_DAYS = options.get("system.debug-file-renewal-interval")
 
 
 def maybe_renew_releasefiles(releasefiles: list[ReleaseFile]):

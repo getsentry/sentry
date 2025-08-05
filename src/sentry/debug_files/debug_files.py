@@ -6,13 +6,13 @@ from datetime import timedelta
 from django.db import router
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
-# TODO: merge this with artifact bundles
 # Number of days that determine whether a debug file is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
+AVAILABLE_FOR_RENEWAL_DAYS = options.get("system.debug-file-renewal-interval")
 
 
 def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]):

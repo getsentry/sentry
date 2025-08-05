@@ -45,6 +45,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TODO: Understand if we want/need the: FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+# TODO: Come up with a better name
+register(
+    "system.debug-file-renewal-interval",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)

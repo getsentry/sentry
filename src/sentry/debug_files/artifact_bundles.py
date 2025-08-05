@@ -33,7 +33,7 @@ MAX_BUNDLES_QUERY = 5
 INDEXING_THRESHOLD = 3
 
 # Number of days that determine whether an artifact bundle is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
+AVAILABLE_FOR_RENEWAL_DAYS = options.get("system.debug-file-renewal-interval")
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
