@@ -20,7 +20,7 @@ from sentry.grouping.component import (
 from sentry.grouping.enhancer import Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE, GroupingContext
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.utils import (
     expand_title_template,
     get_fingerprint_type,
@@ -91,7 +91,7 @@ class GroupingConfigLoader:
         project_enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
-        enhancements_base = CONFIGURATIONS[config_id].enhancements_base
+        enhancements_base = GROUPING_CONFIG_CLASSES[config_id].enhancements_base
         enhancements_version = get_enhancements_version(project, config_id)
 
         cache_prefix = self.cache_prefix
@@ -137,7 +137,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in GROUPING_CONFIG_CLASSES,
             default=DEFAULT_GROUPING_CONFIG,
         )
 
@@ -185,8 +185,8 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
 
 def _get_default_base64_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
-    if config_id is not None and config_id in CONFIGURATIONS.keys():
-        base = CONFIGURATIONS[config_id].enhancements_base
+    if config_id is not None and config_id in GROUPING_CONFIG_CLASSES.keys():
+        base = GROUPING_CONFIG_CLASSES[config_id].enhancements_base
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
@@ -201,7 +201,7 @@ def _get_default_fingerprinting_bases_for_project(
         or DEFAULT_GROUPING_CONFIG
     )
 
-    bases = CONFIGURATIONS[config_id].fingerprinting_bases
+    bases = GROUPING_CONFIG_CLASSES[config_id].fingerprinting_bases
     return bases
 
 
@@ -222,10 +222,10 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     elif "id" not in config_dict:
         raise ValueError("Malformed configuration dictionary")
     config_id = config_dict["id"]
-    if config_id not in CONFIGURATIONS:
+    if config_id not in GROUPING_CONFIG_CLASSES:
         config_dict = get_default_grouping_config_dict()
         config_id = config_dict["id"]
-    return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
+    return GROUPING_CONFIG_CLASSES[config_id](enhancements=config_dict["enhancements"])
 
 
 def _load_default_grouping_config() -> StrategyConfiguration:

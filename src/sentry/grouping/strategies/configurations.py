@@ -5,7 +5,7 @@ from sentry.grouping.strategies.base import (
 )
 
 # The full mapping of all known configurations.
-CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
+GROUPING_CONFIG_CLASSES: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
@@ -52,11 +52,13 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     # Replace the base strategy id in kwargs with the base stategy class itself (or the default
     # base class, if no base is specified)
     base_config_id = kwargs.get("base")
-    kwargs["base"] = CONFIGURATIONS[base_config_id] if base_config_id else BASE_CONFIG_CLASS
+    kwargs["base"] = (
+        GROUPING_CONFIG_CLASSES[base_config_id] if base_config_id else BASE_CONFIG_CLASS
+    )
 
     strategy_class = create_strategy_configuration_class(id, **kwargs)
 
-    CONFIGURATIONS[id] = strategy_class
+    GROUPING_CONFIG_CLASSES[id] = strategy_class
     return strategy_class
 
 

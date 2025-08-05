@@ -23,7 +23,10 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_grouping_config
+from sentry.grouping.strategies.configurations import (
+    GROUPING_CONFIG_CLASSES,
+    register_grouping_config,
+)
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -33,7 +36,7 @@ from sentry.utils import json
 GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
 FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
-MANUAL_SAVE_CONFIGS = set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG}
+MANUAL_SAVE_CONFIGS = set(GROUPING_CONFIG_CLASSES.keys()) - {DEFAULT_GROUPING_CONFIG}
 FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
 
 # When regenerating snapshots locally, you can set `SENTRY_SNAPSHOTS_WRITEBACK=1` and
@@ -118,7 +121,7 @@ class GroupingInput:
         ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
-            bases=CONFIGURATIONS[config_name].fingerprinting_bases,
+            bases=GROUPING_CONFIG_CLASSES[config_name].fingerprinting_bases,
         )
 
         if use_full_ingest_pipeline:
@@ -168,7 +171,7 @@ class FingerprintInput:
     def create_event(self) -> tuple[FingerprintingRules, Event]:
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
-            bases=CONFIGURATIONS[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
+            bases=GROUPING_CONFIG_CLASSES[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
         )
         mgr = EventManager(data=self.data)
         mgr.normalize()
