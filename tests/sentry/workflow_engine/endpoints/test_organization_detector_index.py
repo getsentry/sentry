@@ -510,7 +510,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(user=owner)
 
-        # Verify that the owner can see detectors across all projects
+        # Verify that the owner can see detectors for projects that they are not a member of
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"project": new_project.id},
@@ -538,7 +538,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(user=owner)
 
-        # Verify that the owner can see detectors across all projects
+        # Verify that the owner can see detectors for projects that they are not a member of
         response = self.get_success_response(
             self.organization.slug,
             qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_2.id))],
@@ -926,7 +926,6 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
 
         self.org_manager_user = self.create_user()
         self.create_member(
-            # team_roles=[(self.team, "contributor")],
             user=self.org_manager_user,
             role="manager",
             organization=self.organization,
