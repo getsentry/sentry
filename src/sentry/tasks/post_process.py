@@ -213,6 +213,24 @@ def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_i
 @metrics.wraps("post_process.handle_owner_assignment")
 @sentry_sdk.trace
 def handle_owner_assignment(job):
+    """
+    The handle_owner_assignment task attempts to find issue owners for a group.
+    We call `ProjectOwnership.get_issue_owners` to find issue owners, and then
+    `handle_group_owners` to store them.
+
+    Before doing any work, we first do a few checks:
+
+    - If the issue has an assignee, we skip the task, as
+    if the issue is assigned, we do not need to do this logic.
+    - We check if we've attempted to find an issue owner in the last day.
+      - We cache the result of this check so we're not checking every issue event.
+    - We then check that the project has not gone over its rate limit for ownership evaluation.
+    - We also have a killswitch to disable this logic for a project, in case for whatever reason a
+      project is causing problems with the queue.
+
+    These checks are to protect the queue from being overwhelmed by one project, and also to prevent
+    one project to spam our Source code manager's (github, etc.) APIs.
+    """
     if job["is_reprocessed"]:
         return
 
@@ -227,17 +245,11 @@ def handle_owner_assignment(job):
 
     event = job["event"]
     project, group = event.project, event.group
-    # We want to debounce owner assignment when:
-    # - GroupOwner of type Ownership Rule || CodeOwner exist with TTL 1 day
-    # - we tried to calculate and could not find issue owners with TTL 1 day
-    # - an Assignee has been set with TTL of infinite
 
-    # Is the issue already assigned to a team or user?
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
     assignees_exists = cache.get(assignee_key)
     if assignees_exists is None:
         assignees_exists = group.assignee_set.exists()
-        # Cache for 1 day if it's assigned. We don't need to move that fast.
         cache.set(
             assignee_key,
             assignees_exists,
@@ -283,7 +295,6 @@ def handle_owner_assignment(job):
         handle_invalid_group_owners(group)
     else:
         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
-        # Cache for 1 day after we calculated. We don't need to move that fast.
         cache.set(
             issue_owners_key,
             True,
