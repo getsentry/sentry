@@ -10,7 +10,7 @@ type OrganizationStatsWrapperProps = {
 export function OrganizationStatsWrapper({children}: OrganizationStatsWrapperProps) {
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/stats/',
-    newPathPrefix: '/settings/stats/',
+    newPathPrefix: `/settings/stats/`,
   });
 
   if (redirectPath) {
