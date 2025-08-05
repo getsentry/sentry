@@ -800,6 +800,8 @@ module = [
     "tests.sentry.workflow_engine.models.*",
     "tests.sentry_plugins.*",
     "tools.*",
+    "sentry.*",
+    "tests.*",
 ]
 disallow_any_generics = true
 disallow_untyped_defs = true
