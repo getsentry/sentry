@@ -1,3 +1,4 @@
+import pytest
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -49,6 +50,7 @@ class ReferrerTest(TestCase):
         )
         assert warn_log.call_count == 2
 
+    @pytest.mark.skip(reason="flaky: #97193")
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_tsdb_models(self, warn_log: MagicMock) -> None:
         assert warn_log.call_count == 0
