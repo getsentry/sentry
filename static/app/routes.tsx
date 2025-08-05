@@ -492,7 +492,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/account/apiTokenDetails')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
