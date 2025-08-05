@@ -551,7 +551,10 @@ describe('WidgetBuilderSlideout', () => {
 
   it('should show deprecation alert when flag enabled', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
     });
     jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
