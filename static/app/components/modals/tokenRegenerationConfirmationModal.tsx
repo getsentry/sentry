@@ -8,9 +8,19 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-type Props = ModalRenderProps;
+export interface TokenRegenerationConfirmationModalProps {
+  token?: string;
+}
 
-function TokenRegenerationConfirmationModal({Header, Body, Footer, closeModal}: Props) {
+type Props = ModalRenderProps & TokenRegenerationConfirmationModalProps;
+
+function TokenRegenerationConfirmationModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  token,
+}: Props) {
   return (
     <Fragment>
       <Header closeButton>
@@ -28,7 +38,7 @@ function TokenRegenerationConfirmationModal({Header, Body, Footer, closeModal}: 
               SENTRY_PREVENT_TOKEN
             </StyledTextCopyInput>
             <StyledTextCopyInput style={{minWidth: '310px'}}>
-              91b57316-b1ff-4884-8d55-92b9936a05a3
+              {token || ''}
             </StyledTextCopyInput>
           </TokenRow>
         </Wrapper>
