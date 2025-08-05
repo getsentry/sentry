@@ -61,6 +61,8 @@ __all__ = (
     "check_multihistogram_fields",
 )
 DEFAULT_DATASET_REASON = "unchanged"
+# What the frontend replaces Nulls with so that we can format top event arrays the same
+NO_VALUE = "(no value)"
 
 
 logger = logging.getLogger(__name__)
@@ -432,7 +434,8 @@ def create_groupby_dict(
                     # Even though frontend renders only the last element, this can cause key overlaps
                     # For now lets just render this as a list to avoid that problem
                     # TODO: timeseries can handle this correctly since this value isn't used as a dict key
-                    value = f"[{','.join(value)}]"
+                    filtered_value = [val if val is not None else NO_VALUE for val in value]
+                    value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""
             values.append({"key": field, "value": str(value)})
