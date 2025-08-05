@@ -110,7 +110,8 @@ StacktraceEncoderReturnValue = Any
 
 def _is_recursive_frame(frame: Frame, previous_frame: Frame | None) -> bool:
     """
-    Returns a boolean indicating whether frames are recursive calls.
+    Return a boolean indicating whether the given frame is a repeat of the frame before it and
+    therefore represents a recursive call.
     """
     if previous_frame is None:
         return False
