@@ -108,7 +108,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def _is_recursive_frame(frame1: Frame, frame2: Frame | None) -> bool:
+def _is_recursive_frame(frame: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -116,7 +116,7 @@ def _is_recursive_frame(frame1: Frame, frame2: Frame | None) -> bool:
         return False
 
     for field in RECURSION_COMPARISON_FIELDS:
-        if getattr(frame1, field, None) != getattr(frame2, field, None):
+        if getattr(frame, field, None) != getattr(frame2, field, None):
             return False
 
     return True
