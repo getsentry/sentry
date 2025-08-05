@@ -10,7 +10,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.models.activity import Activity
+from sentry.models.activity import Activity, ActivityType
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     PagerDutyMetricAlertHandler,
@@ -143,7 +143,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         activity = Activity(
             project=self.project,
             group=self.group,
-            type=1,  # ActivityType value
+            type=ActivityType.SET_RESOLVED.value,
             data=activity_data,
         )
         activity.save()

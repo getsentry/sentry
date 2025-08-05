@@ -25,7 +25,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.activity import Activity
+from sentry.models.activity import Activity, ActivityType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -507,7 +507,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         activity = Activity(
             project=self.project,
             group=self.group,
-            type=1,  # ActivityType value
+            type=ActivityType.SET_RESOLVED.value,
             data=activity_data,
         )
         activity.save()
@@ -574,7 +574,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         activity = Activity(
             project=self.project,
             group=self.group,
-            type=1,  # ActivityType value
+            type=ActivityType.SET_RESOLVED.value,
             data=activity_data,
         )
         activity.save()
