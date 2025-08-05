@@ -48,7 +48,6 @@ import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerCom
 import {
   useExploreFields,
   useExploreId,
-  useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
   useSetExplorePageParams,
@@ -64,6 +63,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -173,17 +173,28 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults, query} = useSearchQueryBuilder();
+  const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
 
-  return displaySeerResults ? (
-    <SeerComboBox initialQuery={query} />
+  const initialSeerQuery = (() => {
+    const committedQuery = query.trim();
+    const inputValue = currentInputValue.trim();
+
+    if (!inputValue) return committedQuery;
+
+    if (!committedQuery) return inputValue;
+
+    return `${committedQuery} ${inputValue}`;
+  })();
+
+  return displayAskSeer ? (
+    <SeerComboBox initialQuery={initialSeerQuery} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );
 }
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
@@ -205,6 +216,13 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -240,20 +258,28 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
       numberSecondaryAliases,
       stringSecondaryAliases,
     }),
     [
-      query,
-      mode,
-      numberTags,
-      numberSecondaryAliases,
-      stringTags,
-      stringSecondaryAliases,
-      oldSearch,
       fields,
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      mode,
+      numberSecondaryAliases,
+      numberTags,
+      oldSearch,
+      query,
       setExplorePageParams,
+      stringSecondaryAliases,
+      stringTags,
     ]
   );
 
@@ -350,7 +376,7 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();

@@ -1,10 +1,16 @@
+from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import (
     Action,
@@ -50,6 +56,11 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data == serialize([self.workflow, self.workflow_two, self.workflow_three])
+
+        # Verify X-Hits header is present and correct
+        assert "X-Hits" in response
+        hits = int(response["X-Hits"])
+        assert hits == 3
 
     def test_empty_result(self) -> None:
         response = self.get_success_response(
@@ -640,4 +651,371 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             self.organization.slug,
             raw_data=workflow_data,
             status_code=403,
+        )
+
+
+@region_silo_test
+class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Test Workflow", enabled=False
+        )
+        self.workflow_two = self.create_workflow(
+            organization_id=self.organization.id, name="Another Workflow", enabled=False
+        )
+        self.workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Third Workflow", enabled=False
+        )
+
+    def test_bulk_enable_workflows_by_ids_success(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+            raw_data={"enabled": True},
+        )
+
+        # Verify workflows were enabled
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is True
+
+        # Verify response contains updated workflows
+        assert len(response.data) == 2
+        workflow_ids = {w["id"] for w in response.data}
+        assert workflow_ids == {str(self.workflow.id), str(self.workflow_two.id)}
+        assert all(w["enabled"] for w in response.data)
+
+        # Verify third workflow is unaffected
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_disable_workflows_by_ids_success(self):
+        self.workflow.update(enabled=True)
+        self.workflow_two.update(enabled=True)
+        self.workflow_three.update(enabled=True)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+            raw_data={"enabled": False},
+        )
+
+        # Verify workflows were disabled
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+
+        # Verify response contains updated workflows
+        assert len(response.data) == 2
+        assert all(not w["enabled"] for w in response.data)
+
+        # Verify third workflow is unaffected
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_three.enabled is True
+
+    def test_bulk_enable_workflows_by_query_success(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "test"},
+            raw_data={"enabled": True},
+        )
+
+        # Verify workflow was enabled
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+        # Verify response contains updated workflow
+        assert len(response.data) == 1
+        assert response.data[0]["enabled"] is True
+        assert response.data[0]["name"] == self.workflow.name
+
+        # Other workflows should be unaffected
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_update_workflows_no_parameters_error(self):
+        """Test error when no filtering parameters are provided"""
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data={"enabled": True},
+            status_code=400,
+        )
+
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
+            response.data["detail"]
+        )
+
+        # Verify no workflows were affected
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_update_workflows_missing_enabled_field_error(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={},
+            status_code=400,
+        )
+
+        assert "This field is required." in str(response.data["enabled"])
+
+        # Verify workflow was not updated
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is False
+
+    def test_bulk_update_no_matching_workflows(self):
+        # Test with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+            raw_data={"enabled": True},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Test with non-matching query
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "nonexistent-workflow-name"},
+            raw_data={"enabled": True},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Verify no workflows were affected
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+
+@region_silo_test
+class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
+    method = "DELETE"
+
+    def assert_unaffected_workflows(self, workflows: Sequence[Workflow]) -> None:
+        for workflow in workflows:
+            workflow.refresh_from_db()
+            assert Workflow.objects.get(id=workflow.id).status != ObjectStatus.PENDING_DELETION
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Test Workflow"
+        )
+        self.workflow_two = self.create_workflow(
+            organization_id=self.organization.id, name="Another Workflow"
+        )
+        self.workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Third Workflow"
+        )
+
+    def test_delete_workflows_by_ids_success(self) -> None:
+        """Test successful deletion of workflows by specific IDs"""
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+                status_code=204,
+            )
+
+        # Ensure the workflows are scheduled for deletion
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+        assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow.id,
+        ).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow_two.id,
+        ).exists()
+
+        # Delete the workflows
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure workflows are removed
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+        assert not Workflow.objects.filter(id=self.workflow_two.id).exists()
+
+        # Verify third workflow is unaffected
+        self.assert_unaffected_workflows([self.workflow_three])
+
+    def test_delete_workflows_by_query_success(self) -> None:
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"query": "test"},
+                status_code=204,
+            )
+
+        # Ensure the workflow is scheduled for deletion
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow.id,
+        ).exists()
+
+        # Delete the workflows
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure workflow is removed
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+
+        # Other workflows should be unaffected
+        self.assert_unaffected_workflows([self.workflow_two, self.workflow_three])
+
+    def test_delete_workflows_by_project_success(self) -> None:
+        # Create detectors and link workflows to projects
+        detector_1 = self.create_detector(project=self.project)
+        detector_2 = self.create_detector(project=self.project)
+        other_project = self.create_project(organization=self.organization)
+        detector_3 = self.create_detector(project=other_project)
+
+        self.create_detector_workflow(workflow=self.workflow, detector=detector_1)
+        self.create_detector_workflow(workflow=self.workflow_two, detector=detector_2)
+        self.create_detector_workflow(workflow=self.workflow_three, detector=detector_3)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": str(self.project.id)},
+                status_code=204,
+            )
+
+        # Ensure the workflows are scheduled for deletion
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+        assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow.id,
+        ).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow_two.id,
+        ).exists()
+
+        # Delete the workflows
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure workflows are removed
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+        assert not Workflow.objects.filter(id=self.workflow_two.id).exists()
+
+        # Workflow linked to other project should be unaffected
+        self.assert_unaffected_workflows([self.workflow_three])
+
+    def test_delete_workflows_no_parameters_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+        )
+
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
+            response.data["detail"]
+        )
+
+        # Verify no workflows were affected
+        self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
+
+    def test_delete_no_matching_workflows(self) -> None:
+        # Test deleting workflows with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Verify no workflows were affected
+        self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
+
+        # Test deleting workflows with non-matching query
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "nonexistent-workflow-name"},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Verify no workflows were affected
+        self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
+
+    def test_delete_workflows_invalid_id_format(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-a-number"},
+            status_code=400,
+        )
+
+        assert "Invalid ID format" in str(response.data["id"])
+
+    def test_delete_workflows_filtering_ignored_with_ids(self) -> None:
+        # Link workflow to project via detector
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+
+        # Other filters should be ignored when specific IDs are provided
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "id": str(self.workflow_two.id),
+                    "project": str(self.project.id),
+                },
+                status_code=204,
+            )
+
+        # Ensure the workflow is scheduled for deletion
+        self.workflow_two.refresh_from_db()
+        assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.workflow_two.id,
+        ).exists()
+
+        # Delete the workflows
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure workflow is removed
+        assert not Workflow.objects.filter(id=self.workflow_two.id).exists()
+
+        # Other workflows should be unaffected
+        self.assert_unaffected_workflows([self.workflow, self.workflow_three])
+
+    def test_delete_workflows_audit_entry(self) -> None:
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.workflow.id)},
+                status_code=204,
+            )
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+            target_object=self.workflow.id,
+            actor=self.user,
         )

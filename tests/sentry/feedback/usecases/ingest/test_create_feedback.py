@@ -13,12 +13,17 @@ from sentry.feedback.usecases.ingest.create_feedback import (
     get_feedback_title,
     validate_issue_platform_event_schema,
 )
-from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX, MAX_AI_LABELS
+from sentry.feedback.usecases.label_generation import (
+    AI_LABEL_TAG_PREFIX,
+    MAX_AI_LABELS,
+    MAX_AI_LABELS_JSON_LENGTH,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
@@ -213,7 +218,7 @@ def test_corrected_still_works() -> None:
 
 
 @pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
-def test_fix_for_issue_platform_environment(environment):
+def test_fix_for_issue_platform_environment(environment) -> None:
     event = mock_feedback_event(1)
     if environment == "missing":
         event.pop("environment", "")
@@ -228,7 +233,7 @@ def test_fix_for_issue_platform_environment(environment):
 
 
 @django_db_all
-def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -267,7 +272,7 @@ def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence
 
 
 @django_db_all
-def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -583,7 +588,7 @@ def test_create_feedback_spam_detection_project_option_false(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_set_status_ignored(default_project):
+def test_create_feedback_spam_detection_set_status_ignored(default_project) -> None:
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
@@ -732,7 +737,7 @@ def test_create_feedback_filters_invalid_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka) -> None:
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
     event["user"]["email"] = "josh.ferge@sentry.io"
@@ -781,7 +786,9 @@ def test_create_feedback_tags_no_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_tags_skips_if_empty(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
@@ -821,7 +828,9 @@ def test_create_feedback_filters_large_message(
 
 
 @django_db_all
-def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_evidence_has_source(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """We need this evidence field in post process, to determine if we should send alerts."""
     event = mock_feedback_event(default_project.id)
     source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -833,7 +842,9 @@ def test_create_feedback_evidence_has_source(default_project, mock_produce_occur
 
 
 @django_db_all
-def test_create_feedback_evidence_has_spam(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """We need this evidence field in post process, to determine if we should send alerts."""
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
@@ -851,7 +862,7 @@ def test_create_feedback_evidence_has_spam(default_project, mock_produce_occurre
 
 
 @django_db_all
-def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = mock_feedback_event(default_project.id)
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -862,7 +873,7 @@ def test_create_feedback_release(default_project, mock_produce_occurrence_to_kaf
 
 
 @django_db_all
-def test_create_feedback_issue_updates_project_flag(default_project):
+def test_create_feedback_issue_updates_project_flag(default_project) -> None:
     event = mock_feedback_event(default_project.id, datetime.now(UTC))
 
     with (
@@ -886,7 +897,7 @@ def test_create_feedback_issue_updates_project_flag(default_project):
     assert default_project.flags.has_new_feedbacks
 
 
-def test_get_feedback_title():
+def test_get_feedback_title() -> None:
     """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
@@ -922,7 +933,7 @@ def test_get_feedback_title():
 
 
 @django_db_all
-def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka) -> None:
     """Test that create_feedback_issue uses the generated title."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
@@ -944,7 +955,7 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 
 
 @django_db_all
-def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     with Feature(
         {
@@ -972,15 +983,21 @@ def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [value for key, value in tags.items() if key.startswith(AI_LABEL_TAG_PREFIX)]
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
+
+        expected_labels = ["Authentication", "Performance", "User Interface"]
+
         assert len(ai_labels) == 3
-        assert set(ai_labels) == {"User Interface", "Authentication", "Performance"}
+        assert set(ai_labels) == set(expected_labels)
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
 
 
 @django_db_all
 def test_create_feedback_handles_label_generation_errors(
     default_project, mock_produce_occurrence_to_kafka
-):
+) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
     with Feature(
         {
@@ -1010,15 +1027,16 @@ def test_create_feedback_handles_label_generation_errors(
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [tag for tag in tags.keys() if tag.startswith(AI_LABEL_TAG_PREFIX)]
-        assert (
-            len(ai_labels) == 0
-        ), "No AI categorization labels should be present when label generation fails"
+        ai_labels = [tag for tag in tags.keys() if tag.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")]
+        assert len(ai_labels) == 0
+        assert f"{AI_LABEL_TAG_PREFIX}.labels" not in tags
 
 
 @django_db_all
-def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occurrence_to_kafka):
-    """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned."""
+def test_create_feedback_truncates_ai_labels_max_list_length(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
@@ -1030,9 +1048,72 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
             "message"
         ] = "This is a very complex feedback with many issues"
 
+        alphabet = "abcdefghijklmnopqrstuvwxyz"
+
         # Mock generate_labels to return more than MAX_AI_LABELS labels
+        # The labels should be sorted alphabetically, so don't store numbers, instead use letters
         def mock_generate_labels(*args, **kwargs):
-            return [f"Label {i}" for i in range(MAX_AI_LABELS + 5)]
+            return [f"{alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
+
+        with patch(
+            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+            mock_generate_labels,
+        ):
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+        # Don't use ai_labels since we don't rely on dict order
+        expected_labels = [f"{alphabet[i]}" for i in range(MAX_AI_LABELS)]
+
+        # Truncate the labels so the serialized list is within the allowed length
+        while len(json.dumps(expected_labels)) > MAX_AI_LABELS_JSON_LENGTH:
+            expected_labels.pop()
+
+        labels_list_length = min(len(expected_labels), MAX_AI_LABELS)
+
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        tags = produced_event["tags"]
+
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
+        assert (
+            len(ai_labels) == labels_list_length
+        ), "Should be truncated to exactly labels_list_length"
+
+        for i in range(labels_list_length):
+            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
+
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
+
+        # Verify that labels beyond labels_list_length are not present
+        for i in range(labels_list_length, labels_list_length + 5):
+            assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
+
+
+@django_db_all
+def test_create_feedback_truncates_ai_labels_max_json_length(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
+    with Feature(
+        {
+            "organizations:user-feedback-ai-categorization": True,
+            "organizations:gen-ai-features": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+
+        event["contexts"]["feedback"][
+            "message"
+        ] = "This is a very complex feedback with many issues"
+
+        # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
+        def mock_generate_labels(*args, **kwargs):
+            return ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)] * 100
 
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
@@ -1047,12 +1128,12 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [value for key, value in tags.items() if key.startswith(AI_LABEL_TAG_PREFIX)]
-        assert len(ai_labels) == MAX_AI_LABELS, "Should be truncated to exactly MAX_AI_LABELS"
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
 
-        for i in range(MAX_AI_LABELS):
-            assert tags[f"{AI_LABEL_TAG_PREFIX}.{i}"] == f"Label {i}"
-
-        # Verify that labels beyond MAX_AI_LABELS are not present
-        for i in range(MAX_AI_LABELS, MAX_AI_LABELS + 5):
-            assert f"{AI_LABEL_TAG_PREFIX}.{i}" not in tags
+        assert len(ai_labels) == 1
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.label.0"] == "a" * (MAX_AI_LABELS_JSON_LENGTH - 50)
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
+            ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
+        )

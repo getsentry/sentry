@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -26,7 +27,6 @@ import {
   useLogsCursor,
   useLogsFields,
   useLogsGroupBy,
-  useLogsIsFrozen,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -195,7 +195,6 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
-  const isFrozen = useLogsIsFrozen();
   const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
@@ -227,7 +226,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${limitToTraceId ? 'trace-logs' : 'events'}/`,
     params,
   ];
 
@@ -321,8 +320,22 @@ function getPageParam(
       return pageParam;
     }
 
-    const firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    const lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    let firstTimestamp: bigint;
+    let lastTimestamp: bigint;
+    try {
+      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+        logId: firstRow[OurLogKnownFieldKey.ID],
+        timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
+        timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+      });
+      firstTimestamp =
+        BigInt(new Date(firstRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+      lastTimestamp =
+        BigInt(new Date(lastRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+    }
 
     const logId = isGetPreviousPage
       ? firstRow[OurLogKnownFieldKey.ID]

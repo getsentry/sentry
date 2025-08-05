@@ -47,7 +47,6 @@ export function isNativePlatform(platform: string | undefined) {
     case 'swift':
     case 'c':
     case 'nintendo-switch':
-    case 'nintendo-switch-2':
     case 'playstation':
     case 'xbox':
       return true;
@@ -75,10 +74,5 @@ export function isDisabledGamingPlatform({
   platform: Platform;
   enabledConsolePlatforms?: string[];
 }) {
-  return (
-    platform.type === 'console' &&
-    !enabledConsolePlatforms?.includes(
-      platform.id === 'nintendo-switch-2' ? 'nintendo-switch' : platform.id
-    )
-  );
+  return platform.type === 'console' && !enabledConsolePlatforms?.includes(platform.id);
 }

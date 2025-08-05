@@ -32,6 +32,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
+from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
 from sentry.uptime.models import ProjectUptimeSubscription
@@ -175,11 +176,15 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 ),
             ),
             filter=query_filter,
-            columns=self._get_columns_for_trace_item_type(trace_item_type),
+            columns=get_columns_for_uptime_trace_item_type(trace_item_type),
             order_by=[
                 TraceItemTableRequest.OrderBy(
                     column=Column(
-                        label="timestamp",
+                        label=(
+                            "sentry.timestamp"
+                            if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
+                            else "timestamp"
+                        ),
                         key=AttributeKey(
                             name=(
                                 "sentry.timestamp"
@@ -198,107 +203,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
         rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
         return self._serialize_response(rpc_response, uptime_subscription, trace_item_type)
-
-    def _get_columns_for_trace_item_type(
-        self, trace_item_type: TraceItemType.ValueType
-    ) -> list[Column]:
-        """Get appropriate columns based on trace item type."""
-        common_columns = [
-            Column(
-                label="environment",
-                key=AttributeKey(name="environment", type=AttributeKey.Type.TYPE_STRING),
-            ),
-            Column(
-                label="timestamp",
-                key=AttributeKey(
-                    name=(
-                        "sentry.timestamp"
-                        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
-                        else "timestamp"
-                    ),
-                    type=AttributeKey.Type.TYPE_DOUBLE,
-                ),
-            ),
-            Column(
-                label="region",
-                key=AttributeKey(name="region", type=AttributeKey.Type.TYPE_STRING),
-            ),
-            Column(
-                label="check_status",
-                key=AttributeKey(name="check_status", type=AttributeKey.Type.TYPE_STRING),
-            ),
-            Column(
-                label="http_status_code",
-                key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
-            ),
-            Column(
-                label="incident_status",
-                key=AttributeKey(name="incident_status", type=AttributeKey.Type.TYPE_INT),
-            ),
-            Column(
-                label="trace_id",
-                key=AttributeKey(name="trace_id", type=AttributeKey.Type.TYPE_STRING),
-            ),
-        ]
-
-        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT:
-            return common_columns + [
-                Column(
-                    label="subscription_id",
-                    key=AttributeKey(name="subscription_id", type=AttributeKey.Type.TYPE_STRING),
-                ),
-                Column(
-                    label="check_id",
-                    key=AttributeKey(name="check_id", type=AttributeKey.Type.TYPE_STRING),
-                ),
-                Column(
-                    label="scheduled_check_time_us",
-                    key=AttributeKey(
-                        name="scheduled_check_time_us", type=AttributeKey.Type.TYPE_INT
-                    ),
-                ),
-                Column(
-                    label="check_duration_us",
-                    key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
-                ),
-                Column(
-                    label="check_status_reason",
-                    key=AttributeKey(name="status_reason_type", type=AttributeKey.Type.TYPE_STRING),
-                ),
-                Column(
-                    label="guid",
-                    key=AttributeKey(name="guid", type=AttributeKey.Type.TYPE_STRING),
-                ),
-            ]
-        else:
-            return common_columns + [
-                Column(
-                    label="uptime_subscription_id",
-                    key=AttributeKey(
-                        name="uptime_subscription_id", type=AttributeKey.Type.TYPE_STRING
-                    ),
-                ),
-                Column(
-                    label="uptime_check_id",
-                    key=AttributeKey(name="uptime_check_id", type=AttributeKey.Type.TYPE_STRING),
-                ),
-                Column(
-                    label="scheduled_check_time",
-                    key=AttributeKey(
-                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_DOUBLE
-                    ),
-                ),
-                Column(
-                    label="duration_ms",
-                    key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
-                ),
-                Column(
-                    label="check_status_reason",
-                    key=AttributeKey(
-                        name="check_status_reason", type=AttributeKey.Type.TYPE_STRING
-                    ),
-                ),
-            ]
 
     def _serialize_response(
         self,
@@ -344,17 +248,27 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             duration_ms = (
                 (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
             )
+            trace_id = row_dict["sentry.trace_id"].val_str
         else:
             uptime_check_id = row_dict["uptime_check_id"].val_str
             scheduled_check_time = datetime.fromtimestamp(
                 row_dict["scheduled_check_time"].val_double
             )
             duration_ms = row_dict["duration_ms"].val_int
+            trace_id = row_dict["trace_id"].val_str
 
         return EapCheckEntry(
             uptime_check_id=uptime_check_id,
             uptime_monitor_id=uptime_subscription.id,
-            timestamp=datetime.fromtimestamp(row_dict["timestamp"].val_double),
+            timestamp=datetime.fromtimestamp(
+                row_dict[
+                    (
+                        "sentry.timestamp"
+                        if trace_item_type == TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT
+                        else "timestamp"
+                    )
+                ].val_double
+            ),
             scheduled_check_time=scheduled_check_time,
             check_status=cast(CheckStatus, row_dict["check_status"].val_str),
             check_status_reason=self._extract_check_status_reason(
@@ -366,7 +280,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 else row_dict["http_status_code"].val_int
             ),
             duration_ms=duration_ms,
-            trace_id=row_dict["trace_id"].val_str,
+            trace_id=trace_id,
             incident_status=IncidentStatus(row_dict["incident_status"].val_int),
             environment=row_dict.get("environment", AttributeValue(val_str="")).val_str,
             region=row_dict["region"].val_str,

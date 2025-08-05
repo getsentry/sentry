@@ -25,7 +25,7 @@ class TestCircuitBreaker(TestCase):
         assert circuit_breaker_activated(key=self.key, error_limit=self.error_limit)
 
     @patch("sentry.utils.circuit_breaker.metrics.incr")
-    def test_passthrough(self, mock_metrics: MagicMock):
+    def test_passthrough(self, mock_metrics: MagicMock) -> None:
         assert not circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)
         mock_metrics.assert_called_with(f"circuit_breaker.{self.key}.bypassed")
 

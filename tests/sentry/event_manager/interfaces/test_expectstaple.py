@@ -45,5 +45,5 @@ interface_json = {
 }
 
 
-def test_basic(make_csp_snapshot):
+def test_basic(make_csp_snapshot) -> None:
     make_csp_snapshot(interface_json)

@@ -6,9 +6,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.options.rollout import in_random_rollout
 from sentry.queue.routers import SplitQueueRouter
-from sentry.tasks.post_process import post_process_group, post_process_group_shim
+from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
@@ -78,39 +77,21 @@ class EventStream(Service):
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
-
-            if in_random_rollout("taskworker.postprocess.namespace.rollout"):
-                post_process_group_shim.apply_async(
-                    kwargs={
-                        "is_new": is_new,
-                        "is_regression": is_regression,
-                        "is_new_group_environment": is_new_group_environment,
-                        "primary_hash": primary_hash,
-                        "cache_key": cache_key,
-                        "group_id": group_id,
-                        "group_states": group_states,
-                        "occurrence_id": occurrence_id,
-                        "project_id": project_id,
-                        "eventstream_type": eventstream_type,
-                    },
-                    queue=queue,
-                )
-            else:
-                post_process_group.apply_async(
-                    kwargs={
-                        "is_new": is_new,
-                        "is_regression": is_regression,
-                        "is_new_group_environment": is_new_group_environment,
-                        "primary_hash": primary_hash,
-                        "cache_key": cache_key,
-                        "group_id": group_id,
-                        "group_states": group_states,
-                        "occurrence_id": occurrence_id,
-                        "project_id": project_id,
-                        "eventstream_type": eventstream_type,
-                    },
-                    queue=queue,
-                )
+            post_process_group.apply_async(
+                kwargs={
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                    "primary_hash": primary_hash,
+                    "cache_key": cache_key,
+                    "group_id": group_id,
+                    "group_states": group_states,
+                    "occurrence_id": occurrence_id,
+                    "project_id": project_id,
+                    "eventstream_type": eventstream_type,
+                },
+                queue=queue,
+            )
 
     def _get_queue_for_post_process(self, event: Event | GroupEvent) -> str:
         event_type = self._get_event_type(event)

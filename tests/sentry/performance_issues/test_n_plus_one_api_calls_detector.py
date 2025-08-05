@@ -329,7 +329,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ),
     ],
 )
-def test_parameterizes_url(url, parameterized_url):
+def test_parameterizes_url(url, parameterized_url) -> None:
     r = parameterize_url(url)
     assert r == parameterized_url
 
@@ -371,8 +371,10 @@ def test_parameterizes_url(url, parameterized_url):
         },
     ],
 )
-def test_allows_eligible_spans(span):
-    assert NPlusOneAPICallsDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_allows_eligible_spans(span) -> None:
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -429,8 +431,10 @@ def test_allows_eligible_spans(span):
         },
     ],
 )
-def test_rejects_ineligible_spans(span):
-    assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_rejects_ineligible_spans(span) -> None:
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert not detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -443,7 +447,7 @@ def test_rejects_ineligible_spans(span):
         ("/resource?id=1&sort=down", "/resource"),
     ],
 )
-def test_removes_query_params(url, url_without_query):
+def test_removes_query_params(url, url_without_query) -> None:
     assert without_query_params(url) == url_without_query
 
 
@@ -451,7 +455,7 @@ def test_removes_query_params(url, url_without_query):
     "event",
     [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
-def test_allows_eligible_events(event):
+def test_allows_eligible_events(event) -> None:
     assert NPlusOneAPICallsDetector.is_event_eligible(event)
 
 
@@ -461,5 +465,5 @@ def test_allows_eligible_events(event):
         {"contexts": {"trace": {"op": "task"}}},
     ],
 )
-def test_rejects_ineligible_events(event):
+def test_rejects_ineligible_events(event) -> None:
     assert not NPlusOneAPICallsDetector.is_event_eligible(event)
