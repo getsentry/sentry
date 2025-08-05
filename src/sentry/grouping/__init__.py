@@ -133,11 +133,6 @@ means that just because an event has a frame, the frame strategy does not necess
 activate.  Only if another interface recurses down into a frame will this strategy
 will be used.
 
-To add a new configuration, just add it to the list.  To make a configuration the default
-for new projects, you also need to bump the project epoch and configure it
-to be used by default for an epoch in `sentry.projectoptions.defaults`
-(for the `sentry:grouping_config`) key.
-
 Fingerprinting and Enhancements
 -------------------------------
 
