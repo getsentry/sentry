@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -32,6 +33,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
 
     @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_list(self, _: MagicMock) -> None:
         self.create_release(project=self.project, version="1.0", date_added=self.release_date)
         self.browser.get(self.path)

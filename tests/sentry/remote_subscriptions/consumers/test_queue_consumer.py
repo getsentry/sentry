@@ -1,3 +1,5 @@
+from sentry.testutils import thread_leaks
+
 """
 Tests for the thread-queue-parallel result consumer implementation.
 """
@@ -303,6 +305,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
         assert partition in self.committed_offsets
         assert self.committed_offsets[partition] == 104
 
+    @thread_leaks.allowlist(issue=97041, reason="remote subscriptions")
     def test_preserves_order_within_group(self) -> None:
         """Test that messages for the same subscription are processed in order."""
         self.expected_items = 5

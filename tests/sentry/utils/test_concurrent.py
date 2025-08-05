@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.testutils import thread_leaks
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -14,6 +15,8 @@ from sentry.utils.concurrent import (
     TimedFuture,
     execute,
 )
+
+pytestmark = thread_leaks.allowlist(issue=97043, reason="sentry threaded executor")
 
 
 def test_execute() -> None:

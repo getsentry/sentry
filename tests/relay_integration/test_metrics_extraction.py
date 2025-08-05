@@ -5,6 +5,7 @@ import confluent_kafka as kafka
 import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature
@@ -108,6 +109,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_histogram_outliers(self) -> None:
         with Feature(
             {
