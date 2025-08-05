@@ -413,10 +413,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [onScrollToNode, setRowAsFocused]
   );
 
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  const subscriptionQueryResults = usePerformanceSubscriptionDetails();
+  const hasExceededPerformanceUsageLimit =
+    subscriptionQueryResults.data.hasExceededPerformanceUsageLimit;
 
   const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
 
@@ -430,16 +429,15 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
 
-    if (!isLoadingSubscriptionDetails) {
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        source,
-        traceAge
-      );
-    }
+    traceAnalytics.trackTraceShape(
+      props.tree,
+      projectsRef.current,
+      props.organization,
+      hasExceededPerformanceUsageLimit,
+      source,
+      traceAge
+    );
+
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -548,7 +546,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
-    isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
     props.meta?.data?.span_count,
     source,
@@ -646,6 +643,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
     meta: props.meta,
+    subscriptionQueryResults,
   });
 
   // Sync part of the state with the URL

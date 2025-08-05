@@ -123,10 +123,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     [organization, projects, traceDispatch]
   );
 
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  const subscriptionQueryResults = usePerformanceSubscriptionDetails();
+  const hasExceededPerformanceUsageLimit =
+    subscriptionQueryResults.data.hasExceededPerformanceUsageLimit;
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
@@ -137,16 +136,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
 
-    if (!isLoadingSubscriptionDetails) {
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        'issue_details',
-        traceAge
-      );
-    }
+    traceAnalytics.trackTraceShape(
+      props.tree,
+      projectsRef.current,
+      props.organization,
+      hasExceededPerformanceUsageLimit,
+      'issue_details',
+      traceAge
+    );
 
     // Construct the visual representation of the tree
     props.tree.build();
@@ -317,7 +314,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
-    isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
   ]);
@@ -339,6 +335,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     onTraceLoad,
     event: props.event,
     tree: props.tree,
+    subscriptionQueryResults,
   });
 
   return (
