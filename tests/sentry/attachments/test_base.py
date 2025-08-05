@@ -9,7 +9,7 @@ class InMemoryCache:
     internal assertions to ensure correct use of `raw`.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.data = {}
         #: Used to check for consistent usage of `raw` param
         self.raw_map = {}

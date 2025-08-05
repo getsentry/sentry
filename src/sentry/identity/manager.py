@@ -5,7 +5,7 @@ from sentry.exceptions import NotRegistered
 
 
 class IdentityManager:
-    def __init__(self) -> None:
+    def __init__(self):
         self.__values = {}
         self._login_providers = {}
 

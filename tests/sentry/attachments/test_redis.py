@@ -11,7 +11,7 @@ KEY_FMT = "c:1:%s"
 
 
 class FakeClient:
-    def __init__(self) -> None:
+    def __init__(self):
         self.data = {}
 
     def get(self, key):

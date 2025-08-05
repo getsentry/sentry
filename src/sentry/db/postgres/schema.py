@@ -125,7 +125,7 @@ class DatabaseSchemaEditorProxy:
     class AlreadyInUse(Exception):
         pass
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
         self._safe = False

@@ -64,7 +64,7 @@ class MockServiceMethod:
 
 
 class MockChannel:
-    def __init__(self) -> None:
+    def __init__(self):
         self._responses = defaultdict(list)
 
     def unary_unary(
@@ -91,7 +91,7 @@ class MockChannel:
 class MockGrpcError(grpc.RpcError):
     """Grpc error are elusive and this mock simulates the interface in mypy stubs"""
 
-    def __init__(self, code, message) -> None:
+    def __init__(self, code, message):
         self._code = code
         self._message = message
 

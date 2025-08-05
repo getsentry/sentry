@@ -11,7 +11,7 @@ def is_utf8(codec):
 
 
 class SourceCache:
-    def __init__(self) -> None:
+    def __init__(self):
         self._cache = {}
         self._errors = {}
         self._aliases = {}
@@ -68,7 +68,7 @@ class SourceMapCache:
         - a source map's url and the map's contents.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._cache = {}
         self._mapping = {}
 

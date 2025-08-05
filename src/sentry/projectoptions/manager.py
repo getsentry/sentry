@@ -2,7 +2,7 @@ import bisect
 
 
 class WellKnownProjectOption:
-    def __init__(self, key, default=None, epoch_defaults=None) -> None:
+    def __init__(self, key, default=None, epoch_defaults=None):
         self.key = key
         self.default = default
         self.epoch_defaults = epoch_defaults
@@ -34,7 +34,7 @@ class ProjectOptionsManager:
     time of the option lookup.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.registry = {}
 
     def lookup_well_known_key(self, key):

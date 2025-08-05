@@ -10,7 +10,7 @@ class UnknownFeature(KeyError):
 
 
 class AdoptionManager:
-    def __init__(self) -> None:
+    def __init__(self):
         self._id_registry = {}
         self._slug_registry = {}
         self._integration_slugs = defaultdict(set)

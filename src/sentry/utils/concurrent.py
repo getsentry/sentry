@@ -54,7 +54,7 @@ class TimedFuture[T](Future[T]):
     _condition: threading.Condition
     _state: str
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs):
         self.__timing: list[float | None] = [None, None]  # [started, finished/cancelled]
         super().__init__(*args, **kwargs)
 
@@ -134,9 +134,7 @@ class Executor:
     to allow controlling whether or not queue insertion should be blocking.
     """
 
-    def submit[
-        T
-    ](
+    def submit[T](
         self,
         callable: Callable[[], T],
         priority: int = 0,
@@ -190,7 +188,7 @@ class ThreadedExecutor(Executor):
     exits. Any items remaining in the queue at this point may not be executed!
     """
 
-    def __init__(self, worker_count=1, maxsize=0) -> None:
+    def __init__(self, worker_count=1, maxsize=0):
         self.__worker_count = worker_count
         self.__workers = set()
         self.__started = False
@@ -227,9 +225,9 @@ class ThreadedExecutor(Executor):
 
             self.__started = True
 
-    def submit[
-        T
-    ](self, callable: Callable[[], T], priority=0, block=True, timeout=None) -> TimedFuture[T]:
+    def submit[T](
+        self, callable: Callable[[], T], priority=0, block=True, timeout=None
+    ) -> TimedFuture[T]:
         """\
         Enqueue a task to be executed, returning a ``TimedFuture``.
 
@@ -268,7 +266,7 @@ class FutureSet:
     attaching a callback when all futures have completed execution.
     """
 
-    def __init__(self, futures) -> None:
+    def __init__(self, futures):
         self.__pending = set(futures)
         self.__completed = set()
         self.__callbacks = []

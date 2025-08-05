@@ -147,7 +147,7 @@ def safe_join(base, *paths):
 
 
 class FancyBlob(Blob):
-    def __init__(self, download_url, *args, **kwargs) -> None:
+    def __init__(self, download_url, *args, **kwargs):
         self.download_url = download_url
         super().__init__(*args, **kwargs)
 
@@ -160,7 +160,7 @@ class FancyBlob(Blob):
 
 
 class GoogleCloudFile(File):
-    def __init__(self, name, mode, storage) -> None:
+    def __init__(self, name, mode, storage):
         self.name = name
         self.mime_type = mimetypes.guess_type(name)[0]
         self._mode = mode

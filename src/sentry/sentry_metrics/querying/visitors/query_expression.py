@@ -37,7 +37,7 @@ class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that recursively injects the environments filter into all `Timeseries`.
     """
 
-    def __init__(self, environments: Sequence[Environment]) -> None:
+    def __init__(self, environments: Sequence[Environment]):
         self._environment_names = [environment.name for environment in environments]
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
@@ -57,7 +57,7 @@ class TimeseriesConditionInjectionVisitor(QueryExpressionVisitor[QueryExpression
     Visitor that recursively injects a `ConditionGroup` into all `Timeseries`.
     """
 
-    def __init__(self, condition_group: ConditionGroup) -> None:
+    def __init__(self, condition_group: ConditionGroup):
         self._condition_group = condition_group
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
@@ -94,7 +94,7 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that recursively validates the `QueryExpression` of the new endpoint.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._query_namespace = None
         self._query_entity = None
         self._query_group_bys = None
@@ -198,7 +198,7 @@ class QueryConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that runs a series of `QueryConditionVisitor`(s) on each filters of elements of a `QueryExpression`.
     """
 
-    def __init__(self, *visitors: QueryConditionVisitor) -> None:
+    def __init__(self, *visitors: QueryConditionVisitor):
         self._visitors = list(visitors)
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
@@ -260,7 +260,7 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     Visitor that recursively computes all the groups of the `QueryExpression`.
     """
 
-    def __init__(self, mappers: list[Mapper] | None = None) -> None:
+    def __init__(self, mappers: list[Mapper] | None = None):
         self.mappers = mappers or []
 
     def _visit_formula(self, formula: Formula) -> set[str]:
@@ -319,7 +319,7 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
     UNITLESS_AGGREGATES = {"count", "count_unique"}
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._unit_family = None
 
     def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata, QueryExpression]:
@@ -443,7 +443,7 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
     Visitor that recursively applies a unit transformation on all the numeric scalars in a `QueryExpression`.
     """
 
-    def __init__(self, unit: Unit) -> None:
+    def __init__(self, unit: Unit):
         self._unit = unit
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
@@ -481,7 +481,7 @@ class MapperVisitor(QueryExpressionVisitor):
     by API that need to be translated for Snuba to be able to query the data.
     """
 
-    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig) -> None:
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
         self.mapper_config = mapper_config
         self.mappers: list[Mapper] = []

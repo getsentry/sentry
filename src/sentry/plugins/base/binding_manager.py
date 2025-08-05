@@ -8,7 +8,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider, RepositoryPr
 class ProviderManager:
     type: type[Any] | None = None
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._items = {}
 
     def __iter__(self):
@@ -41,7 +41,7 @@ class BindingManager:
         "integration-repository.provider": IntegrationRepositoryProviderManager,
     }
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._bindings = {k: v() for k, v in self.BINDINGS.items()}
 
     def add(self, name, binding, **kwargs):
