@@ -85,7 +85,6 @@ export const Grid = styled('table')<{
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
-  grid-template-columns: repeat(auto-fill, minmax(50px, auto));
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
