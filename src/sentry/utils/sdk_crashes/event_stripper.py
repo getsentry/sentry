@@ -114,16 +114,22 @@ def strip_event_data(
     and the method only keeps SDK frames and system library frames.
     """
 
-    frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
-    if not frames:
+    if not get_path(event_data, "exception", "values", -1, "stacktrace", "frames"):
         return {}
 
     # We strip the frames first because applying the allowlist removes fields that are needed
     # for deciding wether to keep a frame or not.
-    stripped_frames = _strip_frames(frames, sdk_crash_detector)
 
     event_data_copy = dict(event_data)
-    event_data_copy["exception"]["values"][-1]["stacktrace"]["frames"] = stripped_frames
+
+    for index, exception in enumerate(event_data["exception"]["values"]):
+        if "stacktrace" in exception:
+            frames = exception["stacktrace"]["frames"]
+            if not frames:
+                continue
+
+            stripped_frames = _strip_frames(frames, sdk_crash_detector)
+            event_data_copy["exception"]["values"][index]["stacktrace"]["frames"] = stripped_frames
 
     stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 

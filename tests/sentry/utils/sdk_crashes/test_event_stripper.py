@@ -452,3 +452,89 @@ def test_strip_event_without_frames_returns_empty_dict(store_and_strip_event) ->
     stripped_event_data = store_and_strip_event(data=event_data)
 
     assert stripped_event_data == {}
+
+
+@django_db_all
+@pytest.mark.snuba
+def test_strip_event_data_strips_frames_from_multiple_exceptions(store_event, configs) -> None:
+    """
+    Test that strip_event_data strips frames from all exceptions that have stacktraces,
+    not just the last one. This validates that the implementation correctly iterates
+    through all exceptions and applies frame stripping to each.
+    """
+    # Create frames for both exceptions - different functions to distinguish them
+    frames_exception_1 = get_frames("FirstExceptionFunction")
+    frames_exception_2 = get_frames("SecondExceptionFunction")
+
+    event_data = {
+        "type": "error",
+        "platform": "cocoa",
+        "sdk": {"name": "sentry.cocoa", "version": "8.2.0"},
+        "exception": {
+            "values": [
+                {
+                    # First exception - with stacktrace
+                    "type": "RuntimeError",
+                    "value": "First exception with stacktrace",
+                    "stacktrace": {
+                        "frames": frames_exception_1,
+                    },
+                },
+                {
+                    # Second exception - also with stacktrace
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "Second exception with stacktrace",
+                    "stacktrace": {
+                        "frames": frames_exception_2,
+                    },
+                },
+                {
+                    # Third exception - without stacktrace (should remain unchanged)
+                    "type": "ValueError",
+                    "value": "Third exception without stacktrace",
+                },
+            ]
+        },
+    }
+
+    event = store_event(data=event_data)
+
+    # Strip the event data
+    stripped_event_data = strip_event_data(event.data, SDKCrashDetector(config=configs[0]))
+
+    # Verify the result structure
+    assert stripped_event_data is not None
+    assert "exception" in stripped_event_data
+    assert "values" in stripped_event_data["exception"]
+
+    # Should have three exceptions
+    assert len(stripped_event_data["exception"]["values"]) == 3
+
+    # First exception should have stripped stacktrace frames
+    first_exception = stripped_event_data["exception"]["values"][0]
+    assert "stacktrace" in first_exception
+    assert "frames" in first_exception["stacktrace"]
+    first_frames = first_exception["stacktrace"]["frames"]
+    assert len(first_frames) > 0
+    # Verify frames are stripped (should contain SDK frames)
+    assert any(frame.get("in_app") is True for frame in first_frames)
+
+    # Second exception should also have stripped stacktrace frames
+    second_exception = stripped_event_data["exception"]["values"][1]
+    assert "stacktrace" in second_exception
+    assert "frames" in second_exception["stacktrace"]
+    second_frames = second_exception["stacktrace"]["frames"]
+    assert len(second_frames) > 0
+    # Verify frames are stripped (should contain SDK frames)
+    assert any(frame.get("in_app") is True for frame in second_frames)
+
+    # Third exception should not have stacktrace (remains unchanged)
+    third_exception = stripped_event_data["exception"]["values"][2]
+    assert "stacktrace" not in third_exception
+    assert third_exception["type"] == "ValueError"
+
+    # Verify all frames in both exceptions are properly processed
+    all_frames = first_frames + second_frames
+    for frame in all_frames:
+        # All frames should be either SDK frames (in_app=True) or system library frames (in_app=False)
+        assert isinstance(frame.get("in_app"), bool)
