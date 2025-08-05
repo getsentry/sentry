@@ -84,7 +84,6 @@ export const Grid = styled('table')<{
   position: inherit;
   display: grid;
 
-  /* Overwritten by GridEditable.setGridTemplateColumns */
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
