@@ -33,6 +33,7 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
+from sentry.testutils import thread_leaks
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -307,6 +308,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not logger.exception.called
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
+    @thread_leaks.allowlist(issue=97045, reason="uptime consumers")
     def test_restricted_host_provider_id(self) -> None:
         """
         Test that we do NOT create an issue when the host provider identifier
