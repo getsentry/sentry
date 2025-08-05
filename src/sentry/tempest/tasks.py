@@ -203,7 +203,7 @@ def fetch_latest_id_from_tempest(
 
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data("response_text", response.text)
+        span.set_attribute("response_text", response.text)
 
     return response
 
@@ -241,6 +241,6 @@ def fetch_items_from_tempest(
 
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data("response_text", response.text)
+        span.set_attribute("response_text", response.text)
 
     return response
