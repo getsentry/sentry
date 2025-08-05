@@ -471,7 +471,7 @@ export interface FieldDefinition {
   /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
-   * Note that the `disallowWilcard` setting will override this.
+   * Note that the `disallowWildcardOperators` setting will override this.
    */
   allowWildcard?: boolean;
   /**
@@ -489,7 +489,7 @@ export interface FieldDefinition {
   /**
    * Disallow wildcard (contains, starts with, ends with) operators for this field
    * This is only valid for string fields and will default to false.
-   * `allowWildcard` will override this.
+   * Setting this to true will override `allowWildcard`.
    */
   disallowWildcardOperators?: boolean;
   /**
