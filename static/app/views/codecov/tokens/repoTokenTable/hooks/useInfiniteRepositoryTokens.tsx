@@ -10,56 +10,63 @@ import {
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type RepositoryBranchItem = {
+type RepositoryTokenItem = {
   name: string;
+  token: string;
 };
 
-interface RepositoryBranches {
-  defaultBranch: string;
+interface RepositoryTokens {
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
     startCursor: string;
   };
-  results: RepositoryBranchItem[];
+  results: RepositoryTokenItem[];
   totalCount: number;
 }
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-type Props = {
-  term?: string;
-};
-
-export function useInfiniteRepositoryBranches({term}: Props) {
-  const {integratedOrgId, repository} = useCodecovContext();
+export function useInfiniteRepositoryTokens({
+  cursor,
+  navigation,
+}: {
+  cursor: string | undefined;
+  navigation: 'next' | 'prev' | undefined;
+}) {
+  const {integratedOrgId} = useCodecovContext();
   const organization = useOrganization();
 
   const {data, ...rest} = useInfiniteQuery<
-    ApiResult<RepositoryBranches>,
+    ApiResult<RepositoryTokens>,
     Error,
-    InfiniteData<ApiResult<RepositoryBranches>>,
+    InfiniteData<ApiResult<RepositoryTokens>>,
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/branches/`,
-      {query: {term}},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/tokens/`,
+      {
+        query: {
+          cursor: cursor ?? undefined,
+          navigation: navigation ?? undefined,
+        },
+      },
     ],
     queryFn: async ({
       queryKey: [url, {query}],
-      pageParam,
       client,
       signal,
       meta,
-    }): Promise<ApiResult<RepositoryBranches>> => {
+    }): Promise<ApiResult<RepositoryTokens>> => {
       const result = await fetchDataQuery({
         queryKey: [
           url,
           {
             query: {
               ...query,
-              cursor: pageParam ?? undefined,
+              ...(cursor ? {cursor} : {}),
+              ...(navigation ? {navigation} : {}),
             },
           },
         ],
@@ -68,7 +75,7 @@ export function useInfiniteRepositoryBranches({term}: Props) {
         meta,
       });
 
-      return result as ApiResult<RepositoryBranches>;
+      return result as ApiResult<RepositoryTokens>;
     },
     getNextPageParam: ([pageData]) => {
       return pageData.pageInfo?.hasNextPage ? pageData.pageInfo.endCursor : undefined;
@@ -79,15 +86,16 @@ export function useInfiniteRepositoryBranches({term}: Props) {
         : undefined;
     },
     initialPageParam: undefined,
-    enabled: !!(integratedOrgId && repository),
+    enabled: Boolean(integratedOrgId),
   });
 
   const memoizedData = useMemo(
     () =>
       data?.pages?.flatMap(([pageData]) =>
-        pageData.results.map(({name}) => {
+        pageData.results.map(({name, token}) => {
           return {
             name,
+            token,
           };
         })
       ) ?? [],
@@ -95,10 +103,10 @@ export function useInfiniteRepositoryBranches({term}: Props) {
   );
 
   return {
-    data: {
-      branches: memoizedData,
-      defaultBranch: data?.pages?.[0]?.[0]?.defaultBranch,
-    },
+    data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
+    startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
+    endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

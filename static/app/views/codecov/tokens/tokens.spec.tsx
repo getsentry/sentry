@@ -9,16 +9,54 @@ import {
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TokensPage from 'sentry/views/codecov/tokens/tokens';
 
+jest.mock('sentry/components/pagination', () => {
+  return function MockPagination() {
+    return <div>Pagination Component</div>;
+  };
+});
+
 const mockIntegrations = [
   {name: 'some-org-name', id: '1'},
   {name: 'test-org', id: '2'},
 ];
+
+const mockRepositoryTokensResponse = {
+  pageInfo: {
+    endCursor: 'cursor123',
+    hasNextPage: true,
+    hasPreviousPage: false,
+    startCursor: 'cursor000',
+  },
+  results: [
+    {
+      name: 'test2',
+      token: 'test2Token',
+    },
+    {
+      name: 'test-repo',
+      token: 'test-repo-token',
+    },
+  ],
+  totalCount: 2,
+};
 
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/integrations/`,
     method: 'GET',
     body: mockIntegrations,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/prevent/owner/1/repositories/tokens/`,
+    method: 'GET',
+    body: mockRepositoryTokensResponse,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/prevent/owner/2/repositories/tokens/`,
+    method: 'GET',
+    body: mockRepositoryTokensResponse,
   });
 };
 
@@ -102,6 +140,29 @@ describe('TokensPage', () => {
       });
     });
 
+    it('renders the pagination component', async () => {
+      mockApiCall();
+      render(
+        <CodecovQueryParamsProvider>
+          <TokensPage />
+        </CodecovQueryParamsProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/codecov/tokens/',
+              query: {
+                integratedOrgId: '1',
+              },
+            },
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Pagination Component')).toBeInTheDocument();
+      });
+    });
+
     it('renders repository tokens and related data', async () => {
       mockApiCall();
       render(
@@ -125,7 +186,6 @@ describe('TokensPage', () => {
       });
       expect(screen.getByText('test2')).toBeInTheDocument();
       expect(screen.getByText('test2Token')).toBeInTheDocument();
-      expect(screen.getByText('Mar 19, 2024 6:33:30 PM CET')).toBeInTheDocument();
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
     });
 
