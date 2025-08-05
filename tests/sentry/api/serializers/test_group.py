@@ -451,3 +451,8 @@ class SimpleGroupSerializerTest(TestCase):
         assert serialized["substatus"] == "new"
         assert serialized["type"] == "default"
         assert serialized["issueType"] == "error"
+        assert serialized["issueCategory"] == "error"
+        assert serialized["metadata"] == group.get_event_metadata()
+        assert serialized["numComments"] == group.num_comments
+        assert serialized["firstSeen"] == group.first_seen
+        assert serialized["lastSeen"] == group.last_seen
