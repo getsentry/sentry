@@ -21,7 +21,7 @@ class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
         import datetime
         import uuid
 
-        from sentry.replays.lib.eap.query import query
+        from sentry.replays.lib.eap.read import query
         from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 
         settings: Settings = {
