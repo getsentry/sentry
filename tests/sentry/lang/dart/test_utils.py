@@ -7,6 +7,7 @@ from sentry.lang.dart.utils import (
     generate_dart_symbols_map,
     get_debug_meta_image_ids,
 )
+from sentry.models.project import Project
 
 MOCK_DEBUG_FILE = b'["","","_NativeInteger","_NativeInteger","SemanticsAction","er","ButtonTheme","mD","_entry","_YMa"]'
 MOCK_DEBUG_MAP = {
@@ -103,7 +104,9 @@ def test_generate_dart_symbols_map_multiple_debug_ids() -> None:
         mocked_debug_file.seek(0)
 
         # Mock so that first debug ID has no file, but second one does
-        def mock_fetch_difs(project, debug_ids, features):
+        def mock_fetch_difs(
+            project: Project, debug_ids: list[str], features: list[str]
+        ) -> dict[str, str]:
             if debug_ids == ["first-uuid"]:
                 return {}  # No file for first UUID
             elif debug_ids == ["second-uuid"]:
