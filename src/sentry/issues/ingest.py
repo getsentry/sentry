@@ -80,6 +80,14 @@ def save_issue_occurrence(
                 IncidentGroupOpenPeriod.create_from_occurrence(
                     occurrence, group_info.group, open_period
                 )
+            else:
+                logger.error(
+                    "save_issue_occurrence.no_open_period",
+                    extra={
+                        "group_id": group_info.group.id,
+                        "occurrence_id": occurrence.id,
+                    },
+                )
 
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info

@@ -40,7 +40,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         ]
 
     @classmethod
-    def create_from_occurrence(cls, occurrence, group, open_period):
+    def create_from_occurrence(self, occurrence, group, open_period):
         """
         Creates an IncidentGroupOpenPeriod relationship from an issue occurrence.
         This method handles the case where the incident might not exist yet.
@@ -84,11 +84,11 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
 
             if incident:
                 # Incident exists, create the relationship immediately
-                return cls.create_relationship(incident, open_period)
+                return self.create_relationship(incident, open_period)
             else:
                 # Incident doesn't exist yet, create a placeholder relationship
                 # that will be updated when the incident is created
-                return cls.create_placeholder_relationship(alert_id, open_period, group.project)
+                return self.create_placeholder_relationship(alert_id, open_period, group.project)
 
         except Exception as e:
             logger.exception(
@@ -102,31 +102,22 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def create_relationship(cls, incident, open_period):
+    def create_relationship(self, incident, open_period):
         """
-        Creates or updates an IncidentGroupOpenPeriod relationship.
+        Creates IncidentGroupOpenPeriod relationship.
 
         Args:
             incident: The Incident to link
             open_period: The GroupOpenPeriod to link
         """
         try:
-            # Create the relationship (or get existing one)
-            incident_group_open_period, created = cls.objects.get_or_create(
+            incident_group_open_period, _ = self.objects.get_or_create(
                 group_open_period=open_period,
                 defaults={
                     "incident_id": incident.id,
                     "incident_identifier": incident.identifier,
                 },
             )
-
-            # Update incident_id if it changed (e.g., if a new incident was created)
-            if not created and incident_group_open_period.incident_id != incident.id:
-                incident_group_open_period.incident_id = incident.id
-                incident_group_open_period.incident_identifier = incident.identifier
-                incident_group_open_period.save(
-                    update_fields=["incident_id", "incident_identifier"]
-                )
 
             return incident_group_open_period
 
@@ -142,7 +133,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def create_placeholder_relationship(cls, alert_id, open_period, project):
+    def create_placeholder_relationship(self, alert_id, open_period, project):
         """
         Creates a placeholder relationship when the incident doesn't exist yet.
         This will be updated when the incident is created.
@@ -172,7 +163,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return None
 
     @classmethod
-    def create_pending_relationships_for_incident(cls, incident, alert_rule):
+    def create_pending_relationships_for_incident(self, incident, alert_rule):
         """
         Creates IncidentGroupOpenPeriod relationships for any groups that were created
         before the incident. This handles the timing issue where groups might be created
@@ -191,7 +182,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
 
             for open_period in pending_open_periods:
                 # Create the relationship
-                relationship = cls.create_relationship(incident, open_period)
+                relationship = self.create_relationship(incident, open_period)
                 if relationship:
                     # Remove the pending flag from the open_period data
                     data = open_period.data or {}
