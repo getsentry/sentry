@@ -161,6 +161,10 @@ class SecondaryGroupingTest(TestCase):
         assert not grouphashes_for_group.filter(hash=hashes_by_config[NO_MSG_PARAM_CONFIG]).exists()
 
     def test_filters_new_secondary_hashes_when_creating_grouphashes(self) -> None:
+        """
+        In cases where some secondary hashes already exist, make sure we don't create `GroupHash`
+        records for any new secondary hashes.
+        """
         project = self.project
         project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
