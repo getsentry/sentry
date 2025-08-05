@@ -819,6 +819,11 @@ def process_delayed_workflows(
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     log_context.add_extras(project_id=project_id)
+    logger.info(
+        "workflow_engine.delayed_workflow.start",
+        extra={"batch_key": batch_key},
+    )
+
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
         project = fetch_project(project_id)
         if not project:
