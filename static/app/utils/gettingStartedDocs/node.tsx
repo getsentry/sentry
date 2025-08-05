@@ -481,7 +481,9 @@ export const getNodeMcpOnboarding = ({
       {tct(
         'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
         {
-          vercelai: <ExternalLink href="Model Context Protocol" />,
+          mcp: (
+            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
+          ),
         }
       )}
     </Alert>
