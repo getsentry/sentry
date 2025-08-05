@@ -1,3 +1,4 @@
+from collections.abc import MutableMapping, Sequence
 from datetime import datetime
 from typing import TypedDict
 
@@ -14,11 +15,11 @@ from sentry.replays.lib.eap.snuba_transpiler import TRACE_ITEM_TYPE_MAP, TRACE_I
 from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer
 from sentry.utils.kafka_config import get_topic_definition
 
-Value = bool | bytes | str | int | float | list["Value"] | dict[str, "Value"]
+Value = bool | bytes | str | int | float | Sequence["Value"] | MutableMapping[str, "Value"]
 
 
 class TraceItem(TypedDict):
-    attributes: dict[str, Value]
+    attributes: MutableMapping[str, Value]
     client_sample_rate: float
     organization_id: int
     project_id: int

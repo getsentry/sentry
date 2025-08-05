@@ -269,7 +269,7 @@ def as_trace_item(
 
     return new_trace_item(
         {
-            "attributes": trace_item_context["attributes"],
+            "attributes": trace_item_context["attributes"],  # type: ignore[typeddict-item]
             "client_sample_rate": 1.0,
             "organization_id": context["organization_id"],
             "project_id": context["project_id"],
