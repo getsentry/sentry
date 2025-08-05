@@ -155,6 +155,13 @@ Sentry.init(options -> {
   // Add data like request headers and IP for users,
   // see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
   options.setSendDefaultPii(true);${
+    params.isLogsSelected
+      ? `
+
+  // Enable sending logs to Sentry
+  options.getLogs().setEnabled(true);`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -333,7 +340,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
             {
               type: 'code',
-              language: 'java',
+              language: 'properties',
               code: getSentryPropertiesSnippet(params),
             },
           ],

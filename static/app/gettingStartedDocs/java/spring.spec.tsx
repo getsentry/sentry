@@ -2,6 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs, {PackageManager, SpringVersion} from './spring';
 
 describe('GettingStartedWithSpring', function () {
@@ -89,6 +91,30 @@ describe('GettingStartedWithSpring', function () {
       await screen.findByText(
         textWithMarkupMatcher(/import io.sentry.spring.jakarta.EnableSentry/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration when logs are selected', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders logs configuration in sentry.properties
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Enable sending logs to Sentry/))
+    ).toBeInTheDocument();
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/logs\.enabled=true/))
     ).toBeInTheDocument();
   });
 });
