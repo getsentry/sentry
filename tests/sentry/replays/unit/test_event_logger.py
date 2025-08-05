@@ -12,6 +12,9 @@ from sentry.replays.usecases.ingest.event_logger import (
     gen_rage_clicks,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.testutils import thread_leaks
+
+pytestmark = thread_leaks.allowlist(issue=97033, reason="replays")
 
 
 def test_gen_rage_clicks() -> None:
