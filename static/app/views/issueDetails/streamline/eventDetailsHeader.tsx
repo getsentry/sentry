@@ -159,9 +159,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   }
                   triggerProps={{
                     borderless: true,
-                       style: {
-                        padding: `${theme.space.md} ${theme.space.lg}`,
-                      },
+                    style: {
+                      padding: `${theme.space.md} ${theme.space.lg}`,
+                    },
                   }}
                 />
                 <SearchFilter
@@ -252,7 +252,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
         borderless: true,
         style: {
           padding: `${theme.space.md} ${theme.space.lg}`,
-        }
+        },
       }}
     />
   );
