@@ -40,7 +40,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.EXPLORE
+    owner = ApiOwner.VISIBILITY
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
