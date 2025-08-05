@@ -14,7 +14,10 @@ import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
-import {StoryTableOfContents} from './storyTableOfContents';
+import {
+  StoryTableOfContents,
+  StoryTableOfContentsPlaceholder,
+} from './storyTableOfContents';
 import {
   isMDXStory,
   type MDXStoryDescriptor,
@@ -87,6 +90,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 
           <StoryTabList />
         </StoryContainer>
+        <StoryTableOfContentsPlaceholder />
       </StoryGrid>
     </StoryHeader>
   );
@@ -217,17 +221,27 @@ const StoryHeader = styled('header')`
 `;
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
-  return <Grid {...props} columns={'1fr minmax(auto, 360px)'} height="100%" />;
+  return (
+    <Grid
+      {...props}
+      columns={{xs: 'minmax(0, 1fr) auto', md: 'minmax(580px, 1fr) minmax(0, 256px)'}}
+      height="100%"
+    />
+  );
 }
 
 const StoryContainer = styled('div')`
-  max-width: 820px;
-  width: calc(-32px + 100vw);
-  margin-inline: auto;
+  max-width: 580px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: ${space(4)};
   padding-inline: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: 832px;
+    margin-inline: auto;
+  }
 `;
 
 const StoryContent = styled('main')`
