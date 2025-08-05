@@ -22,7 +22,14 @@ logger = log_context.get_logger(__name__)
 
 
 def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
-    """Build parameters for trigger_action.delay() call."""
+    """
+    Build parameters for trigger_action task invocation.
+
+    Args:
+        action: The action to trigger.
+        detector: The detector that triggered the action.
+        event_data: The event data to use for the action.
+    """
     event_id = None
     activity_id = None
     occurrence_id = None
