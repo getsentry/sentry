@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -276,6 +277,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert len(response.data) == 1
         assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_post(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(
