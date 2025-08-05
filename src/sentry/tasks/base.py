@@ -84,7 +84,7 @@ def taskworker_override(
             elif "*" in rollout_map:
                 rollout_rate = rollout_map.get("*", 0)
 
-        if rollout_rate > random.random():
+        if rollout_rate > random.random() or options.get("taskworker.enabled"):
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)
