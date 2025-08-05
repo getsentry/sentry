@@ -45,6 +45,7 @@ type ParamKeys =
   | 'storyType'
   | 'tagKey'
   | 'teamId'
+  | 'tokenId'
   | 'traceSlug'
   | 'userId'
   | 'viewId'
