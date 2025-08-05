@@ -60,6 +60,7 @@ EXCLUDED_PACKAGES = [
     "sequelize",
     "gorm.io/gorm",
     "@nestjs/typeorm",
+    "@mikro-orm/nestjs",
 ]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
