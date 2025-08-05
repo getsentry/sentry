@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import type {Organization} from 'sentry/types/organization';
@@ -17,48 +17,42 @@ type Props = {
   subject?: string;
 };
 
-class ZendeskLink extends React.Component<Props> {
-  componentDidMount() {
-    const {organization, source} = this.props;
+function ZendeskLink({
+  organization,
+  source,
+  Component,
+  subject,
+  address,
+  children,
+  ...props
+}: Props) {
+  useEffect(() => {
     if (organization) {
       trackGetsentryAnalytics('zendesk_link.viewed', {organization, source});
     }
-  }
+  }, [organization, source]);
 
-  activateSupportWidget = (e: React.MouseEvent) => {
-    const {organization, source} = this.props;
-
-    if (zendeskIsLoaded()) {
+  async function activateSupportWidget(e: React.MouseEvent) {
+    if (await zendeskIsLoaded()) {
       e.preventDefault();
       activateZendesk();
     }
 
     trackGetsentryAnalytics('zendesk_link.clicked', {organization, source});
-  };
-
-  render() {
-    const {
-      Component,
-      subject,
-      address,
-      source: _source,
-      organization: _organization,
-      ...props
-    } = this.props;
-
-    let mailto = `mailto:${address ?? 'support'}@sentry.io`;
-    if (subject) {
-      mailto = `${mailto}?subject=${window.encodeURIComponent(subject)}`;
-    }
-
-    const LinkComponent = Component ?? ExternalLink;
-
-    return (
-      <LinkComponent href={mailto} onClick={this.activateSupportWidget} {...props}>
-        {this.props.children}
-      </LinkComponent>
-    );
   }
+
+  let mailto = `mailto:${address ?? 'support'}@sentry.io`;
+  if (subject) {
+    mailto = `${mailto}?subject=${window.encodeURIComponent(subject)}`;
+  }
+
+  const LinkComponent = Component ?? ExternalLink;
+
+  return (
+    <LinkComponent href={mailto} onClick={activateSupportWidget} {...props}>
+      {children}
+    </LinkComponent>
+  );
 }
 
 export default withOrganization(ZendeskLink);
