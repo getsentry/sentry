@@ -20,7 +20,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.title_generation import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -640,7 +639,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Call the function inside process_workflow_engine
-        assert mock_process_event.delay.call_count == 1
+        assert mock_process_event.apply_async.call_count == 1
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
@@ -669,7 +668,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Don't process workflows for ignored issue
-        assert mock_process_event.delay.call_count == 0
+        assert mock_process_event.apply_async.call_count == 0
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
@@ -1406,16 +1405,26 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
+
         mock_incr.assert_any_call("sentry.task.post_process.handle_owner_assignment.ratelimited")
         mock_incr.reset_mock()
 
         # Raise this organization's ratelimit
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event2 = self.create_event(
+                data={
+                    "message": "oh no again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app2.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event2,
             )
             with pytest.raises(AssertionError):
                 mock_incr.assert_any_call(
@@ -1430,11 +1439,20 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             ),
         )
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event3 = self.create_event(
+                data={
+                    "message": "oh no yet again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app3.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event3,
             )
             mock_incr.assert_any_call(
                 "sentry.task.post_process.handle_owner_assignment.ratelimited"
@@ -2172,11 +2190,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
         assert mock_event_data["level"] == "error"
-
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
-        assert occurrence.issue_title == get_feedback_title(
-            mock_event_data["contexts"]["feedback"]["message"]
-        )
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(
@@ -3303,8 +3316,6 @@ class PostProcessGroupFeedbackTest(
         is_spam=False,
     ):
         data["type"] = "generic"
-        if "message" not in data:
-            data["message"] = "It Broke!!!"
 
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
@@ -3327,7 +3338,7 @@ class PostProcessGroupFeedbackTest(
             **{
                 "id": uuid.uuid4().hex,
                 "fingerprint": ["c" * 32],
-                "issue_title": get_feedback_title(data["message"]),
+                "issue_title": "User Feedback",
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
@@ -3464,7 +3475,7 @@ class PostProcessGroupFeedbackTest(
 
     def test_ran_if_default_on_new_projects(self) -> None:
         event = self.create_event(
-            data={"message": "It Broke!!!"},
+            data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
         )
@@ -3485,11 +3496,10 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
-        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_ran_if_crash_feedback_envelope(self) -> None:
         event = self.create_event(
-            data={"message": "It Broke!!!"},
+            data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
         )
@@ -3510,7 +3520,6 @@ class PostProcessGroupFeedbackTest(
                 cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
-        assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
     def test_logs_if_source_missing(self) -> None:
         event = self.create_event(

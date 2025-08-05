@@ -668,6 +668,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_get_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test GET returns count() to user even when stored as upsampled_count() internally"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Set up user membership FIRST before accessing self.alert_rule
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Now access and modify the alert rule to have upsampled_count() internally
+        # (simulating what would happen if it was created with count() on upsampled project)
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "GET should return count() to user, hiding internal upsampled_count() storage"
+
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
@@ -703,6 +726,79 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating to count() converts to upsampled_count() internally but shows count() to user"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # Mock that projects are upsampled
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update to count() aggregate - should convert internally but return count() to user
+        serialized_alert_rule["aggregate"] = "count()"
+        serialized_alert_rule["dataset"] = "events"
+        serialized_alert_rule["name"] = "Updated to Count Rule"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() in response
+        assert resp.data["aggregate"] == "count()"
+
+        # But internally it should be stored as upsampled_count()
+        alert_rule.refresh_from_db()
+        assert (
+            alert_rule.snuba_query.aggregate == "upsampled_count()"
+        ), "UPDATE should convert count() to upsampled_count() internally for upsampled projects"
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_non_aggregate_field_preserves_transparency_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating non-aggregate fields maintains transparency of upsampled_count()"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Manually set the existing alert rule to have upsampled_count() internally
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+        original_aggregate = self.alert_rule.snuba_query.aggregate
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update only the name, not the aggregate
+        serialized_alert_rule["name"] = "Updated Name Only"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() even though it's stored as upsampled_count()
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "UPDATE response should show count() to user, hiding internal upsampled_count() storage"
+        assert resp.data["name"] == "Updated Name Only"
+
+        # Internal storage should be unchanged
+        alert_rule.refresh_from_db()
+        assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])

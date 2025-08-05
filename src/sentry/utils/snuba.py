@@ -18,7 +18,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
-import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
@@ -1113,8 +1112,8 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.transaction:
-        parent_api = scope.transaction.name
+    if scope.root_span and scope.root_span.name:
+        parent_api = scope.root_span.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1233,7 +1232,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
             if bytes_scanned is not None:
-                span.set_data(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
+                span.set_attribute(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1258,12 +1257,13 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     if response.status == 429:
                         if options.get("issues.use-snuba-error-data"):
                             try:
-                                if "stats" not in error:
-                                    # Should not hit this - snuba always returns stats when there is an error
+                                if (
+                                    "quota_allowance" not in error
+                                    or "summary" not in error["quota_allowance"]
+                                ):
+                                    # Should not hit this - snuba gives us quota_allowance with a 429
                                     raise RateLimitExceeded(error["message"])
-                                quota_allowance_summary = error["stats"]["quota_allowance"][
-                                    "details"
-                                ]["summary"]
+                                quota_allowance_summary = error["quota_allowance"]["summary"]
                                 rejected_by = quota_allowance_summary["rejected_by"]
                                 throttled_by = quota_allowance_summary["throttled_by"]
 
@@ -1339,8 +1339,8 @@ def _snuba_query(
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
     thread_isolation_scope, thread_current_scope, snuba_request = params
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.scope.use_scope(thread_current_scope):
+    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.use_scope(thread_current_scope):
             headers = snuba_request.headers
             request = snuba_request.request
             try:

@@ -128,7 +128,7 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
             activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
             analyticsKey="codecov"
-            group={PrimaryNavGroup.CODECOV}
+            group={PrimaryNavGroup.PREVENT}
           >
             <IconPrevent />
           </SidebarLink>
