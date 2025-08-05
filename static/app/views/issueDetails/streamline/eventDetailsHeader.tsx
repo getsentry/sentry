@@ -52,6 +52,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -158,6 +159,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   }
                   triggerProps={{
                     borderless: true,
+                    style: {
+                      padding: `${theme.space.md} ${theme.space.lg}`,
+                    },
                   }}
                 />
                 <SearchFilter
@@ -213,10 +217,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 }
 
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+  const theme = useTheme();
 
   const environmentCss = css`
     display: block;
@@ -245,6 +249,9 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       css={environmentCss}
       triggerProps={{
         borderless: true,
+        style: {
+          padding: `${theme.space.md} ${theme.space.lg}`,
+        },
       }}
     />
   );
@@ -256,11 +263,11 @@ const DetailsContainer = styled('div')<{
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
-  padding-top: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
@@ -302,7 +309,7 @@ const DateFilter = styled(TimeRangeSelector)`
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};

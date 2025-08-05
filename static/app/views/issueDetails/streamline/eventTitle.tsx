@@ -13,7 +13,6 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -273,40 +272,40 @@ const StyledTimeSince = styled(TimeSince)`
 
 const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr auto;
   align-items: center;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
 
   @media (max-width: ${p =>
       p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
-    gap: ${space(0.5)};
-    padding: ${space(0.5)} ${space(2)};
+    gap: ${p => p.theme.space.xs};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
 `;
 
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 `;
 
 const JumpToLabel = styled('div')`
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const JumpTo = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.subText};
@@ -327,7 +326,7 @@ const ProcessingErrorButton = styled(Button)`
 const JsonLinkWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const JsonLink = styled(ExternalLink)`
@@ -362,7 +361,7 @@ const MarkdownButton = styled('button')`
 
 const EventIdWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
   font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
