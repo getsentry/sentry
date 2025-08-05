@@ -11,10 +11,12 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
+    get_sentry_organization_id,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -448,3 +450,87 @@ class TestSeerRpcMethods(APITestCase):
 
         assert not result["success"]
         assert "Failed to encrypt access token" in self._caplog.text
+
+    def test_get_sentry_organization_id_repository_found(self) -> None:
+        """Test when repository exists and is active"""
+
+        # Create a repository
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = get_sentry_organization_id(full_repo_name="getsentry/sentry")
+
+        assert result == {"org_id": self.organization.id, "error": None}
+
+    def test_get_sentry_organization_id_repository_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = get_sentry_organization_id(full_repo_name="nonexistent/repo")
+
+        assert result == {"org_id": None, "error": "Repository not found"}
+
+    def test_get_sentry_organization_id_repository_inactive(self) -> None:
+        """Test when repository exists but is not active"""
+
+        # Create a repository with inactive status
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            status=ObjectStatus.DISABLED,
+        )
+
+        result = get_sentry_organization_id(full_repo_name="getsentry/sentry")
+
+        # Should not find the repository because it's not active
+        assert result == {"org_id": None, "error": "Repository not found"}
+
+    def test_get_sentry_organization_id_different_provider(self) -> None:
+        """Test when repository exists but with different provider"""
+
+        # Create a repository with different provider
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Search with default provider (integrations:github)
+        result = get_sentry_organization_id(full_repo_name="getsentry/sentry")
+
+        # Should not find the repository because provider doesn't match
+        assert result == {"org_id": None, "error": "Repository not found"}
+
+    def test_get_sentry_organization_id_multiple_repos_same_name_different_providers(self) -> None:
+        """Test when multiple repositories exist with same name but different providers"""
+        org2 = self.create_organization(owner=self.user)
+
+        # Create repositories with same name but different providers
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            status=ObjectStatus.ACTIVE,
+        )
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=org2.id,
+            provider="integrations:gitlab",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Search for GitHub provider
+        result = get_sentry_organization_id(full_repo_name="getsentry/sentry")
+
+        assert result == {"org_id": self.organization.id, "error": None}
+
+        # Search for GitLab provider
+        result = get_sentry_organization_id(
+            full_repo_name="getsentry/sentry", provider="integrations:gitlab"
+        )
+
+        assert result == {"org_id": org2.id, "error": None}

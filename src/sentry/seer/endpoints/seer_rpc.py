@@ -53,6 +53,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -211,6 +212,29 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     return {"slug": org.slug}
+
+
+def get_sentry_organization_id(
+    *, full_repo_name: str, provider: str = "integrations:github"
+) -> dict:
+    """
+    Get the Sentry organization ID for a given Repository.
+
+    Args:
+        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
+        provider: The provider of the repository (e.g. "integrations:github")
+    """
+    org_id = (
+        Repository.objects.filter(
+            name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE
+        )
+        .values_list("organization_id", flat=True)
+        .first()
+    )
+
+    if org_id is None:
+        return {"org_id": None, "error": "Repository not found"}
+    return {"org_id": org_id, "error": None}
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
@@ -575,6 +599,7 @@ def get_github_enterprise_integration_config(
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
+    "get_sentry_organization_id": get_sentry_organization_id,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
