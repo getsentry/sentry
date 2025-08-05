@@ -218,7 +218,6 @@ function ActionSet({
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
-      {/* Show merge button when multiple issues are selected */}
       <Button
         size="xs"
         onClick={handleMergeClick}
