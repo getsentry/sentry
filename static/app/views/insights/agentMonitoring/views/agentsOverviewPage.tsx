@@ -59,7 +59,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -125,6 +125,13 @@ function AgentsMonitoringPage() {
   const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
 
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -136,9 +143,17 @@ function AgentsMonitoringPage() {
       stringTags,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      replaceRawSearchKeys: ['span.description'],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
     }),
     [
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
       searchQuery,
@@ -159,7 +174,7 @@ function AgentsMonitoringPage() {
         headerActions={<AiModuleToggleButton />}
         headerTitle={
           <Fragment>
-            {AGENTS_LANDING_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }

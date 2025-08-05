@@ -14,7 +14,7 @@ class TestSystemAuth(TestCase):
 
 @django_db_all
 @control_silo_test
-def test_system_token_option():
+def test_system_token_option() -> None:
     from sentry import options
 
     options.delete("sentry:system-token")

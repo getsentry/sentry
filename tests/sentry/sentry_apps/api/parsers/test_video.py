@@ -5,7 +5,7 @@ from sentry.sentry_apps.api.parsers.schema import validate_component
 
 
 class TestVideoSchemaValidation(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema = {"type": "video", "url": "https://example.com/video.mov"}
 
     def test_valid_schema(self) -> None:

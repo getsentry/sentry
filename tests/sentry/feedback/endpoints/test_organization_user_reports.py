@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -13,7 +13,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("test@test.com")
         self.login_as(user=self.user)
@@ -150,7 +150,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["user"]["email"] == "alice@example.com"
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_retention(self, mock_get_event_retention):
+    def test_retention(self, mock_get_event_retention: MagicMock) -> None:
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
         UserReport.objects.create(
@@ -163,7 +163,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         self.run_test([self.report_1, self.report_2])  # old report is not returned
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_event_retention(self, mock_get_event_retention):
+    def test_event_retention(self, mock_get_event_retention: MagicMock) -> None:
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
 

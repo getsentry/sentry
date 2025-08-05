@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 class ReleaseCommitsListTest(APITestCase):
     endpoint = "sentry-api-0-project-release-commits"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project(name="foo")

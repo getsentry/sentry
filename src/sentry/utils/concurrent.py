@@ -12,7 +12,6 @@ from time import time
 from typing import Any, NamedTuple
 
 import sentry_sdk
-import sentry_sdk.scope
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +133,7 @@ class Executor:
     to allow controlling whether or not queue insertion should be blocking.
     """
 
-    def submit[
-        T
-    ](
+    def submit[T](
         self,
         callable: Callable[[], T],
         priority: int = 0,
@@ -202,8 +199,8 @@ class ThreadedExecutor(Executor):
         while True:
             priority, item = queue.get(True)
             thread_isolation_scope, thread_current_scope, function, future = item
-            with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-                with sentry_sdk.scope.use_scope(thread_current_scope):
+            with sentry_sdk.use_isolation_scope(thread_isolation_scope):
+                with sentry_sdk.use_scope(thread_current_scope):
                     if not future.set_running_or_notify_cancel():
                         continue
                     try:
@@ -227,9 +224,9 @@ class ThreadedExecutor(Executor):
 
             self.__started = True
 
-    def submit[
-        T
-    ](self, callable: Callable[[], T], priority=0, block=True, timeout=None) -> TimedFuture[T]:
+    def submit[T](
+        self, callable: Callable[[], T], priority=0, block=True, timeout=None
+    ) -> TimedFuture[T]:
         """\
         Enqueue a task to be executed, returning a ``TimedFuture``.
 

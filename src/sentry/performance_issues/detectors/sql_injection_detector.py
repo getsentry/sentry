@@ -55,7 +55,12 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
-EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+EXCLUDED_PACKAGES = [
+    "github.com/go-sql-driver/mysql",
+    "sequelize",
+    "gorm.io/gorm",
+    "@nestjs/typeorm",
+]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
@@ -117,7 +122,6 @@ class SQLInjectionDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
             return
-
         description = span.get("description") or ""
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
@@ -211,9 +215,13 @@ class SQLInjectionDetector(PerformanceDetector):
             or op == "db.sql.active_record"
         ):
             return False
-
         # Auto-generated rails queries can contain interpolated values
         if span.get("origin") == "auto.db.rails":
+            return False
+
+        # If bindings are present, we can assume the query is safe
+        span_data = span.get("data", {})
+        if span_data and span_data.get("db.sql.bindings"):
             return False
 
         description = span.get("description", None)
@@ -227,6 +235,29 @@ class SQLInjectionDetector(PerformanceDetector):
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
         ):
             return False
+
+        # If the description contains multiple occurrences of alias chaining, likely coming from an ORM
+        if len(re.findall(r"\w+(->\w+)+", description)) > 3:
+            return False
+
+        # If the description contains multiple deleted_at IS NULL clauses, likely coming from an ORM
+        if len(re.findall(r'"?deleted[_aA]+t"?\s+IS\s+NULL', description)) > 3:
+            return False
+
+        # Laravel queries with this pattern can contain interpolated values
+        if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
+            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description.upper()
+        ):
+            return False
+
+        # Zend1 can cause false positives
+        if span.get("sentry_tags", {}).get("platform") == "php":
+            span_data = span.get("data", {})
+            event_traces = span_data.get("event.trace", []) if span_data else []
+            if isinstance(event_traces, list) and any(
+                [trace.get("function", "").startswith("Zend_") for trace in event_traces]
+            ):
+                return False
         return True
 
     @classmethod

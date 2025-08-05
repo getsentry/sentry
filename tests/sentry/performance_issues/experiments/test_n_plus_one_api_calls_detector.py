@@ -28,7 +28,7 @@ from sentry.testutils.performance_issues.event_generators import (
 class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
     type_id = PerformanceNPlusOneAPICallsExperimentalGroupType.type_id
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -386,7 +386,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         ),
     ],
 )
-def test_parameterizes_url(url, parameterized_url):
+def test_parameterizes_url(url, parameterized_url) -> None:
     r = parameterize_url(url)
     assert r == parameterized_url
 
@@ -428,7 +428,7 @@ def test_parameterizes_url(url, parameterized_url):
         },
     ],
 )
-def test_allows_eligible_spans(span):
+def test_allows_eligible_spans(span) -> None:
     assert NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
 
 
@@ -486,7 +486,7 @@ def test_allows_eligible_spans(span):
         },
     ],
 )
-def test_rejects_ineligible_spans(span):
+def test_rejects_ineligible_spans(span) -> None:
     assert not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
 
 
@@ -494,7 +494,7 @@ def test_rejects_ineligible_spans(span):
     "event",
     [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
-def test_allows_eligible_events(event):
+def test_allows_eligible_events(event) -> None:
     assert NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)
 
 
@@ -504,5 +504,5 @@ def test_allows_eligible_events(event):
         {"contexts": {"trace": {"op": "task"}}},
     ],
 )
-def test_rejects_ineligible_events(event):
+def test_rejects_ineligible_events(event) -> None:
     assert not NPlusOneAPICallsExperimentalDetector.is_event_eligible(event)

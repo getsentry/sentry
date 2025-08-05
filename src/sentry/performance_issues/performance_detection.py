@@ -371,13 +371,13 @@ def _detect_performance_problems(
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
-    with sentry_sdk.start_span(op="function", name="sort_spans"):
-        if standalone or features.has("organizations:issue-detection-sort-spans", organization):
-            # The performance detectors expect the span list to be ordered/flattened in the way they
-            # are structured in the tree. This is an implicit assumption in the performance detectors.
-            # So we build a tree and flatten it depth first.
-            # TODO: See if we can update the detectors to work without this assumption so we can
-            # just pass it a list of spans.
+    if standalone or features.has("organizations:issue-detection-sort-spans", organization):
+        # The performance detectors expect the span list to be ordered/flattened in the way they
+        # are structured in the tree. This is an implicit assumption in the performance detectors.
+        # So we build a tree and flatten it depth first.
+        # TODO: See if we can update the detectors to work without this assumption so we can
+        # just pass it a list of spans.
+        with sentry_sdk.start_span(op="performance_detection", name="sort_spans"):
             tree, segment_id = build_tree(data.get("spans", []))
             data = {**data, "spans": flatten_tree(tree, segment_id)}
 
@@ -513,8 +513,8 @@ def report_metrics_for_detectors(
     sdk_name = get_sdk_name(event)
 
     try:
-        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
+        # Setting a tag isn't critical, the root_span doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
+        set_tag = sdk_span.root_span.set_tag
     except AttributeError:
         set_tag = lambda *args: None
 

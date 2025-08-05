@@ -106,7 +106,8 @@ export function AutorefreshToggle({
               const newChecked = !autorefreshEnabled;
 
               trackAnalytics('logs.auto_refresh.toggled', {
-                enabled: newChecked,
+                toggleState: newChecked ? 'enabled' : 'disabled',
+                fromPaused: autoRefresh === 'paused',
                 organization,
                 page_source: analyticsPageSource,
               });
@@ -114,7 +115,7 @@ export function AutorefreshToggle({
               if (newChecked) {
                 setAutorefresh('enabled');
               } else {
-                setAutorefresh('idle');
+                setAutorefresh('paused');
               }
             }}
           />

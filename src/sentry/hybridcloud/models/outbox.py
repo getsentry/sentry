@@ -7,6 +7,7 @@ import threading
 from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
 
+import psycopg2.errors
 import sentry_sdk
 from django import db
 from django.db import DatabaseError, OperationalError, connections, models, router, transaction
@@ -140,7 +141,7 @@ class OutboxBase(Model):
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.
-            if "LockNotAvailable" in str(e):
+            if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                 return None
             else:
                 raise
@@ -218,7 +219,7 @@ class OutboxBase(Model):
                     .first()
                 )
             except OperationalError as e:
-                if "LockNotAvailable" in str(e):
+                if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
@@ -289,8 +290,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("outbox_id", message.id)
-        span.set_data("outbox_shard_id", message.shard_identifier)
+        span.set_attribute("outbox_id", message.id)
+        span.set_attribute("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 

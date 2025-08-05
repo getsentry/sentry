@@ -87,7 +87,7 @@ class RuleSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowRuleSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from rest_framework import serializers
@@ -57,7 +57,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_app_actions(self, mock_sentry_app_component_preparer):
+    def test_sentry_app_actions(self, mock_sentry_app_component_preparer: MagicMock) -> None:
         event = self.get_event()
 
         self.project = self.create_project(organization=event.organization)

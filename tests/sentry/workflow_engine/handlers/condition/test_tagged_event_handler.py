@@ -28,7 +28,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         )
         return event
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.get_event()
         self.group = self.create_group(project=self.project)

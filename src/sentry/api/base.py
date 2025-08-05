@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
@@ -446,7 +447,9 @@ class Endpoint(APIView):
                     op="base.dispatch.sleep",
                     name=type(self).__name__,
                 ) as span:
-                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                    span.set_attribute(
+                        "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
+                    )
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -648,13 +651,17 @@ class StatsMixin:
 
 class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
-        analytics.record(
-            "release.set_commits_local",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+        try:
+            analytics.record(
+                ReleaseSetCommitsLocalEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization_id,
+                    project_ids=project_ids,
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class EndpointSiloLimit(SiloLimit):

@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class ProjectPluginDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-project-plugin-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -79,7 +79,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
     @mock.patch.object(NotificationPlugin, "test_configuration", side_effect="test_configuration")
-    def test_simple(self, test_configuration):
+    def test_simple(self, test_configuration: mock.MagicMock) -> None:
         plugins.get("webhooks").disable(self.project)
 
         with outbox_runner():

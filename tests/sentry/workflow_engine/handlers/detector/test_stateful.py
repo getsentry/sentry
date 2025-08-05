@@ -11,7 +11,7 @@ Level = DetectorPriorityLevel
 
 
 class TestStatefulDetectorHandler(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
@@ -37,7 +37,7 @@ class TestStatefulDetectorHandler(TestCase):
 
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
         self.detector = self.create_detector(
             name="Stateful Detector",
@@ -89,7 +89,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
 
 
 class TestStatefulDetectorHandlerEvaluate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
 
         self.detector = self.create_detector(
@@ -333,7 +333,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Redis Optimization Detector",
             project=self.project,

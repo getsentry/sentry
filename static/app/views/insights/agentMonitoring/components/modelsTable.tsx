@@ -11,6 +11,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,7 +46,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
@@ -66,7 +66,7 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: AI_COST_ATTRIBUTE_SUM, name: t('Cost'), width: 100},
@@ -81,7 +81,7 @@ const rightAlignColumns = new Set([
   AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   AI_COST_ATTRIBUTE_SUM,
-  'count_if(span.status,unknown)',
+  'count_if(span.status,equals,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -100,7 +100,7 @@ export function ModelsTable() {
         pathname,
         query: {
           ...previousQuery,
-          tableCursor: cursor,
+          modelsCursor: cursor,
         },
       },
       {replace: true, preventScrollReset: true}
@@ -108,6 +108,8 @@ export function ModelsTable() {
   };
 
   const {sortField, sortOrder} = useTableSortParams();
+
+  const cursor = decodeScalar(location.query?.modelsCursor);
 
   const modelsRequest = useSpans(
     {
@@ -121,15 +123,12 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'count_if(span.status,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
-      cursor:
-        typeof location.query.modelsCursor === 'string'
-          ? location.query.modelsCursor
-          : undefined,
+      cursor,
       keepPreviousData: true,
     },
     Referrer.MODELS_TABLE
@@ -146,7 +145,7 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
       cost: Number(span[AI_COST_ATTRIBUTE_SUM]),
-      errors: span['count_if(span.status,unknown)'] ?? 0,
+      errors: span['count_if(span.status,equals,unknown)'] ?? 0,
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
       inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
@@ -270,7 +269,7 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.p95} />;
     case AI_COST_ATTRIBUTE_SUM:
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
-    case 'count_if(span.status,unknown)':
+    case 'count_if(span.status,equals,unknown)':
       return (
         <ErrorCell
           value={dataRow.errors}

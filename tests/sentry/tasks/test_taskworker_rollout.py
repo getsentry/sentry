@@ -9,7 +9,7 @@ from sentry.testutils.helpers.options import override_options
 
 
 class TestTaskworkerRollout(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.registry = TaskRegistry()
         self.namespace = self.registry.create_namespace(name="test_namespace")
@@ -27,19 +27,14 @@ class TestTaskworkerRollout(TestCase):
         super().tearDown()
         options.unregister("taskworker.test_namespace.rollout")
 
-    @mock.patch("sentry.tasks.base.random.random")
     @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
-    @override_options(
-        {"taskworker.test_namespace.rollout": {"test.test_with_taskworker_rollout": 0.5}}
-    )
-    def test_with_taskworker_rollout(self, mock_send_task, mock_random):
-        mock_random.return_value = 0.3
-
+    @override_options({"taskworker.enabled": True})
+    def test_with_taskworker_enabled_option(self, mock_send_task: mock.MagicMock) -> None:
         @instrumented_task(
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_with_taskworker_rollout"
@@ -55,7 +50,34 @@ class TestTaskworkerRollout(TestCase):
     @override_options(
         {"taskworker.test_namespace.rollout": {"test.test_with_taskworker_rollout": 0.5}}
     )
-    def test_with_taskworker_rollout_with_args(self, mock_send_task, mock_random):
+    def test_with_taskworker_rollout(
+        self, mock_send_task: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
+        mock_random.return_value = 0.3
+
+        @instrumented_task(
+            name="test.test_with_taskworker_rollout",
+            taskworker_config=self.config,
+        )
+        def test_task() -> str:
+            return "done"
+
+        assert test_task.name == "test.test_with_taskworker_rollout"
+        task = self.namespace.get("test.test_with_taskworker_rollout")
+        assert task is not None
+        assert task.name == "test.test_with_taskworker_rollout"
+        test_task.delay()
+        test_task.apply_async()
+        assert mock_send_task.call_count == 2
+
+    @mock.patch("sentry.tasks.base.random.random")
+    @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
+    @override_options(
+        {"taskworker.test_namespace.rollout": {"test.test_with_taskworker_rollout": 0.5}}
+    )
+    def test_with_taskworker_rollout_with_args(
+        self, mock_send_task: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
         mock_random.return_value = 0.3
 
         @instrumented_task(
@@ -111,7 +133,9 @@ class TestTaskworkerRollout(TestCase):
     @override_options(
         {"taskworker.test_namespace.rollout": {"test.test_without_taskworker_rollout": 0.3}}
     )
-    def test_without_taskworker_rollout(self, mock_celery_apply_async, mock_random):
+    def test_without_taskworker_rollout(
+        self, mock_celery_apply_async: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
         mock_random.return_value = 0.5
 
         @instrumented_task(
@@ -132,7 +156,9 @@ class TestTaskworkerRollout(TestCase):
     @override_options(
         {"taskworker.test_namespace.rollout": {"test.test_without_taskworker_rollout": 0.3}}
     )
-    def test_without_taskworker_rollout_with_args(self, mock_celery_apply_async, mock_random):
+    def test_without_taskworker_rollout_with_args(
+        self, mock_celery_apply_async: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
         mock_random.return_value = 0.5
 
         @instrumented_task(
@@ -149,12 +175,14 @@ class TestTaskworkerRollout(TestCase):
         assert mock_celery_apply_async.call_count == 2
 
     @mock.patch("sentry.celery.Task.apply_async")
-    def test_taskworker_no_rollout_configured(self, mock_celery_apply_async):
+    def test_taskworker_no_rollout_configured(
+        self, mock_celery_apply_async: mock.MagicMock
+    ) -> None:
         @instrumented_task(
             name="test.test_taskworker_no_rollout_configured",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_taskworker_no_rollout_configured"
@@ -164,7 +192,9 @@ class TestTaskworkerRollout(TestCase):
         assert mock_celery_apply_async.call_count == 2
 
     @mock.patch("sentry.celery.Task.apply_async")
-    def test_taskworker_no_rollout_configured_with_args(self, mock_celery_apply_async):
+    def test_taskworker_no_rollout_configured_with_args(
+        self, mock_celery_apply_async: mock.MagicMock
+    ) -> None:
         @instrumented_task(
             name="test.test_taskworker_no_rollout_configured",
             taskworker_config=self.config,

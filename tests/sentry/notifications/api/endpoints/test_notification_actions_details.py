@@ -43,7 +43,7 @@ def _mock_register(
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("summoner@rift.io")
         self.organization = self.create_organization(name="league", owner=self.user)
         self.other_organization = self.create_organization(name="wild-rift", owner=self.user)

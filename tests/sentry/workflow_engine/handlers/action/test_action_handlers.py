@@ -11,7 +11,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestNotificationActionHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
@@ -29,7 +29,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
     )
-    def test_execute_error_group_type(self, mock_registry_get):
+    def test_execute_error_group_type(self, mock_registry_get: mock.MagicMock) -> None:
         """Test that execute calls correct handler for ErrorGroupType"""
         self.detector.type = ErrorGroupType.slug
         self.detector.save()
@@ -47,7 +47,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
     )
-    def test_execute_metric_alert_type(self, mock_registry_get):
+    def test_execute_metric_alert_type(self, mock_registry_get: mock.MagicMock) -> None:
         """Test that execute calls correct handler for MetricIssue"""
         self.detector.type = MetricIssue.slug
         self.detector.config = {"threshold_period": 1, "detection_type": "static"}
@@ -68,7 +68,9 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         side_effect=NoRegistrationExistsError,
     )
     @mock.patch("sentry.notifications.notification_action.utils.logger")
-    def test_execute_unknown_group_type(self, mock_logger, mock_registry_get):
+    def test_execute_unknown_group_type(
+        self, mock_logger: mock.MagicMock, mock_registry_get: mock.MagicMock
+    ) -> None:
         """Test that execute does nothing when detector has no group_type"""
         with pytest.raises(NoRegistrationExistsError):
             self.action.trigger(self.event_data, self.detector)

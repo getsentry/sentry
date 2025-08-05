@@ -41,7 +41,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project2 = self.create_project()
         self.login_as(user=self.user)
@@ -1554,7 +1554,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.login_as(user=self.create_user(is_staff=True), staff=True)

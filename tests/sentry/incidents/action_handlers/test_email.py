@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -46,6 +47,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -87,17 +89,19 @@ class EmailActionHandlerTest(FireTest):
         self.run_fire_test("resolve")
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.user.id),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(self.alert_rule.id),
+                alert_type="metric_alert",
+                external_id=str(self.user.id),
+                notification_uuid="",
+            ),
         )
 
 
@@ -484,7 +488,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_alert(self, mock_seer_request):
+    def test_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
 
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -669,7 +673,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         side_effect=fetch_metric_alert_events_timeseries,
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+    def test_metric_chart(
+        self, mock_generate_chart: MagicMock, mock_fetch_metric_alert_events_timeseries: MagicMock
+    ) -> None:
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
@@ -706,7 +712,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         side_effect=fetch_metric_alert_events_timeseries,
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+    def test_metric_chart_mep(
+        self, mock_generate_chart: MagicMock, mock_fetch_metric_alert_events_timeseries: MagicMock
+    ) -> None:
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"
         )

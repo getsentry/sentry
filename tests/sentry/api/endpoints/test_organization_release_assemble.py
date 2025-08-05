@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationReleaseAssembleTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
@@ -56,7 +56,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble(self, mock_assemble_artifacts):
+    def test_assemble(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -135,7 +135,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.ERROR
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_as_artifact_bundle(self, mock_assemble_artifacts):
+    def test_assemble_as_artifact_bundle(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )

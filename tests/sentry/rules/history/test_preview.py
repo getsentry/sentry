@@ -39,7 +39,7 @@ def get_hours(time: timedelta) -> int:
 
 @freeze_time()
 class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.transaction_data = load_data(
             "transaction",
@@ -584,7 +584,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 class FrequencyConditionTest(
     TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.transaction_data = load_data(
             "transaction",

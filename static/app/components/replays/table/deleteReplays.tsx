@@ -154,7 +154,7 @@ function ReplayQueryPreview({
         {t('Replays matching the following query will be deleted')}
       </Title>
       <KeyValueData.Card contentItems={contentItems} />
-      <Text size="sm" color="subText">
+      <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>
     </Fragment>
@@ -199,7 +199,7 @@ function ReplayPreviewTable({
                   size={24}
                 />
                 <SubText>
-                  <Flex gap="xs" align="flex-start">
+                  <Flex gap="xs" align="start">
                     <DisplayName>
                       {replay.user.display_name || t('Anonymous User')}
                     </DisplayName>
@@ -214,7 +214,7 @@ function ReplayPreviewTable({
                 </SubText>
               </Flex>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="flex-end">
+            <SimpleTable.RowCell justify="end">
               <Duration
                 duration={[replay.duration.asMilliseconds() ?? 0, 'ms']}
                 precision="sec"

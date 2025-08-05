@@ -4,7 +4,7 @@ import re
 from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -69,7 +69,7 @@ def get_trusted_relay_value(organization):
 class OrganizationDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -741,7 +741,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
-    def test_various_options(self, mock_get_repositories):
+    def test_various_options(self, mock_get_repositories: MagicMock) -> None:
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -871,7 +871,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
-    def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
+    def test_setting_codecov_without_integration_forbidden(
+        self, mock_get_repositories: MagicMock
+    ) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",
@@ -1347,31 +1349,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"samplingMode": "invalid"}
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
-    def test_default_autofix_automation_tuning_feature_enabled(self) -> None:
+    def test_default_autofix_automation_tuning(self) -> None:
         data = {"defaultAutofixAutomationTuning": "high"}
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "high"
 
-    @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
-    def test_default_autofix_automation_tuning_feature_disabled(self) -> None:
-        data = {"defaultAutofixAutomationTuning": "high"}
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert response.data["defaultAutofixAutomationTuning"] == [
-            "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-        ]
-        assert self.organization.get_option("sentry:default_autofix_automation_tuning") is None
-
-    @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
-    def test_default_seer_scanner_automation_feature_disabled(self) -> None:
-        data = {"defaultSeerScannerAutomation": True}
-        response = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert response.data["defaultSeerScannerAutomation"] == [
-            "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-        ]
-
-    @with_feature({"organizations:trigger-autofix-on-issue-summary": True})
-    def test_default_seer_scanner_automation_feature_enabled(self) -> None:
+    def test_default_seer_scanner_automation(self) -> None:
         data = {"defaultSeerScannerAutomation": True}
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:default_seer_scanner_automation") is True
@@ -1527,6 +1510,44 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
 
+    def test_enable_seer_enhanced_alerts_default_true(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enableSeerEnhancedAlerts"] is True
+
+    def test_enable_seer_enhanced_alerts_can_be_disabled(self) -> None:
+        data = {"enableSeerEnhancedAlerts": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is False
+
+    def test_enable_seer_enhanced_alerts_can_be_enabled(self) -> None:
+        # First disable it
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
+
+        data = {"enableSeerEnhancedAlerts": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is True
+
+    def test_enable_seer_coding_default_true(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enableSeerCoding"] is True
+
+    def test_enable_seer_coding_can_be_disabled(self) -> None:
+        data = {"enableSeerCoding": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is False
+
+    def test_enable_seer_coding_can_be_enabled(self) -> None:
+        # First disable it
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"enableSeerCoding": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is True
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
@@ -1640,7 +1661,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
@@ -1825,7 +1846,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-def test_trusted_relays_option_serialization():
+def test_trusted_relays_option_serialization() -> None:
     # incoming raw data
     data = {
         "publicKey": _VALID_RELAY_KEYS[0],
@@ -1875,7 +1896,7 @@ invalid_payloads = [
 
 
 @pytest.mark.parametrize("invalid_data", invalid_payloads)
-def test_trusted_relay_serializer_validation(invalid_data):
+def test_trusted_relay_serializer_validation(invalid_data) -> None:
     """
     Tests that the public key is validated
     """
@@ -1884,7 +1905,7 @@ def test_trusted_relay_serializer_validation(invalid_data):
     assert not serializer.is_valid()
 
 
-def test_trusted_relays_option_deserialization():
+def test_trusted_relays_option_deserialization() -> None:
     # internal data
     instance = {
         "public_key": "key1",

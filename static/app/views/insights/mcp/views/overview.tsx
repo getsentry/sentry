@@ -31,7 +31,6 @@ import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hook
 import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -51,8 +50,9 @@ import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTr
 import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
+import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -155,6 +155,13 @@ function McpOverviewPage() {
   const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
 
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -166,9 +173,17 @@ function McpOverviewPage() {
       stringTags,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      replaceRawSearchKeys: ['span.description'],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
     }),
     [
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
       searchQuery,
@@ -193,7 +208,7 @@ function McpOverviewPage() {
         module={ModuleName.MCP}
         headerTitle={
           <Fragment>
-            {MODULE_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }
@@ -219,7 +234,7 @@ function McpOverviewPage() {
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
-                  <ModulesOnboardingPanel moduleName={ModuleName.MCP} />
+                  <Onboarding />
                 ) : (
                   <Fragment>
                     <WidgetGrid>

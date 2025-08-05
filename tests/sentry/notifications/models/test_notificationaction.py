@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="night city")
         self.projects = [
             self.create_project(name="netrunner", organization=self.organization),
@@ -26,7 +26,7 @@ class NotificationActionTest(TestCase):
         self.test_trigger = (-1, "sandevistan")
 
     @patch.object(NotificationActionLogger, "error")
-    def test_register_action_for_fire(self, mock_error_logger):
+    def test_register_action_for_fire(self, mock_error_logger: MagicMock) -> None:
         mock_handler = MagicMock()
         NotificationAction.register_action(
             trigger_type=self.notif_action.trigger_type,
@@ -39,7 +39,7 @@ class NotificationActionTest(TestCase):
         assert mock_handler.called
 
     @patch("sentry.notifications.models.notificationaction.ActionTrigger")
-    def test_register_action_for_overlap(self, mock_action_trigger):
+    def test_register_action_for_overlap(self, mock_action_trigger: MagicMock) -> None:
         mock_action_trigger.as_choices.return_value = (self.test_trigger,)
         mock_handler = MagicMock()
         NotificationAction.register_action(
@@ -55,7 +55,7 @@ class NotificationActionTest(TestCase):
             )(mock_handler)
 
     @patch.object(NotificationActionLogger, "error")
-    def test_fire_fails_silently(self, mock_error_logger):
+    def test_fire_fails_silently(self, mock_error_logger: MagicMock) -> None:
         self.notif_action.trigger_type = self.test_trigger[0]
         self.notif_action.save()
         # Misconfigured/missing handlers shouldn't raise errors, but should log errors

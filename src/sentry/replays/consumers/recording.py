@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import cast
 
 import sentry_sdk
-import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -25,7 +24,7 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -79,10 +78,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
-    with sentry_sdk.start_transaction(
+    with sentry_sdk.start_span(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
+        attributes={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
@@ -108,6 +107,9 @@ def parse_recording_event(message: bytes) -> Event:
     if replay_event_json:
         replay_event = json.loads(cast(bytes, replay_event_json))
     else:
+        # Check if any events are not present in the pipeline. We need
+        # to know because we want to write to Snuba from here soon.
+        metrics.incr("sentry.replays.consumer.recording.missing-replay-event")
         replay_event = None
 
     replay_video_raw = recording.get("replay_video")
@@ -169,11 +171,11 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 def commit_message(message: Message[ProcessedEvent]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+    with sentry_sdk.use_isolation_scope(isolation_scope):
+        with sentry_sdk.start_span(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
+            attributes={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )

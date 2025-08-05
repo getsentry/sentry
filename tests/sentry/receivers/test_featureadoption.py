@@ -27,7 +27,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.owner = self.create_user()

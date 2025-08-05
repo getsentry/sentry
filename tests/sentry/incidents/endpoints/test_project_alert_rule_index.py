@@ -56,7 +56,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

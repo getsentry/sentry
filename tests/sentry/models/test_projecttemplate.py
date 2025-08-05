@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectTemplateTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
     def tearDown(self):

@@ -79,7 +79,7 @@ def mock_get_condition_group(descending=False):
 
 
 class BulkFetchEventsTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)
@@ -129,7 +129,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.ConditionalRetryPolicy")
     @patch("sentry.rules.processing.delayed_processing.EVENT_LIMIT", 2)
-    def test_more_than_limit_event_ids(self, mock_retry_policy):
+    def test_more_than_limit_event_ids(self, mock_retry_policy) -> None:
         """
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
         batches into groups based on the EVENT_LIMT, and then merges results.
@@ -190,7 +190,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert get_condition_group_results({}, self.project) == {}
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_nonexistent_condition(self, mock_logger):
+    def test_nonexistent_condition(self, mock_logger: MagicMock) -> None:
         nonexistent_cond_query = UniqueConditionQuery(
             cls_id="fake_id", interval="", environment_id=1
         )
@@ -206,7 +206,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         mock_logger.warning.assert_called_once()
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_fast_condition(self, mock_logger):
+    def test_fast_condition(self, mock_logger: MagicMock) -> None:
         fast_cond_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
             interval="",
@@ -304,7 +304,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
 
 
 class GetGroupToGroupEventTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.log_config = LogConfig(
@@ -416,7 +416,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
 
 
 class GetRulesToFireTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project()
         self.environment = self.create_environment()
@@ -508,7 +508,7 @@ class GetRulesToFireTest(TestCase):
         assert len(result) == 0
 
     @patch("sentry.rules.processing.delayed_processing.passes_comparison", return_value=True)
-    def test_multiple_rules_and_groups(self, mock_passes):
+    def test_multiple_rules_and_groups(self, mock_passes: MagicMock) -> None:
         rule2 = self.create_project_rule(
             project=self.project,
             condition_data=[TEST_RULE_SLOW_CONDITION],
@@ -561,7 +561,7 @@ class GetRulesToGroupsTest(TestCase):
 class GetSlowConditionsTest(RuleTestCase):
     rule_cls = EventFrequencyCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
 
     def test_get_slow_conditions(self) -> None:
@@ -576,7 +576,7 @@ class GetSlowConditionsTest(RuleTestCase):
 
 
 class ParseRuleGroupToEventDataTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.group_two = self.create_group(self.project)
@@ -637,7 +637,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_apply_delayed_nonexistent_project(self, mock_logger):
+    def test_apply_delayed_nonexistent_project(self, mock_logger: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
         project_id = self.project.id
         self.project.delete()
@@ -1321,7 +1321,9 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert safe_execute_callthrough.call_count == 2
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_percent_then_count(self, safe_execute_callthrough):
+    def test_apply_delayed_process_percent_then_count(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the percent condition first
@@ -1340,7 +1342,9 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         self._assert_count_percent_results(safe_execute_callthrough)
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_count_then_percent(self, safe_execute_callthrough):
+    def test_apply_delayed_process_count_then_percent(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the count condition first
@@ -1387,7 +1391,7 @@ class DataAndGroupsTest(TestCase):
 
 
 class CleanupRedisBufferTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()
@@ -1408,7 +1412,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
 
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
-    def test_batched_cleanup(self, mock_apply_delayed):
+    def test_batched_cleanup(self, mock_apply_delayed: MagicMock) -> None:
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
 

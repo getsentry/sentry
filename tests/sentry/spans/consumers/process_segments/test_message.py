@@ -16,7 +16,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
 
 @exclude_experimental_detectors
 class TestSpansTask(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
 
     def generate_basic_spans(self):
@@ -127,7 +127,7 @@ class TestSpansTask(TestCase):
 
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
-    def test_n_plus_one_issue_detection(self, mock_eventstream):
+    def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
         with mock.patch(
             "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
@@ -148,7 +148,9 @@ class TestSpansTask(TestCase):
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
-    def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):
+    def test_n_plus_one_issue_detection_without_segment_span(
+        self, mock_eventstream: mock.MagicMock
+    ) -> None:
         segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
         child_span = build_mock_span(
             project_id=self.project.id,
@@ -201,7 +203,7 @@ class TestSpansTask(TestCase):
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
-    def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome):
+    def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
         """Test that outcomes are not tracked when skip_produce=True"""
         spans = self.generate_basic_spans()
 

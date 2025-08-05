@@ -19,7 +19,7 @@ from sentry.users.models.identity import Identity
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_provider_integration(
