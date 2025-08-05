@@ -1145,7 +1145,7 @@ def _get_project_config(
                 {
                     "filename": "project_config.json",
                     "content_type": "application/json",
-                    "data": config,
+                    "data": config.encode("utf-8"),
                 }
             ],
             tags={
