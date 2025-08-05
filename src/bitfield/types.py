@@ -181,7 +181,7 @@ class BitHandler:
 
     __getitem__ = __getattr__
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         if key.startswith("_"):
             return object.__setattr__(self, key, value)
         if key not in self._keys:
