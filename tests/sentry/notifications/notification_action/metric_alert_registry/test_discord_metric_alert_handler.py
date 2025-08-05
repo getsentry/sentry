@@ -10,7 +10,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import DiscordMetricAlertHandler
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
@@ -18,6 +18,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detailed_incident_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (

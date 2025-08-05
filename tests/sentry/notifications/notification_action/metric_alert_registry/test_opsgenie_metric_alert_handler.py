@@ -10,12 +10,13 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (

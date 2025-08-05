@@ -25,7 +25,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -42,6 +42,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
