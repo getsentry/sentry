@@ -26,20 +26,20 @@ def extract_packages(lines: list[str]) -> set[str]:
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
     out = subprocess.run(
-        ("uv", "export", "--only-dev", "--no-hashes", "--no-annotate", "--no-header"),
+        ("uv", "export", "--no-hashes", "--no-annotate", "--no-header"),
         capture_output=True,
     )
-    dev_packages = extract_packages(out.stdout.decode().splitlines())
+    all_packages = extract_packages(out.stdout.decode().splitlines())
 
     out = subprocess.run(
-        ("uv", "export", "--no-hashes", "--no-annotate", "--no-header"),
+        ("uv", "export", "--no-dev", "--no-hashes", "--no-annotate", "--no-header"),
         capture_output=True,
     )
     prod_packages = extract_packages(out.stdout.decode().splitlines())
 
     # We have some packages that are both runtime + dev
     # but we only care about packages that are exclusively dev deps
-    devonly = dev_packages - prod_packages
+    devonly = all_packages - prod_packages
 
     module_names = []
     for mod, packages in importlib.metadata.packages_distributions().items():
