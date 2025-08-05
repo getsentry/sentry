@@ -19,6 +19,8 @@ def final_cleanup(path: str) -> str:
     path = re.sub(r"\([^)]*\)", "", path)  # remove leftover groups
     path = path.replace(".*", "")
     path = re.sub(r"//+", "/", path)
+
+    # Ensure leading and trailing slash
     path = "/" + path.strip("/")
 
     if not path.endswith("/"):
@@ -27,14 +29,47 @@ def final_cleanup(path: str) -> str:
     return path
 
 
+def replace_named_groups(regex: str) -> str:
+    result = []
+    last_end = 0
+
+    # Match all `(?P<paramName>...)` groups, even with nested `(...)` inside
+    pattern = re.compile(r"\(\?P<(\w+)>")
+
+    for match in pattern.finditer(regex):
+        start = match.start()
+        name = match.group(1)
+
+        # Find the matching closing parenthesis for this group
+        depth = 1
+        i = match.end()
+        while i < len(regex):
+            if regex[i] == "(":
+                depth += 1
+            elif regex[i] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+
+        # If we couldn't find the end, skip the group entirely (fail-safe)
+        if depth != 0:
+            continue
+
+        # Append text before the match and the replacement
+        result.append(regex[last_end:start])
+        result.append(f"${snake_to_camel(name)}")
+        last_end = i + 1  # skip the closing ')'
+
+    # Append the rest
+    result.append(regex[last_end:])
+    return "".join(result)
+
+
 def convert_django_regex_to_ts_all(regex: str) -> list[str]:
     regex = regex.strip("^$")
 
-    # Replace named capturing groups (?P<name>...) with $camelCaseName
-    def replace_named_group(match):
-        return f"${snake_to_camel(match.group(1))}"
-
-    regex = re.sub(r"\(\?P<(\w+)>((?:[^()]+|\([^()]*\))*)\)", replace_named_group, regex)
+    regex = replace_named_groups(regex)
 
     # Handle non-capturing groups (e.g. (?:x|y) → x and y)
     pattern = r"\(\?:([^)]+)\)"
