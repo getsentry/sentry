@@ -56,7 +56,7 @@ export function ProfilePreview({
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const spanThreadId = useMemo(() => {
-    return event?.contexts.trace?.data?.['thread.id'] ?? null;
+    return event?.contexts?.trace?.data?.['thread.id'] ?? null;
   }, [event]);
 
   const profile = useMemo(() => {
