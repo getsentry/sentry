@@ -36,11 +36,10 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
         # strategy to disable itself.  Recursion is detected by the outer
         # strategy.
         "is_recursion": False,
-        # This turns on the automatic message trimming and parameter substitution
-        # by the message strategy. (Only still configurable so it can be turned off in tests.)
+        # Perform automatic message trimming and parameter substitution in the message strategy.
+        # (Should be kept on - only configurable so it can be turned off in tests.)
         "normalize_message": True,
-        # Platforms for which context line should be taken into
-        # account when grouping.
+        # Platforms for which context line should be taken into account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
