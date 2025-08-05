@@ -8,12 +8,14 @@ from django import forms
 from django.http import HttpRequest, HttpResponse
 from slack_sdk.errors import SlackApiError
 
+from sentry.api.utils import generate_region_url
 from sentry.integrations.messaging.linkage import LinkTeamView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.models.team import Team
+from sentry.silo.base import SiloMode
 from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -41,6 +43,10 @@ def build_team_linking_url(
         channel_id=channel_id,
         channel_name=channel_name,
         response_url=response_url,
+        # The team-linking view is region-specific, so skip the middleware proxy if necessary.
+        url_prefix=(
+            generate_region_url() if SiloMode.get_current_mode() == SiloMode.REGION else None
+        ),
     )
 
 
