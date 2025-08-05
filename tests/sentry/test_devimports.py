@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 import pytest
-import tomllib
 
 XFAIL = (
     # XXX: ideally these should get fixed
@@ -16,15 +15,16 @@ XFAIL = (
 EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")
 
 
-def extract_packages(package_specs: list[str]) -> set[str]:
-    return {spec.split("==")[0] for spec in package_specs}
-
-
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
-    with open("pyproject.toml", "rb") as f:
-        pyproject = tomllib.load(f)
-        dev_packages = extract_packages(pyproject["dependency-groups"]["dev"])
+    out = subprocess.run(
+        ("uv", "export", "--only-dev", "--no-hashes", "--no-annotate", "--no-header"),
+        capture_output=True,
+    )
+    dev_packages = set()
+    for line in out.stdout.decode().splitlines():
+        spec = line.split(" ")[0]
+        dev_packages.add(spec.split("==")[0])
 
     module_names = []
     for mod, packages in importlib.metadata.packages_distributions().items():
