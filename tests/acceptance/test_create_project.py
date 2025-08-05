@@ -1,4 +1,5 @@
 from sentry.models.project import Project
+from sentry.testutils import thread_leaks
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -34,6 +35,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure React SDK']")
 
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_project_deletion_on_going_back(self) -> None:
         self.create_team(organization=self.org, name="team three", members=[self.user])
         self.load_project_creation_page()

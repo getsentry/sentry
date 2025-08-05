@@ -1,8 +1,10 @@
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
+@thread_leaks.allowlist(issue=97036, reason="django dev server")
 class AccountSettingsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

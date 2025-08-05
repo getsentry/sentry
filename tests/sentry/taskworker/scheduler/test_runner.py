@@ -7,6 +7,7 @@ from django.utils import timezone
 from sentry.conf.types.taskworker import crontab
 from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.redis import redis_clusters
 
@@ -249,6 +250,7 @@ def test_schedulerunner_tick_key_exists_no_spawn(
 
 
 @pytest.mark.django_db
+@thread_leaks.allowlist(issue=97034, reason="taskworker")
 def test_schedulerunner_tick_one_task_multiple_ticks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
