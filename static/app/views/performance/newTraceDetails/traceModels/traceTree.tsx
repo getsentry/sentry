@@ -436,7 +436,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       const node = new TraceTreeNode(parentNode, value, {
-        spans: options.meta?.transaction_child_count_map[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
         replayTraceSlug: options.replayTraceSlug,
@@ -448,14 +447,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (isEAPSpanNode(node)) {
         tree.eap_spans_count++;
-      }
-
-      if (isTransactionNode(node)) {
-        const spanChildrenCount =
-          options.meta?.transaction_child_count_map[node.value.event_id];
-
-        // We check for >1 events, as the first one is the transaction node itself
-        node.canFetch = spanChildrenCount === undefined ? true : spanChildrenCount > 1;
       }
 
       if (!node.metadata.project_slug && !node.metadata.event_id) {
