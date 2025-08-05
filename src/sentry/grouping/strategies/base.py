@@ -160,8 +160,11 @@ class GroupingContext:
     def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
-        """Invokes a delegate grouping strategy.  If no such delegate is
-        configured a fallback grouping component is returned.
+        """
+        Called by a strategy to invoke delegates on its child interfaces.
+
+        For example, the chained exception strategy calls this on the exceptions in the chain, and
+        the exception strategy calls this on each exception's stacktrace.
         """
         return self._get_grouping_components_for_interface(interface, event=event, **kwargs)
 
