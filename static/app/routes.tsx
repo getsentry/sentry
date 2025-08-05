@@ -391,6 +391,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/account/accountEmails')),
     },
     {
+      path: 'merge-accounts/',
+      name: t('Merge Accounts'),
+      component: make(() => import('sentry/views/settings/account/mergeAccounts')),
+    },
+    {
       path: 'authorizations/',
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
@@ -2476,6 +2481,22 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               component: make(() => import('sentry/views/codecov/tests/onboarding')),
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'prevent-ai/',
+      children: [
+        // Render prevent AI onboarding with layout wrapper
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/preventAI/wrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/preventAI/onboarding')),
             },
           ],
         },
