@@ -217,7 +217,6 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 }
 
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
