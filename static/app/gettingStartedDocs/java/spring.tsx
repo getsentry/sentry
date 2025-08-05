@@ -400,14 +400,14 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               {
                 type: StepType.CONFIGURE,
                 description: tct(
-                  'Add a [code:sentry.properties] file to enable Performance or Logs:',
+                  'Add a [code:sentry.properties] file to enable additional features:',
                   {
                     code: <code />,
                   }
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],
