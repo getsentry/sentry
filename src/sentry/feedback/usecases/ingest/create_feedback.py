@@ -363,6 +363,7 @@ def create_feedback_issue(
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
+            # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(
                     "Feedback message has more than the maximum allowed labels.",
@@ -378,7 +379,6 @@ def create_feedback_issue(
             while len(json.dumps(labels)) > MAX_AI_LABELS_JSON_LENGTH:
                 labels.pop()
 
-            # First truncate labels then sort, so we don't bias towards the first labels alphabetically
             labels.sort()
 
             for idx, label in enumerate(labels):
