@@ -23,7 +23,9 @@ class DartPluginDeobfuscationTest(TestCase):
         super().setUp()
         self.plugin = DartPlugin()
 
-    def upload_dart_symbols(self, debug_id=DART_SYMBOLS_UUID, data=DART_SYMBOLS_DATA):
+    def upload_dart_symbols(
+        self, debug_id: str = DART_SYMBOLS_UUID, data: bytes = DART_SYMBOLS_DATA
+    ) -> None:
         """Helper to upload dart symbols file."""
         file = File.objects.create(
             name="dartsymbolmap.json",

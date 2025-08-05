@@ -1,4 +1,5 @@
 import tempfile
+from typing import Any
 from unittest import mock
 
 from sentry.lang.dart.utils import (
@@ -114,7 +115,7 @@ def test_get_dart_symbols_images() -> None:
 
 def test_get_dart_symbols_images_no_debug_meta() -> None:
     """Test that empty set is returned when no debug_meta exists."""
-    event = {}
+    event: dict[str, Any] = {}
     debug_ids = get_dart_symbols_images(event)
     assert debug_ids == set()
 
@@ -123,7 +124,7 @@ def test_deobfuscate_exception_type() -> None:
     """Test deobfuscation of exception types."""
     mock_project = mock.Mock(id=123)
 
-    data = {
+    data: dict[str, Any] = {
         "project": 123,
         "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
         "exception": {
@@ -173,7 +174,7 @@ def test_deobfuscate_exception_type_no_debug_ids() -> None:
     """Test that deobfuscation is skipped when no debug IDs exist."""
     mock_project = mock.Mock(id=123)
 
-    data = {
+    data: dict[str, Any] = {
         "project": 123,
         "exception": {
             "values": [
@@ -203,7 +204,7 @@ def test_deobfuscate_exception_type_no_exceptions() -> None:
     """Test that deobfuscation handles missing exception data gracefully."""
     mock_project = mock.Mock(id=123)
 
-    data = {
+    data: dict[str, Any] = {
         "project": 123,
         "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
     }
@@ -220,7 +221,7 @@ def test_deobfuscate_exception_type_missing_value() -> None:
     """Test deobfuscation when exception value is missing."""
     mock_project = mock.Mock(id=123)
 
-    data = {
+    data: dict[str, Any] = {
         "project": 123,
         "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
         "exception": {
@@ -256,7 +257,7 @@ def test_deobfuscate_exception_type_no_mapping_file() -> None:
     """Test that deobfuscation stops when no mapping file is found."""
     mock_project = mock.Mock(id=123)
 
-    data = {
+    data: dict[str, Any] = {
         "project": 123,
         "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
         "exception": {

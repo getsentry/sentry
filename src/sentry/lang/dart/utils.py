@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import MutableMapping
 from typing import Any
 
 import orjson
@@ -56,16 +57,16 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
             return
 
 
-def deobfuscate_exception_type(data: dict[str, Any]):
+def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
     project = Project.objects.get_from_cache(id=data["project"])
 
-    debug_ids = get_dart_symbols_images(data)
+    debug_ids = get_dart_symbols_images(dict(data))
     if len(debug_ids) == 0:
-        return
+        return data
 
     exceptions = data.get("exception", {}).get("values", [])
     if not exceptions:
-        return
+        return data
 
     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
 
@@ -97,6 +98,8 @@ def deobfuscate_exception_type(data: dict[str, Any]):
                     continue
 
                 exception["value"] = exception_value.replace(obfuscated_symbol, symbolicated_symbol)
+
+    return data
 
 
 # TODO: Add this back in when we decide to deobfuscate view hierarchies

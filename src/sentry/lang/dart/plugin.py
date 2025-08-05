@@ -21,7 +21,7 @@ class DartPlugin(Plugin2):
         if sdk_name not in ("sentry.dart", "sentry.dart.flutter"):
             return []
 
-        debug_ids = get_dart_symbols_images(data)
+        debug_ids = get_dart_symbols_images(dict(data))
         if len(debug_ids) == 0:
             return []
 
