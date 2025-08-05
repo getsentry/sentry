@@ -164,16 +164,52 @@ def test_format_feedback_title() -> None:
 
 
 @responses.activate
+@pytest.mark.parametrize(
+    "response_body,status_code,expected_error_tags",
+    [
+        # Missing title key
+        ('{"invalid": "response"}', 200, {"reason": "invalid_response"}),
+        # Empty title
+        ('{"title": ""}', 200, {"reason": "invalid_response"}),
+        # Whitespace-only title
+        ('{"title": "   "}', 200, {"reason": "invalid_response"}),
+        # Non-string title
+        ('{"title": 123}', 200, {"reason": "invalid_response"}),
+        # Invalid JSON - this goes to general exception handler
+        ('{"invalid": json}', 200, {"reason": "seer_response_failed"}),
+        # HTTP error - this goes to HTTPError exception handler
+        ("Internal Server Error", 500, {"reason": "seer_response_failed"}),
+    ],
+)
+def test_get_feedback_title_from_seer_error_cases(response_body, status_code, expected_error_tags):
+    """Test the get_feedback_title_from_seer function with various error cases."""
+    mock_seer_response(
+        status=status_code,
+        body=response_body,
+    )
+
+    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
+        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+            title = get_feedback_title_from_seer("Login button broken", 123)
+            assert title is None
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.error", tags=expected_error_tags
+            )
+
+
+@responses.activate
 def test_get_feedback_title_from_seer_network_error():
     """Test the get_feedback_title_from_seer function with network error."""
     mock_seer_response(body=Exception("Network error"))
-
     with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        title = get_feedback_title_from_seer("Login button broken", 123)
-        assert title is None
-        mock_metrics.incr.assert_called_once_with(
-            "feedback.ai_title_generation.error",
-        )
+        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+            title = get_feedback_title_from_seer("Login button broken", 123)
+            assert title is None
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.error", tags={"reason": "seer_response_failed"}
+            )
 
 
 @responses.activate
@@ -191,94 +227,4 @@ def test_get_feedback_title_from_seer_success():
             assert title == "Login Button Issue"
             mock_metrics.incr.assert_called_once_with(
                 "feedback.ai_title_generation.success",
-            )
-
-
-@responses.activate
-def test_get_feedback_title_from_seer_invalid_response():
-    """Test the get_feedback_title_from_seer function with invalid response."""
-    mock_seer_response(
-        status=200,
-        body='{"invalid": "response"}',
-    )
-
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags={"reason": "invalid_response"}
-            )
-
-
-@responses.activate
-def test_get_feedback_title_from_seer_empty_title():
-    """Test the get_feedback_title_from_seer function with empty title."""
-    mock_seer_response(
-        status=200,
-        body='{"title": ""}',
-    )
-
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags={"reason": "invalid_response"}
-            )
-
-
-@responses.activate
-def test_get_feedback_title_from_seer_whitespace_title():
-    """Test the get_feedback_title_from_seer function with whitespace title."""
-    mock_seer_response(
-        status=200,
-        body='{"title": "   "}',
-    )
-
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags={"reason": "invalid_response"}
-            )
-
-
-@responses.activate
-def test_get_feedback_title_from_seer_non_string_title():
-    """Test the get_feedback_title_from_seer function with non-string title."""
-    mock_seer_response(
-        status=200,
-        body='{"title": 123}',
-    )
-
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error", tags={"reason": "invalid_response"}
-            )
-
-
-@responses.activate
-def test_get_feedback_title_from_seer_json_decode_error():
-    """Test the get_feedback_title_from_seer function with invalid JSON response."""
-    mock_seer_response(
-        status=200,
-        body='{"invalid": json}',
-    )
-
-    with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
-        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-            title = get_feedback_title_from_seer("Login button broken", 123)
-            assert title is None
-            mock_metrics.incr.assert_called_once_with(
-                "feedback.ai_title_generation.error",
             )
