@@ -1,6 +1,5 @@
 import logging
 
-from sentry import options
 from sentry.api.utils import generate_region_url
 from sentry.integrations.messaging.linkage import UnlinkTeamView
 from sentry.integrations.models.integration import Integration
@@ -36,9 +35,7 @@ def build_team_unlinking_url(
         response_url=response_url,
         # The team-linking view is region-specific, so skip the middleware proxy if necessary.
         url_prefix=(
-            generate_region_url()
-            if SiloMode.get_current_mode() == SiloMode.REGION
-            else options.get("system.url-prefix")
+            generate_region_url() if SiloMode.get_current_mode() == SiloMode.REGION else None
         ),
     )
 
