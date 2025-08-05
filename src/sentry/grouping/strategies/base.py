@@ -162,7 +162,7 @@ class GroupingContext:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
-        return self._get_strategy_dict(interface, event=event, **kwargs)
+        return self._get_grouping_components_for_interface(interface, event=event, **kwargs)
 
     @overload
     def get_single_grouping_component(
@@ -185,12 +185,12 @@ class GroupingContext:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
-        rv = self._get_strategy_dict(interface, event=event, **kwargs)
+        rv = self._get_grouping_components_for_interface(interface, event=event, **kwargs)
 
         assert len(rv) == 1
         return rv[self["variant"]]
 
-    def _get_strategy_dict(
+    def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
         interface_id = interface.path
