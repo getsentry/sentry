@@ -142,16 +142,16 @@ function IncidentBubbleSeries({
     // Width between two timestamps
     const width = Math.max(incidentEndX - incidentStartX, 2);
 
-    const renderBubblePadding = 2; // Match release bubbles padding
+    const renderBubblePadding = 2;
 
     const shape = {
       // Position the rectangle in the space created by the grid/xAxis offset
-      // Match release bubbles positioning exactly
       x: incidentStartX + renderBubblePadding / 2,
       y: incidentStartY + renderBubblePadding - 1,
       width: width - renderBubblePadding,
       height: INCIDENT_BUBBLE_HEIGHT,
-      r: 0, // Match release bubbles - no border radius
+      // Border radius
+      r: 4,
     };
 
     return {
@@ -249,7 +249,7 @@ export function useIncidentBubbles({
 
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
-  const bubblePadding = 2; // Match release bubbles padding
+  const bubblePadding = 2;
   const totalBubblePaddingY = bubblePadding * 2; // 2px padding on top and bottom
 
   // Default X-axis configuration (when incidents are hidden)
@@ -272,7 +272,7 @@ export function useIncidentBubbles({
     [totalBubblePaddingY]
   );
 
-  // Hidden Y-axis for incident bubbles (similar to release bubbles)
+  // Hidden Y-axis for incident bubbles
   const incidentBubbleYAxis: YAXisComponentOption | null = useMemo(() => {
     if (!incidentPeriods.length) {
       return null;
@@ -298,7 +298,6 @@ export function useIncidentBubbles({
 
     return {
       // Moves bottom of grid "up" to make space for incident bubbles
-      // Match release bubbles: bubbleSize + totalBubblePaddingY + 2
       bottom: INCIDENT_BUBBLE_HEIGHT + totalBubblePaddingY + 2,
     };
   }, [incidentPeriods.length, totalBubblePaddingY]);
