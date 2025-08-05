@@ -169,7 +169,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
 
 function getAlertGridLayout(p: AlertProps) {
   if (p.showIcon) {
-    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+    return `min-content 1fr ${p.trailingItems ? 'auto' : ''} ${
       p.expand ? 'min-content' : ''
     }`;
   }

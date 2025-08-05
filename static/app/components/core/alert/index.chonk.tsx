@@ -145,7 +145,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: auto;
-    align-items: start;
+    align-items: center;
   }
 `;
 
