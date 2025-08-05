@@ -99,23 +99,24 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             hour=0, minute=0, second=0, microsecond=0
         ) + timedelta(days=1)
 
-        resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
-        )
-        meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
+        with handle_query_errors():
+            resolver = SearchResolver(
+                params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            )
+            meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
-        rpc_request = TraceItemAttributeNamesRequest(
-            meta=meta,
-            limit=max_span_tags,
-            offset=0,
-            type=(
-                AttributeKey.Type.TYPE_DOUBLE
-                if serialized["type"] == "number"
-                else AttributeKey.Type.TYPE_STRING
-            ),
-        )
+            rpc_request = TraceItemAttributeNamesRequest(
+                meta=meta,
+                limit=max_span_tags,
+                offset=0,
+                type=(
+                    AttributeKey.Type.TYPE_DOUBLE
+                    if serialized["type"] == "number"
+                    else AttributeKey.Type.TYPE_STRING
+                ),
+            )
 
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         paginator = ChainPaginator(
             [
