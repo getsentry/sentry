@@ -94,6 +94,9 @@ class SQLInjectionDetectorTest(TestCase):
         injection_event = get_event("sql-injection/sql-injection-event-nestjs-typeorm")
         assert len(self.find_problems(injection_event)) == 0
 
+        injection_event = get_event("sql-injection/sql-injection-event-nestjs-mikroorm")
+        assert len(self.find_problems(injection_event)) == 0
+
     def test_sql_injection_on_orm_queries(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-orm-event-alias-chaining")
         assert len(self.find_problems(injection_event)) == 0
