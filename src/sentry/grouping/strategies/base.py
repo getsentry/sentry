@@ -193,10 +193,10 @@ class GroupingContext:
     def _get_strategy_dict(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
-        path = interface.path
-        strategy = self.config.delegates.get(path)
+        interface_id = interface.path
+        strategy = self.config.delegates.get(interface_id)
         if strategy is None:
-            raise RuntimeError(f"failed to dispatch interface {path} to strategy")
+            raise RuntimeError(f"failed to dispatch interface {interface_id} to strategy")
 
         kwargs["context"] = self
         kwargs["event"] = event
