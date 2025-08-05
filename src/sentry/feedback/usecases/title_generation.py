@@ -93,15 +93,31 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
 
     try:
         response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
-    except Exception:
+    except requests.HTTPError as e:
+        logger.exception(
+            "Seer failed to generate a title for user feedback",
+            extra={
+                "status_code": e.response.status_code,
+                "response": e.response.text,
+            },
+        )
         metrics.incr(
             "feedback.ai_title_generation.error",
+            tags={"reason": "seer_response_failed"},
+        )
+        return None
+    except Exception:
+        logger.exception("Seer failed to generate a title for user feedback")
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "seer_response_failed"},
         )
         return None
 
     try:
         title = response_data["title"]
     except KeyError:
+        logger.exception("Seer returned invalid response for user feedback title")
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "invalid_response"},
@@ -135,15 +151,6 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     )
 
     if response.status_code != 200:
-        logger.error(
-            "Feedback: Failed to generate a title for a feedback",
-            extra={
-                "status_code": response.status_code,
-                "response": response.text,
-                "content": response.content,
-            },
-        )
-
-    response.raise_for_status()
+        response.raise_for_status()
 
     return response.content

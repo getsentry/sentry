@@ -907,25 +907,21 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
     """Test that create_feedback_issue uses the generated title."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
-    # make sure org doesn't have user-feedback-ai-titles feature flag
-    default_project.organization.flags.user_feedback_ai_titles = False
-    default_project.organization.save()
+    with Feature({"organizations:user-feedback-ai-titles": True}):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = long_message
 
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = long_message
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        assert mock_produce_occurrence_to_kafka.call_count == 1
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
+        call_args = mock_produce_occurrence_to_kafka.call_args
+        occurrence = call_args[1]["occurrence"]
 
-    call_args = mock_produce_occurrence_to_kafka.call_args
-    occurrence = call_args[1]["occurrence"]
-
-    # Check that the title is truncated properly
-    expected_title = (
-        "User Feedback: This is a very long feedback message that describes multiple..."
-    )
-    assert occurrence.issue_title == expected_title
+        expected_title = (
+            "User Feedback: This is a very long feedback message that describes multiple..."
+        )
+        assert occurrence.issue_title == expected_title
 
 
 @django_db_all
