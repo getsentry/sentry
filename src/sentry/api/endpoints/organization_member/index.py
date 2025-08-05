@@ -425,7 +425,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om = OrganizationMember(
                 organization=organization,
                 email=result["email"],
-                role=result["role"],
+                role=assigned_org_role,
                 inviter_id=request.user.id,
             )
 
