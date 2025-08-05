@@ -47,6 +47,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const referrer = Referrer.ASSETS_BY_TIME_SPENT;
   const groupBy = SpanFields.NORMALIZED_DESCRIPTION;
   const yAxes = 'sum(span.self_time)';
+  const totalTimeField = 'sum(span.self_time)';
 
   const {
     data: assetListData,
@@ -58,9 +59,9 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
         'span.group',
         'project.id',
         'sentry.normalized_description',
-        'sum(span.self_time)',
+        totalTimeField,
       ],
-      sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
+      sorts: [{field: totalTimeField, kind: 'desc'}],
       search,
       limit: 3,
       noPagination: true,
@@ -136,7 +137,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
               moduleName={ModuleName.RESOURCE}
             />
           </div>
-          <span>{getDuration((item['sum(span.self_time)'] ?? 0) / 1000, 2, true)}</span>
+          <span>{getDuration((item[totalTimeField] ?? 0) / 1000, 2, true)}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
