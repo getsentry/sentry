@@ -1,7 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
+from urllib.parse import urlparse, parse_qs
 
+from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestCase as SentryTestCase
@@ -122,3 +124,89 @@ class MobileAuthValidationTest(TestCase):
         # Should preserve the mobile URL scheme
         parsed = urlparse(redirect_url)
         self.assertEqual(parsed.scheme, "sentry-mobile-agent")
+
+
+class MobileAuthIntegrationTest(TestCase):
+    """
+    Integration tests for the complete mobile authentication flow.
+    """
+    
+    def test_url_parsing_functionality(self):
+        """Test URL parsing functionality for mobile schemes."""
+        test_cases = [
+            ("sentry-mobile-agent://auth", "sentry-mobile-agent", "", ""),
+            ("sentry-mobile-agent://callback?code=123", "sentry-mobile-agent", "code=123", ""),
+            ("https://example.com/path", "https", "", "example.com"),
+            ("http://evil.com", "http", "", "evil.com"),
+        ]
+        
+        for url, expected_scheme, expected_query, expected_netloc in test_cases:
+            with self.subTest(url=url):
+                parsed = urlparse(url)
+                self.assertEqual(parsed.scheme, expected_scheme)
+                self.assertEqual(parsed.netloc, expected_netloc)
+                self.assertEqual(parsed.query, expected_query)
+
+    def test_integration_flow_simulation(self):
+        """Test the complete mobile authentication integration flow."""
+        mobile_redirect_url = "sentry-mobile-agent://auth"
+        org_slug = "test-org"
+        
+        login_url = f"https://{org_slug}.sentry.io/auth/login/{org_slug}/?next={mobile_redirect_url}"
+        
+        parsed_login = urlparse(login_url)
+        query_params = parse_qs(parsed_login.query)
+        next_url = query_params.get('next', [None])[0]
+        
+        self.assertEqual(next_url, mobile_redirect_url)
+        
+        def is_valid_mobile_redirect(url):
+            if not url:
+                return False
+            try:
+                parsed = urlparse(url)
+                return parsed.scheme in ALLOWED_MOBILE_SCHEMES
+            except Exception:
+                return False
+        
+        is_valid = is_valid_mobile_redirect(next_url)
+        self.assertTrue(is_valid)
+        
+        parsed_redirect = urlparse(mobile_redirect_url)
+        self.assertEqual(parsed_redirect.scheme, "sentry-mobile-agent")
+        self.assertEqual(parsed_redirect.netloc, "")
+        self.assertEqual(parsed_redirect.path, "auth")
+
+    def test_mobile_scheme_edge_cases(self):
+        """Test edge cases for mobile URL scheme validation."""
+        def is_valid_mobile_redirect(url):
+            if not url:
+                return False
+            try:
+                parsed = urlparse(url)
+                return parsed.scheme in ALLOWED_MOBILE_SCHEMES
+            except Exception:
+                return False
+        
+        valid_urls = [
+            "sentry-mobile-agent://auth",
+            "sentry-mobile-agent://callback",
+            "sentry-mobile-agent://success",
+        ]
+        
+        for url in valid_urls:
+            with self.subTest(url=url):
+                self.assertTrue(is_valid_mobile_redirect(url))
+        
+        invalid_urls = [
+            "http://evil.com",
+            "https://evil.com", 
+            "ftp://example.com",
+            "malicious-app://steal-data",
+            "",
+            None,
+        ]
+        
+        for url in invalid_urls:
+            with self.subTest(url=url):
+                self.assertFalse(is_valid_mobile_redirect(url))

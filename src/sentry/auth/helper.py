@@ -23,6 +23,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -214,13 +215,9 @@ class AuthIdentityHandler:
         
         # Check if this is a mobile app custom URL scheme redirect
         parsed_url = urlparse(login_redirect_url)
-        allowed_mobile_schemes = [
-            "sentry-mobile-agent",
-            # Add other mobile app schemes here as needed
-        ]
         
         # Don't modify mobile app custom URL schemes - return them as-is
-        if parsed_url.scheme in allowed_mobile_schemes:
+        if parsed_url.scheme in ALLOWED_MOBILE_SCHEMES:
             return login_redirect_url
         
         if subdomain is not None:
