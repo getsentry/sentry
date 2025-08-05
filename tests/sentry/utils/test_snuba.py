@@ -487,19 +487,19 @@ class SnubaQueryRateLimitTest(TestCase):
             {
                 "error": {
                     "message": "Query on could not be run due to allocation policies, info: ...",
-                    "quota_allowance": {
-                        "summary": {
-                            "rejected_by": {
-                                "policy": "ConcurrentRateLimitAllocationPolicy",
-                                "quota_used": 1000,
-                                "rejection_threshold": 100,
-                                "quota_unit": "no_units",
-                                "storage_key": "test_storage_key",
-                            },
-                            "throttled_by": {},
-                        }
-                    },
-                }
+                },
+                "quota_allowance": {
+                    "summary": {
+                        "rejected_by": {
+                            "policy": "ConcurrentRateLimitAllocationPolicy",
+                            "quota_used": 1000,
+                            "rejection_threshold": 100,
+                            "quota_unit": "no_units",
+                            "storage_key": "test_storage_key",
+                        },
+                        "throttled_by": {},
+                    }
+                },
             }
         ).encode()
 
@@ -518,7 +518,7 @@ class SnubaQueryRateLimitTest(TestCase):
     @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query) -> None:
         """
-        Test that error handling gracefully handles missing quota details
+        Test that error handling gracefully handles malformed message
         """
         mock_response = mock.Mock(spec=HTTPResponse)
         mock_response.status = 429
@@ -547,7 +547,7 @@ class SnubaQueryRateLimitTest(TestCase):
         self, mock_snuba_query
     ) -> None:
         """
-        Test that error handling gracefully handles stats but no quota details
+        Test that error handling gracefully handles empty quota_allowance
         """
         mock_response = mock.Mock(spec=HTTPResponse)
         mock_response.status = 429
@@ -555,8 +555,8 @@ class SnubaQueryRateLimitTest(TestCase):
             {
                 "error": {
                     "message": "Query on could not be run due to allocation policies, info: ...",
-                    "quota_allowance": {"summary": {}},
-                }
+                },
+                "quota_allowance": {},
             }
         ).encode()
 

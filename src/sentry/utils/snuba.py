@@ -1259,12 +1259,12 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         if options.get("issues.use-snuba-error-data"):
                             try:
                                 if (
-                                    "quota_allowance" not in error
-                                    or "summary" not in error["quota_allowance"]
+                                    "quota_allowance" not in body
+                                    or "summary" not in body["quota_allowance"]
                                 ):
                                     # Should not hit this - snuba gives us quota_allowance with a 429
                                     raise RateLimitExceeded(error["message"])
-                                quota_allowance_summary = error["quota_allowance"]["summary"]
+                                quota_allowance_summary = body["quota_allowance"]["summary"]
                                 rejected_by = quota_allowance_summary["rejected_by"]
                                 throttled_by = quota_allowance_summary["throttled_by"]
 
