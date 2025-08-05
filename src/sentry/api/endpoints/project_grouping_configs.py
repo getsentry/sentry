@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 
 
 @region_silo_endpoint
@@ -22,7 +22,8 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         configs = [
-            config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: str(x.id))
+            config.as_dict()
+            for config in sorted(GROUPING_CONFIG_CLASSES.values(), key=lambda x: str(x.id))
         ]
 
         return Response(serialize(configs))

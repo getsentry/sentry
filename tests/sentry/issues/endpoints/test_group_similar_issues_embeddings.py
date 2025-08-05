@@ -444,7 +444,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_metrics_incr: mock.MagicMock,
     ) -> None:
         """
-        The seer API can return groups that do not exist if they have been deleted/merged.
+        The seer API can return hashes which don't have a group id attached.
         Test that these groups are not returned.
         """
         existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)

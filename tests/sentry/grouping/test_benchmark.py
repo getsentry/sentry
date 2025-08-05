@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
     NO_MSG_PARAM_CONFIG,
@@ -27,7 +27,7 @@ def benchmark_available() -> bool:
 @pytest.mark.parametrize(
     "config_name",
     # NO_MSG_PARAM_CONFIG is only used in tests, so no need to benchmark it
-    sorted(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG}),
+    sorted(set(GROUPING_CONFIG_CLASSES.keys()) - {NO_MSG_PARAM_CONFIG}),
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_benchmark_grouping(config_name: str, benchmark: ModuleType) -> None:
