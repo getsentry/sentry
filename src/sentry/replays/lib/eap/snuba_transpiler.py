@@ -836,8 +836,13 @@ def translate_response(
         else:
             return None
 
+    if len(query_result.column_values) > 0:
+        data_len = len(query_result.column_values[0].results)
+    else:
+        data_len = 0
+
     response: QueryResult = {
-        "data": [{}] * query_result.page_token.offset,
+        "data": [{} for _ in range(data_len)],
         "meta": {
             "downsampling_mode": {
                 "can_go_to_higher_accuracy": query_result.meta.downsampled_storage_meta.can_go_to_higher_accuracy_tier,
