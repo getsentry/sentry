@@ -17,7 +17,6 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {
@@ -32,7 +31,6 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const theme = useTheme();
   const {query} = useTransactionNameQuery();
   const releaseBubbleProps = useReleaseBubbleProps(props);
-  const pageFilterChartParams = usePageFilterChartParams(props);
 
   const resourceQuery = getResourcesEventViewQuery({}, DEFAULT_RESOURCE_TYPES).join(' ');
 
@@ -50,14 +48,12 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       search,
       limit: 3,
       noPagination: true,
-      pageFilters: props.pageFilters,
     },
     Referrer.ASSETS_BY_TIME_SPENT
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
     {
-      ...pageFilterChartParams,
       search: `span.group:[${assetRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
       fields: ['span.group', 'sum(span.self_time)'],
       yAxis: ['sum(span.self_time)'],
@@ -65,8 +61,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       topN: 3,
       enabled: assetRequest.data.length > 0,
     },
-    Referrer.ASSETS_BY_TIME_SPENT,
-    props.pageFilters
+    Referrer.ASSETS_BY_TIME_SPENT
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
