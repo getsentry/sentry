@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
@@ -9,7 +10,7 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import ListPage from 'sentry/views/replays/list/listContent';
+import ListPage from 'sentry/views/replays/list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
@@ -52,6 +53,16 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
 describe('ReplayList', () => {
   let mockFetchReplayListRequest: jest.Mock;
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set(['projects'])
+    );
+
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
