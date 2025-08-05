@@ -21,6 +21,12 @@ export type AvatarUser = {
   };
 };
 
+export enum StacktraceOrder {
+  DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
+  MOST_RECENT_LAST = 1,
+  MOST_RECENT_FIRST = 2,
+}
+
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
@@ -50,7 +56,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersIssueDetailsStreamlinedUI: boolean | null;
     prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean | null;
-    stacktraceOrder: number;
+    stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };

@@ -14,11 +14,51 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {isValidEventUUID} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
+
+type TraceQueryParamOptions = {
+  limit?: number;
+  targetId?: string;
+  timestamp?: number;
+};
+
+function getTargetIdParams(
+  traceType: 'eap' | 'non-eap',
+  options: TraceQueryParamOptions,
+  normalizedParams: ReturnType<typeof normalizeDateTimeParams>
+): {targetId?: string} | {errorId?: string} {
+  // Node params occur in the format `${event-type}-${eventId}`, where the most relevant event is the last one in the array.
+  // If not an array, it is a string with the same format.
+  const nodeParams = normalizedParams.node;
+  const targetIdFromNodeParams = Array.isArray(nodeParams)
+    ? nodeParams[nodeParams.length - 1]?.split('-')[1]
+    : typeof nodeParams === 'string'
+      ? nodeParams.split('-')[1]
+      : undefined;
+
+  // We try our best to pass a target event id to the trace query.
+  // We first check if targetId is passed in the options, then we check for
+  // targetId/eventId in the query params, lastly we check for the node params.
+  const targetId =
+    options.targetId ??
+    decodeScalar(normalizedParams.targetId ?? normalizedParams.eventId) ??
+    targetIdFromNodeParams;
+
+  if (!targetId) {
+    return {};
+  }
+
+  if (traceType === 'eap') {
+    return isValidEventUUID(targetId) ? {errorId: targetId} : {};
+  }
+
+  return {targetId};
+}
 
 type TraceQueryParams = {
   limit: number;
@@ -27,13 +67,13 @@ type TraceQueryParams = {
   pageStart?: string;
   statsPeriod?: string;
   timestamp?: string;
-} & ({targetId: string | undefined} | {errorId: string | undefined});
+} & ({targetId?: string} | {errorId?: string});
 
 export function getTraceQueryParams(
   traceType: 'eap' | 'non-eap',
   query: Location['query'],
   filters?: Partial<PageFilters>,
-  options: {limit?: number; targetId?: string; timestamp?: number} = {}
+  options: TraceQueryParamOptions = {}
 ): TraceQueryParams {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
@@ -64,27 +104,7 @@ export function getTraceQueryParams(
     delete timeRangeParams.statsPeriod;
   }
 
-  // Node params occur in the format `${event-type}-${eventId}`, where the most relevant event is the last one in the array.
-  // If not an array, it is a string with the same format.
-  const nodeParams = normalizedParams.node;
-  const targetIdFromNodeParams = Array.isArray(nodeParams)
-    ? nodeParams[nodeParams.length - 1]?.split('-')[1]
-    : typeof nodeParams === 'string'
-      ? nodeParams.split('-')[1]
-      : undefined;
-
-  // We try our best to pass a target event id to the trace query.
-  // We first check if targetId is passed in the options, then we check for
-  // targetId/eventId in the query params, lastly we check for the node params.
-  const targetId =
-    options.targetId ??
-    decodeScalar(normalizedParams.targetId ?? normalizedParams.eventId) ??
-    targetIdFromNodeParams;
-
-  const targetEventParams:
-    | {targetId: string | undefined}
-    | {errorId: string | undefined} =
-    traceType === 'eap' ? {errorId: targetId} : {targetId};
+  const targetEventParams = getTargetIdParams(traceType, options, normalizedParams);
 
   const queryParams = {
     ...timeRangeParams,

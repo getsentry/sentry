@@ -17,7 +17,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-uptime-stats"
     features: dict[str, bool] = {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.subscription_id = uuid.uuid4().hex
@@ -263,7 +263,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
 
 
 # TODO(jferg): remove after 90 days
-def test_add_extra_buckets_for_epoch_cutoff():
+def test_add_extra_buckets_for_epoch_cutoff() -> None:
     """Test adding extra buckets when there's an epoch cutoff"""
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
     end = datetime(2025, 1, 2, tzinfo=timezone.utc)
@@ -315,7 +315,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {
             "organizations:uptime-eap-enabled": True,

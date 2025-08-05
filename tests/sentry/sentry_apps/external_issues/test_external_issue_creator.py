@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TextExternalIssueCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")

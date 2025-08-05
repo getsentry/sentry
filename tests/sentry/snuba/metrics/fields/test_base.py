@@ -101,7 +101,7 @@ def mocked_mri_resolver(metric_mris, mri_func):
 
 @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
 class SingleEntityDerivedMetricTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.crash_free_fake = MOCKED_DERIVED_METRICS["crash_free_fake"]
 
     @mock.patch(
@@ -419,7 +419,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
 
 class CompositeEntityDerivedMetricTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sessions_errored = MOCKED_DERIVED_METRICS[SessionMRI.ERRORED.value]
 
     def test_get_entity(self) -> None:
@@ -655,5 +655,5 @@ class DerivedMetricAliasTestCase(TestCase):
         ("foo:foo:foo", None),
     ],
 )
-def test_known_entity_of_metric_mri(metric_mri, expected_entity):
+def test_known_entity_of_metric_mri(metric_mri, expected_entity) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity

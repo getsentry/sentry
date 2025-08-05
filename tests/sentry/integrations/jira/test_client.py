@@ -23,7 +23,7 @@ def mock_finalize_request(prepared_request: PreparedRequest):
 
 @control_silo_test
 class JiraClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -44,7 +44,9 @@ class JiraClientTest(TestCase):
         "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
         side_effect=mock_finalize_request,
     )
-    def test_get_field_autocomplete_for_non_customfield(self, mock_finalize):
+    def test_get_field_autocomplete_for_non_customfield(
+        self, mock_finalize: mock.MagicMock
+    ) -> None:
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
@@ -65,7 +67,7 @@ class JiraClientTest(TestCase):
         "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
         side_effect=mock_finalize_request,
     )
-    def test_get_field_autocomplete_for_customfield(self, mock_finalize):
+    def test_get_field_autocomplete_for_customfield(self, mock_finalize: mock.MagicMock) -> None:
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,

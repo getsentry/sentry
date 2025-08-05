@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
@@ -23,7 +23,7 @@ from sentry.utils.outcomes import Outcome
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -365,12 +365,12 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -527,7 +527,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
+    def test_create_monitor_assigns_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
         data = {
@@ -544,7 +544,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat):
+    def test_create_monitor_without_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
@@ -577,7 +577,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -665,7 +665,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota(self, check_assign_monitor_seats):
+    def test_enable_no_quota(self, check_assign_monitor_seats: MagicMock) -> None:
         monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
         monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
         result = SeatAssignmentResult(

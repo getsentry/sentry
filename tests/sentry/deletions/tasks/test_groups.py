@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry import eventstore, nodestore
+from sentry import deletions, eventstore, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
@@ -81,12 +81,71 @@ class DeleteGroupTest(TestCase):
         events = eventstore.backend.get_events(conditions, tenant_ids=tenant_ids)
         assert len(events) == 0
 
+    def test_simple_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_simple()
+
+    def test_max_chunk_size_calls_once(self) -> None:
+        CHUNK_SIZE = 5
+        with patch(
+            "sentry.deletions.defaults.group.GroupDeletionTask.DEFAULT_CHUNK_SIZE",
+            new=CHUNK_SIZE,
+        ):
+            groups = self.create_n_groups_with_hashes(CHUNK_SIZE - 1, self.project)
+            group_ids = [group.id for group in groups]
+
+            task = deletions.get(model=Group, query={"id__in": group_ids})
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE  # type: ignore[attr-defined]
+
+            has_more = True
+            calls = 0
+            while has_more:
+                has_more = task.chunk()
+                calls += 1
+
+            assert calls == 1
+            assert not Group.objects.filter(id__in=group_ids).exists()
+
+    def test_max_chunk_size_calls_once_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_max_chunk_size_calls_once()
+
+    def test_max_chunk_size_plus_one_calls_twice(self) -> None:
+        CHUNK_SIZE = 5
+        with patch(
+            "sentry.deletions.defaults.group.GroupDeletionTask.DEFAULT_CHUNK_SIZE",
+            new=CHUNK_SIZE,
+        ):
+            # This test creates one more group than the chunk size
+            groups = self.create_n_groups_with_hashes(CHUNK_SIZE + 1, self.project)
+            group_ids = [group.id for group in groups]
+
+            task = deletions.get(model=Group, query={"id__in": group_ids})
+            assert task.query_limit == task.chunk_size == CHUNK_SIZE  # type: ignore[attr-defined]
+
+            has_more = True
+            calls = 0
+            while has_more:
+                has_more = task.chunk()
+                calls += 1
+
+            assert calls == 2
+            assert not Group.objects.filter(id__in=group_ids).exists()
+
+    def test_max_chunk_size_plus_one_calls_twice_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_max_chunk_size_plus_one_calls_twice()
+
     def test_no_object_ids(self) -> None:
         with self.tasks(), pytest.raises(DeleteAborted) as excinfo:
             delete_groups_for_project(
                 object_ids=[], transaction_id=uuid4().hex, project_id=self.project.id
             )
         assert str(excinfo.value) == "delete_groups.empty_object_ids"
+
+    def test_no_object_ids_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_no_object_ids()
 
     def test_groups_are_already_deleted(self) -> None:
         group = self.create_group()
@@ -97,6 +156,10 @@ class DeleteGroupTest(TestCase):
                 object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
             )
         assert str(excinfo.value) == "delete_groups.no_groups_found"
+
+    def test_groups_are_already_deleted_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_groups_are_already_deleted()
 
     def test_prevent_project_groups_mismatch(self) -> None:
         group = self.create_group()
@@ -114,6 +177,10 @@ class DeleteGroupTest(TestCase):
             str(excinfo.value)
             == f"delete_groups.project_id_mismatch: 1 groups don't belong to project {group.project_id}"
         )
+
+    def test_prevent_project_groups_mismatch_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_prevent_project_groups_mismatch()
 
     def test_scheduled_tasks_with_too_many_groups(self) -> None:
         NEW_CHUNK_SIZE = 2
@@ -133,3 +200,7 @@ class DeleteGroupTest(TestCase):
             str(excinfo.value)
             == f"delete_groups.object_ids_too_large: {len(group_ids)} groups is greater than GROUP_CHUNK_SIZE"
         )
+
+    def test_scheduled_tasks_with_too_many_groups_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_scheduled_tasks_with_too_many_groups()

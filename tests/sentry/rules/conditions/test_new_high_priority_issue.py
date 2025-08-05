@@ -10,7 +10,7 @@ pytestmark = [requires_snuba]
 class NewHighPriorityIssueConditionTest(RuleTestCase):
     rule_cls = NewHighPriorityIssueCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
     def test_applies_correctly_with_high_priority_alerts(self) -> None:

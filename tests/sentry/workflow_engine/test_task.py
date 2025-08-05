@@ -9,11 +9,9 @@ from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
 from sentry.workflow_engine.tasks.utils import fetch_event
-from sentry.workflow_engine.tasks.workflows import (
-    process_workflow_activity,
-    workflow_status_update_handler,
-)
+from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import WorkflowEventData
 
 
@@ -123,7 +121,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
 
 class TestProcessWorkflowActivity(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project)
         self.activity = Activity(
             project=self.project,
@@ -148,7 +146,8 @@ class TestProcessWorkflowActivity(TestCase):
             assert mock_evaluate.call_count == 0
 
     @mock.patch(
-        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers", return_value=set()
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+        return_value=(set(), {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
@@ -178,7 +177,7 @@ class TestProcessWorkflowActivity(TestCase):
         assert mock_eval_actions.call_count == 0
 
     @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
-    def test_process_workflow_activity(self, mock_filter_actions):
+    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -209,7 +208,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(self, mock_incr):
+    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -228,6 +227,7 @@ class TestProcessWorkflowActivity(TestCase):
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=1,
                 tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
             )
 
             # Workflow engine is correctly registered for the activity update
@@ -239,5 +239,9 @@ class TestProcessWorkflowActivity(TestCase):
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": self.activity.type},
+                tags={
+                    "activity_type": self.activity.type,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )

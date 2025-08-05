@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -21,7 +21,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
 class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.critical_action, self.warning_action = self.create_metric_issue_workflow(self.detector)
 
@@ -112,7 +112,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert event
         return Group.objects.get(id=event.group_id)
 
-    def test_simple(self, mock_trigger):
+    def test_simple(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -122,7 +122,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
 
         assert mock_trigger.call_count == 2  # warning + critical actions
 
-    def test_escalation(self, mock_trigger):
+    def test_escalation(self, mock_trigger: MagicMock) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -141,7 +141,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # warning + critical actions
 
-    def test_deescalation(self, mock_trigger):
+    def test_deescalation(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -162,7 +162,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert mock_trigger.call_count == 2  # both actions
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_resolution_from_critical(self, mock_trigger):
+    def test_resolution_from_critical(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -185,11 +185,15 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 update_status(group, message)
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_resolution_from_warning(self, mock_trigger):
+    def test_resolution_from_warning(self, mock_trigger: MagicMock) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -213,5 +217,9 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 update_status(group, message)
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )

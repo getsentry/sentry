@@ -10,7 +10,7 @@ class SkipOnboardingTaskTest(APITestCase):
     endpoint = "sentry-api-0-organization-onboardingtasks"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

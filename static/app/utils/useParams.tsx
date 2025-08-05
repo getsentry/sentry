@@ -35,6 +35,7 @@ type ParamKeys =
   | 'regionName'
   | 'release'
   | 'relocationUuid'
+  | 'replaySlug'
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'

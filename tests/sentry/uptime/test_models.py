@@ -54,7 +54,7 @@ class GetTopHostingProviderNamesTest(UptimeTestCase):
 
 
 class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",

@@ -40,6 +40,8 @@ from sentry.grouping.variants import (
 )
 from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
 from sentry.models.grouphash import GroupHash
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -68,10 +70,6 @@ NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
 NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, {}, [], [], None)
 
 
-class GroupingConfigNotFound(LookupError):
-    pass
-
-
 class GroupingConfig(TypedDict):
     id: str
     enhancements: str
@@ -95,11 +93,6 @@ class GroupingConfigLoader:
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
         enhancements_version = get_enhancements_version(project, config_id)
-
-        # Instead of parsing and dumping out config here, we can make a
-        # shortcut
-        from sentry.utils.cache import cache
-        from sentry.utils.hashlib import md5_text
 
         cache_prefix = self.cache_prefix
         cache_prefix += f"{enhancements_version}:"
@@ -220,14 +213,18 @@ def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingCo
 
 
 def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
-    """Loads the given grouping config."""
+    """
+    Load the given grouping config, or the default config if none is provided or if the given
+    config is not recognized.
+    """
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
     elif "id" not in config_dict:
         raise ValueError("Malformed configuration dictionary")
     config_id = config_dict["id"]
     if config_id not in CONFIGURATIONS:
-        raise GroupingConfigNotFound(config_id)
+        config_dict = get_default_grouping_config_dict()
+        config_id = config_dict["id"]
     return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
 
 

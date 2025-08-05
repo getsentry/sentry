@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -46,7 +46,7 @@ def fake_get_tags(event_for_tags, tags):
 
 
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
@@ -107,7 +107,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_performance_issue_alert_user_block(self, occurrence):
+    def test_performance_issue_alert_user_block(self, occurrence) -> None:
         """
         Test that performance issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
@@ -187,7 +187,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_generic_issue_alert_user_block(self, occurrence):
+    def test_generic_issue_alert_user_block(self, occurrence: MagicMock) -> None:
         """
         Test that generic issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
@@ -227,7 +227,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         new_callable=mock.PropertyMock,
     )
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_generic_issue_alert_user_block_workflow_engine_dual_write(self, occurrence):
+    def test_generic_issue_alert_user_block_workflow_engine_dual_write(
+        self, occurrence: MagicMock
+    ) -> None:
         """
         Tests that we build links correctly when dual writing
         """
@@ -274,7 +276,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         new_callable=mock.PropertyMock,
     )
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_generic_issue_alert_user_block_workflow_engine_ui_links(self, occurrence):
+    def test_generic_issue_alert_user_block_workflow_engine_ui_links(
+        self, occurrence: MagicMock
+    ) -> None:
         """
         Tests that we build links correctly when dual writing
         """
@@ -607,7 +611,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert self.mock_post.call_count == 0
 
     @patch.object(sentry, "digests")
-    def test_issue_alert_team_issue_owners_user_settings_off_digests(self, digests):
+    def test_issue_alert_team_issue_owners_user_settings_off_digests(
+        self, digests: MagicMock
+    ) -> None:
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action
         even when the users' issue alert notification settings are off and digests are triggered."""
 
@@ -1016,7 +1022,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @patch.object(sentry, "digests")
-    def test_digest_enabled_block(self, digests):
+    def test_digest_enabled_block(self, digests: MagicMock) -> None:
         """
         Test that with digests enabled, but Slack notification settings
         (and not email settings) enabled, we send a Slack notification with the proper

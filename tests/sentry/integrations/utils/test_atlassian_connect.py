@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AtlassianConnectTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
         self.provider = "jira"
         self.integration = self.create_integration(

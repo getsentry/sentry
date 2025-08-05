@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class UpdateProjectKeyTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)
@@ -105,7 +105,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_window == 60
 
     @patch("sentry.api.base.create_audit_entry")
-    def test_rate_limit_change_data(self, mock_create_audit_entry):
+    def test_rate_limit_change_data(self, mock_create_audit_entry: MagicMock) -> None:
         project = self.create_project()
         key = ProjectKey.objects.create(
             project=project, rate_limit_window=None, rate_limit_count=None
@@ -341,7 +341,7 @@ class UpdateProjectKeyTest(APITestCase):
 
 
 class DeleteProjectKeyTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 
 
 class TestGroupOwners(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
@@ -355,7 +355,7 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
-    def test_keep_highest_score(self, patched_committers):
+    def test_keep_highest_score(self, patched_committers: MagicMock) -> None:
         self.user2 = self.create_user(email="user2@sentry.io")
         self.user3 = self.create_user(email="user3@sentry.io")
         patched_committers.return_value = [
@@ -446,7 +446,7 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(user_id=self.user2.id).exists()
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
-    def test_low_suspect_committer_score(self, patched_committers):
+    def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
         patched_committers.return_value = [
             {

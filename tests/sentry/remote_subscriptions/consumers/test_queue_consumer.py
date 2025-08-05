@@ -27,7 +27,7 @@ from sentry.utils import json
 
 
 class TestOffsetTracker(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.partition1 = Partition(Topic("test"), 0)
         self.partition2 = Partition(Topic("test"), 1)
         self.tracker = OffsetTracker()
@@ -73,7 +73,7 @@ class TestOffsetTracker(TestCase):
 
 
 class TestFixedQueuePool(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_items: list[tuple[str, str]] = []
         self.process_lock = threading.Lock()
         self.process_complete_event = threading.Event()
@@ -208,7 +208,7 @@ class TestFixedQueuePool(TestCase):
 
 
 class TestSimpleQueueProcessingStrategy(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[Any] = []
         self.committed_offsets: dict[Partition, int] = {}
         self.process_lock = threading.Lock()
@@ -400,7 +400,7 @@ class TestThreadQueueParallelIntegration(TestCase):
         class MockFactory(ResultsStrategyFactory):
             @property
             def topic_for_codec(self):
-                return SentryTopic.SHARED_RESOURCES_USAGE
+                return SentryTopic.UPTIME_RESULTS
 
             @property
             def result_processor_cls(self):
@@ -428,7 +428,7 @@ class TestThreadQueueParallelIntegration(TestCase):
 class TestRebalancing(TestCase):
     """Test rebalancing scenarios for thread-queue-parallel consumer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[tuple[str, dict]] = []
         self.process_lock = threading.Lock()
         self.process_condition = threading.Condition(self.process_lock)
@@ -479,7 +479,7 @@ class TestRebalancing(TestCase):
         class TestFactory(ResultsStrategyFactory):
             @property
             def topic_for_codec(self):
-                return SentryTopic.SHARED_RESOURCES_USAGE
+                return SentryTopic.UPTIME_RESULTS
 
             @property
             def result_processor_cls(self):
@@ -507,9 +507,24 @@ class TestRebalancing(TestCase):
         return commit
 
     def create_message(self, subscription_id: str, partition: int, offset: int) -> Message:
+        value = {
+            "timestamp": int(datetime.now().timestamp()),
+            "subscription_id": subscription_id,
+            "data": "test",
+            "guid": "",
+            "status": "success",
+            "status_reason": None,
+            "trace_id": "",
+            "span_id": "",
+            "scheduled_check_time_ms": 0,
+            "actual_check_time_ms": 0,
+            "duration_ms": 0,
+            "request_info": None,
+        }
+
         payload = KafkaPayload(
             key=None,
-            value=f'{{"subscription_id": "{subscription_id}", "data": "test"}}'.encode(),
+            value=json.dumps(value).encode(),
             headers=[],
         )
         return Message(

@@ -1,14 +1,19 @@
 import {useMemo} from 'react';
 
+import {Button} from 'sentry/components/core/button';
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {
+  DeleteDetectorAction,
+  DisableDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import {EditDetectorActions} from 'sentry/views/detectors/components/forms/editDetectorActions';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
@@ -52,12 +57,16 @@ export function EditDetectorLayout<
         </EditLayout.HeaderContent>
 
         <EditLayout.Actions>
-          <EditDetectorActions detectorId={detector.id} />
+          <DisableDetectorAction detector={detector} />
+          <DeleteDetectorAction detector={detector} />
+          <Button type="submit" priority="primary" size="sm">
+            {t('Save')}
+          </Button>
         </EditLayout.Actions>
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />
-          {previewChart}
+          {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 

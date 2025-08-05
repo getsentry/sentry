@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -59,7 +59,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class TestAlertRuleSerializerBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -478,7 +478,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_invalid_alert_threshold(self, mock_seer_request):
+    def test_invalid_alert_threshold(self, mock_seer_request: MagicMock) -> None:
         """
         Anomaly detection alerts cannot have a nonzero alert rule threshold
         """
@@ -577,7 +577,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, True),
     )
-    def test_channel_timeout(self, mock_get_channel_id):
+    def test_channel_timeout(self, mock_get_channel_id: MagicMock) -> None:
         trigger = {
             "label": "critical",
             "alertThreshold": 200,
@@ -606,7 +606,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, True),
     )
-    def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
+    def test_invalid_team_with_channel_timeout(self, mock_get_channel_id: MagicMock) -> None:
         other_org = self.create_organization()
         new_team = self.create_team(organization=other_org)
         trigger = {
@@ -1057,7 +1057,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
         return_value=AlertTarget("test", "test"),
     )
-    def test_pagerduty_valid_priority(self, mock_get):
+    def test_pagerduty_valid_priority(self, mock_get: MagicMock) -> None:
         params = {
             "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1075,7 +1075,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
         return_value=AlertTarget("test", "test"),
     )
-    def test_opsgenie_valid_priority(self, mock_get):
+    def test_opsgenie_valid_priority(self, mock_get: MagicMock) -> None:
         params = {
             "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.OPSGENIE

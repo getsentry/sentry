@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 class SampleScheduleDataTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitors-schedule-sample-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

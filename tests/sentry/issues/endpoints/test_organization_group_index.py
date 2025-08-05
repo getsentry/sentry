@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
@@ -2717,7 +2717,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response()
@@ -2744,7 +2744,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response(query="issue.category:feedback")
@@ -4016,9 +4016,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
+
+        today = datetime.now(tz=UTC)
+        yesterday = today - timedelta(days=1)
+        group1 = self.create_group(first_seen=today, times_seen=1)
+        group2 = self.create_group(first_seen=yesterday, times_seen=50)
+        group3 = self.create_group(first_seen=today, times_seen=2)
         self.create_group()
 
         self.login_as(user=self.user)

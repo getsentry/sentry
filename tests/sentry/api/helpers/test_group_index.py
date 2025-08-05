@@ -396,7 +396,7 @@ class UpdateGroupsTest(TestCase):
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_simple(self, mock_handle_merge: MagicMock):
+    def test_simple(self, mock_handle_merge: MagicMock) -> None:
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
@@ -417,7 +417,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_projects(self, mock_handle_merge: MagicMock):
+    def test_multiple_projects(self, mock_handle_merge: MagicMock) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         projects = [project1, project2]
@@ -441,7 +441,7 @@ class MergeGroupsTest(TestCase):
         assert mock_handle_merge.call_count == 0
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock):
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock) -> None:
         """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
         projects = [self.create_project(), self.create_project()]
         proj1 = projects[0]
@@ -468,7 +468,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock):
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock) -> None:
         """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
         we should be able to derive them from the given group ids."""
         group_ids = [self.create_group().id, self.create_group().id]
@@ -1247,7 +1247,7 @@ class TestHandleAssignedTo(TestCase):
 
 class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_simple(self, send_robust: Mock):
+    def test_delete_groups_simple(self, send_robust: Mock) -> None:
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")

@@ -23,8 +23,8 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.snuba import ourlogs
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
@@ -58,9 +58,9 @@ def _get_logs_for_event(
         organization=project.organization,
     )
 
-    results: EventsResponse = ourlogs.run_table_query(
-        snuba_params,
-        f"trace:{trace_id}",
+    results: EventsResponse = OurLogs.run_table_query(
+        params=snuba_params,
+        query_string=f"trace:{trace_id}",
         selected_columns=[
             "project.id",
             "timestamp",
@@ -824,6 +824,9 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
+                "disable_coding_step": not group.organization.get_option(
+                    "sentry:enable_seer_coding", default=True
+                ),
             },
         },
         option=orjson.OPT_NON_STR_KEYS,

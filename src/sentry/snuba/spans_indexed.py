@@ -75,7 +75,7 @@ def query(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
     if debug:
-        result["meta"]["query"] = str(builder.get_snql_query().query)
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     return result
 
 
@@ -245,7 +245,7 @@ def top_events_timeseries(
             rollup,
         )
     with sentry_sdk.start_span(op="spans_indexed", name="top_events.transform_results") as span:
-        span.set_data("result_count", len(result.get("data", [])))
+        span.set_attribute("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
         issues: dict[int, str | None] = {}

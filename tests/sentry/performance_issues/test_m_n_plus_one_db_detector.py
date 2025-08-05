@@ -23,7 +23,7 @@ from sentry.testutils.performance_issues.experiments import exclude_experimental
 @pytest.mark.django_db
 @exclude_experimental_detectors
 class MNPlusOneDBDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -125,7 +125,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+        sdk_span_mock.root_span.set_tag.assert_has_calls(
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),

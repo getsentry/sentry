@@ -33,6 +33,7 @@ class EventDict(TypedDict):
     category: str
 
 
+@sentry_sdk.trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -75,6 +76,7 @@ def parse_timestamp(timestamp_value: Any, unit: str) -> float:
     return 0.0
 
 
+@sentry_sdk.trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
@@ -201,6 +203,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
+@sentry_sdk.trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
@@ -271,9 +274,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RAGE_CLICK:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
-            case EventType.NAVIGATION:
-                to = event["data"]["payload"]["data"]["to"]
-                return f"User navigated to: {to} at {timestamp}"
+            case EventType.NAVIGATION_SPAN:
+                timestamp_ms = timestamp * 1000
+                to = event["data"]["payload"]["description"]
+                return f"User navigated to: {to} at {timestamp_ms}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
@@ -343,6 +347,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.CLS:
                 return None
+            case EventType.NAVIGATION:
+                return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
     except (KeyError, ValueError):
         logger.exception(
             "Error parsing event in replay AI summary",

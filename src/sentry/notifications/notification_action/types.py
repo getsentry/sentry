@@ -22,7 +22,9 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
@@ -149,8 +151,8 @@ class BaseIssueAlertHandler(ABC):
                 raise ValueError("Workflow ID is required when triggering an action")
 
             # If test event, just set the legacy rule id to -1
-            if workflow_id == -1:
-                data["actions"][0]["legacy_rule_id"] = -1
+            if workflow_id == TEST_NOTIFICATION_ID:
+                data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
             else:
                 try:
                     alert_rule_workflow = AlertRuleWorkflow.objects.get(
@@ -301,7 +303,7 @@ class BaseIssueAlertHandler(ABC):
 
             # Execute the futures
             # If the rule id is -1, we are sending a test notification
-            if rule.id == -1:
+            if rule.id == TEST_NOTIFICATION_ID:
                 cls.send_test_notification(event_data, futures)
             else:
                 cls.execute_futures(event_data, futures)
@@ -335,6 +337,8 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
 
 
 class BaseMetricAlertHandler(ABC):
+    ACTIVITIES_TO_INVOKE_ON = [ActivityType.SET_RESOLVED.value]
+
     @classmethod
     def build_notification_context(cls, action: Action) -> NotificationContext:
         return NotificationContext.from_action_model(action)

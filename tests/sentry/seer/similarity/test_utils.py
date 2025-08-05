@@ -1,7 +1,7 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -828,7 +828,7 @@ class GetStacktraceStringTest(TestCase):
             )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_no_header_one_frame_no_filename(self, mock_metrics):
+    def test_no_header_one_frame_no_filename(self, mock_metrics: MagicMock) -> None:
         exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
         # Remove filename
         exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
@@ -844,7 +844,7 @@ class SeerUtilsTest(TestCase):
 
 
 class HasTooManyFramesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # The `in_app` and `contributes` values of these frames will be determined by the project
         # stacktrace rules we'll add below
         self.contributing_system_frame = {

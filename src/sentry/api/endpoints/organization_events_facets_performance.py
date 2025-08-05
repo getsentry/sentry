@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
@@ -72,7 +73,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 @region_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -138,7 +139,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -262,7 +263,7 @@ def query_tag_data(
              Returns None if query was not successful which causes the endpoint to return early
     """
     with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
-        span.set_data("query", filter_query)
+        span.set_attribute("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
@@ -391,7 +392,7 @@ def query_facet_performance(
     tag_key_limit = limit if tag_key else 1
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
-        span.set_data("query", filter_query)
+        span.set_attribute("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
@@ -417,8 +418,8 @@ def query_facet_performance(
     )
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
-        span.set_data("sample_rate", sample_rate)
-        span.set_data("target_sample", target_sample)
+        span.set_attribute("sample_rate", sample_rate)
+        span.set_attribute("target_sample", target_sample)
         aggregate_comparison = transaction_aggregate * 1.005 if transaction_aggregate else 0
         aggregate_column = Function("avg", [translated_aggregate_column], "aggregate")
         tag_query.where.append(excluded_tags)

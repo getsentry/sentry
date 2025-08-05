@@ -1,5 +1,5 @@
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -12,7 +12,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 @control_silo_test
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
@@ -41,7 +41,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.messaging.linkage.unsign")
-    def test_basic_flow(self, unsign):
+    def test_basic_flow(self, unsign: MagicMock) -> None:
         unsign.return_value = {
             "integration_id": self.integration.id,
             "organization_id": self.org.id,
@@ -94,7 +94,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.messaging.linkage.unsign")
-    def test_overwrites_existing_identities(self, unsign):
+    def test_overwrites_existing_identities(self, unsign: MagicMock) -> None:
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="h_p", status=IdentityStatus.VALID
         )

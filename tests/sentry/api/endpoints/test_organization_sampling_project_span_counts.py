@@ -15,7 +15,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 @freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
 @region_silo_test
 class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -171,7 +171,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
 @freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
 @region_silo_test
 class OrganizationSamplingProjectSpanCountsNoMetricsTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)

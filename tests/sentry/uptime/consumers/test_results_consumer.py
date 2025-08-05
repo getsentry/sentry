@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from typing import Literal
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 from arroyo import Message
@@ -74,7 +74,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
         pass
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
         self.subscription = self.create_uptime_subscription(
@@ -1156,7 +1156,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
     )
-    def test_parallel_grouping(self, mock_process_group) -> None:
+    def test_parallel_grouping(self, mock_process_group: MagicMock) -> None:
         """
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment
@@ -1288,7 +1288,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
     @override_options({"uptime.snuba_uptime_results.enabled": True})
-    def test_produces_snuba_uptime_results(self, mock_produce) -> None:
+    def test_produces_snuba_uptime_results(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
         """
@@ -1314,7 +1314,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         return_value=1,
     )
     @override_options({"uptime.snuba_uptime_results.enabled": True})
-    def test_produces_snuba_uptime_results_in_incident(self, _, mock_produce) -> None:
+    def test_produces_snuba_uptime_results_in_incident(
+        self, _: MagicMock, mock_produce: MagicMock
+    ) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
         """
@@ -1332,7 +1334,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert parsed_value["incident_status"] == 1
 
     @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
-    def test_produces_eap_uptime_results(self, mock_produce) -> None:
+    def test_produces_eap_uptime_results(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces TraceItems to EAP's Kafka topic for uptime check results
         """
@@ -1646,7 +1648,7 @@ class ProcessResultSerialTest(ProcessResultTest):
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
     )
-    def test_parallel_grouping(self, mock_process_group) -> None:
+    def test_parallel_grouping(self, mock_process_group: MagicMock) -> None:
         """
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment

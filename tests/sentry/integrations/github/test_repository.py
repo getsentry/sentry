@@ -22,7 +22,7 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 
 @control_silo_test
 class GitHubAppsProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         ten_hours = timezone.now() + datetime.timedelta(hours=10)
         self.integration = self.create_integration(
@@ -78,7 +78,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits_no_start(self, get_jwt):
+    def test_compare_commits_no_start(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
@@ -112,7 +112,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits(self, get_jwt):
+    def test_compare_commits(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -129,7 +129,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits_patchset_handling(self, get_jwt):
+    def test_compare_commits_patchset_handling(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -151,7 +151,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_patchset_caching(self, get_jwt):
+    def test_patchset_caching(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",

@@ -13,7 +13,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.login_as(user=self.user)

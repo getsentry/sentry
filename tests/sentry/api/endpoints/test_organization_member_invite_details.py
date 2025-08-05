@@ -1,11 +1,10 @@
 from dataclasses import replace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationmemberinvite import InviteStatus
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -19,16 +18,16 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
     return wrapped_method
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class OrganizationMemberInviteTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     def test_simple(self) -> None:
         invited_member = self.create_member_invite(
@@ -54,11 +53,11 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.get_error_response(self.organization.slug, "-1", status_code=404)
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.regular_user = self.create_user("member@email.com")
         self.curr_member = self.create_member(
@@ -161,7 +160,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_update_teams_invalid_new_teams(self, mock_get):
+    def test_update_teams_invalid_new_teams(self, mock_get: MagicMock) -> None:
         """
         If adding team assignments to an existing invite with orgRole that can't have team-level
         permissions, then we should raise an error.
@@ -182,7 +181,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_update_teams_invalid_new_role(self, mock_get):
+    def test_update_teams_invalid_new_role(self, mock_get: MagicMock) -> None:
         """
         If updating an orgRole to one that can't have team-level assignments when the existing
         invite has team assignments, then we should raise an error.

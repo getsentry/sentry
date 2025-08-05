@@ -11,9 +11,9 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 
 @region_silo_test(regions=create_test_regions("us"))
 class GroupTagExportTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.url = None
+        self.url: str | None = None
         self.key = "foo"
         self.value = "b\xe4r"
         self.project = self.create_project()

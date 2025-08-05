@@ -12,7 +12,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
     condition = Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.metric_alert = self.create_alert_rule()
