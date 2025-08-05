@@ -1,8 +1,13 @@
+import {useMemo} from 'react';
+
 import {ExternalLink} from 'sentry/components/core/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -59,22 +64,41 @@ function EAPMissingInstrumentationNodeDetails({
 }) {
   const {node} = props;
   const previous = node.previous as TraceTreeNode<TraceTree.EAPSpan>;
-  const parentEAPTransaction = TraceTree.ParentEAPTransaction(previous);
 
-  const project = parentEAPTransaction
-    ? projects.find(proj => proj.slug === parentEAPTransaction.value.project_slug)
-    : undefined;
-  const profileId = parentEAPTransaction?.value.profile_id || '';
-  const profilerId = parentEAPTransaction?.value.profiler_id || '';
+  const {
+    data: eventTransaction = null,
+    isLoading: isEventTransactionLoading,
+    isError: isEventTransactionError,
+  } = useTransaction({
+    event_id: previous.value.transaction_id,
+    organization: props.organization,
+    project_slug: previous.value.project_slug,
+  });
+
+  const profileMeta = useMemo(
+    () => getProfileMeta(eventTransaction) || '',
+    [eventTransaction]
+  );
+
+  if (isEventTransactionLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isEventTransactionError) {
+    return <LoadingError message={t('Failed to fetch span details')} />;
+  }
+
+  const project = projects.find(proj => proj.slug === eventTransaction?.projectSlug);
+  const profileContext = eventTransaction?.contexts?.profile ?? {};
 
   return (
     <BaseMissingInstrumentationNodeDetails
       {...props}
-      profileMeta={profileId}
+      profileMeta={profileMeta}
       project={project}
-      event={null}
-      profileId={profileId}
-      profilerId={profilerId}
+      event={eventTransaction}
+      profileId={profileContext.profile_id}
+      profilerId={profileContext.profiler_id}
     />
   );
 }
@@ -137,7 +161,7 @@ function BaseMissingInstrumentationNodeDetails({
                   profileID={profileId}
                   profilerID={profilerId}
                   event={event}
-                  node={node}
+                  missingInstrumentationNode={node}
                 />
               </ProfileGroupProvider>
             )}
