@@ -5,7 +5,7 @@ from unittest import mock
 from sentry.lang.dart.utils import (
     deobfuscate_exception_type,
     generate_dart_symbols_map,
-    get_dart_symbols_images,
+    get_debug_meta_image_ids,
 )
 
 MOCK_DEBUG_FILE = b'["","","_NativeInteger","_NativeInteger","SemanticsAction","er","ButtonTheme","mD","_entry","_YMa"]'
@@ -96,8 +96,8 @@ def test_generate_dart_symbols_map_no_file() -> None:
         assert map is None
 
 
-def test_get_dart_symbols_images() -> None:
-    """Test extracting dart symbols debug IDs from event data."""
+def test_get_debug_meta_image_ids() -> None:
+    """Test extracting debug meta image IDs from event data."""
     event = {
         "debug_meta": {
             "images": [
@@ -108,15 +108,15 @@ def test_get_dart_symbols_images() -> None:
         }
     }
 
-    debug_ids = get_dart_symbols_images(event)
+    debug_ids = get_debug_meta_image_ids(event)
     # Should return all debug_ids (lowercased)
     assert debug_ids == {"abc123-def456", "789xyz-012345", "dart789-symbol"}
 
 
-def test_get_dart_symbols_images_no_debug_meta() -> None:
+def test_get_debug_meta_image_ids_no_debug_meta() -> None:
     """Test that empty set is returned when no debug_meta exists."""
     event: dict[str, Any] = {}
-    debug_ids = get_dart_symbols_images(event)
+    debug_ids = get_debug_meta_image_ids(event)
     assert debug_ids == set()
 
 
@@ -288,7 +288,7 @@ def test_deobfuscate_exception_type_no_mapping_file() -> None:
 
 
 # @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)
-# @mock.patch("sentry.lang.dart.utils.get_dart_symbols_images", return_value=["test-uuid"])
+# @mock.patch("sentry.lang.dart.utils.get_debug_meta_image_ids", return_value=["test-uuid"])
 # def test_view_hierarchy_deobfuscation(
 #     mock_images: mock.MagicMock, mock_map: mock.MagicMock
 # ) -> None:

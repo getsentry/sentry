@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry.lang.dart.utils import deobfuscate_exception_type, get_dart_symbols_images
+from sentry.lang.dart.utils import deobfuscate_exception_type, get_debug_meta_image_ids
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 
@@ -21,7 +21,7 @@ class DartPlugin(Plugin2):
         if sdk_name not in ("sentry.dart", "sentry.dart.flutter"):
             return []
 
-        debug_ids = get_dart_symbols_images(dict(data))
+        debug_ids = get_debug_meta_image_ids(dict(data))
         if len(debug_ids) == 0:
             return []
 

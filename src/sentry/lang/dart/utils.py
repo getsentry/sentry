@@ -18,7 +18,7 @@ from sentry.utils.safe import get_path
 # VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
 
 
-def get_dart_symbols_images(event: dict[str, Any]) -> set[str]:
+def get_debug_meta_image_ids(event: dict[str, Any]) -> set[str]:
     images = get_path(event, "debug_meta", "images", default=())
     if not isinstance(images, (list, tuple)):
         return set()
@@ -69,7 +69,7 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
     """
     project = Project.objects.get_from_cache(id=data["project"])
 
-    debug_ids = get_dart_symbols_images(dict(data))
+    debug_ids = get_debug_meta_image_ids(dict(data))
     if len(debug_ids) == 0:
         return
 
@@ -116,7 +116,7 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
 
 #     If we're unable to fetch a dart symbols uuid, then the view hierarchy remains unmodified.
 #     """
-#     dart_symbols_uuids = get_dart_symbols_images(event_data)
+#     dart_symbols_uuids = get_debug_meta_image_ids(event_data)
 #     if len(dart_symbols_uuids) == 0:
 #         return
 
