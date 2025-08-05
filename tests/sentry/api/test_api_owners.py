@@ -12,8 +12,9 @@ class APIOwnersTestCase(TestCase):
         lines = code_owners_file.readlines()
         code_owners_file.close()
         for line in lines:
-            tokens = [s.strip() for s in line.split("@getsentry/")]
-            self.teams.update(tokens[1:])
+            if line.startswith("/src/"):
+                tokens = [s.strip() for s in line.split("@getsentry/")]
+                self.teams.update(tokens[1:])
 
     def test_api_owner_is_a_valid_code_owner(self) -> None:
         for owner in ApiOwner:
