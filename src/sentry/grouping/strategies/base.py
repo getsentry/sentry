@@ -512,7 +512,7 @@ def call_with_variants(
         )
         return f(*args, **kwargs)
 
-    rv = {}
+    components_by_variant = {}
 
     for variant_name in variants_to_produce:
         with context:
@@ -524,6 +524,6 @@ def call_with_variants(
 
             component = components_by_stripped_variant[stripped_variant_name]
 
-        rv[variant_name] = component
+        components_by_variant[variant_name] = component
 
-    return rv
+    return components_by_variant
