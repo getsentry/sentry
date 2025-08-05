@@ -81,8 +81,8 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
         return
 
     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
-        map = generate_dart_symbols_map(list(debug_ids), project)
-        if map is None:
+        symbol_map = generate_dart_symbols_map(list(debug_ids), project)
+        if symbol_map is None:
             return
 
         for exception in exceptions:
@@ -90,13 +90,12 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
             if exception_type is None:
                 continue
 
-            obfuscated_symbol = exception["type"]
-            symbolicated_symbol = map.get(obfuscated_symbol)
-            if symbolicated_symbol is None:
-                continue
-            exception["type"] = symbolicated_symbol
+            deobfuscated_type = symbol_map.get(exception_type)
+            if deobfuscated_type is not None:
+                exception["type"] = deobfuscated_type
 
-        # TODO: Future enhancement - deobfuscate exception values
+        # TODO(buenaflor): Future enhancement - deobfuscate exception values
+        #
         # Exception values may contain obfuscated symbols in patterns like:
         # - "Instance of 'obfuscated_symbol'"
         # - General text containing obfuscated symbols
@@ -104,7 +103,8 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
         # and looking them up in the symbol map for replacement.
 
 
-# TODO: Add this back in when we decide to deobfuscate view hierarchies
+# TODO(buenaflor): Add this back in when we decide to deobfuscate view hierarchies
+#
 # def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
 #     """
 #     Deobfuscates a view hierarchy in-place.
