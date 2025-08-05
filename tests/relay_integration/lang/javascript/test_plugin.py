@@ -18,6 +18,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
@@ -762,6 +763,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_expansion_via_debug(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")

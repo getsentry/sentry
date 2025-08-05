@@ -37,6 +37,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_data_from_snuba,
     get_events_from_nodestore,
 )
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -356,6 +357,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
     @patch("sentry.seer.similarity.utils.metrics")
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(
         self, mock_metrics: MagicMock
     ) -> None:
