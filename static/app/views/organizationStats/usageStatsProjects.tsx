@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import type {
@@ -12,8 +11,7 @@ import type {
   Directions,
 } from 'sentry/components/tables/gridEditable/sortLink';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
@@ -24,6 +22,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {droppedProfileChunkMultiplier} from 'sentry/views/organizationStats/mapSeriesToChart';
+import useUsageStatsQueryKey from 'sentry/views/organizationStats/useUsageStats';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -76,69 +75,22 @@ export function UsageStatsProjects({
   const organization = useOrganization();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const endpointQuery = useMemo(() => {
-    const queryDatetime =
-      dataDatetime.start && dataDatetime.end
-        ? {
-            start: dataDatetime.start,
-            end: dataDatetime.end,
-            utc: dataDatetime.utc,
-          }
-        : {
-            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
-          };
-
-    const groupBy = ['outcome', 'project'];
-    const category: string[] = [dataCategory.name];
-
-    if (
-      hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.name === DataCategoryExact.SPAN
-    ) {
-      groupBy.push('category');
-      category.push(DataCategoryExact.SPAN_INDEXED);
-    }
-    if (
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION ||
-      dataCategory.name === DataCategoryExact.PROFILE_DURATION_UI
-    ) {
-      groupBy.push('category');
-      category.push(
-        dataCategory.name === DataCategoryExact.PROFILE_DURATION
-          ? DataCategoryExact.PROFILE_CHUNK
-          : DataCategoryExact.PROFILE_CHUNK_UI
-      );
-    }
-
-    // We do not need more granularity in the data so interval is '1d'
-    return {
-      ...queryDatetime,
-      interval: getSeriesApiInterval(dataDatetime),
-      groupBy,
-      field: ['sum(quantity)'],
-      // If only one project is in selected, display the entire project list
-      project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category,
-    };
-  }, [organization, dataDatetime, dataCategory, isSingleProject, projectIds]);
+  const queryKey = useUsageStatsQueryKey({
+    dataCategoryName: dataCategory.name,
+    dataDatetime,
+    isSingleProject,
+    projectIds,
+  });
+  const endpointQuery = queryKey[1]?.query!;
 
   const {
     data: projectStats,
     isError,
     error,
     isPending: loading,
-  } = useApiQuery<UsageSeries>(
-    [
-      `/organizations/${organization.slug}/stats_v2/`,
-      {
-        // We do not need more granularity in the data so interval is '1d'
-        query: endpointQuery,
-      },
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useApiQuery<UsageSeries>(queryKey, {
+    staleTime: Infinity,
+  });
 
   const tableSort: {
     direction: number;
