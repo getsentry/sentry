@@ -1827,12 +1827,12 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         path: '/llm-monitoring/',
-        redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+        redirectTo: `/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
         customerDomainOnlyRoute: true,
       },
       {
         path: '/organizations/:orgId/llm-monitoring/',
-        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
       },
     ],
   };
