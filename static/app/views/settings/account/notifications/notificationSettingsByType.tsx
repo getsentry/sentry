@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Form from 'sentry/components/forms/form';
