@@ -446,9 +446,12 @@ export function ProjectPageFilter({
 }
 
 function shouldCloseOnInteractOutside(target: Element) {
-  // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
-  const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard?.contains(target);
+  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
+  const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
+  const disabledFeatureHovercard = target.closest(
+    '[data-test-id="disabled-feature-hovercard"]'
+  );
+  return !powerHovercard && !disabledFeatureHovercard;
 }
 
 function checkboxWrapper(
@@ -467,6 +470,7 @@ function checkboxWrapper(
               featureName={t('Multiple Project Selection')}
             />
           }
+          data-test-id="disabled-feature-hovercard"
         >
           {typeof props.children === 'function' ? props.children(props) : props.children}
         </Hovercard>
