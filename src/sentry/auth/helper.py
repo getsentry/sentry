@@ -23,7 +23,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
-from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -38,6 +37,7 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
+from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -210,16 +210,16 @@ class AuthIdentityHandler:
         # TODO(domains) Passing this method the organization should let us consolidate and simplify subdomain
         # state tracking.
         from urllib.parse import urlparse
-        
+
         login_redirect_url = auth.get_login_redirect(self.request)
-        
+
         # Check if this is a mobile app custom URL scheme redirect
         parsed_url = urlparse(login_redirect_url)
-        
+
         # Don't modify mobile app custom URL schemes - return them as-is
         if parsed_url.scheme in ALLOWED_MOBILE_SCHEMES:
             return login_redirect_url
-        
+
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
