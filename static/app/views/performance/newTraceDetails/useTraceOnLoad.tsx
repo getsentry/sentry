@@ -248,8 +248,8 @@ export function useTraceIssuesOnLoad(
     api,
     onTraceLoad,
     organization,
+    options.subscriptionQueryResults.isLoading,
     options.event,
-    options.subscriptionQueryResults,
   ]);
 
   return status;
