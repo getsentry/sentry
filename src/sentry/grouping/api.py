@@ -123,7 +123,7 @@ class GroupingConfigLoader:
                 referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
-            enhancements = _get_default_enhancements()
+            enhancements = _get_default_base64_enhancements()
         cache.set(cache_key, enhancements)
         return enhancements
 
@@ -183,7 +183,7 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def _get_default_enhancements(config_id: str | None = None) -> str:
+def _get_default_base64_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None and config_id in CONFIGURATIONS.keys():
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -209,7 +209,7 @@ def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingCo
     """Returns the default grouping config."""
     if config_id is None:
         config_id = DEFAULT_GROUPING_CONFIG
-    return {"id": config_id, "enhancements": _get_default_enhancements(config_id)}
+    return {"id": config_id, "enhancements": _get_default_base64_enhancements(config_id)}
 
 
 def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
