@@ -50,7 +50,6 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,6 +164,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         ? t('Since First Seen')
                         : undefined
                     }
+                    triggerProps={{
+                      style: {
+                        padding: `${theme.space.md} ${theme.space.lg}`,
+                      },
+                    }}
                   />
                 </PageFilterBar>
                 <EventSearch
@@ -223,6 +227,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+  const theme = useTheme();
 
   return isFixedEnvironment ? (
     <EnvironmentPageFilter
