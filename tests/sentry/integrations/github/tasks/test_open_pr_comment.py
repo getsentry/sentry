@@ -23,7 +23,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -472,7 +471,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:csharp-open-pr-comments")
     def test_csharp_simple(self) -> None:
         group_id_1 = [
             self._create_event(
@@ -498,7 +496,6 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["test.planet", "world"]
 
-    @with_feature("organizations:go-open-pr-comments")
     def test_go_simple(self) -> None:
         # should match function name exactly or struct.functionName
         group_id_1 = [
