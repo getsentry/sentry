@@ -68,7 +68,7 @@ dependencies = [
     "rb==1.10.0",
     "redis==3.4.1",
     "redis-py-cluster==2.1.0",
-    "requests==2.32.3",
+    "requests==2.32.4",
     "requests-oauthlib==1.2.0",
     # [start] jsonschema format validators
     "rfc3339-validator==0.1.2",
@@ -84,7 +84,7 @@ dependencies = [
     "sentry-sdk[http2]==2.29.1",
     "sentry-usage-accountant==0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
-    "setuptools==78.1.1",
+    "setuptools==70.0.0",
     "simplejson==3.17.6",
     "slack-sdk==3.27.2",
     "snuba-sdk==3.0.43",

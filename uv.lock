@@ -1811,7 +1811,7 @@ wheels = [
 
 [[package]]
 name = "requests"
-version = "2.32.3"
+version = "2.32.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1820,7 +1820,7 @@ dependencies = [
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/requests-2.32.4-py3-none-any.whl", hash = "sha256:27babd3cda2a6d50b30443204ee89830707d396671944c998b5975b031ac2b2c" },
 ]
 
 [[package]]
@@ -2159,7 +2159,7 @@ requires-dist = [
     { name = "redis", specifier = "==3.4.1" },
     { name = "redis-py-cluster", specifier = "==2.1.0" },
     { name = "reportlab", specifier = "==4.4.0" },
-    { name = "requests", specifier = "==2.32.3" },
+    { name = "requests", specifier = "==2.32.4" },
     { name = "requests-oauthlib", specifier = "==1.2.0" },
     { name = "rfc3339-validator", specifier = "==0.1.2" },
     { name = "rfc3986-validator", specifier = "==0.1.1" },
@@ -2172,7 +2172,7 @@ requires-dist = [
     { name = "sentry-relay", specifier = "==0.9.10" },
     { name = "sentry-sdk", extras = ["http2"], specifier = "==2.29.1" },
     { name = "sentry-usage-accountant", specifier = "==0.0.10" },
-    { name = "setuptools", specifier = "==78.1.1" },
+    { name = "setuptools", specifier = "==70.0.0" },
     { name = "simplejson", specifier = "==3.17.6" },
     { name = "slack-sdk", specifier = "==3.27.2" },
     { name = "snuba-sdk", specifier = "==3.0.43" },
@@ -2428,10 +2428,10 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "78.1.1"
+version = "70.0.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/setuptools-78.1.1-py3-none-any.whl", hash = "sha256:c3a9c4211ff4c309edb8b8c4f1cbfa7ae324c4ba9f91ff254e3d305b9fd54561" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/setuptools-70.0.0-py3-none-any.whl", hash = "sha256:54faa7f2e8d2d11bcd2c07bed282eef1046b5c080d1c32add737d7b5817b1ad4" },
 ]
 
 [[package]]
