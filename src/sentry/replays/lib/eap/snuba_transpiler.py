@@ -192,6 +192,10 @@ TRACE_ITEM_TYPE_MAP = {
     "replay": TraceItemType.TRACE_ITEM_TYPE_REPLAY,
 }
 
+TRACE_ITEM_TYPES = TLiteral[
+    "span", "error", "log", "uptime_check", "uptime_result", "replay"  # noqa
+]
+
 
 class RequestMeta(TypedDict):
     """
@@ -273,9 +277,7 @@ class RequestMeta(TypedDict):
     referrer: str
     request_id: str
     start_datetime: datetime
-    trace_item_type: TLiteral[
-        "span", "error", "log", "uptime_check", "uptime_result", "replay"  # noqa
-    ]
+    trace_item_type: TRACE_ITEM_TYPES
 
 
 class Settings(TypedDict, total=False):
