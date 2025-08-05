@@ -19,6 +19,7 @@ from snuba_sdk import (
 )
 
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
@@ -101,10 +102,6 @@ def _get_ai_labels_from_tags(alias: str | None = None):
     )
 
 
-# TODO: abstract out the reusable parts of this query into helpers (e.g., getting first tuple element, etc.)
-# And do we need to add a filter so its only feedback types that are counted? how to do...
-# This seems to work (at least locally), with real ingested feedbacks, but changing the dataset to events doesn't work. Why? It worked in testing when I ran factory's store_event and queried the event dataset.
-# Maybe store_event is not representative of how create_feedback_event works?
 def query_top_ai_labels_by_feedback_count(
     organization_id: int,
     project_ids: list[int],
@@ -134,6 +131,7 @@ def query_top_ai_labels_by_feedback_count(
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
         ],
         groupby=[  # XXX: Grouped by an alias defined in select, is this ok?
             Column("tags_value"),
@@ -209,6 +207,7 @@ def query_recent_feedbacks_with_ai_labels(
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
             # Ensure that it has at least one AI-generated label
             Condition(
                 Function(
@@ -230,7 +229,6 @@ def query_recent_feedbacks_with_ai_labels(
                 Op.EQ,
                 1,
             ),
-            # XXX: Should we also have a condition that ensures that it is a feedback? Like checking that it has a feedback message or something?
         ],
         orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         limit=Limit(count),
@@ -256,6 +254,10 @@ def query_given_labels_by_feedback_count(
 
     We can't count feedbacks in each label individually then group in the application layer, because feedbacks can have multiple labels.
     """
+
+    # Raise an error since we need at least one select for a query to be valid
+    if not labels_groups:
+        raise ValueError("labels_groups cannot be empty")
 
     # Creates a countIf for each label group
     count_ifs = []
@@ -298,6 +300,7 @@ def query_given_labels_by_feedback_count(
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
         ],
     )
 
