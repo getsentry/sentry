@@ -15,7 +15,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def post(self, request: Request, organization) -> Response:

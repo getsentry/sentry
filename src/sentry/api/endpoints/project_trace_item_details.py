@@ -230,7 +230,7 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

@@ -203,7 +203,7 @@ def get_disabled_threshold_options(payload, current_settings):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.ISSUE_DETECTION_BACKEND
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
