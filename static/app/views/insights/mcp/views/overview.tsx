@@ -31,7 +31,6 @@ import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hook
 import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -51,6 +50,7 @@ import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTr
 import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
+import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -234,7 +234,7 @@ function McpOverviewPage() {
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
-                  <ModulesOnboardingPanel moduleName={ModuleName.MCP} />
+                  <Onboarding />
                 ) : (
                   <Fragment>
                     <WidgetGrid>
