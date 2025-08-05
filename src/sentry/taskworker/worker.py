@@ -7,7 +7,7 @@ import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing.context import ForkContext, SpawnContext
+from multiprocessing.context import ForkContext, ForkServerContext, SpawnContext
 from multiprocessing.process import BaseProcess
 from typing import Any
 
@@ -41,7 +41,7 @@ class TaskWorker:
     Taskworkers can be run with `sentry run taskworker`
     """
 
-    mp_context: ForkContext | SpawnContext
+    mp_context: ForkContext | SpawnContext | ForkServerContext
 
     def __init__(
         self,
@@ -65,6 +65,10 @@ class TaskWorker:
             self.mp_context = multiprocessing.get_context("fork")
         elif process_type == "spawn":
             self.mp_context = multiprocessing.get_context("spawn")
+        elif process_type == "forkserver":
+            self.mp_context = multiprocessing.get_context("forkserver")
+            modules = ["sentry.taskworker.main"] + list(settings.TASKWORKER_IMPORTS)
+            self.mp_context.set_forkserver_preload(modules)
         else:
             raise ValueError(f"Invalid process type: {process_type}")
         self._process_type = process_type
