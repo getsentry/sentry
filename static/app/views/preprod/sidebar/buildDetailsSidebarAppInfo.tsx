@@ -4,6 +4,7 @@ import {PlatformIcon} from 'platformicons';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
@@ -29,6 +30,10 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
     openInstallModal(props.projectId, props.artifactId);
   };
 
+  // Android uses uncompressed size, other platforms use install size
+  const installSizeText =
+    props.appInfo.platform === 'android' ? t('Uncompressed Size') : t('Install Size');
+
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
@@ -41,11 +46,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
       {props.sizeInfo && (
         <Flex gap="sm">
           <Flex direction="column" gap="xs" style={{flex: 1}}>
-            <Heading as="h4">Install Size</Heading>
+            <Heading as="h4">{installSizeText}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
           </Flex>
           <Flex direction="column" gap="xs" style={{flex: 1}}>
-            <Heading as="h4">Download Size</Heading>
+            <Heading as="h4">{t('Download Size')}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
           </Flex>
         </Flex>
