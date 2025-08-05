@@ -109,6 +109,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "workflow_ids": [self.error_workflow.id],
                 "action_conditions": [self.action_group.id],
                 "filtered_action_groups": [self.action_group.id],
+                "queue_workflows": [],
             },
         )
 

@@ -55,6 +55,11 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
+# Packages that are known to internally escape inputs:
+# - github.com/go-sql-driver/mysql: MySQL driver for Go
+# - sequelize: Sequelize ORM
+# - gorm.io/gorm: GORM ORM for Go
+# - @nestjs/typeorm: NestJS TypeORM
 EXCLUDED_PACKAGES = [
     "github.com/go-sql-driver/mysql",
     "sequelize",
@@ -209,6 +214,7 @@ class SQLInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
+        # If the span is not a database span, we can skip the detection. `db.sql.active_record` is known to cause false positives so it is excluded.
         if (
             not op
             or not op.startswith("db")
@@ -216,6 +222,7 @@ class SQLInjectionDetector(PerformanceDetector):
             or op == "db.sql.active_record"
         ):
             return False
+
         # Auto-generated rails queries can contain interpolated values
         if span.get("origin") == "auto.db.rails":
             return False
@@ -229,6 +236,7 @@ class SQLInjectionDetector(PerformanceDetector):
         if not description:
             return False
 
+        # Only look at SELECT queries that have a WHERE clause and don't have any parameterized keywords
         description = description.strip()
         if (
             description[:6].upper() != "SELECT"
