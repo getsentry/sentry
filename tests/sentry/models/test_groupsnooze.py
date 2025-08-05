@@ -8,6 +8,7 @@ from django.utils import timezone
 import sentry.models.groupsnooze
 from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
@@ -68,6 +69,7 @@ class GroupSnoozeTest(
         assert snooze.is_valid(test_rates=True)
 
     @freeze_time()
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_user_delta_reached(self) -> None:
         for i in range(5):
             self.store_event(

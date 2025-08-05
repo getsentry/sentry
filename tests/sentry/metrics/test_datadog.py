@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, patch
 from datadog.util.hostname import get_hostname
 
 from sentry.metrics.datadog import DatadogMetricsBackend
+from sentry.testutils import thread_leaks
 
 
+@thread_leaks.allowlist(issue=97035, reason="datadog metrics")
 class DatadogMetricsBackendTest(TestCase):
     def setUp(self) -> None:
         self.backend = DatadogMetricsBackend(prefix="sentrytest.")

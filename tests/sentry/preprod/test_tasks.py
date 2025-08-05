@@ -21,9 +21,11 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
 )
+from sentry.testutils import thread_leaks
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
+@thread_leaks.allowlist(issue=97039, reason="preprod tasks")
 class AssemblePreprodArtifactTest(BaseAssembleTest):
     def tearDown(self):
         """Clean up assembly status to prevent test pollution"""

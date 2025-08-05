@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
@@ -28,6 +29,7 @@ def build_mock_message(data, topic=None):
     "sentry.spans.consumers.process_segments.factory.process_segment",
     side_effect=lambda x, **kwargs: x,
 )
+@thread_leaks.allowlist(issue=97044, reason="spans processing")
 def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) -> None:
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition_1 = Partition(topic, 0)

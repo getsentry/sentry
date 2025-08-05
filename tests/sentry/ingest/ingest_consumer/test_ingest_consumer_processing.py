@@ -29,6 +29,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.testutils import thread_leaks
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
@@ -331,6 +332,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @django_db_all
 @requires_symbolicator
 @pytest.mark.symbolicator
+@thread_leaks.allowlist(issue=97036, reason="django dev server")
 def test_deobfuscate_view_hierarchy(
     default_project, task_runner, set_sentry_option, live_server
 ) -> None:

@@ -25,6 +25,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.system_incidents import DecisionResult, TickAnomalyDecision
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -117,6 +118,7 @@ def test_incident_mark_unknown(
 
 class MonitorsClockTickEndToEndTest(TestCase):
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    @thread_leaks.allowlist(issue=97032, reason="monitors")
     def test_end_to_end(self) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)
 

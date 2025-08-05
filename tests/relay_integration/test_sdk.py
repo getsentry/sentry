@@ -10,6 +10,7 @@ from sentry import eventstore
 from sentry.eventstore.models import Event
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
+from sentry.testutils import thread_leaks
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
@@ -61,6 +62,7 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
+@thread_leaks.allowlist(issue=97040, reason="relay integration tests")
 def test_simple(settings, post_event_with_sdk) -> None:
     event = post_event_with_sdk({"message": "internal client test"})
 
