@@ -124,7 +124,7 @@ class GroupingContext:
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.event = event
-        self.push()
+        self._push_context_layer()
         self["variant"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
@@ -144,13 +144,13 @@ class GroupingContext:
             return default
 
     def __enter__(self) -> Self:
-        self.push()
+        self._push_context_layer()
         return self
 
     def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
         self.pop()
 
-    def push(self) -> None:
+    def _push_context_layer(self) -> None:
         self._stack.append({})
 
     def pop(self) -> None:
