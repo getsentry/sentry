@@ -14,6 +14,7 @@ from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, Feedba
 from sentry.feedback.usecases.label_generation import (
     AI_LABEL_TAG_PREFIX,
     MAX_AI_LABELS,
+    MAX_AI_LABELS_JSON_LENGTH,
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
@@ -26,7 +27,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
@@ -362,6 +363,7 @@ def create_feedback_issue(
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
+            # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(
                     "Feedback message has more than the maximum allowed labels.",
@@ -373,8 +375,15 @@ def create_feedback_issue(
                 )
                 labels = labels[:MAX_AI_LABELS]
 
+            # Truncate the labels so the serialized list is within the allowed length
+            while len(json.dumps(labels)) > MAX_AI_LABELS_JSON_LENGTH:
+                labels.pop()
+
+            labels.sort()
+
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.label.{idx}"] = label
+            event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
 
