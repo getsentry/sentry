@@ -238,6 +238,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             queryset=queryset,
             order_by=sort_by.db_order_by,
             on_results=lambda x: serialize(x, request.user),
+            count_hits=True,
         )
 
     @extend_schema(
