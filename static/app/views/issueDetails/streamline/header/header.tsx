@@ -4,6 +4,7 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -84,6 +85,8 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
 
+  const hasErrorUpsampling = project.features.includes('error-upsampling');
+
   const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
@@ -117,7 +120,7 @@ export default function StreamlinedGroupHeader({
     <Fragment>
       <Header>
         <Flex justify="between">
-          <Flex align="center">
+          <Flex align="center" gap="md">
             <StyledBreadcrumbs
               crumbs={[
                 {
@@ -132,6 +135,15 @@ export default function StreamlinedGroupHeader({
                 },
               ]}
             />
+            {hasErrorUpsampling && (
+              <Tooltip
+                title={t(
+                  'Error counts on this page have been upsampled based on your sampling rate.'
+                )}
+              >
+                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+              </Tooltip>
+            )}
           </Flex>
           <ButtonBar gap="xs">
             {!hasOnlyOneUIOption && !isQueryInjection && (
@@ -409,4 +421,10 @@ const Title = styled('div')`
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
+        
+const StyledTag = styled(Tag)`
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
+
 `;
