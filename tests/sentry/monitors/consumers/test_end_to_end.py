@@ -29,6 +29,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException
 from sentry.monitors.types import CheckinItem
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -46,6 +47,7 @@ def create_consumer():
     return factory.create_with_partitions(commit, {partition: 0})
 
 
+@thread_leaks.allowlist(issue=97032, reason="monitors")
 class MonitorsClockTickEndToEndTest(TestCase):
     def send_checkin(
         self,
