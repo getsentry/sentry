@@ -602,8 +602,11 @@ export function useReleaseBubbles({
          *
          * Attach directly to instance to avoid collisions with React props
          */
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('click', handleSeriesClick);
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseover', handleMouseOver);
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseout', handleMouseOut);
         echartsInstance.on('globalout', handleGlobalOut);
         // @ts-expect-error ECharts types `params` as unknown

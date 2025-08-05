@@ -125,7 +125,7 @@ function TagsHeatMap(
   // TODO(k-fish): Replace with actual theme colors.
   const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
-  const xValues = new Set();
+  const xValues = new Set<string>();
 
   const histogramData = tableData?.histogram?.data?.length
     ? tableData.histogram.data
@@ -184,7 +184,8 @@ function TagsHeatMap(
         show: true,
         showMinLabel: true,
         showMaxLabel: true,
-        formatter: (value: number) => axisLabelFormatter(value, 'number'),
+        formatter: (value: string | number) =>
+          axisLabelFormatter(value as number, 'number'),
       },
       axisLine: {},
       axisPointer: {
