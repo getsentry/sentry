@@ -53,7 +53,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         return True
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -86,8 +86,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         return True
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)

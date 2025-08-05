@@ -125,7 +125,7 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
+        if not self._is_span_eligible(span) or not self.request_parameters:
             return
         description = span.get("description") or ""
         op = span.get("op") or ""
@@ -206,8 +206,7 @@ class SQLInjectionDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         if not span.get("span_id"):
             return False
 
