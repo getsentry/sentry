@@ -245,6 +245,15 @@ def _fetch_profile_data(
             params={"format": "sample"},
         )
 
+    logger.info(
+        "Got response from profiling service",
+        extra={
+            "profile_id": profile_id,
+            "is_continuous": is_continuous,
+            "response.status": response.status,
+            "response.msg": response.msg,
+        },
+    )
     if response.status == 200:
         return orjson.loads(response.data)
     return None
@@ -310,22 +319,56 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
     seen_spans = set()
     unique_profiles = []
 
+    logger.info(
+        "Span query for profiles completed",
+        extra={
+            "num_rows": len(profiles_result.get("data", [])),
+        },
+    )
+
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
         profile_id = row.get("profile.id")  # Transaction profiles
         profiler_id = row.get("profiler.id")  # Continuous profiles
         transaction_name = row.get("transaction")
 
+        logger.info(
+            "Iterating over span to get profiles",
+            extra={
+                "span_id": span_id,
+                "profile_id": profile_id,
+                "profiler_id": profiler_id,
+                "transaction_name": transaction_name,
+            },
+        )
+
         if not span_id or span_id in seen_spans:
+            logger.info(
+                "Span already seen or doesn't have an id, skipping",
+                extra={"span_id": span_id},
+            )
             continue
 
         # Use profile.id first (transaction profiles), fallback to profiler.id (continuous profiles)
         actual_profile_id = profile_id or profiler_id
         if not actual_profile_id:
+            logger.info(
+                "Span doesn't have a profile or profiler id, skipping",
+                extra={"span_id": span_id},
+            )
             continue
 
         # Determine if this is a continuous profile (profiler.id without profile.id)
         is_continuous = profile_id is None and profiler_id is not None
+
+        logger.info(
+            "Span is continuous and has profile",
+            extra={
+                "span_id": span_id,
+                "is_continuous": is_continuous,
+                "actual_profile_id": actual_profile_id,
+            },
+        )
 
         seen_spans.add(span_id)
         unique_profiles.append(
