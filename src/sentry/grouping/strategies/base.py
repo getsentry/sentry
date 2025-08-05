@@ -202,10 +202,11 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        rv = strategy(interface, **kwargs)
-        assert isinstance(rv, dict)
 
-        return rv
+        components_by_variant = strategy(interface, **kwargs)
+        assert isinstance(components_by_variant, dict)
+
+        return components_by_variant
 
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
