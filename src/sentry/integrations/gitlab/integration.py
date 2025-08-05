@@ -335,7 +335,11 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
             try:
                 file_modifications = patch_to_file_modifications(diff["diff"])
             except PatchParseError:
-                logger.exception(
+                # TODO: This is caused because of the diffs are not in the correct format.
+                # This happens for Gitlab versions older than 16.5.
+                # The fix for this is to rebuild a consistent format using the other parts of the response.
+                # https://gitlab.com/gitlab-org/gitlab/-/issues/24913#note_1015454661
+                logger.warning(
                     _open_pr_comment_log(
                         integration_name=self.integration.integration_name,
                         suffix="patch_parsing_error",
