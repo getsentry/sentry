@@ -5,8 +5,6 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
-from sentry.models.organization import Organization
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils.auth import is_valid_redirect
 
