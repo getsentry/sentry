@@ -68,7 +68,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = OrganizationUserReportsPermission
+    permission_classes = (OrganizationUserReportsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -238,7 +238,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
 
         categories.sort(key=lambda x: x["feedback_count"], reverse=True)
         # XXX: maybe we should do something like figure out where the biggest drop of feedback count is and then stop there? Instead of just hardcoding getting top 4 groups
-        categories = categories[:4]  # Get at most 4 categories
+        categories = categories[:4]
 
         cache.set(
             categorization_cache_key,
