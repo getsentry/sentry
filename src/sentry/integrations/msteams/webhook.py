@@ -505,13 +505,16 @@ class MsTeamsWebhookEndpoint(Endpoint):
             except client.ApiError as e:
                 if e.status_code == 403:
                     lifecycle.record_halt(e)
+                    return self.respond(status=e.status_code, context={"detail": "Permission denied."})
                 # If the user hasn't configured their releases properly, we recieve errors like:
                 # sentry.api.client.ApiError: status=400 body={'statusDetails': {'inNextRelease': [xxx])]}}"
                 # We can mark these as halt
                 elif e.status_code == 400 and e.body.get("statusDetails", {}).get("inNextRelease"):
                     lifecycle.record_halt(e)
+                    return self.respond(status=e.status_code, context=e.body)
                 elif e.status_code >= 400:
                     lifecycle.record_failure(e)
+                    return self.respond(status=e.status_code, context=e.body)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
