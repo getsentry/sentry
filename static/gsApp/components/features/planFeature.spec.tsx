@@ -170,4 +170,31 @@ describe('PlanFeature', function () {
       });
     });
   });
+
+  it('returns global-views in business plan even if response does not include it', async function () {
+    const mockFn = jest.fn(() => null);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      query: {tier: 'am1'},
+      body: BillingConfigFixture(PlanTier.AM1),
+    });
+
+    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <PlanFeature organization={organization} features={['global-views']}>
+        {mockFn}
+      </PlanFeature>
+    );
+
+    await waitFor(() => {
+      expect(mockFn).toHaveBeenCalledWith({
+        plan: PlanDetailsLookupFixture('am1_business'),
+        tierChange: 'am1',
+      });
+    });
+  });
 });

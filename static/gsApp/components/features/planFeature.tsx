@@ -87,6 +87,15 @@ function PlanFeature({subscription, features, organization, children}: Props) {
 
   plans = matchPlanConfiguration();
 
+  // HACK: we want to remove `global-views` from getsentry and move it to flagpole,
+  // but since PlanFeature hooks into getsentry to determine which plan
+  // `global-views` is in, we need to hardcode it into the plans here
+  for (const plan of plans) {
+    if (isBizPlanFamily(plan) || plan.id.includes('mm2')) {
+      plan.features.push('global-views');
+    }
+  }
+
   // XXX: Enterprise plans are *not* user selectable, but should be included
   // in the list of plans. Unfortunately we don't distinguish between Trial /
   // Friends & Family / Enterprise, so we hardcode the name here.
