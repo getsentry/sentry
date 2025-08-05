@@ -35,7 +35,7 @@ class OrganizationPageWebVitalsSummaryEndpoint(OrganizationEventsV2EndpointBase)
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     enforce_rate_limit = True
     rate_limits = {
         "POST": {

@@ -28,7 +28,7 @@ class MemberPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization, request):
@@ -75,7 +75,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization, request):
