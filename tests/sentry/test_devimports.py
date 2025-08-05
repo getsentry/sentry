@@ -15,20 +15,35 @@ XFAIL = (
 EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")
 
 
+def extract_packages(lines: list[str]) -> set[str]:
+    packages = set()
+    for line in lines:
+        spec = line.split(" ")[0]
+        packages.add(spec.split("==")[0])
+    return packages
+
+
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
     out = subprocess.run(
         ("uv", "export", "--only-dev", "--no-hashes", "--no-annotate", "--no-header"),
         capture_output=True,
     )
-    dev_packages = set()
-    for line in out.stdout.decode().splitlines():
-        spec = line.split(" ")[0]
-        dev_packages.add(spec.split("==")[0])
+    dev_packages = extract_packages(out.stdout.decode().splitlines())
+
+    out = subprocess.run(
+        ("uv", "export", "--no-hashes", "--no-annotate", "--no-header"),
+        capture_output=True,
+    )
+    prod_packages = extract_packages(out.stdout.decode().splitlines())
+
+    # We have some packages that are both runtime + dev
+    # but we only care about packages that are exclusively dev deps
+    devonly = dev_packages - prod_packages
 
     module_names = []
     for mod, packages in importlib.metadata.packages_distributions().items():
-        if dev_packages.intersection(packages):
+        if devonly.intersection(packages):
             module_names.append(mod)
     return tuple(sorted(module_names))
 
