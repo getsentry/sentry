@@ -1061,8 +1061,8 @@ def test_create_feedback_issue_title_from_seer(
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert produced_event["issue_title"] == "User Feedback: Login Button Issue"
+    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+    assert occurrence.issue_title == "User Feedback: Login Button Issue"
 
 
 @django_db_all
@@ -1078,11 +1078,8 @@ def test_create_feedback_issue_title_from_seer_fallback(
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert (
-        produced_event["issue_title"]
-        == "User Feedback: The login button is broken and the UI is slow"
-    )
+    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+    assert occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
 
 
 @django_db_all
@@ -1101,8 +1098,5 @@ def test_create_feedback_issue_title_from_seer_none(
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
-    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-    assert (
-        produced_event["issue_title"]
-        == "User Feedback: The login button is broken and the UI is slow"
-    )
+    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+    assert occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
