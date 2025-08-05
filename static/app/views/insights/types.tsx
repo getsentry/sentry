@@ -432,7 +432,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type ConditionAggregateOperator =
+type ConditionalAggregateOperator =
   | 'equals'
   | 'notEquals'
   | 'lessOrEquals'
@@ -488,7 +488,7 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as `${Property}(${SpanNumberFields},${string},${ConditionAggregateOperator},${string})`]: number;
+    [Property in ConditionalAggregate as `${Property}(${SpanNumberFields},${string},${ConditionalAggregateOperator},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
   } & {
     [Property in SingleArgConditionalAggregate as `${Property}(${string})`]: number;
@@ -501,13 +501,13 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${ConditionAggregateOperator},${string})`]: number;
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${ConditionalAggregateOperator},${string})`]: number;
   } & {
     [Property in SpanNumberFields as `${SpanFunction.AVG_COMPARE}(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanNumberFields as `${SpanFunction.DIVISION_IF}(${Property},${Property},${string},${ConditionAggregateOperator},${string})`]: number;
+    [Property in SpanNumberFields as `${SpanFunction.DIVISION_IF}(${Property},${Property},${string},${ConditionalAggregateOperator},${string})`]: number;
   } & {
-    [Property in SpanFields as `count_if(${Property},${ConditionAggregateOperator},${string})`]: number;
+    [Property in SpanFields as `count_if(${Property},${ConditionalAggregateOperator},${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;
