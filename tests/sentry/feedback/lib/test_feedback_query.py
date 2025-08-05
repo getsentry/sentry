@@ -90,7 +90,6 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
         ]
 
-        # Create all the feedback issues
         for data in feedback_data:
             self.store_search_issue(
                 project_id=self.project.id,
@@ -123,8 +122,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             referrer="replays.query.viewed_by_query",  # TODO: Change this
         )
 
-        assert len(result["data"]) == 7  # All 7 standard feedbacks
-        # Check that we get all the unique labels from our standard feedbacks
+        assert len(result["data"]) == 7
         all_labels = set()
         for row in result["data"]:
             all_labels.update(row["labels"])
@@ -148,7 +146,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             count=5,
         )
 
-        assert len(result) == 4  # Should have 4 unique labels
+        assert len(result) == 4
 
         assert result[0]["tags_value"] == "User Interface"
         assert result[0]["count"] == 4
@@ -175,7 +173,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert result_single[0]["tags_value"] == "User Interface"
         assert result_single[0]["count"] == 4
 
-        # Test edge case: query with no feedbacks in time range should return empty
+        # Query with no feedbacks in time range should return empty
         result_empty = query_top_ai_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -186,10 +184,10 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(result_empty) == 0
 
-        # Test edge case: query with non-existent project should return empty
+        # Query with non-existent project should return empty
         result_no_project = query_top_ai_labels_by_feedback_count(
             organization_id=self.organization.id,
-            project_ids=[99999],  # Non-existent project
+            project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
             end=before_now(minutes=-1),
             count=5,
@@ -215,7 +213,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert "feedback" in feedback
             assert isinstance(feedback["labels"], list)
             assert isinstance(feedback["feedback"], str)
-            assert len(feedback["labels"]) > 0  # Should have at least one AI label
+            assert len(feedback["labels"]) > 0
 
         feedback_messages = [f["feedback"] for f in result]
         assert "The UI is too slow and confusing" in feedback_messages
@@ -226,7 +224,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "The interface is slow and the design is confusing" in feedback_messages
         assert "Password reset functionality is broken" in feedback_messages
 
-        # Test edge case: query with count=2 should return only the 2 most recent feedbacks
+        # Query with count=2 should return only the 2 most recent feedbacks
         result_limited = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -237,7 +235,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(result_limited) == 2
 
-        # Test edge case: query with no feedbacks in time range should return empty
+        # Query with no feedbacks in time range should return empty
         result_empty = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -248,10 +246,10 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(result_empty) == 0
 
-        # Test edge case: query with non-existent project should return empty
+        # Query with non-existent project should return empty
         result_no_project = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
-            project_ids=[99999],  # Non-existent project
+            project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
             end=before_now(minutes=-1),
             count=10,
@@ -292,7 +290,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Group 2: ["User Interface"]
         assert row["count_if_2"] == 4
 
-        # Test edge case: empty label groups should throw a ValueError
+        # Empty label groups should throw a ValueError
         with pytest.raises(ValueError):
             query_given_labels_by_feedback_count(
                 organization_id=self.organization.id,
@@ -302,7 +300,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 labels_groups=[],
             )
 
-        # Test edge case: label groups with no matching feedbacks
+        # Label groups with no matching feedbacks
         no_match_result = query_given_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -314,7 +312,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(no_match_result) == 1
         assert no_match_result[0]["count_if_0"] == 0
 
-        # Test edge case: query with no feedbacks in time range should return 0
+        # Query with no feedbacks in time range should return 0
         empty_time_result = query_given_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -328,10 +326,10 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert empty_time_result[0]["count_if_1"] == 0
         assert empty_time_result[0]["count_if_2"] == 0
 
-        # Test edge case: query with non-existent project should return 0
+        # Query with non-existent project should return 0
         no_project_result = query_given_labels_by_feedback_count(
             organization_id=self.organization.id,
-            project_ids=[99999],  # Non-existent project
+            project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
             end=before_now(minutes=-1),
             labels_groups=label_groups,
