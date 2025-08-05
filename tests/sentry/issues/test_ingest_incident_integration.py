@@ -24,6 +24,14 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             projects=[self.project],
             name="Test Alert Rule",
         )
+        self.detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+        )
+        self.alert_rule_detector = self.create_alert_rule_detector(
+            alert_rule_id=self.alert_rule.id,
+            detector=self.detector,
+        )
 
     def save_issue_occurrence(
         self, group_type: int = MetricIssue.type_id
@@ -40,7 +48,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
-            "evidence_data": {"alert_id": self.alert_rule.id},
+            "evidence_data": {"detector_id": self.detector.id},
             "evidence_display": [
                 {"name": "Test Evidence", "value": "Test Value", "important": True}
             ],
@@ -84,7 +92,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert group is not None
 
         open_period = GroupOpenPeriod.objects.get(group=group)
-        assert open_period.data["pending_incident_alert_id"] == self.alert_rule.id
+        assert open_period.data["pending_incident_detector_id"] == self.detector.id
 
         assert not IncidentGroupOpenPeriod.objects.filter(group_open_period=open_period).exists()
 
