@@ -402,7 +402,7 @@ class Exception(Interface):
     def __iter__(self):
         return iter(self.exceptions())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.exceptions())
 
     @classmethod

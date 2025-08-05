@@ -62,7 +62,7 @@ class OrganizationStatus(IntEnum):
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @property
@@ -231,7 +231,7 @@ class Organization(ReplicatedRegionModel):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     snowflake_redis_key = "organization_snowflake_key"

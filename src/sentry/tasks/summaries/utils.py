@@ -54,7 +54,7 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
 
 
@@ -91,7 +91,7 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.replay_count_by_day = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",

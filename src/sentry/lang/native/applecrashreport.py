@@ -71,7 +71,7 @@ class AppleCrashReport:
                 self.image_addrs_to_vmaddrs[new_image["image_addr"]] = new_image["image_vmaddr"]
 
     @sentry_sdk.trace
-    def __str__(self):
+    def __str__(self) -> str:
         rv = []
         rv.append(self._get_meta_header())
         rv.append(self._get_exception_info())
