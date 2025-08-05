@@ -247,45 +247,39 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
     def test_count_comparison_condition_with_upsampling(self) -> None:
         """Test that EventFrequencyCondition uses upsampled counts when upsampling is enabled"""
 
-        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
-            # Override create_events to create events with sample weights
-            original_create_events = self.create_events
-
-            def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
-                # Create current events with sample weights for the first query
-                event = self.create_event(
-                    self.project.id,
-                    FROZEN_TIME,
-                    "group-1",  # Use same fingerprint as original create_events
-                    self.environment.name,
-                    contexts={"error_sampling": {"client_sample_rate": 0.2}},
-                )
+        def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
+            # Create current events with sample weights for the first query
+            event = self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={"error_sampling": {"client_sample_rate": 0.2}},
+            )
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            if comparison_type == ComparisonType.PERCENT:
+                # Create a past event for the second query
                 self.create_event(
                     self.project.id,
-                    FROZEN_TIME,
-                    "group-1",  # Use same fingerprint as original create_events
+                    FROZEN_TIME - timedelta(hours=1, minutes=10),
+                    "group-1",
                     self.environment.name,
                     contexts={
                         "error_sampling": {"client_sample_rate": 0.2}
                     },  # 1/5 sampling = 5x weight
                 )
-                if comparison_type == ComparisonType.PERCENT:
-                    # Create a past event for the second query
-                    self.create_event(
-                        self.project.id,
-                        FROZEN_TIME - timedelta(hours=1, minutes=10),
-                        "group-1",
-                        self.environment.name,
-                        contexts={
-                            "error_sampling": {"client_sample_rate": 0.2}
-                        },  # 1/5 sampling = 5x weight
-                    )
-                return event
+            return event
 
-            # Temporarily replace create_events method
-            self.create_events = create_events_with_sampling
-
-            try:
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            with patch.object(self, "create_events", side_effect=create_events_with_sampling):
                 condition_data = self.create_event_frequency_condition(interval=self.interval)
                 condition_groups, group_id, unique_queries = self.create_condition_groups(
                     [condition_data]
@@ -297,9 +291,6 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
                 assert results == {
                     unique_queries[0]: {group_id: 10},
                 }
-            finally:
-                # Restore original method
-                self.create_events = original_create_events
 
     def test_percent_comparison_condition(self) -> None:
         condition_data = self.create_event_frequency_condition(
@@ -320,47 +311,41 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
     def test_percent_comparison_condition_with_upsampling(self) -> None:
         """Test that EventFrequencyCondition uses upsampled counts for percent comparison when upsampling is enabled"""
 
-        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
-            # Override create_events to create events with sample weights
-            original_create_events = self.create_events
-
-            def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
-                # Create current events with sample weights for the first query
-                event = self.create_event(
-                    self.project.id,
-                    FROZEN_TIME,
-                    "group-1",  # Use same fingerprint as original create_events
-                    self.environment.name,
-                    contexts={
-                        "error_sampling": {"client_sample_rate": 0.2}
-                    },  # 1/5 sampling = 5x weight
-                )
+        def create_events_with_sampling(comparison_type: ComparisonType) -> Event:
+            # Create current events with sample weights for the first query
+            event = self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME,
+                "group-1",  # Use same fingerprint as original create_events
+                self.environment.name,
+                contexts={
+                    "error_sampling": {"client_sample_rate": 0.2}
+                },  # 1/5 sampling = 5x weight
+            )
+            if comparison_type == ComparisonType.PERCENT:
+                # Create a past event for the second query with sample weights
                 self.create_event(
                     self.project.id,
-                    FROZEN_TIME,
-                    "group-1",  # Use same fingerprint as original create_events
+                    FROZEN_TIME - timedelta(hours=1, minutes=10),
+                    "group-1",
                     self.environment.name,
                     contexts={
                         "error_sampling": {"client_sample_rate": 0.2}
                     },  # 1/5 sampling = 5x weight
                 )
-                if comparison_type == ComparisonType.PERCENT:
-                    # Create a past event for the second query with sample weights
-                    self.create_event(
-                        self.project.id,
-                        FROZEN_TIME - timedelta(hours=1, minutes=10),
-                        "group-1",
-                        self.environment.name,
-                        contexts={
-                            "error_sampling": {"client_sample_rate": 0.2}
-                        },  # 1/5 sampling = 5x weight
-                    )
-                return event
+            return event
 
-            # Temporarily replace create_events method
-            self.create_events = create_events_with_sampling
-
-            try:
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            with patch.object(self, "create_events", side_effect=create_events_with_sampling):
                 condition_data = self.create_event_frequency_condition(
                     interval=self.interval,
                     comparison_type=ComparisonType.PERCENT,
@@ -381,9 +366,6 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
                     present_percent_query: {group_id: 10},
                     offset_percent_query: {group_id: 5},
                 }
-            finally:
-                # Restore original method
-                self.create_events = original_create_events
 
     def test_count_percent_nonexistent_fast_conditions_together(self) -> None:
         """
