@@ -31,6 +31,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
@@ -5684,6 +5685,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(

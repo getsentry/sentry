@@ -8,6 +8,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.models.eventattachment import EventAttachment
 from sentry.tasks.relay import invalidate_project_config
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
@@ -169,6 +170,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         attachment = EventAttachment.objects.get(project_id=self.project.id, event_id=event_id)
         assert attachment.group_id == event.group_id
 
+    @thread_leaks.allowlist(issue=97046, reason="kafka testutils")
     def test_blob_only_attachment(self) -> None:
         event_id = uuid4().hex
 

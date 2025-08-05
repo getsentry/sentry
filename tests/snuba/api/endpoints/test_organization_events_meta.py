@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import (
     APITestCase,
     MetricsEnhancedPerformanceTestCase,
@@ -619,6 +620,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
 
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_order_by(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()

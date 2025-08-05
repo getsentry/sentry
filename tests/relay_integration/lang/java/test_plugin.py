@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.testutils import thread_leaks
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
@@ -395,6 +396,7 @@ class AnotherClassInSameFile {
 
 
 @pytest.mark.django_db(transaction=True)
+@thread_leaks.allowlist(issue=97046, reason="kafka testutils")
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
@@ -541,6 +543,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    @thread_leaks.allowlist(issue=97042, reason="sentry sdk background worker")
     def test_resolving_does_not_fail_when_no_module_or_function(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
