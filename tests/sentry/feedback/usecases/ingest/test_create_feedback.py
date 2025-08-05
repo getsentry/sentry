@@ -1047,20 +1047,28 @@ def test_create_feedback_issue_title_from_seer(
     default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue uses the generated title from Seer."""
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+    with Feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:user-feedback-ai-titles": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-    mock_seer_response(
-        status=200,
-        body='{"title": "Login Button Issue"}',
-    )
-    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        mock_seer_response(
+            status=200,
+            body='{"title": "Login Button Issue"}',
+        )
+        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-    assert occurrence.issue_title == "User Feedback: Login Button Issue"
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert occurrence.issue_title == "User Feedback: Login Button Issue"
 
 
 @django_db_all
@@ -1069,17 +1077,27 @@ def test_create_feedback_issue_title_from_seer_fallback(
     default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that the title falls back to message-based title if Seer call fails."""
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+    with Feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:user-feedback-ai-titles": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-    mock_seer_response(body=Exception("Network Error"))
-    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        mock_seer_response(body=Exception("Network Error"))
+        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-    assert occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert (
+            occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
+        )
 
 
 @django_db_all
@@ -1088,17 +1106,27 @@ def test_create_feedback_issue_title_from_seer_none(
     default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that the title falls back to message-based title if Seer call returns None."""
-    event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+    with Feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:user-feedback-ai-titles": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-    mock_seer_response(
-        status=200,
-        body='{"title": ""}',
-    )
-    with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
-        mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
-        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        mock_seer_response(
+            status=200,
+            body='{"title": ""}',
+        )
+        with patch("sentry.feedback.usecases.title_generation.sign_with_seer_secret") as mock_sign:
+            mock_sign.return_value = {"sentry-seer-signature": "test-signature"}
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-    assert occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert (
+            occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
+        )
