@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from datetime import timezone
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
@@ -162,12 +164,14 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     def test_post_success(self) -> None:
         """Test successful POST creates job and schedules task"""
-        now = datetime.datetime.now()
-        before = now - datetime.timedelta(days=1)
-        after = now + datetime.timedelta(days=1)
+        # Figure out if theres any weird timezone issues.
+        now = datetime.datetime.now(tz=ZoneInfo("US/Eastern"))
+        now2 = datetime.datetime.now(tz=timezone.utc)
+        before = now - datetime.timedelta(minutes=1)
+        after = now + datetime.timedelta(minutes=1)
         replay_id = uuid.uuid4().hex
         self.store_replays(
-            mock_replay(now, self.project.id, replay_id, segment_id=0, environment="prod")
+            mock_replay(now2, self.project.id, replay_id, segment_id=0, environment="prod")
         )
 
         data = {
@@ -541,4 +545,5 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
             format="json",
         )
         assert response.status_code == 200
+        assert response.data["data"]["id"] == job.id
         assert response.data["data"]["id"] == job.id
