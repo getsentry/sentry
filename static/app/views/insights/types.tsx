@@ -488,7 +488,7 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as `${Property}(${SpanNumberFields},${string},${ConditionalAggregateOperator},${string})`]: number;
+    [Property in ConditionalAggregate as `${Property}(${string},${ConditionalAggregateOperator},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
   } & {
     [Property in SingleArgConditionalAggregate as `${Property}(${string})`]: number;
