@@ -62,7 +62,7 @@ class NodeData(MutableMapping[str, Any]):
     def __iter__(self):
         return iter(self.data)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
     def __repr__(self) -> str:
