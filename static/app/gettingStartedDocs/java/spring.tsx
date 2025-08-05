@@ -205,8 +205,16 @@ try {
 
 const getSentryPropertiesSnippet = (params: Params) =>
   `${
+    params.isLogsSelected
+      ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
+# We recommend adjusting this value in production.
 traces-sample-rate=1.0`
       : ''
   }`;
