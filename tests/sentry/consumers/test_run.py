@@ -7,7 +7,7 @@ from sentry.utils.imports import import_string
 
 
 @pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))
-def test_all_importable(consumer_def, settings):
+def test_all_importable(consumer_def, settings) -> None:
     name: str
     defn: ConsumerDefinition
     name, defn = consumer_def

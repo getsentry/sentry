@@ -1,7 +1,7 @@
-""" This module offers the same functionality as sessions_v2, but pulls its data
+"""This module offers the same functionality as sessions_v2, but pulls its data
 from the `metrics` dataset instead of `sessions`.
 
-Do not call this module directly. Use the `release_health` service instead. """
+Do not call this module directly. Use the `release_health` service instead."""
 
 import logging
 from abc import ABC, abstractmethod

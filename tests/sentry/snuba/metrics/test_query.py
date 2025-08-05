@@ -544,7 +544,7 @@ def test_series_and_totals_validation() -> None:
         ),
     ],
 )
-def test_granularity_validation(stats_period, interval, error_message):
+def test_granularity_validation(stats_period, interval, error_message) -> None:
     period_t = parse_stats_period(stats_period)
     assert period_t is not None
     interval_t = parse_stats_period(interval)
@@ -593,7 +593,7 @@ def test_validate_metric_field_mri() -> None:
         ),
     ],
 )
-def test_validate_interval(select, interval, series):
+def test_validate_interval(select, interval, series) -> None:
     metrics_query = MetricsQueryBuilder().with_include_series(series)
     if select:
         metrics_query = metrics_query.with_select(select)

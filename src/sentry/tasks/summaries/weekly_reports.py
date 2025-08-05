@@ -67,10 +67,10 @@ logger = logging.getLogger(__name__)
     taskworker_config=TaskworkerConfig(
         namespace=reports_tasks,
         retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=10),
+        processing_deadline_duration=timedelta(minutes=15),
     ),
 )
-@retry
+@retry(timeouts=True)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:

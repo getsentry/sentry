@@ -1,16 +1,12 @@
-from functools import wraps
-
-import sentry_sdk
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.taskworker.retry import retry_task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.types import WorkflowEventData
@@ -89,18 +85,15 @@ def build_workflow_event_data_from_event(
     )
 
 
-def retry_timeouts(func):
-    """
-    Schedule a task retry if the function raises ProcessingDeadlineExceeded.
-    This exists because the standard retry decorator doesn't allow BaseExceptions.
-    """
+def build_workflow_event_data_from_activity(
+    activity_id: int,
+    group_id: int,
+) -> WorkflowEventData:
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except ProcessingDeadlineExceeded:
-            sentry_sdk.capture_exception(level="info")
-            retry_task()
+    activity = Activity.objects.get(id=activity_id)
+    group = Group.objects.get(id=group_id)
 
-    return wrapper
+    return WorkflowEventData(
+        event=activity,
+        group=group,
+    )

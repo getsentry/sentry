@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import APITestCase
@@ -67,7 +67,7 @@ class TestTempestCredentials(APITestCase):
     @patch(
         "sentry.tempest.endpoints.tempest_credentials.TempestCredentialsEndpoint.create_audit_entry"
     )
-    def test_create_tempest_credentials(self, create_audit_entry):
+    def test_create_tempest_credentials(self, create_audit_entry: MagicMock) -> None:
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             response = self.get_success_response(
@@ -88,7 +88,9 @@ class TestTempestCredentials(APITestCase):
     @patch(
         "sentry.tempest.endpoints.tempest_credentials.TempestCredentialsEndpoint.create_audit_entry"
     )
-    def test_create_tempest_credentials_enabled_console_platforms(self, create_audit_entry):
+    def test_create_tempest_credentials_enabled_console_platforms(
+        self, create_audit_entry: MagicMock
+    ) -> None:
         with Feature({"organizations:project-creation-games-tab": True}):
             self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
             self.login_as(self.user)

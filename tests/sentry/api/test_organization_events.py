@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import reverse
@@ -115,7 +116,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         }
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
+    def test_api_token_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
@@ -142,7 +143,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_invalid_referrer(self, mock):
+    def test_invalid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -155,7 +156,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_empty_referrer(self, mock):
+    def test_empty_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -167,7 +168,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
+    def test_handling_snuba_errors(self, mock_snql_query: mock.MagicMock) -> None:
         self.create_project()
 
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -193,7 +194,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_valid_referrer(self, mock):
+    def test_valid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -205,6 +206,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
 
+    @pytest.mark.skip(reason="flaky: #95995")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:
         query = {

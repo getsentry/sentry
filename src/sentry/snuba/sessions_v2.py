@@ -392,7 +392,7 @@ class QueryDefinition:
                 if condition.lhs.function == "match":
                     raise InvalidField("Invalid condition: wildcard search is not supported")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
 
 

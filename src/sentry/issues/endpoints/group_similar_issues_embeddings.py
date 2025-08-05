@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
+from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -124,19 +125,20 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         results = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
-            "group_similar_issues_embeddings.count",
-            organization_id=group.organization.id,
-            project_id=group.project.id,
-            group_id=group.id,
-            hash=latest_event.get_primary_hash(),
-            count_over_threshold=len(
-                [
-                    result.stacktrace_distance
-                    for result in results
-                    if result.stacktrace_distance <= 0.01
-                ]
-            ),
-            user_id=request.user.id,
+            GroupSimilarIssuesEmbeddingsCountEvent(
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+                group_id=group.id,
+                hash=latest_event.get_primary_hash(),
+                count_over_threshold=len(
+                    [
+                        result.stacktrace_distance
+                        for result in results
+                        if result.stacktrace_distance <= 0.01
+                    ]
+                ),
+                user_id=request.user.id,
+            )
         )
 
         if not results:

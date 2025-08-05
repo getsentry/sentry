@@ -336,6 +336,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/stories/view/index')),
       withOrgPath: true,
     },
+    {
+      path: '/debug/notifications/',
+      component: make(() => import('sentry/debug/notifications/views/index')),
+      withOrgPath: true,
+    },
   ];
   const rootRoutes: SentryRouteObject = {
     component: errorHandler(AppBodyContent),
@@ -384,6 +389,11 @@ function buildRoutes(): RouteObject[] {
       path: 'emails/',
       name: t('Emails'),
       component: make(() => import('sentry/views/settings/account/accountEmails')),
+    },
+    {
+      path: 'merge-accounts/',
+      name: t('Merge Accounts'),
+      component: make(() => import('sentry/views/settings/account/mergeAccounts')),
     },
     {
       path: 'authorizations/',
@@ -680,13 +690,13 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'source-maps/',
@@ -1721,14 +1731,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(
-        () => import('sentry/views/replays/deadRageClick/deadRageClickList')
-      ),
+      component: make(() => import('sentry/views/replays/selectors')),
     },
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
@@ -1736,7 +1743,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
-    deprecatedRouteProps: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -2481,6 +2487,22 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'prevent-ai/',
+      children: [
+        // Render prevent AI onboarding with layout wrapper
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/preventAI/wrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/preventAI/onboarding')),
+            },
+          ],
+        },
+      ],
+    },
+    {
       path: 'tokens/',
       children: [
         {
@@ -2653,7 +2675,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      deprecatedRouteProps: true,
       children: [
         ...issueTabs,
         {

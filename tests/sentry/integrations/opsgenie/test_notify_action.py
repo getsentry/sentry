@@ -4,6 +4,7 @@ import orjson
 import pytest
 import responses
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
 from sentry.integrations.types import EventLifecycleOutcome
@@ -11,6 +12,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
@@ -47,7 +49,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record):
+    def test_applies_correctly(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={
                 "message": "Hello world",
@@ -76,15 +78,17 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert event.group is not None
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="opsgenie",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id=self.team1["id"],
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="opsgenie",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id=self.team1["id"],
+                notification_uuid=notification_uuid,
+            ),
         )
         mock_record.assert_any_call(
             "integrations.opsgenie.notification_sent",
@@ -209,7 +213,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(form.errors) == 1
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
-    def test_team_deleted(self, mock_logger: MagicMock):
+    def test_team_deleted(self, mock_logger: MagicMock) -> None:
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self._create_integration("test-app-2")
@@ -239,7 +243,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
-    def test_integration_deleted(self, mock_logger: MagicMock):
+    def test_integration_deleted(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -256,7 +260,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_api_error(self, mock_record, mock_logger: MagicMock):
+    def test_api_error(self, mock_record, mock_logger: MagicMock) -> None:
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         results = list(rule.after(event=event))

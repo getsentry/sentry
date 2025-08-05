@@ -88,7 +88,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
@@ -105,7 +105,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARDS_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """

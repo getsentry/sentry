@@ -325,7 +325,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         ),
     ],
 )
-def test_fingerprint_similarity(expected, first_url, second_url):
+def test_fingerprint_similarity(expected, first_url, second_url) -> None:
     first_event = _valid_render_blocking_asset_event(first_url)
     second_event = _valid_render_blocking_asset_event(second_url)
     settings = get_detection_settings()
