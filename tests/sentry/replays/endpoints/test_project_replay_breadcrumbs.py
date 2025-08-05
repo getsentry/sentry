@@ -3,7 +3,7 @@ from datetime import datetime
 
 from django.urls import reverse
 
-from sentry.replays.lib.eap.write import insert_trace_items, new_trace_item
+from sentry.replays.lib.eap.write import new_trace_item, write_trace_items_test_suite
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
@@ -19,11 +19,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestC
         )
 
     def test(self):
-        insert_trace_items(
+        write_trace_items_test_suite(
             [
                 new_trace_item(
                     {
-                        "attributes": {"abc": "hello", "def": 2.2, "replay_id": self.replay_id},
+                        "attributes": {"abc": "hello", "def": 2, "replay_id": self.replay_id},
                         "client_sample_rate": 1.0,
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -35,9 +35,31 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestC
                         "trace_item_id": uuid.uuid4().bytes,
                         "trace_item_type": "replay",
                     }
-                )
+                ),
+                new_trace_item(
+                    {
+                        "attributes": {
+                            "abc": "world",
+                            "def": 1,
+                            "xyz": 1.0,
+                            "replay_id": self.replay_id,
+                        },
+                        "client_sample_rate": 1.0,
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "received": datetime.now(),
+                        "retention_days": 90,
+                        "server_sample_rate": 1.0,
+                        "timestamp": datetime.now(),
+                        "trace_id": uuid.uuid4().hex,
+                        "trace_item_id": uuid.uuid4().bytes,
+                        "trace_item_type": "replay",
+                    }
+                ),
             ]
         )
 
         response = self.client.get(self.url)
-        raise Exception(response.content)
+        import json
+
+        assert False, json.dumps(json.loads(response.content), indent=2)

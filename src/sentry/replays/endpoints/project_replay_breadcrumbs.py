@@ -43,10 +43,12 @@ class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
             "trace_item_type": "replay",
         }
 
-        from snuba_sdk import Column, Condition, Entity, Function, Query
+        from snuba_sdk import Column, Condition, Direction, Entity, Function, OrderBy, Query
 
         snuba_query = Query(
-            match=Entity("trace_items"), select=[Column("abc"), Column("def"), Column("xyz")]
+            match=Entity("trace_items"),
+            select=[Column("abc"), Column("def"), Column("xyz")],
+            orderby=[OrderBy(Column("abc"), direction=Direction.ASC)],
         )
         response = query(snuba_query, settings, request_meta, virtual_columns=[])
         return Response(response, status=200)
