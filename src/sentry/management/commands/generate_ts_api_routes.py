@@ -1,17 +1,17 @@
-import re
 import itertools
+import re
 from importlib import import_module
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.urls import URLPattern, URLResolver
-from django.conf import settings
-
 
 # --- UTILS ---
 
+
 def snake_to_camel(s: str) -> str:
     parts = s.split("_")
-    return parts[0] + ''.join(p.capitalize() for p in parts[1:])
+    return parts[0] + "".join(p.capitalize() for p in parts[1:])
 
 
 def final_cleanup(path: str) -> str:
@@ -93,6 +93,7 @@ def extract_ts_routes(urlpatterns, prefix="") -> list[str]:
 
 # --- COMMAND ---
 
+
 class Command(BaseCommand):
     help = "Generate TypeScript route types from Django urlpatterns"
 
@@ -124,7 +125,9 @@ class Command(BaseCommand):
         with open(output_file, "w") as f:
             f.write("/* prettier-ignore */\n")
             f.write("// Auto-generated TypeScript route types\n")
-            f.write("// To update it run `sentry django generate_ts_api_routes --urls sentry.api.urls --output=path/to/thisfile.ts`\n")
+            f.write(
+                "// To update it run `sentry django generate_ts_api_routes --urls sentry.api.urls --output=path/to/thisfile.ts`\n"
+            )
             f.write("export type KnownApiUrls =\n")
             for route in ts_routes:
                 f.write(f"  | {route}\n")
