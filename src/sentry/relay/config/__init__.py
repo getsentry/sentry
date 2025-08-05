@@ -1144,8 +1144,8 @@ def _get_project_config(
                 "Logging project config for project %s in org %s.",
                 project.id,
                 project.organization.id,
-                extra={"project_config": config},
-                tags={
+                extra={
+                    "project_config": config,
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
                     "dynamic_sampling_feature_flag": features.has(
