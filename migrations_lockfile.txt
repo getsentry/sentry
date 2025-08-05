@@ -5,7 +5,7 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-discover: 0002_link_migrated_explore_query_in_discover
+discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
