@@ -9,6 +9,7 @@ from django.db.backends.postgresql.operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
+from .decorators import auto_reconnect_connection, auto_reconnect_cursor
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
@@ -72,16 +73,56 @@ def _execute__include_sql_in_error(
         raise
 
 
+class CursorWrapper:
+    """
+    A wrapper around the postgresql_psycopg2 backend which handles various events
+    from cursors, such as auto reconnects and lazy time zone evaluation.
+    """
+
+    def __init__(self, db, cursor):
+        self.db = db
+        self.cursor = cursor
+
+    def __getattr__(self, attr):
+        return getattr(self.cursor, attr)
+
+    def __iter__(self):
+        return iter(self.cursor)
+
+    @auto_reconnect_cursor
+    def execute(self, sql, params=None):
+        if params is not None:
+            return self.cursor.execute(sql, params)
+        return self.cursor.execute(sql)
+
+    @auto_reconnect_cursor
+    def executemany(self, sql, paramlist=()):
+        return self.cursor.executemany(sql, paramlist)
+
+
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]  # a proxy class isn't exactly the original type
+    SchemaEditorClass = DatabaseSchemaEditorProxy
     queries_limit = 15000
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
 
-    def close(self, reconnect: bool = False) -> None:
+    @auto_reconnect_connection
+    def _cursor(self, *args, **kwargs):
+        return super()._cursor()
+
+    # We're overriding this internal method that's present in Django 1.11+, because
+    # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
+    # with our CursorWrapper. We need to be passing our wrapped cursor to their wrapped cursor,
+    # not the other way around since then we'll lose things like __enter__ due to the way this
+    # wrapper is working (getattr on self.cursor).
+    def _prepare_cursor(self, cursor):
+        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
+        return cursor
+
+    def close(self, reconnect=False):
         """
         This ensures we don't error if the connection has already been closed.
         """
