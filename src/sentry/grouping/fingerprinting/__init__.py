@@ -31,6 +31,8 @@ T = TypeVar("T")
 VERSION = 1
 
 CONFIGS_DIR: Path = Path(__file__).with_name("configs")
+DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
+
 
 # Grammar is defined in EBNF syntax.
 fingerprinting_grammar = Grammar(
