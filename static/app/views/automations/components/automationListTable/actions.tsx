@@ -173,12 +173,12 @@ export function AutomationsTableActions({
             ) : (
               <Fragment>
                 {tn(
-                  '%s issue on this page selected.',
-                  '%s issues on this page selected.',
+                  '%s automation on this page selected.',
+                  '%s automations on this page selected.',
                   selected.size
                 )}
                 <a onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] issues that match this search query.', {
+                  {tct('Select all [count] automations that match this search query.', {
                     count: queryCount,
                   })}
                 </a>

@@ -1,6 +1,7 @@
 import {type ComponentProps, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -9,6 +10,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
 import {
   AutomationListRow,
@@ -79,6 +81,9 @@ function AutomationListTable({
   queryCount,
   allResultsVisible,
 }: AutomationListTableProps) {
+  const organization = useOrganization();
+  const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
+
   const [selected, setSelected] = useState(new Set<string>());
 
   const togglePageSelected = (pageSelected: boolean) => {
@@ -89,7 +94,6 @@ function AutomationListTable({
     setSelected(newSelected);
   };
   const automationIds = new Set(automations.map(a => a.id));
-
   const pageSelected = automationIds.difference(selected).size === 0;
 
   const canEnable = useMemo(
@@ -118,7 +122,7 @@ function AutomationListTable({
 
   return (
     <AutomationsSimpleTable>
-      {selected.size === 0 ? (
+      {canEditAutomations && selected.size === 0 ? (
         <SimpleTable.Header key="header">
           <HeaderCell sort={sort} sortKey="name">
             <NamePadding>{t('Name')}</NamePadding>

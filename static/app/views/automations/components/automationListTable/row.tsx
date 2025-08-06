@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
@@ -10,6 +11,7 @@ import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/autom
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {
   getAutomationActions,
@@ -27,6 +29,9 @@ export function AutomationListRow({
   selected,
   onSelect,
 }: AutomationListRowProps) {
+  const organization = useOrganization();
+  const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
+
   const actions = getAutomationActions(automation);
   const {enabled, lastTriggered, detectorIds = []} = automation;
   const projectIds = useAutomationProjectIds(automation);
@@ -41,13 +46,15 @@ export function AutomationListRow({
     >
       <SimpleTable.RowCell>
         <Flex gap="md" align="center">
-          <CheckboxWrapper>
-            <Checkbox
-              checked={selected}
-              onChange={() => onSelect(automation.id)}
-              className="select-row"
-            />
-          </CheckboxWrapper>
+          {canEditAutomations && (
+            <CheckboxWrapper>
+              <Checkbox
+                checked={selected}
+                onChange={() => onSelect(automation.id)}
+                className="select-row"
+              />
+            </CheckboxWrapper>
+          )}
           <AutomationTitleCell automation={automation} />
         </Flex>
       </SimpleTable.RowCell>
