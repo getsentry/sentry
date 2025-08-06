@@ -13,7 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
-from sentry.preprod.tasks import assemble_preprod_artifact
+from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -124,6 +124,31 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             # Check current assembly status
             state, detail = get_assemble_status(AssembleTask.PREPROD_ARTIFACT, project.id, checksum)
             if state is not None:
+                if state == ChunkFileState.OK:
+                    artifact_id = create_preprod_artifact(
+                        org_id=project.organization_id,
+                        project_id=project.id,
+                        checksum=checksum,
+                        chunks=chunks,
+                        git_sha=data.get("git_sha"),
+                        build_configuration=data.get("build_configuration"),
+                    )
+                    if artifact_id:
+                        return Response(
+                            {
+                                "state": state,
+                                "detail": detail,
+                                "missingChunks": [],
+                                "artifact_id": artifact_id,
+                            }
+                        )
+                    else:
+                        return Response(
+                            {
+                                "state": ChunkFileState.ERROR,
+                                "detail": "File not found when trying to create preprod artifact object.",
+                            }
+                        )
                 return Response({"state": state, "detail": detail, "missingChunks": []})
 
             # There is neither a known file nor a cached state, so we will
@@ -135,18 +160,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             set_assemble_status(
                 AssembleTask.PREPROD_ARTIFACT, project.id, checksum, ChunkFileState.CREATED
             )
-
             assemble_preprod_artifact.apply_async(
                 kwargs={
                     "org_id": project.organization_id,
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "git_sha": data.get("git_sha"),
-                    "build_configuration": data.get("build_configuration"),
                 }
             )
-
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
