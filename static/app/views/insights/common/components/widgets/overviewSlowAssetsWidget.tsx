@@ -160,7 +160,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
 
   const chartActions = (
     <BaseChartActionDropdown
-      key="http response chart widget"
+      key="slow assets widget"
       exploreUrl={exploreUrl}
       referrer={referrer}
       alertMenuOptions={assetSeriesData.map(series => ({
