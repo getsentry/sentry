@@ -3,11 +3,6 @@ import {Fragment} from 'react';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import {
-  ConnectionCell,
-  type ConnectionCellProps,
-} from 'sentry/components/workflowEngine/gridCell/connectionCell';
-import {NumberCell} from 'sentry/components/workflowEngine/gridCell/numberCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {
   TitleCell,
@@ -19,7 +14,12 @@ import {ActionType} from 'sentry/types/workflowEngine/actions';
 type ExampleAutomation = {
   actions: ActionType[];
   creator: string | null;
-  linkedItems: ConnectionCellProps;
+  linkedItems: {
+    ids: string[];
+    type: 'detector' | 'workflow';
+    className?: string;
+    disabled?: boolean;
+  };
   openIssues: number;
   timeAgo: Date | null;
   title: TitleCellProps;
@@ -129,10 +129,6 @@ export default Storybook.story('Grid Cell Components', story => {
         return <ActionCell actions={dataRow.actions} />;
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
-      case 'linkedItems':
-        return <ConnectionCell ids={dataRow.linkedItems.ids} type={'detector'} />;
-      case 'openIssues':
-        return <NumberCell number={dataRow.openIssues} />;
       default:
         return null;
     }
