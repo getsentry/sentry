@@ -1,6 +1,7 @@
-import pytest
 from datetime import timedelta
 from unittest.mock import patch
+
+import pytest
 
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
 from sentry.eventstream.snuba import SnubaEventStream
