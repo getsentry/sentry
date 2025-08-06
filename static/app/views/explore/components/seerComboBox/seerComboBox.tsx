@@ -109,7 +109,7 @@ const SeerExampleItems = [
   {key: 'example-query-1', query: 'p95 duration of http client calls'},
   {key: 'example-query-2', query: 'database calls by transaction'},
   {key: 'example-query-3', query: 'POST requests slower than 250ms'},
-  {key: 'example-query-4', query: 'failure rate by user in the last week'},
+  // {key: 'example-query-4', query: 'failure rate by user in the last week'},
 ] as SeerSearchItems[];
 
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
