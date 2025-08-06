@@ -508,6 +508,21 @@ def _get_profile_from_trace_tree(
                 break
 
     if not matching_transaction or not matching_transaction.get("profile_id"):
+        logger.info(
+            "[Autofix] No matching transaction with profile_id found for event",
+            extra={
+                "trace_to_search_id": event.trace_id,
+                "matching_transaction": matching_transaction,
+                "project_slug": project.slug,
+                "organization_slug": project.organization.slug,
+                "profile_id": (
+                    matching_transaction.get("profile_id") if matching_transaction else None
+                ),
+                "profiler_id": (
+                    matching_transaction.get("profiler_id") if matching_transaction else None
+                ),
+            },
+        )
         return None
 
     profile_id = matching_transaction.get("profile_id")
@@ -541,9 +556,15 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     including only items from the MainThread and app frames.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    profile = profile_data.get("profile")
+    profile = profile_data.get(
+        "profile"
+    )  # transaction profiles are formatted as {"profile": {"frames": [], "samples": [], "stacks": []}}
     if not profile:
-        return []
+        profile = profile_data.get("chunk", {}).get(
+            "profile"
+        )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
+        if not profile:
+            return []
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
