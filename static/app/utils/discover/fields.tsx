@@ -296,7 +296,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration', 'number'],
+          ['string', 'duration', 'number', 'integer'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -725,7 +725,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
         {
           kind: 'column',
           columnTypes: validateDenyListColumns(
-            ['string', 'duration', 'number'],
+            ['string', 'duration', 'number', 'integer'],
             ['id', 'issue', 'user.display']
           ),
           defaultValue:
