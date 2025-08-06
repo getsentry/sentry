@@ -130,7 +130,7 @@ export function MetricDetectorChart({
   const anomalyBubbleResult = useIncidentMarkers({
     incidents: anomalyPeriods,
     seriesName: t('Anomalies'),
-    seriesId: '__anomaly_bubble__',
+    seriesId: '__anomaly_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
   });
 
@@ -165,16 +165,16 @@ export function MetricDetectorChart({
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries];
 
-    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleSeries) {
+    if (isAnomalyDetection && anomalyBubbleResult.incidentMarkerSeries) {
       // Line series not working well with the custom series type
-      baseSeries.push(anomalyBubbleResult.incidentBubbleSeries as any);
+      baseSeries.push(anomalyBubbleResult.incidentMarkerSeries as any);
     }
 
     return baseSeries;
   }, [
     isAnomalyDetection,
     thresholdAdditionalSeries,
-    anomalyBubbleResult.incidentBubbleSeries,
+    anomalyBubbleResult.incidentMarkerSeries,
   ]);
 
   const yAxes = useMemo(() => {
@@ -192,12 +192,12 @@ export function MetricDetectorChart({
     const axes: YAXisComponentOption[] = [mainYAxis];
 
     // Add anomaly bubble Y-axis if available
-    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleYAxis) {
-      axes.push(anomalyBubbleResult.incidentBubbleYAxis);
+    if (isAnomalyDetection && anomalyBubbleResult.incidentMarkerYAxis) {
+      axes.push(anomalyBubbleResult.incidentMarkerYAxis);
     }
 
     return axes;
-  }, [maxValue, isAnomalyDetection, anomalyBubbleResult.incidentBubbleYAxis]);
+  }, [maxValue, isAnomalyDetection, anomalyBubbleResult.incidentMarkerYAxis]);
 
   // Prepare grid with anomaly bubble adjustments
   const grid = useMemo(() => {
@@ -209,15 +209,15 @@ export function MetricDetectorChart({
     };
 
     // Apply anomaly bubble grid adjustments if available
-    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleGrid) {
+    if (isAnomalyDetection && anomalyBubbleResult.incidentMarkerGrid) {
       return {
         ...baseGrid,
-        ...anomalyBubbleResult.incidentBubbleGrid,
+        ...anomalyBubbleResult.incidentMarkerGrid,
       };
     }
 
     return baseGrid;
-  }, [isAnomalyDetection, anomalyBubbleResult.incidentBubbleGrid]);
+  }, [isAnomalyDetection, anomalyBubbleResult.incidentMarkerGrid]);
 
   if (isLoading || anomalyLoading) {
     return (
@@ -249,9 +249,9 @@ export function MetricDetectorChart({
       yAxes={yAxes.length > 1 ? yAxes : undefined}
       yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
       grid={grid}
-      xAxis={isAnomalyDetection ? anomalyBubbleResult.incidentBubbleXAxis : undefined}
+      xAxis={isAnomalyDetection ? anomalyBubbleResult.incidentMarkerXAxis : undefined}
       ref={
-        isAnomalyDetection ? anomalyBubbleResult.connectIncidentBubbleChartRef : undefined
+        isAnomalyDetection ? anomalyBubbleResult.connectIncidentMarkerChartRef : undefined
       }
     />
   );

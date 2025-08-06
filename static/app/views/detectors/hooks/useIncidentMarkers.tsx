@@ -22,16 +22,16 @@ import type {
 } from 'sentry/types/echarts';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
-const INCIDENT_BUBBLE_SERIES_ID = '__incident_bubble__';
-const INCIDENT_BUBBLE_AREA_SERIES_ID = '__incident_bubble_area__';
-const INCIDENT_BUBBLE_HEIGHT = 6; // Height matching release bubbles
+const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
+const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
+const INCIDENT_MARKER_HEIGHT = 6;
 
 /**
  * Represents a generic incident/event time period
  */
 export interface IncidentPeriod {
   /**
-   * Color for the bubble
+   * Color for the marker
    */
   color: string;
   /**
@@ -84,7 +84,7 @@ function incidentTooltipFormatter(params: TooltipComponentFormatterCallbackParam
   ].join('');
 }
 
-interface IncidentBubbleSeriesProps {
+interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
   theme: Theme;
   seriesId?: string;
@@ -95,20 +95,19 @@ interface IncidentBubbleSeriesProps {
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
  */
-function IncidentBubbleSeries({
+function IncidentMarkerSeries({
   incidentPeriods,
   theme,
   yAxisIndex,
   seriesName,
   seriesId,
-}: IncidentBubbleSeriesProps): CustomSeriesOption | null {
+}: IncidentMarkerSeriesProps): CustomSeriesOption | null {
   if (!incidentPeriods.length) {
     return null;
   }
 
   /**
    * Renders incident highlight rectangles underneath the main chart
-   * Following the same pattern as ReleaseBubbleSeries
    */
   const renderIncidentHighlight: CustomSeriesRenderItem = (
     params: CustomSeriesRenderItemParams,
@@ -142,14 +141,14 @@ function IncidentBubbleSeries({
     // Width between two timestamps
     const width = Math.max(incidentEndX - incidentStartX, 2);
 
-    const renderBubblePadding = 2;
+    const renderMarkerPadding = 2;
 
     const shape = {
       // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX + renderBubblePadding / 2,
-      y: incidentStartY + renderBubblePadding - 1,
-      width: width - renderBubblePadding,
-      height: INCIDENT_BUBBLE_HEIGHT,
+      x: incidentStartX + renderMarkerPadding / 2,
+      y: incidentStartY + renderMarkerPadding - 1,
+      width: width - renderMarkerPadding,
+      height: INCIDENT_MARKER_HEIGHT,
       // Border radius
       r: 4,
     };
@@ -196,7 +195,7 @@ function IncidentBubbleSeries({
   );
 
   return {
-    id: seriesId ?? INCIDENT_BUBBLE_SERIES_ID,
+    id: seriesId ?? INCIDENT_MARKER_SERIES_ID,
     name: seriesName ?? t('Incidents'),
     type: 'custom',
     yAxisIndex,
@@ -218,21 +217,21 @@ function IncidentBubbleSeries({
 }
 
 interface UseIncidentMarkersProps {
-  incidents?: IncidentPeriod[];
+  incidents: IncidentPeriod[];
+  seriesName: string;
   seriesId?: string;
-  seriesName?: string;
   yAxisIndex?: number;
 }
 
 interface UseIncidentMarkersResult {
-  connectIncidentBubbleChartRef: (ref: ReactEchartsRef | null) => void;
-  incidentBubbleGrid: GridComponentOption;
-  incidentBubbleSeries: CustomSeriesOption | null;
-  incidentBubbleXAxis: {
+  connectIncidentMarkerChartRef: (ref: ReactEchartsRef | null) => void;
+  incidentMarkerGrid: GridComponentOption;
+  incidentMarkerSeries: CustomSeriesOption | null;
+  incidentMarkerXAxis: {
     axisLine: {onZero: boolean};
     offset: number;
   };
-  incidentBubbleYAxis: YAXisComponentOption | null;
+  incidentMarkerYAxis: YAXisComponentOption | null;
 }
 
 /**
@@ -240,20 +239,20 @@ interface UseIncidentMarkersResult {
  */
 export function useIncidentMarkers({
   incidents,
+  seriesName,
   yAxisIndex = 0,
-  seriesName = t('Incidents'),
-  seriesId = INCIDENT_BUBBLE_SERIES_ID,
+  seriesId = INCIDENT_MARKER_SERIES_ID,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
-  const bubblePadding = 2;
-  const totalBubblePaddingY = bubblePadding * 2; // 2px padding on top and bottom
+  const markerPadding = 2;
+  const totalMarkerPaddingY = markerPadding * 2; // 2px padding on top and bottom
 
   // Default X-axis configuration (when incidents are hidden)
-  const defaultBubbleXAxis = useMemo(
+  const defaultMarkerXAxis = useMemo(
     () => ({
       axisLine: {onZero: true},
       offset: 0,
@@ -262,18 +261,18 @@ export function useIncidentMarkers({
   );
 
   // X-axis configuration for when incidents are shown (moves axis down to make space)
-  const incidentBubbleXAxis = useMemo(
+  const incidentMarkerXAxis = useMemo(
     () => ({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // incidents sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      offset: INCIDENT_BUBBLE_HEIGHT + totalBubblePaddingY - 1,
+      offset: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY - 1,
     }),
-    [totalBubblePaddingY]
+    [totalMarkerPaddingY]
   );
 
   // Hidden Y-axis for incident bubbles
-  const incidentBubbleYAxis: YAXisComponentOption | null = useMemo(() => {
+  const incidentMarkerYAxis: YAXisComponentOption | null = useMemo(() => {
     if (!incidentPeriods.length) {
       return null;
     }
@@ -291,19 +290,19 @@ export function useIncidentMarkers({
   }, [incidentPeriods.length]);
 
   // Grid configuration that pushes the main chart up to make space for incidents
-  const incidentBubbleGrid = useMemo<GridComponentOption>(() => {
+  const incidentMarkerGrid = useMemo<GridComponentOption>(() => {
     if (!incidentPeriods.length) {
       return {};
     }
 
     return {
       // Moves bottom of grid "up" to make space for incident bubbles
-      bottom: INCIDENT_BUBBLE_HEIGHT + totalBubblePaddingY + 2,
+      bottom: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY + 2,
     };
-  }, [incidentPeriods.length, totalBubblePaddingY]);
+  }, [incidentPeriods.length, totalMarkerPaddingY]);
 
   // Chart ref handler
-  const connectIncidentBubbleChartRef = useCallback(
+  const connectIncidentMarkerChartRef = useCallback(
     (ref: ReactEchartsRef | null) => {
       chartRef.current = ref;
 
@@ -320,7 +319,7 @@ export function useIncidentMarkers({
         // incident time period on the main chart so users can visualize the
         // time block that has the incident.
         const customSeries: CustomSeriesOption = {
-          id: INCIDENT_BUBBLE_AREA_SERIES_ID,
+          id: INCIDENT_MARKER_AREA_SERIES_ID,
           type: 'custom',
           renderItem: () => null,
           markArea: {
@@ -351,7 +350,7 @@ export function useIncidentMarkers({
         // Clear the `markArea` that was drawn during mouse over
         echartsInstance.setOption(
           {
-            series: [{id: INCIDENT_BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+            series: [{id: INCIDENT_MARKER_AREA_SERIES_ID, markArea: {data: []}}],
           },
           {
             lazyUpdate: true,
@@ -375,12 +374,12 @@ export function useIncidentMarkers({
     [seriesId]
   );
 
-  const incidentBubbleSeries = useMemo(() => {
+  const incidentMarkerSeries = useMemo(() => {
     if (!incidentPeriods.length) {
       return null;
     }
 
-    return IncidentBubbleSeries({
+    return IncidentMarkerSeries({
       incidentPeriods,
       theme,
       yAxisIndex,
@@ -390,12 +389,12 @@ export function useIncidentMarkers({
   }, [incidentPeriods, theme, yAxisIndex, seriesName, seriesId]);
 
   return {
-    connectIncidentBubbleChartRef,
-    incidentBubbleSeries,
-    incidentBubbleYAxis,
-    incidentBubbleGrid,
-    incidentBubbleXAxis: incidentPeriods.length
-      ? incidentBubbleXAxis
-      : defaultBubbleXAxis,
+    connectIncidentMarkerChartRef,
+    incidentMarkerSeries,
+    incidentMarkerYAxis,
+    incidentMarkerGrid,
+    incidentMarkerXAxis: incidentPeriods.length
+      ? incidentMarkerXAxis
+      : defaultMarkerXAxis,
   };
 }
