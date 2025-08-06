@@ -252,7 +252,10 @@ def _fetch_profile_data(
             return None
 
         span_start = datetime.fromtimestamp(start_ts, UTC)
-        span_end = datetime.fromtimestamp(end_ts, UTC)
+        span_end = max(
+            datetime.fromtimestamp(end_ts, UTC),
+            span_start + timedelta(milliseconds=10),
+        )  # Ensure span_end is at least 10ms ahead of span_start
         try:
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
@@ -356,16 +359,8 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         sampling_mode="NORMAL",
     )
 
-    # Step 2: Deduplicate by span_id (one profile per span/transaction)
-    seen_spans = set()
-    unique_profiles = []
-
-    logger.info(
-        "Span query for profiles completed",
-        extra={
-            "num_rows": len(profiles_result.get("data", [])),
-        },
-    )
+    # Step 2: Collect all profiles and merge those with same profile_id and is_continuous
+    all_profiles = []
 
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
@@ -385,9 +380,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
             },
         )
 
-        if not span_id or span_id in seen_spans:
+        if not span_id:
             logger.info(
-                "Span already seen or doesn't have an id, skipping",
+                "Span doesn't have an id, skipping",
                 extra={"span_id": span_id},
             )
             continue
@@ -404,17 +399,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         # Determine if this is a continuous profile (profiler.id without profile.id)
         is_continuous = profile_id is None and profiler_id is not None
 
-        logger.info(
-            "Span is continuous and has profile",
-            extra={
-                "span_id": span_id,
-                "is_continuous": is_continuous,
-                "actual_profile_id": actual_profile_id,
-            },
-        )
-
-        seen_spans.add(span_id)
-        unique_profiles.append(
+        all_profiles.append(
             {
                 "span_id": span_id,
                 "profile_id": actual_profile_id,
@@ -424,6 +409,43 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                 "end_ts": end_ts,
             }
         )
+
+    # Merge profiles with same profile_id and is_continuous
+    # Use the earliest start_ts and latest end_ts for merged profiles
+    profile_groups = {}
+    for profile in all_profiles:
+        key = (profile["profile_id"], profile["is_continuous"])
+
+        if key not in profile_groups:
+            profile_groups[key] = {
+                "span_id": profile["span_id"],  # Keep the first span_id
+                "profile_id": profile["profile_id"],
+                "transaction_name": profile["transaction_name"],
+                "is_continuous": profile["is_continuous"],
+                "start_ts": profile["start_ts"],
+                "end_ts": profile["end_ts"],
+            }
+        else:
+            # Merge time ranges - use earliest start and latest end
+            existing = profile_groups[key]
+            if profile["start_ts"] and (
+                existing["start_ts"] is None or profile["start_ts"] < existing["start_ts"]
+            ):
+                existing["start_ts"] = profile["start_ts"]
+            if profile["end_ts"] and (
+                existing["end_ts"] is None or profile["end_ts"] > existing["end_ts"]
+            ):
+                existing["end_ts"] = profile["end_ts"]
+
+    unique_profiles = list(profile_groups.values())
+
+    logger.info(
+        "Merged profiles",
+        extra={
+            "original_count": len(all_profiles),
+            "merged_count": len(unique_profiles),
+        },
+    )
 
     if not unique_profiles:
         logger.info(
@@ -484,7 +506,6 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     "profile_id": profile_id,
                     "trace_id": trace_id,
                     "project_id": project_id,
-                    "raw_profile": raw_profile,
                 },
             )
 

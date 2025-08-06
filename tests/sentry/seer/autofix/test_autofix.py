@@ -218,6 +218,78 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert save_result["function"] == "save_result"
         assert save_result["duration_ns"] == 10000000
 
+    def test_convert_profile_to_execution_tree_with_timestamp(self) -> None:
+        """Test that _convert_profile_to_execution_tree works with continuous profiles using timestamp"""
+        profile_data = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "helper",
+                        "module": "app.utils",
+                        "filename": "utils.py",
+                        "lineno": 20,
+                        "in_app": True,
+                    },
+                ],
+                "stacks": [
+                    [0],  # main only
+                    [1, 0],  # main → helper
+                ],
+                # Samples using timestamp instead of elapsed_since_start_ns
+                "samples": [
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.0,  # Base timestamp (Unix timestamp)
+                    },
+                    {
+                        "stack_id": 1,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.01,  # 10ms later
+                    },
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.02,  # 20ms later
+                    },
+                ],
+                "thread_metadata": {"1": {"name": "MainThread"}},
+            }
+        }
+
+        execution_tree = _convert_profile_to_execution_tree(profile_data)
+
+        # Should have one root node (main)
+        assert len(execution_tree) == 1
+        root = execution_tree[0]
+        assert root["function"] == "main"
+        assert root["module"] == "app.main"
+        assert root["filename"] == "main.py"
+        assert root["lineno"] == 10
+
+        # Should have one child (helper)
+        assert len(root["children"]) == 1
+        child = root["children"][0]
+        assert child["function"] == "helper"
+        assert child["module"] == "app.utils"
+        assert child["filename"] == "utils.py"
+        assert child["lineno"] == 20
+        assert len(child["children"]) == 0
+
+        # Check durations are calculated correctly from timestamps
+        # Root should span from 0ns to 20ms (0.02s * 1e9 = 20000000ns) + interval
+        # Allow for small floating point precision differences
+        assert abs(root["duration_ns"] - 30000000) < 100  # 20ms + 10ms interval
+        # Helper should be active from 10ms to 10ms (10ms interval = 10000000ns)
+        assert abs(child["duration_ns"] - 10000000) < 100
+
 
 @requires_snuba
 @pytest.mark.django_db
