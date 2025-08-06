@@ -1248,6 +1248,56 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return node.children;
   }
 
+  static UniqueErrorIssues(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceErrorIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceErrorIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const error of node.errors) {
+      if (seenIssues.has(error.issue_id)) {
+        continue;
+      }
+      seenIssues.add(error.issue_id);
+      unique.push(error);
+    }
+
+    return unique;
+  }
+
+  static UniqueOccurrences(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceOccurrence[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceOccurrence[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of node.occurrences) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }
+
+  static UniqueIssues(node: TraceTreeNode<TraceTree.NodeValue>): TraceTree.TraceIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    return [...TraceTree.UniqueErrorIssues(node), ...TraceTree.UniqueOccurrences(node)];
+  }
+
   static VisibleChildren(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): Array<TraceTreeNode<TraceTree.NodeValue>> {
