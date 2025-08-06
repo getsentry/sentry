@@ -370,21 +370,20 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
               ...featureProps,
             })}
 
-          {customFilterFields.map(field => {
-            if (
-              defined(field.feature) &&
-              !organization.features.includes(field.feature)
-            ) {
-              return null;
-            }
-            return (
+          {customFilterFields
+            .filter(field => {
+              if (defined(field.feature)) {
+                return organization.features.includes(field.feature);
+              }
+              return true;
+            })
+            .map(field => (
               <FieldFromConfig
                 key={field.name}
                 field={field}
                 disabled={disabled || !hasFeature}
               />
-            );
-          })}
+            ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
