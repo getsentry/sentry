@@ -1148,7 +1148,9 @@ def _get_project_config(
                 extra={
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
-                    "sampling_rule_count": len(config["sampling"]["rules"]),
+                    "sampling_rule_count": (
+                        len(config["sampling"]["rules"]) if "sampling" in config else None
+                    ),
                     "dynamic_sampling_feature_flag": features.has(
                         "organizations:dynamic-sampling", project.organization
                     ),
@@ -1168,7 +1170,7 @@ def _get_project_config(
                 project.id,
                 project.organization.id,
                 extra={
-                    "project_sampling_config": config["sampling"],
+                    "project_sampling_config": config["sampling"] if "sampling" in config else None,
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
                     "dynamic_sampling_feature_flag": features.has(
