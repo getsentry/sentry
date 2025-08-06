@@ -116,7 +116,7 @@ export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert | CronRule;
 
 export type Anomaly = {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
-  timestamp: string | number;
+  timestamp: number;
   value: number;
 };
 
