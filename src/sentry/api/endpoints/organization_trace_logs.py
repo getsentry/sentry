@@ -91,6 +91,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,
             config=SearchResolverConfig(use_aggregate_conditions=False),
+            sampling_mode=snuba_params.sampling_mode,
         )
         return results
 
