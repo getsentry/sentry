@@ -14,7 +14,6 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -22,24 +21,26 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-type Props = RouteComponentProps<{sentryAppSlug: string}>;
-
 // Page Layout
-export default function SentryAppExternalInstallation(props: Props) {
+export default function SentryAppExternalInstallation() {
   return (
     <NarrowLayout>
       <Content>
         <h3>{t('Finish integration installation')}</h3>
-        <SentryAppExternalInstallationContent {...props} />
+        <SentryAppExternalInstallationContent />
       </Content>
     </NarrowLayout>
   );
 }
 
 // View Contents
-function SentryAppExternalInstallationContent({params, ...props}: Props) {
+function SentryAppExternalInstallationContent() {
+  const params = useParams<{sentryAppSlug: string}>();
+  const location = useLocation();
   const api = useApi();
   // The selected organization fetched from org details
   const [organization, setOrganization] = useState<Organization>();
@@ -80,7 +81,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
       const customerDomain = ConfigStore.get('customerDomain');
       // redirect to the org if it's different than the org being selected
       if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
-        const urlWithQuery = generateOrgSlugUrl(orgSlug) + props.location.search;
+        const urlWithQuery = generateOrgSlugUrl(orgSlug) + location.search;
         testableWindowLocation.assign(urlWithQuery);
         return;
       }
@@ -111,7 +112,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     [
       api,
       params.sentryAppSlug,
-      props.location.search,
+      location.search,
       setOrganization,
       setSelectedOrgSlug,
       setIsInstalled,
@@ -181,7 +182,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
         code: install.code,
         orgSlug: organization.slug,
       };
-      const state = props.location.query.state;
+      const state = location.query.state as string | undefined;
       if (state) {
         queryParams.state = state;
       }
@@ -189,7 +190,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
       return testableWindowLocation.assign(redirectUrl);
     }
     return onClose();
-  }, [api, organization, sentryApp, onClose, props.location.query.state]);
+  }, [api, organization, sentryApp, onClose, location.query.state]);
 
   if (sentryAppLoading || orgsLoading || !sentryApp) {
     return <LoadingIndicator />;
