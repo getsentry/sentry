@@ -125,6 +125,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const {
     data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -144,16 +145,18 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
     const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
-    traceAnalytics.trackTraceShape(
-      props.tree,
-      projectsRef.current,
-      props.organization,
-      hasExceededPerformanceUsageLimit,
-      'issue_details',
-      traceAge,
-      issuesCount,
-      props.tree.eap_spans_count
-    );
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit,
+        'issue_details',
+        traceAge,
+        issuesCount,
+        props.tree.eap_spans_count
+      );
+    }
 
     // Construct the visual representation of the tree
     props.tree.build();
@@ -326,6 +329,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.event,
     hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
+    isLoadingSubscriptionDetails,
   ]);
 
   useTraceTimelineChangeSync({

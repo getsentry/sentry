@@ -415,6 +415,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const {
     data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
   const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
@@ -435,16 +436,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       : 'unknown';
     const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
-    traceAnalytics.trackTraceShape(
-      props.tree,
-      projectsRef.current,
-      props.organization,
-      hasExceededPerformanceUsageLimit,
-      source,
-      traceAge,
-      issuesCount,
-      props.tree.eap_spans_count
-    );
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit,
+        source,
+        traceAge,
+        issuesCount,
+        props.tree.eap_spans_count
+      );
+    }
 
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
@@ -557,6 +560,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     hasExceededPerformanceUsageLimit,
     props.meta?.data?.span_count,
     source,
+    isLoadingSubscriptionDetails,
     timestamp,
   ]);
 
