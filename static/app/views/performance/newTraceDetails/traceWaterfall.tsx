@@ -233,6 +233,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           return;
         }
 
+        // Ensure that all matches in the tree are visible.
+        for (const match of matches) {
+          TraceTree.EnforceVisibility(props.tree, match.value);
+        }
+
         if (activeNode && behavior === 'persist') {
           traceDispatch({
             type: 'set results',

@@ -251,7 +251,10 @@ export function Trace({
       treeRef.current.expand(node, value);
       rerenderRef.current();
 
-      if (traceStateRef.current.search.query) {
+      // Only trigger search if we are expandign the tree, else if the user is collapsing a part
+      // of the subtree that matches a query, it will get re-expanded by and undo the user action.
+      const shouldTriggerSearch = traceStateRef.current.search.query && value;
+      if (shouldTriggerSearch) {
         // If a query exists, we want to reapply the search after expanding
         // so that new nodes are also highlighted if they match a query
         onTraceSearch(traceStateRef.current.search.query, node, 'persist');
