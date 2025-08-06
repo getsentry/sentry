@@ -15,8 +15,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
-from sentry.feedback.lib.query import (
-    query_given_labels_by_feedback_count,
+from sentry.feedback.lib.label_query import (
+    query_label_group_counts,
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
@@ -35,8 +35,10 @@ MIN_FEEDBACKS_CONTEXT = 10
 MAX_FEEDBACKS_CONTEXT = 1000
 MAX_FEEDBACKS_CONTEXT_CHARS = 1000000
 
-# One day because ???
-CATEGORIES_CACHE_TIMEOUT = 86400
+MAX_RETURN_CATEGORIES = 4
+
+# Two days because the largest granularity we cache at is the day
+CATEGORIES_CACHE_TIMEOUT = 172800
 
 
 class LabelGroupFeedbacksContext(TypedDict):
@@ -63,7 +65,7 @@ class FeedbackLabelGroup(TypedDict):
 
 
 @region_silo_endpoint
-class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
+class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -101,10 +103,13 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
+        # Should we check the ingest feature flag here too?
         if not features.has(
-            "organizations:user-feedback-ai-categorization", organization, actor=request.user
+            "organizations:user-feedback-ai-categorization-features",
+            organization,
+            actor=request.user,
         ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
-            return Response(status=403)
+            return Response(status=404)
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -141,11 +146,13 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
-            project_ids=[project.id for project in projects],
+            project_ids=numeric_project_ids,
             start=start,
             end=end,
-            count=MAX_FEEDBACKS_CONTEXT,
+            limit=MAX_FEEDBACKS_CONTEXT,
         )
+
+        # print("\n\n THIS IS THE RECENT FEEDBACKS", recent_feedbacks, "\n\n")
 
         # if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
         #     logger.error("Too few feedbacks to generate categories")
@@ -171,13 +178,14 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
         # Gets the top 10 labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
         top_10_labels_result = query_top_ai_labels_by_feedback_count(
             organization_id=organization.id,
-            project_ids=[project.id for project in projects],
+            project_ids=numeric_project_ids,
             start=start,
             end=end,
-            count=10,
+            limit=10,
         )
 
-        top_10_labels = [result["tags_value"] for result in top_10_labels_result]
+        # Guaranteed to be non-empty since there are definitely feedbacks with AI labels
+        top_10_labels = [result["label"] for result in top_10_labels_result]
 
         seer_request = LabelGroupsRequest(
             organization_id=organization.id,
@@ -186,16 +194,10 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
         )
 
         try:
-            label_groups: list[FeedbackLabelGroup] = json.loads(
-                make_seer_request(seer_request).decode("utf-8")
-            )["data"]
+            label_groups = json.loads(make_seer_request(seer_request).decode("utf-8"))["data"]
         except Exception:
-            logger.exception("Error generating categories of user feedbacks")
-            return Response({"detail": "Error generating categories"}, status=500)
-
-        if len(label_groups) == 0:
-            logger.error("LLM returned no label groups")
-            return Response({"detail": "No label groups generated"}, status=500)
+            logger.exception("Error requesting Seer for feedback categories")
+            return Response(status=502)
 
         # If the LLM just forgets or adds extra primary labels, we still generate categories but log it
         if len(label_groups) != len(top_10_labels):
@@ -216,40 +218,36 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
                 )
 
         # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
-        label_groups_list_of_lists: list[list[str]] = [
+        label_groups_lists: list[list[str]] = [
             [label_group["primary_label"]] + label_group["associated_labels"]
             for label_group in label_groups
         ]
 
-        # This gives us one row: the number of feedbacks in each label group, in order of the label groups
-        feedback_counts_by_label_list = query_given_labels_by_feedback_count(
+        label_feedback_counts = query_label_group_counts(
             organization_id=organization.id,
-            project_ids=[project.id for project in projects],
+            project_ids=numeric_project_ids,
             start=start,
             end=end,
-            labels_groups=label_groups_list_of_lists,
+            labels_groups=label_groups_lists,
         )
 
         categories = []
-        for i, list_group in enumerate(label_groups_list_of_lists):
+        for i, list_group in enumerate(label_groups_lists):
             primary_label = list_group[0]
             associated_labels = list_group[1:]
-
-            # Query gives us one row with the countIf results
-            feedback_count_in_group = feedback_counts_by_label_list[0][f"count_if_{i}"]
 
             categories.append(
                 {
                     "primary_label": primary_label,
                     "associated_labels": associated_labels,
-                    "feedback_count": feedback_count_in_group,
+                    "feedback_count": label_feedback_counts[i],
                 }
             )
 
         categories.sort(key=lambda x: x["feedback_count"], reverse=True)
         # XXX: maybe we should do something like figure out where the biggest drop of feedback count is and then stop there? Instead of just hardcoding getting top 4 groups
         # Another good idea is to remove categories that have a big overlap with another category - to do in the future
-        categories = categories[:4]
+        categories = categories[:MAX_RETURN_CATEGORIES]
 
         cache.set(
             categorization_cache_key,

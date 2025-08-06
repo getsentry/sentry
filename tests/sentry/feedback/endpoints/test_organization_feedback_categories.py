@@ -34,7 +34,7 @@ class FeedbackData(TypedDict):
 
 
 @region_silo_test
-class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-user-feedback-categories"
 
     def setUp(self) -> None:
@@ -47,7 +47,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
         self.project1 = self.create_project(teams=[self.team])
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
-            "organizations:user-feedback-ai-categorization": True,
+            "organizations:user-feedback-ai-categorization-features": True,
             "organizations:gen-ai-features": True,
         }
         self.url = reverse(
@@ -161,7 +161,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
     @django_db_all
     def test_get_feedback_categories_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     @django_db_all
     @responses.activate
@@ -265,7 +265,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 500
+        assert response.status_code == 502
 
     @django_db_all
     @responses.activate
@@ -275,7 +275,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 500
+        assert response.status_code == 502
 
     @django_db_all
     @responses.activate
@@ -287,7 +287,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 500
+        assert response.status_code == 502
 
     @django_db_all
     @responses.activate
@@ -298,4 +298,4 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
             with self.feature(self.features):
                 response = self.get_error_response(self.org.slug)
 
-            assert response.status_code == 500
+            assert response.status_code == 502

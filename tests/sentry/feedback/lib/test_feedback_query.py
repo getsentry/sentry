@@ -1,12 +1,11 @@
 from typing import Any, TypedDict
 
 import pytest
-from snuba_sdk import Column, Condition, Entity, Op, Query
+from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
-from sentry.feedback.lib.query import (
+from sentry.feedback.lib.label_query import (
     _get_ai_labels_from_tags,
-    execute_query,
-    query_given_labels_by_feedback_count,
+    query_label_group_counts,
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
@@ -16,6 +15,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.snuba import raw_snql_query
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -115,10 +115,14 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             ],
         )
 
-        result = execute_query(
-            query=query,
-            tenant_id={"organization_id": self.organization.id},
-            referrer="replays.query.viewed_by_query",  # TODO: Change this
+        result = raw_snql_query(
+            Request(
+                dataset=Dataset.IssuePlatform.value,
+                app_id="feedback-backend-web",
+                query=query,
+                tenant_ids={"organization_id": self.organization.id},
+            ),
+            referrer="feedbacks.label_query",
         )
 
         assert len(result["data"]) == 7
@@ -140,34 +144,34 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id],
             start=before_now(days=1),
             end=before_now(days=-1),
-            count=5,
+            limit=5,
         )
 
         assert len(result) == 4
 
-        assert result[0]["tags_value"] == "User Interface"
+        assert result[0]["label"] == "User Interface"
         assert result[0]["count"] == 4
 
-        assert result[1]["tags_value"] == "Performance"
+        assert result[1]["label"] == "Performance"
         assert result[1]["count"] == 3
 
-        assert result[2]["tags_value"] == "Authentication"
+        assert result[2]["label"] == "Authentication"
         assert result[2]["count"] == 2
 
-        assert result[3]["tags_value"] == "Security"
+        assert result[3]["label"] == "Security"
         assert result[3]["count"] == 1
 
-        # Test with count=1 should return only the top label
+        # Test with limit=1 should return only the top label
         result_single = query_top_ai_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
             end=before_now(days=-1),
-            count=1,
+            limit=1,
         )
 
         assert len(result_single) == 1
-        assert result_single[0]["tags_value"] == "User Interface"
+        assert result_single[0]["label"] == "User Interface"
         assert result_single[0]["count"] == 4
 
         # Query with no feedbacks in time range should return empty
@@ -176,7 +180,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id],
             start=before_now(days=30),
             end=before_now(days=29),
-            count=5,
+            limit=5,
         )
 
         assert len(result_empty) == 0
@@ -187,7 +191,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
             end=before_now(minutes=-1),
-            count=5,
+            limit=5,
         )
 
         assert len(result_no_project) == 0
@@ -198,7 +202,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id],
             start=before_now(days=1),
             end=before_now(minutes=-1),
-            count=10,
+            limit=10,
         )
 
         assert len(result) == 7
@@ -211,22 +215,42 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert isinstance(feedback["feedback"], str)
             assert len(feedback["labels"]) > 0
 
-        feedback_messages = [f["feedback"] for f in result]
-        assert "The UI is too slow and confusing" in feedback_messages
-        assert "The app crashes frequently when loading data" in feedback_messages
-        assert "Login doesn't work properly and feels insecure" in feedback_messages
-        assert "Button colors are hard to see and need better contrast" in feedback_messages
-        assert "Page load times are too slow" in feedback_messages
-        assert "The interface is slow and the design is confusing" in feedback_messages
-        assert "Password reset functionality is broken" in feedback_messages
+        assert {
+            "feedback": "The UI is too slow and confusing",
+            "labels": ["User Interface"],
+        } in result
+        assert {
+            "feedback": "The app crashes frequently when loading data",
+            "labels": ["Performance"],
+        } in result
+        assert {
+            "feedback": "Login doesn't work properly and feels insecure",
+            "labels": ["Authentication", "Security", "User Interface"],
+        } in result
+        assert {
+            "feedback": "Button colors are hard to see and need better contrast",
+            "labels": ["User Interface"],
+        } in result
+        assert {
+            "feedback": "Page load times are too slow",
+            "labels": ["Performance"],
+        } in result
+        assert {
+            "feedback": "The interface is slow and the design is confusing",
+            "labels": ["User Interface", "Performance"],
+        } in result
+        assert {
+            "feedback": "Password reset functionality is broken",
+            "labels": ["Authentication"],
+        } in result
 
-        # Query with count=2 should return only the 2 most recent feedbacks
+        # Query with limit=2 should return only the 2 most recent feedbacks
         result_limited = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
             end=before_now(minutes=-1),
-            count=2,
+            limit=2,
         )
 
         assert len(result_limited) == 2
@@ -237,7 +261,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id],
             start=before_now(days=30),
             end=before_now(days=29),
-            count=10,
+            limit=10,
         )
 
         assert len(result_empty) == 0
@@ -248,12 +272,12 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
             end=before_now(minutes=-1),
-            count=10,
+            limit=10,
         )
 
         assert len(result_no_project) == 0
 
-    def test_query_given_labels_by_feedback_count(self):
+    def test_query_label_group_counts(self):
         label_groups = [
             ["User Interface", "Performance"],
             ["Authentication", "Security"],
@@ -261,7 +285,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ]
 
         # Query for feedback counts by label groups
-        result = query_given_labels_by_feedback_count(
+        result = query_label_group_counts(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
@@ -269,25 +293,18 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             labels_groups=label_groups,
         )
 
-        assert len(result) == 1
-        row = result[0]
-
-        assert "count_if_0" in row
-        assert "count_if_1" in row
-        assert "count_if_2" in row
+        assert len(result) == 3
 
         # Group 0: ["User Interface", "Performance"]
-        assert row["count_if_0"] == 6
-
+        assert result[0] == 6
         # Group 1: ["Authentication", "Security"]
-        assert row["count_if_1"] == 2
-
+        assert result[1] == 2
         # Group 2: ["User Interface"]
-        assert row["count_if_2"] == 4
+        assert result[2] == 4
 
         # Empty label groups should throw a ValueError
         with pytest.raises(ValueError):
-            query_given_labels_by_feedback_count(
+            query_label_group_counts(
                 organization_id=self.organization.id,
                 project_ids=[self.project.id],
                 start=before_now(days=1),
@@ -296,7 +313,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
 
         # Label groups with no matching feedbacks
-        no_match_result = query_given_labels_by_feedback_count(
+        no_match_result = query_label_group_counts(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
@@ -305,10 +322,10 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         assert len(no_match_result) == 1
-        assert no_match_result[0]["count_if_0"] == 0
+        assert no_match_result[0] == 0
 
         # Query with no feedbacks in time range should return 0
-        empty_time_result = query_given_labels_by_feedback_count(
+        empty_time_result = query_label_group_counts(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=30),
@@ -316,13 +333,13 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             labels_groups=label_groups,
         )
 
-        assert len(empty_time_result) == 1
-        assert empty_time_result[0]["count_if_0"] == 0
-        assert empty_time_result[0]["count_if_1"] == 0
-        assert empty_time_result[0]["count_if_2"] == 0
+        assert len(empty_time_result) == 3
+        assert empty_time_result[0] == 0
+        assert empty_time_result[1] == 0
+        assert empty_time_result[2] == 0
 
         # Query with non-existent project should return 0
-        no_project_result = query_given_labels_by_feedback_count(
+        no_project_result = query_label_group_counts(
             organization_id=self.organization.id,
             project_ids=[self.project.id + 1],  # Non-existent project
             start=before_now(days=1),
@@ -330,7 +347,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             labels_groups=label_groups,
         )
 
-        assert len(no_project_result) == 1
-        assert no_project_result[0]["count_if_0"] == 0
-        assert no_project_result[0]["count_if_1"] == 0
-        assert no_project_result[0]["count_if_2"] == 0
+        assert len(no_project_result) == 3
+        assert no_project_result[0] == 0
+        assert no_project_result[1] == 0
+        assert no_project_result[2] == 0

@@ -100,8 +100,8 @@ from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQue
 from sentry.explore.endpoints.explore_saved_query_starred_order import (
     ExploreSavedQueryStarredOrderEndpoint,
 )
-from sentry.feedback.endpoints.organization_feedback_category_generation import (
-    OrganizationFeedbackCategoryGenerationEndpoint,
+from sentry.feedback.endpoints.organization_feedback_categories import (
+    OrganizationFeedbackCategoriesEndpoint,
 )
 from sentry.feedback.endpoints.organization_feedback_summary import (
     OrganizationFeedbackSummaryEndpoint,
@@ -2140,7 +2140,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/feedback-categories/$",
-        OrganizationFeedbackCategoryGenerationEndpoint.as_view(),
+        OrganizationFeedbackCategoriesEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback-categories",
     ),
     re_path(

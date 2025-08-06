@@ -1,8 +1,6 @@
-from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import TypedDict
 
-import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -21,29 +19,21 @@ from snuba_sdk import (
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 
-def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
-    dataset = Dataset.IssuePlatform
+class LabelCount(TypedDict):
+    """Result from query_top_ai_labels_by_feedback_count."""
 
-    # XXX: pattern-matched from replay/usecases/query/__init__.py
-    try:
-        return raw_snql_query(
-            Request(
-                dataset=dataset.value,
-                app_id="feedback-backend-web",  # XXX: Is this right?
-                query=query,
-                tenant_ids=tenant_id,
-            ),
-            referrer,
-        )
-    except RateLimitExceeded as exc:
-        sentry_sdk.set_tag("feedback-rate-limit-exceeded", True)
-        sentry_sdk.set_tag("org_id", tenant_id.get("organization_id"))
-        sentry_sdk.set_extra("referrer", referrer)
-        sentry_sdk.capture_exception(exc)
-        raise
+    label: str
+    count: int
+
+
+class FeedbackWithLabels(TypedDict):
+    """Result from query_recent_feedbacks_with_ai_labels."""
+
+    labels: list[str]
+    feedback: str
 
 
 def _get_ai_labels_from_tags(alias: str | None = None):
@@ -104,12 +94,21 @@ def query_top_ai_labels_by_feedback_count(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    count: int,
-):
+    limit: int,
+) -> list[LabelCount]:
     """
-    Query the top `count` AI-generated labels by feedback count.
+    Query the top `limit` AI-generated labels by feedback count.
 
     This is done by arrayJoin-ing the AI label values then grouping by the label values.
+
+    The return format is:
+    [
+        {
+            "label": str,
+            "count": int,
+        },
+        ...
+    ]
     """
 
     dataset = Dataset.IssuePlatform
@@ -123,7 +122,7 @@ def query_top_ai_labels_by_feedback_count(
                 parameters=[
                     _get_ai_labels_from_tags(),
                 ],
-                alias="tags_value",
+                alias="label",
             ),
         ],
         where=[
@@ -132,17 +131,21 @@ def query_top_ai_labels_by_feedback_count(
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
         ],
-        groupby=[  # XXX: Grouped by an alias defined in select, is this ok?
-            Column("tags_value"),
+        groupby=[
+            Column("label"),
         ],
         orderby=[OrderBy(Column("count"), Direction.DESC)],
-        limit=Limit(count),
+        limit=Limit(limit),
     )
 
-    return execute_query(
-        snuba_query,
-        {"organization_id": organization_id},
-        "feedbacks.query.top_ai_labels_by_feedback_count",
+    return raw_snql_query(
+        Request(
+            dataset=dataset.value,
+            app_id="feedback-backend-web",
+            query=snuba_query,
+            tenant_ids={"organization_id": organization_id},
+        ),
+        referrer="feedbacks.label_query",
     )["data"]
 
 
@@ -151,12 +154,21 @@ def query_recent_feedbacks_with_ai_labels(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    count: int,
-):
+    limit: int,
+) -> list[FeedbackWithLabels]:
     """
-    Query the most recent `count` feedbacks, along with their AI labels. Ensures feedbacks have at least one AI label.
+    Query the most recent `limit` feedbacks, along with their AI labels. Ensures feedbacks have at least one AI label.
 
     To get the message, it zips the context keys and values together, filters the tuples to only include those whose key is equal to feedback.message, and then maps the tuples to their values (second tuple element).
+
+    The return format is:
+    [
+        {
+            "labels": list[str],
+            "feedback": str,
+        },
+        ...
+    ]
     """
 
     dataset = Dataset.IssuePlatform
@@ -230,28 +242,33 @@ def query_recent_feedbacks_with_ai_labels(
             ),
         ],
         orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
-        limit=Limit(count),
+        limit=Limit(limit),
     )
 
-    return execute_query(
-        snuba_query,
-        {"organization_id": organization_id},
-        "feedbacks.query.recent_feedbacks_with_ai_labels",
+    return raw_snql_query(
+        Request(
+            dataset=dataset.value,
+            app_id="feedback-backend-web",
+            query=snuba_query,
+            tenant_ids={"organization_id": organization_id},
+        ),
+        referrer="feedbacks.label_query",
     )["data"]
 
 
-def query_given_labels_by_feedback_count(
+def query_label_group_counts(
     organization_id: int,
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    # Order matters here, the columns will be based on the order of the label groups
     labels_groups: list[list[str]],
-):
+) -> list[int]:
     """
     Query how many feedbacks are in each of the given `labels_groups`.
 
     We can't count feedbacks in each label individually then group in the application layer, because feedbacks can have multiple labels.
+
+    The return format is a list of integers, representing the number of feedbacks in each label group (in the order of the label groups).
     """
 
     # Raise an error since we need at least one select for a query to be valid
@@ -292,7 +309,6 @@ def query_given_labels_by_feedback_count(
     snuba_query = Query(
         match=Entity(dataset.value),
         select=[
-            # Counts the number of feedbacks in each label group
             *count_ifs,
         ],
         where=[
@@ -303,8 +319,14 @@ def query_given_labels_by_feedback_count(
         ],
     )
 
-    return execute_query(
-        snuba_query,
-        {"organization_id": organization_id},
-        "feedbacks.query.given_labels_by_feedback_count",
+    raw_response = raw_snql_query(
+        Request(
+            dataset=dataset.value,
+            app_id="feedback-backend-web",
+            query=snuba_query,
+            tenant_ids={"organization_id": organization_id},
+        ),
+        referrer="feedbacks.label_query",
     )["data"]
+
+    return [raw_response[0][f"count_if_{i}"] for i in range(len(labels_groups))]
