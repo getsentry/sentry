@@ -28,34 +28,14 @@ import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: Params) => {
+  return `
 import { defineConfig } from "astro/config";
 import sentry from "@sentry/astro";
 
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn.public}",${
-        params.isPerformanceSelected
-          ? ''
-          : `
-      tracesSampleRate: 0,`
-      }${
-        params.isReplaySelected
-          ? ''
-          : `
-      replaysSessionSampleRate: 0,
-      replaysOnErrorSampleRate: 0,`
-      }${
-        params.isLogsSelected
-          ? `
-      // Logs
-      enableLogs: true,`
-          : ''
-      }
-      // Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
-      sendDefaultPii: true,
       sourceMapsUploadOptions: {
         project: "${params.projectSlug}",
         authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -64,19 +44,112 @@ export default defineConfig({
   ],
 });
 `;
+};
 
-const getVerifySnippet = () => `
+const getClientConfigSnippet = (params: Params) => {
+  const logsConfig = params.isLogsSelected
+    ? `
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+    : '';
+
+  // Build integrations array based on selected features
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push('    Sentry.browserTracingIntegration(),');
+  }
+  if (params.isReplaySelected) {
+    integrations.push('    Sentry.replayIntegration(),');
+  }
+
+  const integrationsConfig =
+    integrations.length > 0
+      ? `
+  integrations: [
+${integrations.join('\n')}
+  ],`
+      : '';
+
+  const performanceConfig = params.isPerformanceSelected
+    ? `
+  // Define how likely traces are sampled. Adjust this value in production,
+  // or use tracesSampler for greater control.
+  tracesSampleRate: 1.0,`
+    : '';
+
+  const replaySampleRates = params.isReplaySelected
+    ? `
+  // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+  replaysSessionSampleRate: 0.1,
+  // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+  replaysOnErrorSampleRate: 1.0,`
+    : '';
+
+  return `
+import * as Sentry from "@sentry/astro";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Adds request headers and IP for users, for more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#sendDefaultPii
+  sendDefaultPii: true,${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
+});
+`;
+};
+
+const getServerConfigSnippet = (params: Params) => {
+  const logsConfig = params.isLogsSelected
+    ? `
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+    : '';
+
+  const performanceConfig = params.isPerformanceSelected
+    ? `
+  // Define how likely traces are sampled. Adjust this value in production,
+  // or use tracesSampler for greater control.
+  tracesSampleRate: 1.0,`
+    : '';
+
+  return `
+import * as Sentry from "@sentry/astro";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Adds request headers and IP for users, for more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#sendDefaultPii
+  sendDefaultPii: true,${logsConfig}${performanceConfig}
+});
+`;
+};
+
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `
+    // Send a log before throwing the error
+    Sentry.logger.info(Sentry.logger.fmt\`User \${"sentry-test"} triggered test error button\`, {
+      action: "test_error_button_click",
+    });`
+    : '';
+
+  return `
 <!-- your-page.astro -->
 ---
 ---
 <button id="error-button">Throw test error</button>
-<script>
-  function handleClick () {
+<script>${
+    params.isLogsSelected
+      ? `
+  import * as Sentry from "@sentry/astro";`
+      : ''
+  }
+  function handleClick () {${logsCode}
     throw new Error('This is a test error');
   }
   document.querySelector("#error-button").addEventListener("click", handleClick);
 </script>
 `;
+};
 
 const installSnippetBlock: ContentBlock = {
   type: 'code',
@@ -101,9 +174,12 @@ const onboarding: OnboardingConfig = {
         )}
       </p>
       <p>
-        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-          astrocli: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use the [astrocli:astro] CLI to set up Sentry with separate configuration files for client and server-side initialization:",
+          {
+            astrocli: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
@@ -131,7 +207,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Open up your [astroConfig:astro.config.mjs] file and configure the DSN, and any other settings you need:',
+            'Configure the Sentry integration in your [astroConfig:astro.config.mjs] file:',
             {
               astroConfig: <code />,
             }
@@ -141,9 +217,47 @@ const onboarding: OnboardingConfig = {
           type: 'code',
           tabs: [
             {
-              label: 'JavaScript',
+              label: 'astro.config.mjs',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Create a [clientConfig:sentry.client.config.js] file in the root of your project to configure the client-side SDK:',
+            {
+              clientConfig: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'sentry.client.config.js',
+              language: 'javascript',
+              code: getClientConfigSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Create a [serverConfig:sentry.server.config.js] file in the root of your project to configure the server-side SDK:',
+            {
+              serverConfig: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'sentry.server.config.js',
+              language: 'javascript',
+              code: getServerConfigSnippet(params),
             },
           ],
         },
@@ -166,21 +280,10 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'text',
-          text: tct(
-            'You can further customize your SDK by [manualSetupLink:manually initializing the SDK].',
-            {
-              manualSetupLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/" />
-              ),
-            }
-          ),
-        },
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -196,7 +299,7 @@ const onboarding: OnboardingConfig = {
             {
               label: 'Astro',
               language: 'html',
-              code: getVerifySnippet(),
+              code: getVerifySnippet(params),
             },
           ],
         },
@@ -282,17 +385,17 @@ const replayOnboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'You can set sample rates directly in your [code:astro.config.js] file:',
+            'Configure the Sentry integration in your [code:astro.config.mjs] file:',
             {
               code: <code />,
             }
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'astro.config.mjs',
               value: 'javascript',
               language: 'javascript',
-              filename: 'astro.config.js',
+              filename: 'astro.config.mjs',
               code: `
 import { defineConfig } from "astro/config";
 import sentry from "@sentry/astro";
@@ -300,9 +403,10 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn.public}",
-      replaysSessionSampleRate: 0.2, // defaults to 0.1
-      replaysOnErrorSampleRate: 1.0, // defaults to 1.0
+      sourceMapsUploadOptions: {
+        project: "${params.projectSlug}",
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      },
     }),
   ],
 });
@@ -310,7 +414,7 @@ export default defineConfig({
             },
           ],
           additionalInfo: tct(
-            'Further Replay options, like privacy settings, can be set in a [code:sentry.client.config.js] file:',
+            'Set sample rates and replay options in your [code:sentry.client.config.js] file:',
             {
               code: <code />,
             }
@@ -334,7 +438,7 @@ import * as Sentry from "@sentry/astro";`,
             },
           ],
           additionalInfo: tct(
-            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code:astro.config.js] file. Learn more about this [link:here].`,
+            `The [code:sentry.client.config.js] file allows you to configure client-side SDK options including replay settings. Learn more about manual SDK initialization [link:here].`,
             {
               code: <code />,
               link: (
