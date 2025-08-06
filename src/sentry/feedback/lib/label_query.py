@@ -37,7 +37,7 @@ def _get_ai_labels_from_tags(alias: str | None = None):
                     "tupleElement",
                     parameters=[
                         Identifier("tup"),
-                        2,  # Gets the second tuple element (tag's value)
+                        2,
                     ],
                 ),
             ),
@@ -47,14 +47,14 @@ def _get_ai_labels_from_tags(alias: str | None = None):
                     Lambda(
                         ["tup"],
                         Function(
-                            "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
+                            "startsWith",
                             parameters=[
                                 Function(
                                     "tupleElement",
                                     parameters=[
                                         Identifier("tup"),
                                         1,
-                                    ],  # Returns the first tuple element (tag's key)
+                                    ],
                                 ),
                                 f"{AI_LABEL_TAG_PREFIX}.label.",
                             ],
@@ -162,7 +162,6 @@ def query_recent_feedbacks_with_ai_labels(
         match=Entity(dataset.value),
         select=[
             _get_ai_labels_from_tags(alias="labels"),
-            # Gets feedback message from contexts
             Function(
                 "tupleElement",
                 parameters=[
@@ -204,7 +203,7 @@ def query_recent_feedbacks_with_ai_labels(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
-            # Ensure that it has at least one AI-generated label
+            # Ensure that there is at least one AI-generated label
             Condition(
                 Function(
                     "arrayExists",
@@ -256,15 +255,12 @@ def query_label_group_counts(
     The return format is a list of integers, representing the number of feedbacks in each label group (in the order of the label groups).
     """
 
-    # Raise an error since we need at least one select for a query to be valid
     if not labels_groups:
         raise ValueError("labels_groups cannot be empty")
 
-    # Creates a countIf for each label group
     count_ifs = []
     for i, label_group in enumerate(labels_groups):
         count_ifs.append(
-            # Checks that some label is in the label group, and if it is, counts the current feedback
             Function(
                 "countIf",
                 parameters=[
