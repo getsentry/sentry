@@ -3,6 +3,7 @@ import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react'
 import styled from '@emotion/styled';
 import {type mat3, vec2} from 'gl-matrix';
 
+import {Flex} from 'sentry/components/core/layout';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
@@ -238,29 +239,31 @@ export function FlamegraphPreview({
   });
 
   return (
-    <CanvasContainer>
-      <Canvas
-        ref={setFlamegraphCanvasRef}
-        onMouseMove={onCanvasMouseMove}
-        onMouseLeave={onCanvasMouseLeave}
-      />
-      {renderText &&
-      flamegraphCanvas &&
-      flamegraphRenderer &&
-      flamegraphView &&
-      configSpaceCursor &&
-      hoveredNode ? (
-        <FlamegraphTooltip
-          frame={hoveredNode}
-          flamegraph={flamegraph}
-          configSpaceCursor={configSpaceCursor}
-          flamegraphCanvas={flamegraphCanvas}
-          flamegraphRenderer={flamegraphRenderer}
-          flamegraphView={flamegraphView}
-          platform={undefined}
+    <CanvasContainerWrapper>
+      <Flex direction="column" height="100%">
+        <Canvas
+          ref={setFlamegraphCanvasRef}
+          onMouseMove={onCanvasMouseMove}
+          onMouseLeave={onCanvasMouseLeave}
         />
-      ) : null}
-    </CanvasContainer>
+        {renderText &&
+        flamegraphCanvas &&
+        flamegraphRenderer &&
+        flamegraphView &&
+        configSpaceCursor &&
+        hoveredNode ? (
+          <FlamegraphTooltip
+            frame={hoveredNode}
+            flamegraph={flamegraph}
+            configSpaceCursor={configSpaceCursor}
+            flamegraphCanvas={flamegraphCanvas}
+            flamegraphRenderer={flamegraphRenderer}
+            flamegraphView={flamegraphView}
+            platform={undefined}
+          />
+        ) : null}
+      </Flex>
+    </CanvasContainerWrapper>
   );
 }
 
@@ -361,10 +364,7 @@ export function computePreviewConfigView(
   };
 }
 
-const CanvasContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+const CanvasContainerWrapper = styled('div')`
   position: relative;
 `;
 

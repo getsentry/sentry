@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/core/layout';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import type {
@@ -773,54 +774,52 @@ function FlamegraphZoomView({
   }, []);
 
   return (
-    <CanvasContainer ref={canvasContainerRef}>
-      <Canvas
-        ref={setFlamegraphCanvasRef}
-        onMouseDown={onCanvasMouseDown}
-        onMouseMove={onCanvasMouseMove}
-        onMouseLeave={onCanvasMouseLeave}
-        onMouseUp={onCanvasMouseUp}
-        onDoubleClick={onCanvasDoubleClick}
-        onContextMenu={handleContextMenuOpen}
-        cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
-        tabIndex={1}
-      />
-      <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
-      {contextMenu({
-        contextMenu: contextMenuState,
-        profileGroup,
-        hoveredNode: hoveredNodeOnContextMenuOpen.current,
-        isHighlightingAllOccurrences: highlightingAllOccurrences,
-        onCopyFunctionNameClick: handleCopyFunctionName,
-        onCopyFunctionSource: handleCopyFunctionSource,
-        onHighlightAllOccurrencesClick: handleHighlightAllFramesClick,
-        disableCallOrderSort,
-        disableColorCoding,
-      })}
-      {flamegraphCanvas &&
-      flamegraphRenderer &&
-      flamegraphView &&
-      configSpaceCursor &&
-      hoveredNode ? (
-        <FlamegraphTooltip
-          flamegraph={flamegraph}
-          frame={hoveredNode}
-          configSpaceCursor={configSpaceCursor}
-          flamegraphCanvas={flamegraphCanvas}
-          flamegraphRenderer={flamegraphRenderer}
-          flamegraphView={flamegraphView}
-          platform={profileGroup.metadata.platform}
+    <CanvasContainerWrapper ref={canvasContainerRef}>
+      <Flex direction="column" height="100%" width="100%">
+        <Canvas
+          ref={setFlamegraphCanvasRef}
+          onMouseDown={onCanvasMouseDown}
+          onMouseMove={onCanvasMouseMove}
+          onMouseLeave={onCanvasMouseLeave}
+          onMouseUp={onCanvasMouseUp}
+          onDoubleClick={onCanvasDoubleClick}
+          onContextMenu={handleContextMenuOpen}
+          cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
+          tabIndex={1}
         />
-      ) : null}
-    </CanvasContainer>
+        <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
+        {contextMenu({
+          contextMenu: contextMenuState,
+          profileGroup,
+          hoveredNode: hoveredNodeOnContextMenuOpen.current,
+          isHighlightingAllOccurrences: highlightingAllOccurrences,
+          onCopyFunctionNameClick: handleCopyFunctionName,
+          onCopyFunctionSource: handleCopyFunctionSource,
+          onHighlightAllOccurrencesClick: handleHighlightAllFramesClick,
+          disableCallOrderSort,
+          disableColorCoding,
+        })}
+        {flamegraphCanvas &&
+        flamegraphRenderer &&
+        flamegraphView &&
+        configSpaceCursor &&
+        hoveredNode ? (
+          <FlamegraphTooltip
+            flamegraph={flamegraph}
+            frame={hoveredNode}
+            configSpaceCursor={configSpaceCursor}
+            flamegraphCanvas={flamegraphCanvas}
+            flamegraphRenderer={flamegraphRenderer}
+            flamegraphView={flamegraphView}
+            platform={profileGroup.metadata.platform}
+          />
+        ) : null}
+      </Flex>
+    </CanvasContainerWrapper>
   );
 }
 
-const CanvasContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
+const CanvasContainerWrapper = styled('div')`
   position: relative;
 `;
 

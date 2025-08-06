@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,22 +23,26 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   const flamegraphTheme = useFlamegraphTheme();
   return (
     <Fragment>
-      <CollapsibleTimelineHeader
+      <CollapsibleTimelineHeaderWrapper
         open={props.open}
         labelHeight={flamegraphTheme.SIZES.TIMELINE_LABEL_HEIGHT}
         border={flamegraphTheme.COLORS.GRID_LINE_COLOR}
       >
-        <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
-        <StyledButton
-          priority={theme.isChonk ? 'transparent' : undefined}
-          onClick={props.open ? props.onClose : props.onOpen}
-          aria-label={props.open ? t('Expand') : t('Collapse')}
-          aria-expanded={props.open}
-          size="zero"
-        >
-          <IconChevron size="xs" direction={props.open ? 'up' : 'down'} />
-        </StyledButton>
-      </CollapsibleTimelineHeader>
+        <Flex justify="between" align="center" height="100%">
+          <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
+          <StyledButtonWrapper
+            priority={theme.isChonk ? 'transparent' : undefined}
+            onClick={props.open ? props.onClose : props.onOpen}
+            aria-label={props.open ? t('Expand') : t('Collapse')}
+            aria-expanded={props.open}
+            size="zero"
+          >
+            <Flex align="center" justify="center">
+              <IconChevron size="xs" direction={props.open ? 'up' : 'down'} />
+            </Flex>
+          </StyledButtonWrapper>
+        </Flex>
+      </CollapsibleTimelineHeaderWrapper>
       {props.open ? (
         <CollapsibleTimelineContainer
           labelHeight={flamegraphTheme.SIZES.TIMELINE_LABEL_HEIGHT}
@@ -49,7 +54,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   );
 }
 
-const StyledButton = withChonk(
+const StyledButtonWrapper = withChonk(
   styled(Button)`
     height: 12px;
     min-height: 12px;
@@ -59,9 +64,6 @@ const StyledButton = withChonk(
     border: none;
     box-shadow: none;
     color: ${p => p.theme.subText};
-    display: flex;
-    align-items: center;
-    justify-content: center;
 
     &[aria-expanded='true'] {
       color: ${p => p.theme.subText};
@@ -80,9 +82,11 @@ const StyledButton = withChonk(
 
 export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
   return (
-    <CollapsibleTimelineLoadingIndicatorContainer>
-      <LoadingIndicator size={size ?? 32} />
-    </CollapsibleTimelineLoadingIndicatorContainer>
+    <CollapsibleTimelineLoadingIndicatorWrapper>
+      <Flex direction="column" justify="center" width="100%" height="100%">
+        <LoadingIndicator size={size ?? 32} />
+      </Flex>
+    </CollapsibleTimelineLoadingIndicatorWrapper>
   );
 }
 
@@ -92,23 +96,15 @@ const CollapsibleTimelineContainer = styled('div')<{labelHeight: number}>`
   height: calc(100% - ${p => p.labelHeight}px);
 `;
 
-const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
+const CollapsibleTimelineLoadingIndicatorWrapper = styled('div')`
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 `;
 
-const CollapsibleTimelineHeader = styled('div')<{
+const CollapsibleTimelineHeaderWrapper = styled('div')<{
   border: string;
   labelHeight: number;
   open: boolean;
 }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   position: relative;
   z-index: 1;
   height: ${p => p.labelHeight}px;
@@ -123,15 +119,21 @@ export const CollapsibleTimelineLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
 `;
 
-export const CollapsibleTimelineMessage = styled('p')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+const CollapsibleTimelineMessageWrapper = styled('p')`
   height: 100%;
   width: 100%;
   position: absolute;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
 `;
+
+export function CollapsibleTimelineMessage({children}: {children: React.ReactNode}) {
+  return (
+    <CollapsibleTimelineMessageWrapper>
+      <Flex direction="column" justify="center" align="center" height="100%" width="100%">
+        {children}
+      </Flex>
+    </CollapsibleTimelineMessageWrapper>
+  );
+}
 export {CollapsibleTimeline};
