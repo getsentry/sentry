@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
@@ -92,14 +93,20 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
     ]
 
 
-def track_event(step, event_type, platform, tags, sample_rate=0.01):
+def track_event(
+    step: str,
+    value: float,
+    platform: str,
+    tags: dict = None,
+    sample_rate: float = 0.01,
+):
     """
     Helper function to track event timing metrics.
-
-    Args:
-        step: The processing step (e.g., "start_save_event", "end_save_event")
-        event_type: The type of event being processed
-        platform: The platform of the event
-        tags: Additional tags to include in the metric
-        sample_rate: Sampling rate for the metric (default: 0.01)
     """
+    metrics.timing(
+        step,
+        value,
+        instance=platform if platform else None,
+        tags={**(tags if tags is not None else {}), "step": step},
+        sample_rate=sample_rate,
+    )

@@ -612,7 +612,6 @@ def post_process_group(
                 step="start_post_process",
                 value=start_post_process_at - event.data["received"],
                 platform=event.data["platform"],
-                tags={"step": "start_post_process"},
                 sample_rate=0.01,
             )
 
@@ -686,7 +685,6 @@ def post_process_group(
                     tags=metric_tags,
                 )
 
-                metric_tags["step"] = "end_post_process"
                 track_event(
                     step="end_post_process",
                     value=post_processed_at - received_at,

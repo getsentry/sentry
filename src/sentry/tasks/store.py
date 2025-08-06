@@ -147,6 +147,17 @@ def _do_preprocess_event(
         error_logger.error("preprocess.failed.empty", extra={"cache_key": cache_key})
         return
 
+    if start_time:
+        track_event(
+            step="start_preprocess_event",
+            value=time() - start_time,
+            platform=data.get("platform") if data else None,
+            tags={
+                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
+            },
+            sample_rate=0.01,
+        )
+
     original_data = data
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -513,7 +524,6 @@ def _do_save_event(
             value=time() - start_time,
             platform=data.get("platform") if data else None,
             tags={
-                "step": "start_save_event",
                 "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
             },
             sample_rate=0.01,
@@ -635,7 +645,6 @@ def _do_save_event(
                     value=time() - start_time,
                     platform=data["platform"],
                     tags={
-                        "step": "end_save_event",
                         "reprocessing": (
                             "true" if reprocessing2.is_reprocessed_event(data) else "false"
                         ),
