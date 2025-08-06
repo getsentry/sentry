@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComments from 'sentry-images/features/prevent-pr-comments.svg';
+import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
