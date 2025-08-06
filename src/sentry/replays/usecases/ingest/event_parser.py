@@ -5,16 +5,16 @@ import random
 import uuid
 from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Any, TypedDict, TypeVar
 
 import sentry_sdk
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
 from sentry.logging.handlers import SamplingFilter
+from sentry.replays.lib.eap.write import new_trace_item
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.replays.event_parser")
@@ -258,46 +258,29 @@ def parse_trace_item(
 def as_trace_item(
     context: EventContext, event_type: EventType, event: dict[str, Any]
 ) -> TraceItem | None:
-    def _anyvalue(value: bool | str | int | float) -> AnyValue:
-        if isinstance(value, bool):
-            return AnyValue(bool_value=value)
-        elif isinstance(value, str):
-            return AnyValue(string_value=value)
-        elif isinstance(value, int):
-            return AnyValue(int_value=value)
-        elif isinstance(value, float):
-            return AnyValue(double_value=value)
-        else:
-            raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
-
-    trace_item_context = as_trace_item_context(event_type, event)
-
     # Not every event produces a trace-item.
-    if trace_item_context is None:
+    trace_item_context = as_trace_item_context(event_type, event)
+    if not trace_item_context:
         return None
 
     # Extend the attributes with the replay_id to make it queryable by replay_id after we
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
 
-    timestamp = Timestamp()
-    timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
-
-    received = Timestamp()
-    received.FromSeconds(int(context["received"]))
-
-    return TraceItem(
-        organization_id=context["organization_id"],
-        project_id=context["project_id"],
-        trace_id=context["trace_id"] or context["replay_id"],
-        item_id=trace_item_context["event_hash"],
-        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-        timestamp=timestamp,
-        attributes={k: _anyvalue(v) for k, v in trace_item_context["attributes"].items()},
-        client_sample_rate=1.0,
-        server_sample_rate=1.0,
-        retention_days=context["retention_days"],
-        received=received,
+    return new_trace_item(
+        {
+            "attributes": trace_item_context["attributes"],  # type: ignore[typeddict-item]
+            "client_sample_rate": 1.0,
+            "organization_id": context["organization_id"],
+            "project_id": context["project_id"],
+            "received": datetime.fromtimestamp(int(context["received"])),
+            "retention_days": context["retention_days"],
+            "server_sample_rate": 1.0,
+            "timestamp": datetime.fromtimestamp(int(trace_item_context["timestamp"] * 1000) / 1000),
+            "trace_id": context["trace_id"] or context["replay_id"],
+            "trace_item_id": trace_item_context["event_hash"],
+            "trace_item_type": "replay",
+        }
     )
 
 
