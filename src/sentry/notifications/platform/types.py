@@ -32,6 +32,8 @@ class NotificationProviderKey(StrEnum):
     The unique keys for each registered notification provider.
     """
 
+    MOCK = "mock"  # For testing purposes only
+
     EMAIL = ExternalProviderEnum.EMAIL
     SLACK = ExternalProviderEnum.SLACK
     MSTEAMS = ExternalProviderEnum.MSTEAMS
@@ -149,14 +151,6 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
-    # @property
-    # @abc.abstractmethod
-    # def category(self) -> NotificationCategory:
-    #     """
-    #     The category that a notification belongs to. This will be used to determine which settings a
-    #     user needs to modify to manage receipt of these notifications (if applicable).
-    #     """
-    #     ...
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:
@@ -172,3 +166,4 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
         Used to produce a debugging example rendered template for this notification. This
         implementation should be pure, and not populate with any live data.
         """
+        ...

@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 
 from sentry.notifications.platform.service import NotificationService, NotificationServiceError
-from sentry.notifications.platform.target import GenericNotificationTarget, prepare_targets
+from sentry.notifications.platform.target import IntegrationNotificationTarget, prepare_targets
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -19,10 +19,15 @@ from sentry.testutils.notifications.platform import (
 
 class NotificationServiceTest(TestCase):
     def setUp(self) -> None:
-        self.target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
+        self.integration = self.create_integration(
+            organization=self.organization, provider="mock", external_id="ext-123"
+        )
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.MOCK,
+            resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
             resource_id="test@example.com",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
         )
         self.template = MockNotificationTemplate()
 
@@ -68,5 +73,15 @@ class NotificationServiceTest(TestCase):
         with pytest.raises(
             NotificationServiceError,
             match="Target must have `prepare_targets` called prior to sending",
+        ):
+            service.notify_prepared_target(target=self.target)
+
+        prepare_targets([self.target])
+
+        # The MockIntegrationProvider validates the message body is a string
+        service = NotificationService(data=MockNotification(message=10101010))
+        with pytest.raises(
+            NotificationServiceError,
+            match="Rendered template is invalid for provider mock: ",
         ):
             service.notify_prepared_target(target=self.target)

@@ -1,8 +1,6 @@
-from typing import Any
-
 import pytest
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
@@ -15,7 +13,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
-from sentry.testutils.notifications.platform import MockNotification
+from sentry.testutils.notifications.platform import MockIntegrationProvider, MockNotification
 
 
 class NotificationProviderTest(TestCase):
@@ -24,8 +22,8 @@ class NotificationProviderTest(TestCase):
         self.slack_integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"
         )
-        self.discord_integration = self.create_integration(
-            organization=self.organization, provider="discord", external_id="ext-123"
+        self.mock_integration = self.create_integration(
+            organization=self.organization, provider="mock", external_id="ext-123"
         )
 
     def test_all_registrants_follow_protocol(self) -> None:
@@ -50,19 +48,11 @@ class NotificationProviderTest(TestCase):
             )
 
     def test_validate_target_class(self) -> None:
-        class TestDiscordProvider(NotificationProvider[Any]):
-            key = NotificationProviderKey.DISCORD
-            target_class = IntegrationNotificationTarget
-            target_resource_types = [
-                NotificationTargetResourceType.CHANNEL,
-                NotificationTargetResourceType.DIRECT_MESSAGE,
-            ]
-
         with pytest.raises(
             NotificationProviderError,
-            match="Target 'GenericNotificationTarget' is not a valid dataclass for TestDiscordProvider",
+            match="Target 'GenericNotificationTarget' is not a valid dataclass for MockIntegrationProvider",
         ):
-            TestDiscordProvider.validate_target(
+            MockIntegrationProvider.validate_target(
                 target=GenericNotificationTarget(
                     provider_key=NotificationProviderKey.EMAIL,
                     resource_type=NotificationTargetResourceType.EMAIL,
@@ -72,9 +62,9 @@ class NotificationProviderTest(TestCase):
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target intended for 'slack' provider was given to TestDiscordProvider",
+            match="Target intended for 'slack' provider was given to MockIntegrationProvider",
         ):
-            TestDiscordProvider.validate_target(
+            MockIntegrationProvider.validate_target(
                 target=IntegrationNotificationTarget(
                     provider_key=NotificationProviderKey.SLACK,
                     resource_type=NotificationTargetResourceType.EMAIL,
@@ -86,26 +76,26 @@ class NotificationProviderTest(TestCase):
 
         with pytest.raises(
             NotificationProviderError,
-            match="Target with resource type 'email' is not supported by TestDiscordProvider"
+            match="Target with resource type 'email' is not supported by MockIntegrationProvider"
             "Supported resource types: channel, direct_message",
         ):
-            TestDiscordProvider.validate_target(
+            MockIntegrationProvider.validate_target(
                 target=IntegrationNotificationTarget(
-                    provider_key=TestDiscordProvider.key,
+                    provider_key=MockIntegrationProvider.key,
                     resource_type=NotificationTargetResourceType.EMAIL,
                     resource_id="test@example.com",
-                    integration_id=self.discord_integration.id,
+                    integration_id=self.mock_integration.id,
                     organization_id=self.organization.id,
                 )
             )
 
         # and finally, a valid target
-        TestDiscordProvider.validate_target(
+        MockIntegrationProvider.validate_target(
             target=IntegrationNotificationTarget(
-                provider_key=TestDiscordProvider.key,
+                provider_key=MockIntegrationProvider.key,
                 resource_type=NotificationTargetResourceType.CHANNEL,
                 resource_id="C01234567890",
-                integration_id=self.discord_integration.id,
+                integration_id=self.mock_integration.id,
                 organization_id=self.organization.id,
             )
         )
