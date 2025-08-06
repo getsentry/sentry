@@ -16,7 +16,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
-    get_sentry_organization_id,
+    get_sentry_organization_ids,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -451,7 +451,7 @@ class TestSeerRpcMethods(APITestCase):
         assert not result["success"]
         assert "Failed to encrypt access token" in self._caplog.text
 
-    def test_get_sentry_organization_id_repository_found(self) -> None:
+    def test_get_sentry_organization_ids_repository_found(self) -> None:
         """Test when repository exists and is active"""
 
         # Create a repository
@@ -463,21 +463,21 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry", external_id="1234567890"
         )
 
         assert result == {"org_ids": [self.organization.id]}
 
-    def test_get_sentry_organization_id_repository_not_found(self) -> None:
+    def test_get_sentry_organization_ids_repository_not_found(self) -> None:
         """Test when repository does not exist"""
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="nonexistent/repo", external_id="1234567890"
         )
 
         assert result == {"org_ids": []}
 
-    def test_get_sentry_organization_id_repository_inactive(self) -> None:
+    def test_get_sentry_organization_ids_repository_inactive(self) -> None:
         """Test when repository exists but is not active"""
 
         # Create a repository with inactive status
@@ -489,14 +489,14 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry", external_id="1234567890"
         )
 
         # Should not find the repository because it's not active
         assert result == {"org_ids": []}
 
-    def test_get_sentry_organization_id_different_provider(self) -> None:
+    def test_get_sentry_organization_ids_different_provider(self) -> None:
         """Test when repository exists but with different provider"""
 
         # Create a repository with different provider
@@ -509,14 +509,14 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Search with default provider (integrations:github)
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry", external_id="1234567890"
         )
 
         # Should not find the repository because provider doesn't match
         assert result == {"org_ids": []}
 
-    def test_get_sentry_organization_id_multiple_repos_same_name_different_providers(self) -> None:
+    def test_get_sentry_organization_ids_multiple_repos_same_name_different_providers(self) -> None:
         """Test when multiple repositories exist with same name but different providers"""
         org2 = self.create_organization(owner=self.user)
 
@@ -537,14 +537,14 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Search for GitHub provider
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry", external_id="1234567890"
         )
 
         assert result == {"org_ids": [self.organization.id]}
 
         # Search for GitLab provider
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry",
             provider="integrations:gitlab",
             external_id="1234567890",
@@ -552,7 +552,7 @@ class TestSeerRpcMethods(APITestCase):
 
         assert result == {"org_ids": [org2.id]}
 
-    def test_get_sentry_organization_id_multiple_orgs_same_repo(self) -> None:
+    def test_get_sentry_organization_ids_multiple_orgs_same_repo(self) -> None:
         """Test when multiple repositories exist with same name but different providers and provider is provided"""
         org2 = self.create_organization(owner=self.user)
         org3 = self.create_organization(owner=self.user)
@@ -588,7 +588,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Search for GitHub provider
-        result = get_sentry_organization_id(
+        result = get_sentry_organization_ids(
             full_repo_name="getsentry/sentry", external_id="1234567890"
         )
 

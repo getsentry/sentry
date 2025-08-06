@@ -214,7 +214,18 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
-def get_sentry_organization_id(
+def _can_use_prevent_ai_features(org: Organization) -> bool:
+    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+    pr_review_test_generation_enabled = bool(
+        org.get_option(
+            "sentry:enable_pr_review_test_generation",
+            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+        )
+    )
+    return not hide_ai_features and pr_review_test_generation_enabled
+
+
+def get_sentry_organization_ids(
     *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
 ) -> dict:
     """
@@ -232,17 +243,7 @@ def get_sentry_organization_id(
     ).values_list("organization_id", flat=True)
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
-    orgs_with_consent = []
-    for org in organizations:
-        hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-        pr_review_test_generation_enabled = bool(
-            org.get_option(
-                "sentry:enable_pr_review_test_generation",
-                ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-            )
-        )
-        if not hide_ai_features and pr_review_test_generation_enabled:
-            orgs_with_consent.append(org)
+    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
 
     return {"org_ids": [organization.id for organization in orgs_with_consent]}
 
@@ -267,16 +268,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-
-            hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-            pr_review_test_generation_enabled = bool(
-                org.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
-            )
-
-            if not hide_ai_features and pr_review_test_generation_enabled:
+            if _can_use_prevent_ai_features(org):
                 return {"consent": True}
         except Organization.DoesNotExist:
             continue
@@ -609,7 +601,7 @@ def get_github_enterprise_integration_config(
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
-    "get_sentry_organization_id": get_sentry_organization_id,
+    "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
