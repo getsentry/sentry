@@ -130,7 +130,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     autoSubmitSeer,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
-  const {rawResult, submitQuery, isPending, isError} = useSeerSearch();
+  const {rawResult, submitQuery, isPending, isError, unsupportedReason} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -464,6 +464,12 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 state={state}
               />
             </Fragment>
+          ) : unsupportedReason ? (
+            <SeerContent>
+              <SeerSearchHeader
+                title={unsupportedReason || 'This query is not supported'}
+              />
+            </SeerContent>
           ) : (
             <SeerContent>
               <SeerSearchHeader
