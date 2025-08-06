@@ -12,6 +12,7 @@ from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
     ENHANCEMENT_BASES,
     Enhancements,
     _is_valid_profiling_action,
@@ -24,7 +25,6 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
-from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 
