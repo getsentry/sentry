@@ -34,7 +34,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.utils.json import JSONEncoder
 from sentry.workflow_engine.models import (
     Condition,
     DataCondition,
@@ -47,12 +46,6 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
-
-headers_json_encoder = JSONEncoder(
-    separators=(",", ":"),
-    # We sort the keys here so that we can deterministically compare headers
-    sort_keys=True,
-).encode
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
@@ -109,7 +102,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     )
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
+    headers = JSONField(db_default=[])
     # HTTP body to send when performing the check
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
