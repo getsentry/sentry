@@ -49,21 +49,16 @@ class MobileAuthenticationTest(SentryTestCase):
         url = reverse("sentry-auth-organization", args=[self.organization.slug])
         mobile_redirect = "sentry-mobile-agent://auth"
 
-        # First, set up the mobile redirect in session
-        session = self.client.session
-        session["_next"] = mobile_redirect
-        session.save()
-
-        # Login the user
+        # Login the user first
         self.login_as(self.user)
 
-        # Make request as authenticated user
-        response = self.client.get(url)
+        # Make request with mobile redirect parameter as authenticated user
+        response = self.client.get(url, {"next": mobile_redirect})
 
-        # Should redirect to the mobile app
+        # Should redirect to the mobile app since user is already authenticated
         self.assertEqual(response.status_code, 302)
         # The redirect location should be the mobile custom URL scheme
-        # Note: In a real test, this would depend on the specific flow implementation
+        self.assertEqual(response["Location"], mobile_redirect)
 
 
 class MobileAuthValidationTest(TestCase):
