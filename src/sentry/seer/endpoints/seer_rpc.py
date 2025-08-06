@@ -215,26 +215,36 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_sentry_organization_id(
-    *, full_repo_name: str, provider: str = "integrations:github"
+    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
 ) -> dict:
     """
     Get the Sentry organization ID for a given Repository.
 
     Args:
         full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
+        external_id: The id of the repo in the provider's system
         provider: The provider of the repository (e.g. "integrations:github")
     """
-    org_id = (
-        Repository.objects.filter(
-            name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE
-        )
-        .values_list("organization_id", flat=True)
-        .first()
-    )
 
-    if org_id is None:
-        return {"org_id": None, "error": "Repository not found"}
-    return {"org_id": org_id, "error": None}
+    # It's possible that multiple orgs will be returned for a given repo.
+    organization_ids = Repository.objects.filter(
+        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
+    ).values_list("organization_id", flat=True)
+    organizations = Organization.objects.filter(id__in=organization_ids)
+    # We then filter out all orgs that didn't give us consent to use AI features.
+    orgs_with_consent = []
+    for org in organizations:
+        hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+        pr_review_test_generation_enabled = bool(
+            org.get_option(
+                "sentry:enable_pr_review_test_generation",
+                ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+            )
+        )
+        if not hide_ai_features and pr_review_test_generation_enabled:
+            orgs_with_consent.append(org)
+
+    return {"org_ids": [organization.id for organization in orgs_with_consent]}
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
