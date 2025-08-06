@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import time
 from typing import Any
-from venv import logger
 
 import requests
 from django.conf import settings
@@ -89,15 +88,9 @@ class WebhookPresenter(OptionsPresenter):
             ],
         }
 
-        if self.timestamp:
-            try:
-                start_time = float(self.timestamp)  # Ensure timestamp is a valid float
-                latency_seconds = time.time() - start_time
-                json_data["latency_seconds"] = latency_seconds
-            except ValueError:
-                logger.warning(
-                    f"Warning: Invalid timestamp: {self.timestamp}. Latency will not be reported.",
-                )
+        start_time = float(self.timestamp)  # Ensure timestamp is a valid float
+        latency_seconds = time.time() - start_time
+        json_data["latency_seconds"] = latency_seconds
 
         self._send_to_webhook(json_data)
 
