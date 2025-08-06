@@ -70,7 +70,7 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
             height="22px"
             padding="xs sm"
           >
-            <Text variant="primary" size="sm" bold>
+            <Text variant="accent" size="sm" bold>
               {insight.name}
             </Text>
             <Flex align="center" gap="sm">
