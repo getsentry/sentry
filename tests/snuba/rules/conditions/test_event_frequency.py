@@ -241,6 +241,231 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         assert self.event2.group_id in error_issue_ids
         assert self.perf_event.group_id in generic_issue_ids
 
+    def test_upsampled_aggregation_with_real_events_error_groups(self) -> None:
+        """Test that real events with sample weights produce upsampled counts for error groups"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store 2 error events with 0.2 sample rate (5x weight = 10 total count)
+            sampled_event1 = self.store_event(
+                data={
+                    "event_id": "d" * 32,
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=30).isoformat(),
+                    "fingerprint": ["sampled-group"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "e" * 32,
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=20).isoformat(),
+                    "fingerprint": ["sampled-group"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Query using the EventFrequency condition's query_hook for proper integration
+            group_event = sampled_event1.for_group(sampled_event1.group)
+            count = self.condition_inst.query_hook(
+                event=group_event,
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect upsampled count: 2 events * 5 sample_weight = 10
+            assert count == 10
+
+    def test_regular_aggregation_with_real_events_when_disabled(self) -> None:
+        """Test that real events with sample weights produce regular counts when upsampling is disabled"""
+        # Store 2 error events with 0.2 sample rate
+        sampled_event1 = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=30).isoformat(),
+                "fingerprint": ["non-upsampled-group"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["non-upsampled-group"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Query using EventFrequency condition WITHOUT upsampling enabled - should return raw count
+        group_event = sampled_event1.for_group(sampled_event1.group)
+        count = self.condition_inst.query_hook(
+            event=group_event,
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+
+        # Expect regular count: 2 events (no upsampling)
+        assert count == 2
+
+    def test_regular_aggregation_with_real_events_performance_groups(self) -> None:
+        """Test that performance groups use regular counts even when upsampling is enabled"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Query using EventFrequency condition for performance groups - should use regular count
+            count = self.condition_inst.query_hook(
+                event=self.perf_event,  # self.perf_event is already a GroupEvent
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect regular count: 1 event (no upsampling for performance)
+            # The perf_event was created in setUp, so we expect count of 1
+            assert count == 1
+
+    def test_upsampled_aggregation_with_real_events_batch_query_error_groups(self) -> None:
+        """Test that real events with sample weights produce upsampled counts in batch queries for error groups"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store 2 error events with 0.2 sample rate for first group (5x weight = 10 total count)
+            batch_event1_1 = self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=30).isoformat(),
+                    "fingerprint": ["batch-group-1"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=25).isoformat(),
+                    "fingerprint": ["batch-group-1"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store 3 error events with 0.1 sample rate for second group (10x weight = 30 total count)
+            batch_event2_1 = self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=20).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=15).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": str(uuid4()).replace("-", ""),
+                    "environment": self.environment.name,
+                    "timestamp": before_now(seconds=10).isoformat(),
+                    "fingerprint": ["batch-group-2"],
+                    "user": {"id": uuid4().hex},
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Query using batch_query_hook - should return upsampled counts
+            result = self.condition_inst.batch_query_hook(
+                group_ids={batch_event1_1.group_id, batch_event2_1.group_id},
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+
+            # Expect upsampled counts:
+            # Group 1: 2 events * 5 sample_weight = 10
+            # Group 2: 3 events * 10 sample_weight = 30
+            expected_results = {
+                batch_event1_1.group_id: 10,
+                batch_event2_1.group_id: 30,
+            }
+            assert result == expected_results
+
+    def test_regular_aggregation_with_real_events_batch_query_when_disabled(self) -> None:
+        """Test that real events with sample weights produce regular counts in batch queries when upsampling is disabled"""
+        # Store 2 error events with 0.2 sample rate for first group
+        batch_event1_1 = self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=30).isoformat(),
+                "fingerprint": ["batch-non-upsampled-1"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=25).isoformat(),
+                "fingerprint": ["batch-non-upsampled-1"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store 1 error event for second group
+        batch_event2_1 = self.store_event(
+            data={
+                "event_id": str(uuid4()).replace("-", ""),
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["batch-non-upsampled-2"],
+                "user": {"id": uuid4().hex},
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            },
+            project_id=self.project.id,
+        )
+
+        # Query using batch_query_hook WITHOUT upsampling enabled - should return raw counts
+        result = self.condition_inst.batch_query_hook(
+            group_ids={batch_event1_1.group_id, batch_event2_1.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+
+        # Expect regular counts: Group 1: 2 events, Group 2: 1 event (no upsampling)
+        expected_results = {
+            batch_event1_1.group_id: 2,
+            batch_event2_1.group_id: 1,
+        }
+        assert result == expected_results
+
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventUniqueUserFrequencyCondition
