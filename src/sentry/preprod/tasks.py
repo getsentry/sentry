@@ -181,7 +181,7 @@ def create_preprod_artifact(
                 "checksum": checksum,
             },
         )
-        return
+        return None
 
     if preprod_artifact:
         produce_preprod_artifact_to_kafka(
@@ -199,7 +199,9 @@ def create_preprod_artifact(
                 "checksum": checksum,
             },
         )
-    return preprod_artifact.id
+    # This will be a non-int display id in future so prepare for that
+    # by returning a string.
+    return str(preprod_artifact.id)
 
 
 def _assemble_preprod_artifact_file(
