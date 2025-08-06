@@ -110,7 +110,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def datetime(self) -> datetime:
+        # If we have high precision timestamps, use them
         column = self._get_column_name(Columns.TIMESTAMP_MS)
+        if column in self._snuba_data:
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
+
+        # Otherwise, use the low precision timestamp
+        column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
