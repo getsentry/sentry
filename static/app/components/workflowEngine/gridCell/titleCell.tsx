@@ -23,8 +23,8 @@ export function TitleCell({
   className,
 }: TitleCellProps) {
   return (
-    <TitleWrapper to={link} disabled={disabled} className={className}>
-      <Name disabled={disabled}>
+    <TitleWrapper to={link} className={className}>
+      <Name>
         <NameText>{name}</NameText>
         {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
         {disabled && <span>&mdash; Disabled</span>}
@@ -34,7 +34,7 @@ export function TitleCell({
   );
 }
 
-const Name = styled('div')<{disabled: boolean}>`
+const Name = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@ const CreatedBySentryIcon = styled(IconSentry)`
   flex-shrink: 0;
 `;
 
-const TitleWrapper = styled(Link)<{disabled: boolean}>`
+const TitleWrapper = styled(Link)`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
