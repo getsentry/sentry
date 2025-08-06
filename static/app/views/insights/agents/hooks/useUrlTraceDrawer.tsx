@@ -2,8 +2,8 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {DrawerUrlParams} from 'sentry/views/insights/agentMonitoring/utils/urlParams';
+import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
 export function useUrlTraceDrawer() {
   const {

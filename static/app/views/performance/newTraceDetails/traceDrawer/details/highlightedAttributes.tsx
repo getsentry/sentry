@@ -7,14 +7,14 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
+import {getAIAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
   name: string;
