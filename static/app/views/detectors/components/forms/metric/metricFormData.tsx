@@ -148,8 +148,8 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   conditionComparisonAgo: 60 * 60, // One hour in seconds
 
   // Default dynamic fields
-  sensitivity: AlertRuleSensitivity.LOW,
-  thresholdType: AlertRuleThresholdType.ABOVE,
+  sensitivity: AlertRuleSensitivity.MEDIUM,
+  thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
 
   dataset: DetectorDataset.SPANS,
   aggregateFunction: 'avg(span.duration)',

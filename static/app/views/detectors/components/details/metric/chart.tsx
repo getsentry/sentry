@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
@@ -34,24 +33,28 @@ export function MetricDetectorDetailsChart({
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
 
   return (
-    <Flex direction="column" gap="xl">
-      <ChartContainer>
-        <ChartContainerBody>
-          <MetricDetectorChart
-            dataset={dataset}
-            aggregate={aggregate}
-            interval={interval}
-            query={query}
-            environment={environment}
-            projectId={detector.projectId}
-            conditions={conditions}
-            detectionType={detectionType}
-            statsPeriod={statsPeriod}
-            comparisonDelta={comparisonDelta}
-          />
-        </ChartContainerBody>
-      </ChartContainer>
-    </Flex>
+    <ChartContainer>
+      <ChartContainerBody>
+        <MetricDetectorChart
+          dataset={dataset}
+          aggregate={aggregate}
+          interval={interval}
+          query={query}
+          environment={environment}
+          projectId={detector.projectId}
+          conditions={conditions}
+          detectionType={detectionType}
+          statsPeriod={statsPeriod}
+          comparisonDelta={comparisonDelta}
+          sensitivity={
+            'sensitivity' in detector.config ? detector.config.sensitivity : undefined
+          }
+          thresholdType={
+            'thresholdType' in detector.config ? detector.config.thresholdType : undefined
+          }
+        />
+      </ChartContainerBody>
+    </ChartContainer>
   );
 }
 
