@@ -21,8 +21,6 @@ from unittest import mock
 import pytest
 import sentry_sdk
 
-### from sentry.utils.arroyo_producer import SingletonProducer  # HAX
-
 _CWD = os.getcwd() + "/"
 log = getLogger(__name__)
 SENTRY_DSN = "https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760"  # proj-thread-leaks
@@ -123,9 +121,6 @@ def check_test(request: pytest.FixtureRequest):
     try:
         with assert_none():
             yield
-            ### # HAX: close all "singleton producers" before checking thread leaks
-            ### # FIXME TODO: if request.node.get_closest_marker("thread_leak_singleton_cleanup"):
-            ### SingletonProducer._shutdown_all()
     except AssertionError:
         SENTRY_SCOPE.capture_exception(
             level="warning",
