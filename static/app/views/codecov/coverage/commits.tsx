@@ -53,6 +53,171 @@ const uploadFilterOptions = [
   {value: 'error', label: 'Error'},
 ];
 
+// Mock pull requests data
+const pullRequestsData = [
+  {
+    id: '1',
+    title: 'steps4: add smiles',
+    number: 10,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: '87.50%',
+    authorUser: {
+      id: '1',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '2',
+    title: 'steps3: add Codecov badge',
+    number: 9,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: null,
+    authorUser: {
+      id: '2',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '3',
+    title: 'step3: add project status check target',
+    number: 7,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: null,
+    authorUser: {
+      id: '3',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '4',
+    title: 'steps3: cover divide by 0 case',
+    number: 8,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: '100%',
+    authorUser: {
+      id: '4',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '5',
+    title: 'step3: add project status check target',
+    number: 6,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: null,
+    authorUser: {
+      id: '5',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '6',
+    title: 'step2: upload coverage reports to Codecov',
+    number: 5,
+    author: 'Flamefire',
+    status: 'open',
+    timestamp: '1 day ago',
+    coverage: null,
+    authorUser: {
+      id: '6',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '7',
+    title: 'step1: create initial project structure',
+    number: 4,
+    author: 'Flamefire',
+    status: 'merged',
+    timestamp: '2 days ago',
+    coverage: '95%',
+    authorUser: {
+      id: '7',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '8',
+    title: 'initial commit setup',
+    number: 3,
+    author: 'Flamefire',
+    status: 'merged',
+    timestamp: '3 days ago',
+    coverage: '88%',
+    authorUser: {
+      id: '8',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  {
+    id: '9',
+    title: 'fix typo in documentation',
+    number: 2,
+    author: 'Flamefire',
+    status: 'merged',
+    timestamp: '4 days ago',
+    coverage: null,
+    authorUser: {
+      id: '9',
+      email: 'flamefire@example.com',
+      name: 'Flamefire',
+      username: 'flamefire',
+      ip_address: '',
+    },
+  },
+  // Add closed pull requests to match the design
+  ...Array.from({length: 35}, (_, index) => ({
+    id: `closed-${index + 1}`,
+    title: `Closed PR ${index + 1}`,
+    number: 100 + index,
+    author: 'Various Authors',
+    status: 'closed',
+    timestamp: `${Math.floor(index / 7) + 1} weeks ago`,
+    coverage: index % 3 === 0 ? `${80 + (index % 20)}%` : null,
+    authorUser: {
+      id: `closed-${index + 1}`,
+      email: 'author@example.com',
+      name: 'Various Authors',
+      username: 'author',
+      ip_address: '',
+    },
+  })),
+];
+
 // Mock commits data
 const commitsData = [
   {
@@ -248,8 +413,13 @@ const commitsData = [
 
 const COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'commit', name: t('Commits'), width: COL_WIDTH_UNDEFINED},
-  {key: 'coverage', name: t('Patch coverage'), width: COL_WIDTH_UNDEFINED},
   {key: 'uploads', name: t('Upload count'), width: COL_WIDTH_UNDEFINED},
+  {key: 'coverage', name: t('Patch coverage'), width: COL_WIDTH_UNDEFINED},
+];
+
+const PULLS_COLUMN_ORDER: GridColumnOrder[] = [
+  {key: 'pullRequest', name: t('Pull Requests'), width: COL_WIDTH_UNDEFINED},
+  {key: 'coverage', name: t('Patch coverage'), width: COL_WIDTH_UNDEFINED},
 ];
 
 interface MultiSelectDropdownProps {
@@ -447,7 +617,6 @@ function renderTableBody(
 
     return (
       <UploadCountCell>
-        <UploadNumber>{total}</UploadNumber>
         <UploadBreakdown>
           <UploadStatus>
             <StatusDot $color="success" />
@@ -472,8 +641,110 @@ function renderTableBody(
             </UploadStatus>
           )}
         </UploadBreakdown>
+        <UploadNumber>{total}</UploadNumber>
       </UploadCountCell>
     );
+  }
+
+  return <AlignmentContainer alignment={alignment}>{row[key]}</AlignmentContainer>;
+}
+
+function renderPullsTableHeader(
+  column: GridColumnOrder,
+  pullRequestCounts: any,
+  pullRequestStatus: string,
+  setPullRequestStatus: (status: string) => void
+) {
+  const {key, name} = column;
+  const alignment = key === 'coverage' ? 'right' : 'left';
+
+  if (key === 'pullRequest') {
+    return (
+      <HeaderCell alignment={alignment}>
+        <HeaderWithControl>
+          <HeaderText>{name}</HeaderText>
+          <SegmentedControlContainer>
+            <SegmentedControlButton
+              isActive={pullRequestStatus === 'open'}
+              onClick={() => setPullRequestStatus('open')}
+            >
+              {pullRequestCounts.open} Open
+            </SegmentedControlButton>
+            <SegmentedControlDivider />
+            <SegmentedControlButton
+              isActive={pullRequestStatus === 'merged'}
+              onClick={() => setPullRequestStatus('merged')}
+            >
+              {pullRequestCounts.merged} Merged
+            </SegmentedControlButton>
+            <SegmentedControlDivider />
+            <SegmentedControlButton
+              isActive={pullRequestStatus === 'closed'}
+              onClick={() => setPullRequestStatus('closed')}
+            >
+              {pullRequestCounts.closed} Closed
+            </SegmentedControlButton>
+          </SegmentedControlContainer>
+        </HeaderWithControl>
+      </HeaderCell>
+    );
+  }
+
+  return (
+    <HeaderCell alignment={alignment}>
+      <HeaderText>{name}</HeaderText>
+    </HeaderCell>
+  );
+}
+
+function renderPullsTableBody(
+  column: GridColumnOrder,
+  row: any,
+  rowIndex: number,
+  _columnIndex: number
+) {
+  const key = String(column.key);
+  const alignment = ['coverage'].includes(key) ? 'right' : 'left';
+
+  if (key === 'pullRequest') {
+    const pullRequestCell = (
+      <CommitCell>
+        <UserAvatar user={row.authorUser} size={40} />
+        <CommitInfo>
+          <CommitMessage>
+            {rowIndex === 0 ? (
+              row.title
+            ) : (
+              <PullRequestCellLink pullId={row.number}>{row.title}</PullRequestCellLink>
+            )}
+          </CommitMessage>
+          <CommitDetails>
+            <AuthorName>{row.author}</AuthorName> opened{' '}
+            <PullRequestLink
+              href={`https://github.com/example-org/example-repo/pull/${row.number}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <IconGithub size="xs" />#{row.number}
+            </PullRequestLink>{' '}
+            • {row.timestamp}
+          </CommitDetails>
+        </CommitInfo>
+      </CommitCell>
+    );
+
+    // Make the first row clickable and link to pull request detail
+    if (rowIndex === 0) {
+      return (
+        <PullRequestCellLink pullId={row.number}>{pullRequestCell}</PullRequestCellLink>
+      );
+    }
+
+    return pullRequestCell;
+  }
+
+  if (key === 'coverage') {
+    return <AlignmentContainer alignment={alignment}>{row.coverage}</AlignmentContainer>;
   }
 
   return <AlignmentContainer alignment={alignment}>{row[key]}</AlignmentContainer>;
@@ -490,6 +761,23 @@ function CommitCellLink({hash, children}: {children: React.ReactNode; hash: stri
   return <StyledLink to={commitUrl}>{children}</StyledLink>;
 }
 
+// Component to handle the organization context for pull request links
+function PullRequestCellLink({
+  pullId,
+  children,
+}: {
+  children: React.ReactNode;
+  pullId: number;
+}) {
+  const organization = useOrganization();
+  const pullUrl = makeCodecovPathname({
+    organization,
+    path: `/coverage/pulls/${pullId}/`,
+  });
+
+  return <StyledLink to={pullUrl}>{children}</StyledLink>;
+}
+
 export default function CommitsListPage() {
   const [selectedOrg, setSelectedOrg] = useState('turing-corp');
   const [selectedRepo, setSelectedRepo] = useState('enigma');
@@ -500,6 +788,7 @@ export default function CommitsListPage() {
     'completed',
     'pending',
   ]);
+  const [pullRequestStatus, setPullRequestStatus] = useState('open');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -553,6 +842,20 @@ export default function CommitsListPage() {
     const end = Math.min(endIndex, totalItems);
     return `${start}-${end} of ${totalItems}`;
   }, [startIndex, endIndex, totalItems]);
+
+  // Filter pull requests by status
+  const filteredPullRequests = useMemo(() => {
+    return pullRequestsData.filter(pr => pr.status === pullRequestStatus);
+  }, [pullRequestStatus]);
+
+  // Pull request status counts
+  const pullRequestCounts = useMemo(() => {
+    const counts = {open: 0, merged: 0, closed: 0};
+    pullRequestsData.forEach(pr => {
+      counts[pr.status as keyof typeof counts]++;
+    });
+    return counts;
+  }, []);
 
   return (
     <LayoutGap>
@@ -639,6 +942,18 @@ export default function CommitsListPage() {
           options={uploadFilterOptions}
           onChange={setSelectedUploadFilters}
         />
+
+        <SearchBarContainer>
+          <IconSearch size="sm" />
+          <SearchInput
+            type="text"
+            placeholder="filter by commit name, author, pull request name"
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchQuery(e.target.value)
+            }
+          />
+        </SearchBarContainer>
       </ControlsContainer>
 
       <TabNavigationContainer>
@@ -658,19 +973,6 @@ export default function CommitsListPage() {
 
       {activeTab === 'commits' && (
         <CommitsSection>
-          <CommitsFilterContainer>
-            <SearchBarContainer>
-              <IconSearch size="sm" />
-              <SearchInput
-                type="text"
-                placeholder="filter by commit name, author, pull request name"
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearchQuery(e.target.value)
-                }
-              />
-            </SearchBarContainer>
-          </CommitsFilterContainer>
           <GridEditable
             aria-label={t('Commits Table')}
             isLoading={false}
@@ -692,11 +994,23 @@ export default function CommitsListPage() {
 
       {activeTab === 'pulls' && (
         <PullsSection>
-          <SectionHeader>Pull Requests</SectionHeader>
-          <SectionContent>
-            <p>Review pull requests and their coverage impact.</p>
-            {/* Pull requests content will go here */}
-          </SectionContent>
+          <GridEditable
+            aria-label={t('Pull Requests Table')}
+            isLoading={false}
+            data={filteredPullRequests}
+            columnOrder={PULLS_COLUMN_ORDER}
+            columnSortBy={[]}
+            grid={{
+              renderHeadCell: (column: GridColumnOrder) =>
+                renderPullsTableHeader(
+                  column,
+                  pullRequestCounts,
+                  pullRequestStatus,
+                  setPullRequestStatus
+                ),
+              renderBodyCell: renderPullsTableBody,
+            }}
+          />
         </PullsSection>
       )}
 
@@ -721,6 +1035,19 @@ const LayoutGap = styled('div')`
 const ControlsContainer = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.xl};
+  flex-wrap: wrap;
+  align-items: center;
+
+  /* Mobile responsive adjustments */
+  @media (max-width: 767px) {
+    gap: ${p => p.theme.space.md};
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  @media (max-width: 1023px) {
+    gap: ${p => p.theme.space.lg};
+  }
 `;
 
 const TriggerLabelWrap = styled('span')`
@@ -826,13 +1153,6 @@ const SectionContent = styled('div')`
   line-height: 1.5;
 `;
 
-const CommitsFilterContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space['2xl']};
-  width: 100%;
-`;
-
 const SearchBarContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -842,8 +1162,29 @@ const SearchBarContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   flex: 1;
-  max-width: 1082px;
   height: 40px;
+  min-width: 200px;
+  max-width: 100%;
+
+  /* Responsive breakpoints */
+  @media (min-width: 768px) {
+    max-width: 400px;
+  }
+
+  @media (min-width: 1024px) {
+    max-width: 500px;
+  }
+
+  @media (min-width: 1280px) {
+    max-width: 100%;
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 767px) {
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+    gap: ${p => p.theme.space.sm};
+    min-width: 150px;
+  }
 `;
 
 const SearchInput = styled('input')`
@@ -982,6 +1323,24 @@ const CommitHashLink = styled('a')`
   }
 `;
 
+const PullRequestLink = styled('a')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.linkColor};
+  text-decoration: none;
+  font-weight: ${p => p.theme.fontWeight.normal};
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: ${p => p.theme.linkColor};
+  }
+`;
+
 const UploadCountCell = styled('div')`
   display: flex;
   align-items: center;
@@ -1079,4 +1438,47 @@ const TooltipDescription = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   line-height: 1.4;
+`;
+
+const HeaderWithControl = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const SegmentedControlContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-left: ${p => p.theme.space.md};
+`;
+
+const SegmentedControlButton = styled('button')<{isActive: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border: none;
+  background: ${p => (p.isActive ? p.theme.background : 'transparent')};
+  border-radius: 5px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: ${p => (p.isActive ? '0px 0px 2px 0px rgba(43, 34, 51, 0.32)' : 'none')};
+
+  &:hover {
+    background: ${p => (p.isActive ? p.theme.background : p.theme.backgroundTertiary)};
+  }
+`;
+
+const SegmentedControlDivider = styled('div')`
+  width: 1px;
+  height: 13px;
+  background: ${p => p.theme.border};
 `;

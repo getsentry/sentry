@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconFilter} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {SummaryFilterKey} from 'sentry/views/codecov/tests/config';
 
@@ -38,7 +37,7 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
 const StyledSummaryEntryLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 interface SummaryEntryLabelProps extends React.ComponentProps<typeof Hovercard> {
@@ -56,18 +55,18 @@ export function SummaryEntryLabel({children, ...props}: SummaryEntryLabelProps) 
 const SummaryEntryBase = css`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
   font-size: 2.25rem;
 `;
 
 export const SummaryEntryValue = styled('span')`
   ${SummaryEntryBase}
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.textColor};
 `;
 
 const StyledSummaryEntryValueLink = styled('span')`
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.linkColor};
   font-size: 2.25rem;
 
   /* This stops the text from jumping when becoming bold */
@@ -99,14 +98,14 @@ export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLin
   const {filterLink, isFiltered} = useCreateSummaryFilterLink(filterBy);
 
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: space(0.5)}}>
+    <FilterContainer>
       <IconFilter />
       <Link to={filterLink}>
         <StyledSummaryEntryValueLink data-is-filtered={isFiltered}>
           {children}
         </StyledSummaryEntryValueLink>
       </Link>
-    </div>
+    </FilterContainer>
   );
 }
 
@@ -135,6 +134,12 @@ export const SummaryEntries = styled('div')<{
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(${p => p.largeColumnSpan}, 1fr);
   }
+`;
+
+const FilterContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
 `;
 
 export const SummaryContainer = styled('div')<{columns: number}>`

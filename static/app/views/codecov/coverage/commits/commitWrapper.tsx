@@ -272,8 +272,8 @@ const BranchInfo = styled('div')`
 
 // Tab Navigation Styled Components
 const TabContainer = styled('div')`
-  border-bottom: 1px solid #e0dce5;
-  padding: 0 30px 0 22px;
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: 0 ${p => p.theme.space['3xl']} 0 ${p => p.theme.space['2xl']};
 `;
 
 const TabList = styled('div')`
@@ -286,8 +286,8 @@ const TabItem = styled('div')<{isActive: boolean}>`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md};
   position: relative;
 `;
 
@@ -304,13 +304,13 @@ const TabLabel = styled('div')<{isActive?: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 9px 0;
+  padding: ${p => p.theme.space.md} 0;
   font-family: ${p => p.theme.text.family};
-  font-weight: 400;
-  font-size: 14px;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.14;
   text-align: center;
-  color: ${p => (p.isActive ? '#6559c5' : p.theme.subText)};
+  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 
 const ActiveIndicator = styled('div')`
@@ -319,6 +319,6 @@ const ActiveIndicator = styled('div')`
   left: 0;
   right: 0;
   height: 3px;
-  background-color: #6c5fc7;
+  background-color: ${p => p.theme.purple300};
   border-radius: 1.5px 1.5px 0 0;
 `;

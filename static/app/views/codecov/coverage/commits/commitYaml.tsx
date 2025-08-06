@@ -2,11 +2,10 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconGithub} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   width: 100%;
   max-width: 1257px;
 `;
@@ -14,31 +13,31 @@ const LayoutGap = styled('div')`
 const HeaderSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('h2')`
-  font-family: Rubik, sans-serif;
-  font-weight: 600;
-  font-size: 18px;
-  line-height: 1.2;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xl};
+  line-height: ${p => p.theme.text.lineHeightHeading};
   letter-spacing: -0.64%;
-  color: #2b2233;
+  color: ${p => p.theme.headingColor};
   margin: 0;
 `;
 
 const Description = styled('p')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #71637e;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const StyledLink = styled(ExternalLink)`
-  color: #2562d4;
+  color: ${p => p.theme.linkColor};
   text-decoration: none;
 
   &:hover {
@@ -47,36 +46,36 @@ const StyledLink = styled(ExternalLink)`
 `;
 
 const CodeViewer = styled('div')`
-  background: #ffffff;
-  border: 1px solid #e0dce5;
-  border-radius: 10px;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   width: 100%;
   max-width: 1257px;
 `;
 
 const FileHeader = styled('div')`
-  background: #faf9fb;
-  border-bottom: 1px solid rgba(45, 0, 85, 0.06);
-  padding: 10px 12px;
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const FileHeaderContent = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: ${p => p.theme.space.md};
 `;
 
 const FileName = styled('span')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 12px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.18;
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
 `;
 
 const CodeBlock = styled('div')`
-  border-top: 1px solid rgba(45, 0, 85, 0.06);
+  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const CodeLine = styled('div')`
@@ -90,43 +89,43 @@ const LineNumber = styled('div')`
   align-items: center;
   justify-content: right;
   width: 48px;
-  padding: 0 8px;
-  border-right: 1px solid #e0dce5;
-  background: #ffffff;
-  font-family: 'Roboto Mono', monospace;
-  font-weight: 400;
-  font-size: 13px;
+  padding: 0 ${p => p.theme.space.md};
+  border-right: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.codeFontSize};
   line-height: 2em;
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
   flex-shrink: 0;
 `;
 
 const CodeContent = styled('div')`
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  font-family: 'Roboto Mono', monospace;
+  padding: 0 ${p => p.theme.space.lg};
+  font-family: ${p => p.theme.text.familyMono};
   font-weight: 425;
-  font-size: 13px;
+  font-size: ${p => p.theme.codeFontSize};
   line-height: 2em;
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
   flex: 1;
 `;
 
 const YamlKey = styled('span')`
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
 `;
 
 const YamlValue = styled('span')`
-  color: #d73a49;
+  color: ${p => p.theme.red400};
 `;
 
 const YamlNumber = styled('span')`
-  color: #005cc5;
+  color: ${p => p.theme.blue400};
 `;
 
 const YamlString = styled('span')`
-  color: #032f62;
+  color: ${p => p.theme.blue300};
 `;
 
 export default function CommitYamlPage() {

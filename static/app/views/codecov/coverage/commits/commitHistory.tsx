@@ -6,7 +6,6 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {IconChevron, IconDownload, IconFlag, IconGithub, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface ReportData {
   id: string;
@@ -261,7 +260,7 @@ export default function CommitHistoryPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   width: 100%;
   max-width: 1257px;
 `;
@@ -269,26 +268,26 @@ const LayoutGap = styled('div')`
 const HeaderSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('h2')`
-  font-family: Rubik, sans-serif;
-  font-weight: 600;
-  font-size: 18px;
-  line-height: 1.2;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xl};
+  line-height: ${p => p.theme.text.lineHeightHeading};
   letter-spacing: -0.64%;
-  color: #2b2233;
+  color: ${p => p.theme.headingColor};
   margin: 0;
 `;
 
 const Description = styled('p')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #71637e;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
@@ -297,18 +296,18 @@ const SearchContainer = styled('div')`
 
   form {
     [role='group'] {
-      border: 1px solid #e0dce5;
-      border-radius: 6px;
-      background: #ffffff;
+      border: 1px solid ${p => p.theme.border};
+      border-radius: ${p => p.theme.borderRadius};
+      background: ${p => p.theme.background};
     }
   }
 
   input {
-    font-family: 'Roboto Mono', monospace;
-    font-size: 12px;
+    font-family: ${p => p.theme.text.familyMono};
+    font-size: ${p => p.theme.fontSize.sm};
 
     &::placeholder {
-      color: #80708f;
+      color: ${p => p.theme.formPlaceholder};
     }
   }
 `;
@@ -317,10 +316,10 @@ const TooltipTrigger = styled('span')`
   text-decoration: underline;
   text-decoration-style: dotted;
   cursor: help;
-  color: #71637e;
+  color: ${p => p.theme.subText};
 
   &:hover {
-    color: #2b2233;
+    color: ${p => p.theme.headingColor};
   }
 `;
 
@@ -328,64 +327,64 @@ const TooltipTrigger = styled('span')`
 const TableContainer = styled('div')`
   width: 100%;
   max-width: 1257px;
-  border: 1px solid #e0dce5;
-  border-radius: 10px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  background: #ffffff;
+  background: ${p => p.theme.background};
 `;
 
 const TableHeader = styled('div')`
-  background: #faf9fb;
-  border-bottom: 1px solid #e0dce5;
-  padding: ${space(1.5)} ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const HeaderButtons = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledButton = styled(Button)`
   opacity: 0.65;
 
   svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const ExpandAllButton = styled(Button)`
   svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: ${p => p.theme.hover};
   }
 `;
 
 const TableHeaderRow = styled('div')`
   display: flex;
   align-items: center;
-  background: #f8f7fa;
-  border-bottom: 1px solid #e0dce5;
-  padding: ${space(1)} ${space(1.5)};
+  background: ${p => p.theme.backgroundTertiary};
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   font-weight: 500;
 `;
 
 const TableHeaderCell = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: 1;
 `;
 
 const HeaderText = styled('span')`
-  font-family: Rubik, sans-serif;
+  font-family: ${p => p.theme.text.family};
   font-weight: 500;
-  font-size: 12px;
-  line-height: 1.2;
-  color: #71637e;
+  font-size: ${p => p.theme.fontSize.sm};
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
@@ -397,34 +396,35 @@ const TableContent = styled('div')`
 
 const TableSection = styled('div')`
   &:not(:last-child) {
-    border-bottom: 1px solid #e0dce5;
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 
 const MainRow = styled('div')<{isExpanded?: boolean}>`
-  background: #faf9fb;
-  border-bottom: ${props => (props.isExpanded ? '1px solid #e0dce5' : 'none')};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: ${props =>
+    props.isExpanded ? `1px solid ${props.theme.border}` : 'none'};
 `;
 
 const RowContent = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Leading = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   flex: 1;
 `;
 
 const Trailing = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const StyledCheckbox = styled(Checkbox)`
@@ -432,19 +432,19 @@ const StyledCheckbox = styled(Checkbox)`
 `;
 
 const CheckboxLabel = styled('span')<{fontWeight?: number}>`
-  font-family: Rubik, sans-serif;
-  font-weight: ${props => props.fontWeight || 400};
-  font-size: 14px;
-  line-height: 1.4;
-  color: #3e3446;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${props => props.fontWeight || props.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
 `;
 
 const Timestamp = styled('span')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  color: #3e3446;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  color: ${p => p.theme.textColor};
   margin-left: auto;
   text-align: right;
 `;
@@ -452,69 +452,69 @@ const Timestamp = styled('span')`
 const ExpandButton = styled('button')`
   background: none;
   border: none;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
+    background: ${p => p.theme.hover};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
 const ExpandedContent = styled('div')`
-  background: #ffffff;
+  background: ${p => p.theme.background};
 `;
 
 const DescriptionRow = styled('div')`
-  padding: ${space(2)} ${space(1.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
 `;
 
 const DescriptionText = styled('p')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #71637e;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const FlagContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 const VerticalDivider = styled('div')`
   width: 0;
   height: 14px;
-  border-left: 1px solid #e0dce5;
+  border-left: 1px solid ${p => p.theme.border};
 `;
 
 const FlagSection = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const FlagText = styled('span')`
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #3e3446;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
 `;
 
 const CarryForwardTag = styled('span')`
-  background: rgba(108, 95, 199, 0.1);
-  border: 1px solid rgba(108, 95, 199, 0.09);
+  background: ${p => p.theme.purple100};
+  border: 1px solid ${p => p.theme.purple100};
   border-radius: 17px;
-  padding: 2px ${space(1)};
-  font-family: Rubik, sans-serif;
-  font-weight: 400;
-  font-size: 12px;
+  padding: 2px ${p => p.theme.space.md};
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.33;
-  color: #6559c5;
+  color: ${p => p.theme.purple400};
 `;

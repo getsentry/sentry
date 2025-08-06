@@ -104,10 +104,6 @@ export default function AIPage() {
                         <ExternalLink href="https://github.com/apps/seer-by-sentry">
                           {t('Seer by Sentry GitHub App')}
                         </ExternalLink>{' '}
-                        {t('and ')}{' '}
-                        <ExternalLink href="https://codecov.sentry.io/settings/projects/api/seer/">
-                          {t('add repositories')}
-                        </ExternalLink>{' '}
                         {t('within the same GitHub organization.')}
                       </StepDescription>
                     </StepContent>

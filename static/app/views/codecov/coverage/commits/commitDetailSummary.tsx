@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconArrow, IconChevron, IconGithub, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const headCommit = {
   sha: '31b72ff64bd75326ea5e43bf8e93b415db56cb62',
@@ -194,15 +193,15 @@ export function CommitDetailSummary() {
                 <SummaryEntryValueLink filterBy="uploadsCount">65</SummaryEntryValueLink>
                 <StatusIndicatorContainer>
                   <StatusItem>
-                    <StatusDot color="#2BA185" />
+                    <StatusDot $variant="success" />
                     <StatusText>65 Processed</StatusText>
                   </StatusItem>
                   <StatusItem>
-                    <StatusDot color="#EBC000" />
+                    <StatusDot $variant="warning" />
                     <StatusText>15 Pending</StatusText>
                   </StatusItem>
                   <StatusItem>
-                    <StatusDot color="#CF2126" />
+                    <StatusDot $variant="error" />
                     <StatusText>1 Failed</StatusText>
                   </StatusItem>
                 </StatusIndicatorContainer>
@@ -428,25 +427,36 @@ const StatusItem = styled('div')`
   gap: 4px;
 `;
 
-const StatusDot = styled('div')<{color: string}>`
+const StatusDot = styled('div')<{$variant: 'success' | 'warning' | 'error'}>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: ${p => p.color};
+  background-color: ${p => {
+    switch (p.$variant) {
+      case 'success':
+        return p.theme.green300;
+      case 'warning':
+        return p.theme.yellow300;
+      case 'error':
+        return p.theme.red300;
+      default:
+        return p.theme.gray300;
+    }
+  }};
   flex-shrink: 0;
 `;
 
 const StatusText = styled('span')`
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 12px;
-  font-weight: 400;
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.2;
-  color: #71637e;
+  color: ${p => p.theme.subText};
 `;
 
 const StyledSubText = styled('p')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SourceText = styled('p')`
@@ -476,21 +486,21 @@ const UploadsPanel = styled(Panel)`
 `;
 
 const UncoveredLinesPanel = styled('div')`
-  margin-top: ${space(3)};
-  border: 1px solid #e0dce5;
-  border-radius: 10px;
-  background: #ffffff;
+  margin-top: ${p => p.theme.space['2xl']};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.background};
   overflow: hidden;
 `;
 
 const TableTitle = styled('h3')`
-  margin: 0 0 ${space(2)} 0;
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
+  margin: 0 0 ${p => p.theme.space.xl} 0;
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  line-height: ${p => p.theme.text.lineHeightHeading};
   letter-spacing: -0.64%;
-  color: #2b2233;
+  color: ${p => p.theme.headingColor};
 `;
 
 const TableContainer = styled('div')`
@@ -500,28 +510,28 @@ const TableContainer = styled('div')`
 const TableHeaderRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 132px 102px;
-  background: #faf9fb;
-  border-bottom: 1px solid #e0dce5;
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SortableFilePathHeader = styled('div')<{isActive: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 12px;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
   line-height: 1em;
   text-transform: uppercase;
-  color: ${p => (p.isActive ? '#2b2233' : '#80708f')};
-  border-right: 1px solid #e0dce5;
+  color: ${p => (p.isActive ? p.theme.headingColor : p.theme.subText)};
+  border-right: 1px solid ${p => p.theme.border};
   cursor: pointer;
   user-select: none;
   transition: color 0.15s ease;
 
   &:hover {
-    color: #2b2233;
+    color: ${p => p.theme.headingColor};
   }
 `;
 
@@ -529,25 +539,25 @@ const ToggleAllButton = styled('button')`
   display: flex;
   align-items: center;
   background: none;
-  border: 1px solid #e0dce5;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 11px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.xs};
   font-weight: 500;
-  color: #71637e;
+  color: ${p => p.theme.subText};
   cursor: pointer;
   transition: all 0.15s ease;
   text-transform: capitalize;
 
   &:hover {
-    background: #faf9fb;
-    color: #2b2233;
-    border-color: #71637e;
+    background: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.headingColor};
+    border-color: ${p => p.theme.subText};
   }
 
   &:active {
-    background: #f0ecf3;
+    background: ${p => p.theme.backgroundTertiary};
   }
 `;
 
@@ -561,21 +571,21 @@ const SortableCoverageHeader = styled('div')<{isActive: boolean}>`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
-  padding: 12px 16px;
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 12px;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 500;
   line-height: 1em;
   text-transform: uppercase;
-  color: ${p => (p.isActive ? '#2b2233' : '#71637e')};
-  border-right: 1px solid #e0dce5;
+  color: ${p => (p.isActive ? p.theme.headingColor : p.theme.subText)};
+  border-right: 1px solid ${p => p.theme.border};
   cursor: pointer;
   user-select: none;
   transition: color 0.15s ease;
 
   &:hover {
-    color: #2b2233;
+    color: ${p => p.theme.headingColor};
   }
 
   &:last-child {
@@ -586,39 +596,39 @@ const SortableCoverageHeader = styled('div')<{isActive: boolean}>`
 const TableRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 132px 102px;
-  background: #ffffff;
-  border-bottom: 1px solid #e0dce5;
+  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   &:hover {
-    background: #faf9fb;
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
 const FilePathCell = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   cursor: pointer;
-  border-right: 1px solid #e0dce5;
-  background: #ffffff;
+  border-right: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
 `;
 
 const ChevronIcon = styled(IconChevron)<{isExpanded: boolean}>`
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: ${p => p.theme.space.xl};
+  height: ${p => p.theme.space.xl};
   transition: transform 0.15s ease;
   transform: rotate(${p => (p.isExpanded ? '0deg' : '-90deg')});
-  color: #2b2233;
+  color: ${p => p.theme.headingColor};
 `;
 
 const FilePath = styled('span')`
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  color: #3e3446;
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
   flex: 1;
   word-break: break-all;
 `;
@@ -627,14 +637,14 @@ const CoverageCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 8px 16px;
-  font-family: Rubik, ${p => p.theme.text.family};
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  color: #2b2233;
-  background: #ffffff;
-  border-right: 1px solid #e0dce5;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.headingColor};
+  background: ${p => p.theme.background};
+  border-right: 1px solid ${p => p.theme.border};
 
   &:last-child {
     border-right: none;
@@ -643,24 +653,24 @@ const CoverageCell = styled('div')`
 
 const ExpandedRow = styled('div')`
   grid-column: 1 / -1;
-  background: #f0ecf3;
-  border-bottom: 1px solid #e0dce5;
+  background: ${p => p.theme.backgroundTertiary};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   &:last-child {
     border-bottom: none;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
 `;
 
 const ExpandedContent = styled('div')`
-  padding: 15px;
+  padding: ${p => p.theme.space.lg};
 `;
 
 const DiffSection = styled('div')`
-  background: #ffffff;
-  border: 1px solid #e0dce5;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 0;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   overflow: hidden;
 
   &:last-child {
@@ -672,28 +682,28 @@ const DiffHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: #faf9fb;
-  border-bottom: 1px solid rgba(45, 0, 85, 0.06);
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const DiffHeaderText = styled('span')`
-  font-family: 'Roboto Mono', ${p => p.theme.text.familyMono};
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  color: #3e3446;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
 `;
 
 const DiffHeaderActions = styled('div')`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: ${p => p.theme.space.lg};
 
   svg {
-    width: 12px;
-    height: 12px;
-    color: #71637e;
+    width: ${p => p.theme.fontSize.sm};
+    height: ${p => p.theme.fontSize.sm};
+    color: ${p => p.theme.subText};
     opacity: 0.6;
     cursor: pointer;
 
@@ -704,9 +714,9 @@ const DiffHeaderActions = styled('div')`
 `;
 
 const CodeBlock = styled('div')`
-  font-family: 'Roboto Mono', ${p => p.theme.text.familyMono};
-  font-size: 13px;
-  background: #ffffff;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  background: ${p => p.theme.background};
 `;
 
 const CodeLine = styled('div')<{lineType: 'unchanged' | 'added' | 'removed'}>`
@@ -715,11 +725,11 @@ const CodeLine = styled('div')<{lineType: 'unchanged' | 'added' | 'removed'}>`
   background: ${p => {
     switch (p.lineType) {
       case 'added':
-        return 'rgba(43, 161, 133, 0.11)';
+        return p.theme.green100;
       case 'removed':
-        return 'rgba(245, 84, 89, 0.1)';
+        return p.theme.red100;
       default:
-        return '#FFFFFF';
+        return p.theme.background;
     }
   }};
 `;
@@ -733,46 +743,46 @@ const LineNumber = styled('div')<{lineType: 'unchanged' | 'added' | 'removed'}>`
   min-width: 40px;
   padding: 0;
   text-align: right;
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
   background: ${p => {
     switch (p.lineType) {
       case 'added':
-        return 'rgba(43, 161, 133, 0.11)';
+        return p.theme.green100;
       case 'removed':
-        return 'rgba(245, 84, 89, 0.1)';
+        return p.theme.red100;
       default:
-        return 'rgba(245, 84, 89, 0.1)';
+        return p.theme.red100;
     }
   }};
   border-right: ${p => {
     switch (p.lineType) {
       case 'added':
-        return '2px solid #2BA185';
+        return `2px solid ${p.theme.green300}`;
       case 'removed':
-        return '2px solid #F55459';
+        return `2px solid ${p.theme.red300}`;
       default:
-        return '2px solid #F55459';
+        return `2px solid ${p.theme.red300}`;
     }
   }};
-  font-family: 'Roboto Mono', ${p => p.theme.text.familyMono};
-  font-size: 13px;
-  font-weight: 400;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 2;
 `;
 
 const CodeContent = styled('div')`
   display: flex;
   align-items: stretch;
-  gap: 8px;
-  padding: 0 12px;
+  gap: ${p => p.theme.space.md};
+  padding: 0 ${p => p.theme.space.lg};
   flex: 1;
 `;
 
 const CodeText = styled('span')<{lineType?: 'unchanged' | 'added' | 'removed'}>`
-  font-family: 'Roboto Mono', ${p => p.theme.text.familyMono};
-  font-size: 13px;
-  font-weight: ${p => (p.lineType === 'added' ? '425' : '400')};
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  font-weight: ${p => (p.lineType === 'added' ? '425' : p.theme.fontWeight.normal)};
   line-height: 2;
-  color: #3e3446;
+  color: ${p => p.theme.textColor};
   flex: 1;
 `;
