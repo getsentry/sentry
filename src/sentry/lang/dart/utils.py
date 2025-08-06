@@ -35,33 +35,30 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
     There should only be one mapping file per Flutter build, so we return the first mapping found.
     """
     with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
-        for debug_id in debug_ids:
-            try:
-                dif_paths = ProjectDebugFile.difcache.fetch_difs(
-                    project, [debug_id], features=["mapping"]
-                )
-                debug_file_path = dif_paths.get(debug_id)
-                if debug_file_path is None:
-                    continue
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(project, debug_ids, features=["mapping"])
+        if not dif_paths:
+            return None
 
-                dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-                span.set_tag("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
+        debug_file_path = next(iter(dif_paths.values()))
 
-                with open(debug_file_path, "rb") as f:
-                    data = orjson.loads(f.read())
+        try:
+            dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
+            span.set_tag("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
 
-                if isinstance(data, list):
-                    # Array format - transform it to map
-                    if len(data) % 2 != 0:
-                        raise Exception("Debug array contains an odd number of elements")
-                    # Obfuscated names are the odd indices and deobfuscated names are the even indices
-                    return dict(zip(data[1::2], data[::2]))
-                else:
-                    raise Exception(f"Unexpected dartsymbolmap format: {type(data)}")
-            except Exception as err:
-                sentry_sdk.capture_exception(err)
-                continue
-        return None
+            with open(debug_file_path, "rb") as f:
+                data = orjson.loads(f.read())
+
+            if isinstance(data, list):
+                # Array format - transform it to map
+                if len(data) % 2 != 0:
+                    raise Exception("Debug array contains an odd number of elements")
+                # Obfuscated names are the odd indices and deobfuscated names are the even indices
+                return dict(zip(data[1::2], data[::2]))
+            else:
+                raise Exception(f"Unexpected dartsymbolmap format: {type(data)}")
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+            return None
 
 
 def deobfuscate_exception_type(data: MutableMapping[str, Any]):

@@ -107,9 +107,7 @@ def test_generate_dart_symbols_map_multiple_debug_ids() -> None:
         def mock_fetch_difs(
             project: Project, debug_ids: list[str], features: list[str]
         ) -> dict[str, str]:
-            if debug_ids == ["first-uuid"]:
-                return {}  # No file for first UUID
-            elif debug_ids == ["second-uuid"]:
+            if "second-uuid" in debug_ids:
                 return {"second-uuid": mocked_debug_file.name}  # File found for second UUID
             return {}
 
