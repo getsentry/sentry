@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {WidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
@@ -80,31 +80,29 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       yAxis: [yAxes],
       sort: {field: yAxes, kind: 'desc'},
       topN: 3,
-      enabled: assetListData.length > 0,
+      enabled: assetListData?.length > 0,
     },
     referrer
   );
 
-  const timeSeries = assetSeriesData.filter(ts => ts.seriesName !== 'Other');
-
   const isLoading = isAssetSeriesLoading || isAssetListLoading;
   const error = assetSeriesError || assetListError;
 
-  const hasData = assetListData && assetListData.length > 0 && timeSeries.length > 0;
+  const hasData = assetListData && assetListData.length > 0 && assetSeriesData.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
+  const colorPalette = theme.chart.getColorPalette(assetSeriesData.length - 1);
 
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
-      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
+      emptyMessage={<WidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         id: 'overviewSlowAssetsWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
-        plottables: timeSeries.map(
+        plottables: assetSeriesData.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
