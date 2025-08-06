@@ -145,7 +145,7 @@ class OrganizationFeedbackCategoryGenerationTest(APITestCase, SnubaTestCase, Sea
                 insert_time=insert_time,
             )
 
-        # Create additional feedbacks in project2 (should be excluded)
+        # Create additional feedbacks in project2
         insert_time = before_now(hours=12)
         for i in range(5):
             self.store_search_issue(

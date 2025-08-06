@@ -91,7 +91,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
             "success": True,
             "numFeedbacksContext": int,
         }
-        It is returned as a list to preserve the order of the categories. It is returned in the order of feedback count.
+        It is returned as a list in the order of feedback count.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
@@ -122,10 +122,12 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
         project_ids = [str(project_id) for project_id in numeric_project_ids]
         hashed_project_ids = hash_from_values(project_ids)
 
-        # Cache up to the day granularity
-        # qq: what happens if a user sets a date range to be within a day? then maybe unexpected results, because say they choose like 18 hours all within a day, then got some categories, then change it to be like 2 hours and would still get the same categories... doesn't make sense
-        # let's change this to be the hour granularity or should we do some conditional stuff? if it is within a day, then make it up to the hour, but if it is more than a day, then make it up to the day. hmm
-        categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
+        if end - start < timedelta(days=2):
+            categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
+        else:
+            # Date range is long enough that the categories won't change much (as long as the same day is selected)
+            categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
+
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
             # return Response(
