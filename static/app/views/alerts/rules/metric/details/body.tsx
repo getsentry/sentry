@@ -196,7 +196,7 @@ export default function MetricDetailsBody({
                 }
               >
                 {tctCode(
-                  'Transaction based alerts are going to be deprecated soon. Please use Span alerts instead. You can isolate transactions by using the [code:is_transaction:true] filter.'
+                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
                 )}
               </Alert>
             </Alert.Container>
