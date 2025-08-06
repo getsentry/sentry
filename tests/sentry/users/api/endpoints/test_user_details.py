@@ -122,7 +122,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersNextjsInsightsOverview": True,
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
-                "prefersAgentsInsightsModule": True,
             },
         )
 
@@ -238,31 +237,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
             "me",
         )
         assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
-
-    def test_saving_agents_insights_module_option(self) -> None:
-        self.get_success_response(
-            "me",
-            options={"prefersAgentsInsightsModule": True},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
-            is True
-        )
-
-        self.get_success_response(
-            "me",
-            options={"prefersAgentsInsightsModule": False},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
-            is False
-        )
-
-    def test_default_agents_insights_module_option_is_true(self) -> None:
-        resp = self.get_success_response(
-            "me",
-        )
-        assert resp.data["options"]["prefersAgentsInsightsModule"] is True
 
 
 @control_silo_test

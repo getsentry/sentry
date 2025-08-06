@@ -280,6 +280,7 @@ export function Onboarding() {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
+          s
           <p>
             {tct(
               "The MCP monitoring onboarding checklist isn't available for your [project] project yet, but you can still set up the Sentry SDK to start monitoring your MCP servers.",
