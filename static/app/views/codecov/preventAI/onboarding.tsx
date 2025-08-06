@@ -21,15 +21,15 @@ interface OnboardingStepProps {
 function OnboardingStep({step, title, description}: OnboardingStepProps) {
   const theme = useTheme();
   return (
-    <Flex align="start" gap="md" style={{marginTop: theme.space.md}}>
+    <StepContainer style={{marginTop: theme.space.md}}>
       <StepNumber>{step}</StepNumber>
-      <StepContent>
-        <Heading as="h2">{title}</Heading>
+      <StepContent isLastStep={step === 3}>
+        <Heading as="h3">{title}</Heading>
         <Text variant="primary" size="md">
           {description}
         </Text>
       </StepContent>
-    </Flex>
+    </StepContainer>
   );
 }
 
@@ -133,6 +133,7 @@ export default function PreventAIOnboarding() {
 
             <Flex
               direction="column"
+              style={{marginTop: theme.space.xl}}
               gap="md"
               padding="xl"
               background="secondary"
@@ -232,9 +233,28 @@ const StepNumber = styled('div')`
   border-radius: 50%;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  margin-top: ${p => p.theme.space.xs};
 `;
 
-const StepContent = styled('div')`
+const StepContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
+  position: relative;
+`;
+
+const StepContent = styled('div')<{isLastStep?: boolean}>`
   flex: 1;
+  position: relative;
+
+  /* This is for the gray line that connects the steps */
+  &::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 25px;
+    bottom: ${p => (p.isLastStep ? '0px' : '-20px')};
+    width: 2px;
+    background-color: ${p => p.theme.gray200};
+    z-index: 0;
+  }
 `;
