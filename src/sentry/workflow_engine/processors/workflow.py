@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
+from datetime import timezone as tz
 from enum import StrEnum
 from typing import DefaultDict
 
@@ -130,14 +131,17 @@ def enqueue_workflows(
     )
 
     buffer_project_ids = buffer.backend.get_sorted_set(
-        WORKFLOW_ENGINE_BUFFER_LIST_KEY, min=0, max=timezone.now().timestamp()
+        WORKFLOW_ENGINE_BUFFER_LIST_KEY, min=0, max=datetime.now(tz=tz.utc).timestamp()
+    )
+    log_str = ", ".join(
+        f"{project_id}: {timestamp}" for project_id, timestamp in buffer_project_ids
     )
 
     logger.debug(
         "workflow_engine.workflows.enqueued",
         extra={
             "project_to_workflow": project_to_workflow,
-            "buffer_project_ids": sorted([project_id for project_id, _ in buffer_project_ids]),
+            "buffer_project_ids": log_str,
         },
     )
 
