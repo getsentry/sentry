@@ -18,6 +18,11 @@ from sentry.feedback.usecases.label_generation import (
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
+from sentry.feedback.usecases.title_generation import (
+    format_feedback_title,
+    get_feedback_title_from_seer,
+    should_get_ai_title,
+)
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -203,39 +208,6 @@ def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
     return False, None
 
 
-def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
-    """
-    Generate a descriptive title for user feedback issues.
-    Format: "User Feedback: [first few words of message]"
-
-    Args:
-        feedback_message: The user's feedback message
-        max_words: Maximum number of words to include from the message
-
-    Returns:
-        A formatted title string
-    """
-    stripped_message = feedback_message.strip()
-
-    # Clean and split the message into words
-    words = stripped_message.split()
-
-    if len(words) <= max_words:
-        summary = stripped_message
-    else:
-        summary = " ".join(words[:max_words])
-        if len(summary) < len(stripped_message):
-            summary += "..."
-
-    title = f"User Feedback: {summary}"
-
-    # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 200:  # Conservative limit
-        title = title[:197] + "..."
-
-    return title
-
-
 def create_feedback_issue(
     event: dict[str, Any], project: Project, source: FeedbackCreationSource
 ) -> dict[str, Any] | None:
@@ -329,12 +301,16 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam
     )
     issue_fingerprint = [uuid4().hex]
+    ai_title = None
+    if should_get_ai_title(project.organization):
+        ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
+    formatted_title = format_feedback_title(ai_title or feedback_message)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=get_feedback_title(feedback_message),
+        issue_title=formatted_title,
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
