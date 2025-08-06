@@ -88,7 +88,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(

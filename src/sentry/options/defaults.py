@@ -3320,13 +3320,6 @@ register(
 )
 
 register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "sentry.demo_mode.sync_debug_artifacts.enable",
     type=Bool,
     default=False,
@@ -3340,8 +3333,19 @@ register(
 
 # Taskbroker flags
 register(
+    "taskworker.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.route.overrides",
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
