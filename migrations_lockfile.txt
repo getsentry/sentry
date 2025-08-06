@@ -21,13 +21,13 @@ monitors: 0008_fix_processing_error_keys
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0001_move_notifications_models
+notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0013_binary_uuid
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0962_json_fields_too_big
+sentry: 0963_scheduleddeletion_json_field
 
 social_auth: 0003_social_auth_json_field
 
