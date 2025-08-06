@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -118,7 +118,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     <WidgetFooterTable>
       {assetListData?.map((item, index) => (
         <Fragment
-          key={`${item['project.id']}-${item['span.group']}-${item['sentry.normalized_description']}`}
+          key={`${item[SpanFields.PROJECT_ID]}-${item[SpanFields.SPAN_GROUP]}-${item[SpanFields.NORMALIZED_DESCRIPTION]}`}
         >
           <div>
             <SeriesColorIndicator
@@ -129,13 +129,17 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           </div>
           <div>
             <SpanDescriptionCell
-              projectId={Number(item['project.id'])}
-              group={item['span.group']}
-              description={item['sentry.normalized_description']}
+              projectId={Number(item[SpanFields.PROJECT_ID])}
+              group={item[SpanFields.SPAN_GROUP]}
+              description={item[SpanFields.NORMALIZED_DESCRIPTION]}
               moduleName={ModuleName.RESOURCE}
             />
           </div>
-          <span>{getDuration((item[totalTimeField] ?? 0) / 1000, 2, true)}</span>
+          <Duration
+            seconds={(item[totalTimeField] ?? 0) / 1000}
+            fixedDigits={2}
+            abbreviation
+          />
         </Fragment>
       ))}
     </WidgetFooterTable>
@@ -172,7 +176,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           organization,
           pageFilters: selection,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          query: `sentry.normalized_description:${series.seriesName}`,
+          query: `${SpanFields.NORMALIZED_DESCRIPTION}:${series.seriesName}`,
           referrer,
         }),
       }))}
