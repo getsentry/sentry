@@ -13,6 +13,7 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.enhancer import DEFAULT_ENHANCEMENTS_BASE, ENHANCEMENT_BASES, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -34,7 +35,6 @@ Risk = int  # TODO: make enum or union of literals
 ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
-DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 # TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
 # probably turn `ReturnedVariants` into a Mapping (immutable), since in practice it's read-only.
