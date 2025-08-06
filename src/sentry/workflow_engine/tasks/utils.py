@@ -50,7 +50,7 @@ def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
     group_id: int,
-    workflow_id: int,
+    workflow_id: int | None = None,
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
     has_reappeared: bool = False,
@@ -71,10 +71,12 @@ def build_workflow_event_data_from_event(
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
-    # Fetch environment from workflow
-    workflow_env: Environment | None = (
-        Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
-    )
+    # Fetch environment from workflow, if provided
+    workflow_env: Environment | None = None
+    if workflow_id:
+        workflow_env = (
+            Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
+        )
 
     return WorkflowEventData(
         event=group_event,
