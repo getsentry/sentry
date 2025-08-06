@@ -21,7 +21,7 @@ monitors: 0008_fix_processing_error_keys
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0001_move_notifications_models
+notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0013_binary_uuid
 
