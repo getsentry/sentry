@@ -303,7 +303,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         )
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
         assert workflows_to_envs == {
-            self.workflow1.id: self.environment.id,
+            self.workflow1.id: self.environment,
             self.workflow2.id: None,
         }
 
@@ -472,7 +472,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
             other_workflow_filters.id: current_time + timedelta(minutes=2),
             detector_dcg.id: current_time + timedelta(minutes=3),
         }
-        workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
+        workflows_to_envs: dict[int, Environment | None] = {self.workflow.id: None}
 
         # Create mock event data with just the required properties
         mock_event_data = Mock(spec=EventRedisData)
@@ -660,7 +660,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             + self.workflow2_if_dcgs
         )
 
-        self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
+        self.workflows_to_envs = {self.workflow1.id: self.environment, self.workflow2.id: None}
         self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
                 handler=EventFrequencyQueryHandler,
@@ -856,6 +856,8 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def setUp(self) -> None:
         super().setUp()
 
+        self.workflows_to_envs = {self.workflow1.id: self.environment, self.workflow2.id: None}
+
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
@@ -916,6 +918,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
+            self.workflows_to_envs,
             self.group_to_groupevent,
         )
 
@@ -926,12 +929,15 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert first_call_kwargs["detector_id"] == self.detector.id
         assert first_call_kwargs["event_id"] == self.event1.event_id
         assert first_call_kwargs["group_id"] == self.group1.id
+        assert self.workflow1.environment
+        assert first_call_kwargs["workflow_env_id"] == self.workflow1.environment.id
 
         # Second call should be for workflow2/group2
         second_call_kwargs = mock_trigger.call_args_list[1].kwargs["kwargs"]
         assert second_call_kwargs["detector_id"] == self.detector.id
         assert second_call_kwargs["event_id"] == self.event2.event_id
         assert second_call_kwargs["group_id"] == self.group2.id
+        assert second_call_kwargs["workflow_env_id"] is None
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
@@ -948,6 +954,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         fire_actions_for_groups(
             self.project.organization,
             self.groups_to_dcgs,
+            self.workflows_to_envs,
             self.group_to_groupevent,
         )
 

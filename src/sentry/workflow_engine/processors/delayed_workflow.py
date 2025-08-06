@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, TypeAlias
@@ -17,6 +17,7 @@ from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -323,12 +324,10 @@ def fetch_group_to_event_data(
 
 def fetch_workflows_envs(
     workflow_ids: list[WorkflowId],
-) -> Mapping[WorkflowId, int | None]:
+) -> Mapping[WorkflowId, Environment | None]:
     return {
-        workflow_id: env_id
-        for workflow_id, env_id in Workflow.objects.filter(id__in=workflow_ids).values_list(
-            "id", "environment_id"
-        )
+        workflow.id: workflow.environment
+        for workflow in Workflow.objects.filter(id__in=workflow_ids).select_related("environment")
     }
 
 
@@ -400,7 +399,7 @@ def generate_unique_queries(
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
-    workflows_to_envs: Mapping[WorkflowId, int | None],
+    workflows_to_envs: Mapping[WorkflowId, Environment | None],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[UniqueConditionQuery, GroupQueryParams]:
     """
@@ -412,6 +411,7 @@ def get_condition_query_groups(
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+        workflow_env_id = workflow_env.id if workflow_env else None
         timestamp = event_data.dcg_to_timestamp[dcg.id]
         if timestamp is not None:
             delay = now - timestamp
@@ -425,7 +425,7 @@ def get_condition_query_groups(
                     sample_rate=1.0,
                 )
         for condition in slow_conditions:
-            for condition_query in generate_unique_queries(condition, workflow_env):
+            for condition_query in generate_unique_queries(condition, workflow_env_id):
                 condition_groups[condition_query].update(
                     group_ids=event_data.dcg_to_groups[dcg.id], timestamp=timestamp
                 )
@@ -544,7 +544,7 @@ def _group_result_for_dcg(
 @sentry_sdk.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
-    workflows_to_envs: Mapping[WorkflowId, int | None],
+    workflows_to_envs: Mapping[WorkflowId, Environment | None],
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
@@ -559,6 +559,7 @@ def get_groups_to_fire(
             continue
 
         workflow_env = workflows_to_envs[event_key.workflow_id]
+        workflow_env_id = workflow_env.id if workflow_env else None
         if when_dcg_id := event_key.when_dcg_id:
             if not (
                 dcg := data_condition_group_mapping.get(when_dcg_id)
@@ -566,7 +567,7 @@ def get_groups_to_fire(
                 dcg,
                 dcg_to_slow_conditions,
                 group_id,
-                workflow_env,
+                workflow_env_id,
                 condition_group_results,
             ):
                 continue
@@ -579,7 +580,7 @@ def get_groups_to_fire(
                 dcg,
                 dcg_to_slow_conditions,
                 group_id,
-                workflow_env,
+                workflow_env_id,
                 condition_group_results,
             ):
                 groups_to_fire[group_id].add(dcg)
@@ -666,6 +667,7 @@ def get_group_to_groupevent(
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
+    workflows_to_envs: Mapping[WorkflowId, Environment | None],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     serialized_groups = {
@@ -755,7 +757,15 @@ def fire_actions_for_groups(
 
                 if should_trigger_actions(group_event.group.type):
                     for action in filtered_actions:
-                        # TODO: populate workflow env in WorkflowEventData correctly
+                        action_workflow_id = getattr(action, "workflow_id", None)
+                        action_workflow_env = (
+                            workflows_to_envs.get(action_workflow_id)
+                            if action_workflow_id
+                            else None
+                        )
+                        workflow_event_data = replace(
+                            workflow_event_data, workflow_env=action_workflow_env
+                        )
                         task_params = build_trigger_action_task_params(
                             action, detector, workflow_event_data
                         )
@@ -924,7 +934,9 @@ def process_delayed_workflows(
         project,
     )
 
-    fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
+    fire_actions_for_groups(
+        project.organization, groups_to_dcgs, workflows_to_envs, group_to_groupevent
+    )
     cleanup_redis_buffer(project_id, event_data.events.keys(), batch_key)
 
 
