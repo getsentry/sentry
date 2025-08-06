@@ -45,6 +45,8 @@ interface ContainerLayoutProps {
 
   area?: Responsive<React.CSSProperties['gridArea']>;
   order?: Responsive<React.CSSProperties['order']>;
+  flex?: Responsive<React.CSSProperties['flex']>;
+  alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
 }
 
 /* eslint-enable typescript-sort-keys/interface */
@@ -90,11 +92,13 @@ export type ContainerProps<T extends ContainerElement = 'div'> =
   | ContainerPropsWithRenderProp<T>;
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
+  'alignSelf',
   'as',
   'area',
   'border',
   'background',
   'display',
+  'flex',
   'padding',
   'overflow',
   'overflowX',
@@ -153,6 +157,8 @@ export const Container = styled(
 
   ${p => rc('grid-area', p.area, p.theme)};
   ${p => rc('order', p.order, p.theme)};
+  ${p => rc('flex', p.flex, p.theme)};
+  ${p => rc('align-self', p.alignSelf, p.theme)};
 
   ${p => rc('border', p.border, p.theme, getBorder)};
 
