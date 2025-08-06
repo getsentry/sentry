@@ -589,7 +589,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        /You may have limited functionality due to the ongoing migration of transactions to spans/i
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
       )
     ).toBeInTheDocument();
 

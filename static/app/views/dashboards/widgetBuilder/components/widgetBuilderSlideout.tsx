@@ -235,7 +235,7 @@ function WidgetBuilderSlideout({
             >
               {disableTransactionWidget && isEditing
                 ? t(
-                    'Editing of transaction-based alerts is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below.'
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below.'
                   )
                 : tctCode(
                     'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead.'
