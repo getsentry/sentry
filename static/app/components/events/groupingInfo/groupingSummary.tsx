@@ -17,7 +17,6 @@ export function GroupInfoSummary({
     event,
     group,
     projectSlug,
-    query: {},
   });
   const groupedBy = groupInfo
     ? Object.values(groupInfo)
