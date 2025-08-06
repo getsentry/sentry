@@ -17,7 +17,7 @@ from sentry.replays.lib.eap.read import query
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.utils.cursors import Cursor, CursorResult
 
-settings: Settings = {
+QUERY_SETTINGS: Settings = {
     "attribute_types": {
         # Common
         "replay_id": str,
@@ -80,61 +80,6 @@ settings: Settings = {
     "default_offset": 0,
     "extrapolation_mode": "none",
 }
-
-
-@region_silo_endpoint
-@extend_schema(tags=["Replays"])
-class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        filter_params = self.get_filter_params(request, project)
-        end, start = filter_params["end"], filter_params["start"]
-
-        def data_fn(offset: int, limit: int):
-            request_meta: RequestMeta = {
-                "cogs_category": "replay",
-                "debug": False,
-                "end_datetime": end,
-                "organization_id": project.organization_id,
-                "project_ids": [project.id],
-                "referrer": "replays.details.breadcrumbs.list",
-                "request_id": uuid.uuid4().hex,
-                "start_datetime": start,
-                "trace_item_type": "replay",
-            }
-
-            snuba_query = Query(
-                match=Entity("trace_items"),
-                select=[Column(k) for k in settings["attribute_types"].keys()],
-                where=[Condition(Column("replay_id"), Op.EQ, replay_id)],
-                limit=Limit(limit),
-                offset=Offset(offset),
-            )
-
-            results = query(snuba_query, settings, request_meta, virtual_columns=[])
-            return [subset_event(item) for item in results["data"]]
-
-        return self.paginate(
-            request=request,
-            paginator=HasMorePaginator(data_fn=data_fn),
-            on_results=lambda results: {"data": results},
-        )
-
-
-class Event(TypedDict):
-    id: str
-    type: str
-    attributes: MutableMapping[str, bool | float | int | str | None]
-
 
 CATEGORY_ATTRIBUTE_MAP = {
     "ui.click": [
@@ -209,9 +154,61 @@ CATEGORY_ATTRIBUTE_MAP = {
 }
 
 
+@region_silo_endpoint
+@extend_schema(tags=["Replays"])
+class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.REPLAY
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+        if not features.has(
+            "organizations:session-replay", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        filter_params = self.get_filter_params(request, project)
+        end, start = filter_params["end"], filter_params["start"]
+
+        def data_fn(offset: int, limit: int):
+            request_meta: RequestMeta = {
+                "cogs_category": "replay",
+                "debug": False,
+                "end_datetime": end,
+                "organization_id": project.organization_id,
+                "project_ids": [project.id],
+                "referrer": "replays.details.breadcrumbs.list",
+                "request_id": uuid.uuid4().hex,
+                "start_datetime": start,
+                "trace_item_type": "replay",
+            }
+
+            snuba_query = Query(
+                match=Entity("trace_items"),
+                select=[Column(k) for k in QUERY_SETTINGS["attribute_types"].keys()],
+                where=[Condition(Column("replay_id"), Op.EQ, replay_id)],
+                limit=Limit(limit),
+                offset=Offset(offset),
+            )
+
+            results = query(snuba_query, QUERY_SETTINGS, request_meta, virtual_columns=[])
+            return [subset_event(item) for item in results["data"]]
+
+        return self.paginate(
+            request=request,
+            paginator=HasMorePaginator(data_fn=data_fn),
+            on_results=lambda results: {"data": results},
+        )
+
+
+class Event(TypedDict):
+    type: str
+    attributes: MutableMapping[str, bool | float | int | str | None]
+
+
 def subset_event(source: MutableMapping[str, bool | float | int | str | None]) -> Event:
     return {
-        "id": "None",
         "type": str(source["category"]),
         "attributes": subset_of(source, CATEGORY_ATTRIBUTE_MAP[str(source["category"])]),
     }
