@@ -638,3 +638,10 @@ def _load_configs() -> dict[str, Enhancements]:
 
 ENHANCEMENT_BASES = _load_configs()
 del _load_configs
+
+# TODO: Shim to cover the time period before events which have the old default enhancements name
+# encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
+# that the new name is hard-coded, rather than a reference to `DEFAULT_ENHANCEMENTS_BASE`, because
+# if we make a new default in the meantime, the old name should still point to
+# `all-platforms:2023-01-11`.)
+ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
