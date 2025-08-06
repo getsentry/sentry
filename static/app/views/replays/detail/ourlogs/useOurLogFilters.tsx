@@ -10,7 +10,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogSeverityLevel} from 'sentry/views/explore/logs/utils';
 
-export type FilterFields = {
+type FilterFields = {
   f_ol_search: string;
   f_ol_severity: string[];
 };
