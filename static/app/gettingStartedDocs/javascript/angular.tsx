@@ -104,7 +104,7 @@ const getDynamicParts = (params: Params): string[] => {
 
   if (params.isLogsSelected) {
     dynamicParts.push(`
-      // Logs
+      // Enable sending logs to Sentry
       enableLogs: true`);
   }
 
@@ -224,9 +224,20 @@ const getVerifySnippetTemplate = () => `
 <button (click)="throwTestError()">Test Sentry Error</button>
 `;
 
-const getVerifySnippetComponent = () => `
-public throwTestError(): void {
-  throw new Error("Sentry Test Error");
+const getVerifySnippetComponent = (params: Params) => `${
+  params.isLogsSelected ? 'import * as Sentry from "@sentry/angular";\n\n' : ''
+}export class AppComponent {
+  public throwTestError(): void {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info(Sentry.logger.fmt\`User \${"sentry-test"} triggered test error button\`, {
+      action: "test_error_button_click",
+    });`
+      : ''
+  }
+    throw new Error("Sentry Test Error");
+  }
 }`;
 
 const installSnippetBlock: ContentBlock = {
@@ -253,7 +264,7 @@ const installSnippetBlock: ContentBlock = {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+      'In this quick guide you will use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
       {
         strong: <strong />,
       }
@@ -327,15 +338,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
         {
           type: 'text',
-          text: t(
-            'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
-          ),
+          text: params.isLogsSelected
+            ? t(
+                'To verify that everything is working as expected, you can trigger a test error and a test log in your app. As an example we will add a button that logs to Sentry and then throws an error when being clicked.'
+              )
+            : t(
+                'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
+              ),
         },
         {
           type: 'text',
@@ -367,7 +382,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               label: 'TypeScript',
               language: 'typescript',
               filename: 'app.component.ts',
-              code: getVerifySnippetComponent(),
+              code: getVerifySnippetComponent(params),
             },
           ],
         },
