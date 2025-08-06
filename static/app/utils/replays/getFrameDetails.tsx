@@ -110,7 +110,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
-    const node = frame.data?.node;
+    const node = frame.data.node;
     if (isDeadClick(frame)) {
       return {
         colorGraphicsToken: isDeadRageClick(frame) ? 'danger' : 'warning',
@@ -146,7 +146,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         colorGraphicsToken: 'danger',
         description: tct('Rage clicked [clickCount] times on [selector]', {
           clickCount: frame.data.clickCount,
-          selector: stringifyNodeAttributes(frame.data?.node),
+          selector: stringifyNodeAttributes(frame.data.node),
         }),
         tabKey: TabKey.BREADCRUMBS,
         title: 'Rage Click',
@@ -158,7 +158,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
       colorGraphicsToken: 'warning',
       description: tct('[clickCount] clicks on [selector]', {
         clickCount: frame.data.clickCount,
-        selector: stringifyNodeAttributes(frame.data?.node),
+        selector: stringifyNodeAttributes(frame.data.node),
       }),
       tabKey: TabKey.BREADCRUMBS,
       title: 'Multi Click',
