@@ -138,7 +138,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
+    rendered = <Link to={target}>{formatId(field, data)}</Link>;
   } else if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
     target = generateLinkToEventInTraceView({
@@ -152,7 +152,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{formatId(field, data)}</Link>;
+    rendered = <Link to={target}>{spanId ? formatId(field, data) : data[field]}</Link>;
   } else if (field === 'profile.id') {
     target = generateProfileFlamechartRouteWithQuery({
       organization,
