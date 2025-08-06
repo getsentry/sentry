@@ -3,7 +3,6 @@ from .commit import *  # noqa: F401,F403
 from .dashboard import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .group_notes import *  # noqa: F401,F403
-from .json import *  # noqa: F401,F403
 from .list import *  # noqa: F401,F403
 from .origin import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403

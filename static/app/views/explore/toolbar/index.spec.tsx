@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -17,7 +18,6 @@ import {
   PageParamsProvider,
   useExploreFields,
   useExploreGroupBys,
-  useExploreMode,
   useExploreSortBys,
   useExploreVisualizes,
   useSetExploreMode,
@@ -25,8 +25,22 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          {children}
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -59,11 +73,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -82,11 +94,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -118,11 +128,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -145,11 +153,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -187,11 +193,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -232,11 +236,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -296,11 +298,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     let options: HTMLElement[];
@@ -344,15 +344,13 @@ describe('ExploreToolbar', function () {
 
     function Component() {
       groupBys = useExploreGroupBys();
-      mode = useExploreMode();
+      mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -373,15 +371,13 @@ describe('ExploreToolbar', function () {
 
     function Component() {
       groupBys = useExploreGroupBys();
-      mode = useExploreMode();
+      mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -402,11 +398,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -461,11 +455,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -538,11 +530,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <Wrapper>
+        <Component />
+      </Wrapper>
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -584,11 +574,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {
         router,
         organization,
@@ -624,11 +612,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {
         router,
         organization,
@@ -667,11 +653,9 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {
         router,
         organization,
@@ -752,11 +736,9 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {
         router,
         organization,
@@ -779,11 +761,9 @@ describe('ExploreToolbar', function () {
     router.location.query.aggregateSort = ['count(span.duration)'];
     router.push(router.location);
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {
         router,
         organization,

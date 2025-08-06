@@ -546,28 +546,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.ourlogs-breadcrumb-extraction.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Control number of breadcrumbs converted to OurLogs
-register(
-    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Ingest only a random fraction of logs sent to relay. Used to roll out ourlogs ingestion.
 #
 # NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
 register(
     "relay.ourlogs-ingestion.sample-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -892,6 +876,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sequential deletion of events from nodestore
+register(
+    "deletions.nodestore.parallelization-task-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -1463,13 +1454,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "project-abuse-quota.log-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 register(
     "organization-abuse-quota.metric-bucket-limit",
@@ -3338,13 +3322,6 @@ register(
 )
 
 register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "sentry.demo_mode.sync_debug_artifacts.enable",
     type=Bool,
     default=False,
@@ -3358,8 +3335,19 @@ register(
 
 # Taskbroker flags
 register(
+    "taskworker.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.route.overrides",
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

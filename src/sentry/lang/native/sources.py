@@ -54,6 +54,7 @@ VALID_FILE_TYPES = (
     "bcsymbolmap",
     "il2cpp",
     "proguard",
+    "dartsymbolmap",
 )
 
 VALID_CASINGS = ("lowercase", "uppercase", "default")

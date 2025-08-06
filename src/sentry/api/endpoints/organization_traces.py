@@ -39,10 +39,6 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.builder.spans_indexed import (
-    SpansEAPQueryBuilder,
-    SpansIndexedQueryBuilder,
-)
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
@@ -93,7 +89,7 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
+    dataset = serializers.ChoiceField(["spans"], required=False, default="spans")
 
     breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     query = serializers.ListField(
@@ -105,8 +101,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
         sentry_sdk.set_tag("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
-        if value == "spansIndexed":
-            return Dataset.SpansIndexed
         raise ParseError(detail=f"Unsupported dataset: {value}")
 
     def validate(self, data):
@@ -133,7 +127,7 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
 
 @region_silo_endpoint
@@ -161,79 +155,22 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
-        executor = TracesExecutor(
-            dataset=serialized["dataset"],
-            snuba_params=snuba_params,
-            user_queries=serialized.get("query", []),
-            sort=serialized.get("sort"),
-            limit=self.get_per_page(request),
-            breakdown_slices=serialized["breakdownSlices"],
-            get_all_projects=lambda: self.get_projects(
-                request,
-                organization,
-                project_ids={-1},
-                project_slugs=None,
-                include_all_accessible=True,
-            ),
-        )
-
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                snuba_params.project_ids,
-                results,
-                standard_meta=True,
-                dataset=Dataset.SpansIndexed,
-            ),
-        )
-
-
-class OrganizationTraceSpansSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
-
-    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
-    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
-    query = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
-    )
-
-    def validate_dataset(self, value):
-        if value == "spans":
-            return Dataset.EventsAnalyticsPlatform
-        if value == "spansIndexed":
-            return Dataset.SpansIndexed
-        raise ParseError(detail=f"Unsupported dataset: {value}")
-
-
-@region_silo_endpoint
-class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
-    def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
-        if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        try:
-            snuba_params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response(status=404)
-
-        serializer = OrganizationTraceSpansSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        serialized = serializer.validated_data
-
-        executor = TraceSpansExecutor(
-            dataset=serialized["dataset"],
-            snuba_params=snuba_params,
-            trace_id=trace_id,
-            fields=serialized["field"],
-            user_queries=serialized.get("query", []),
-            sort=serialized.get("sort"),
-        )
+        with handle_query_errors():
+            executor = TracesExecutor(
+                dataset=serialized["dataset"],
+                snuba_params=snuba_params,
+                user_queries=serialized.get("query", []),
+                sort=serialized.get("sort"),
+                limit=self.get_per_page(request),
+                breakdown_slices=serialized["breakdownSlices"],
+                get_all_projects=lambda: self.get_projects(
+                    request,
+                    organization,
+                    project_ids={-1},
+                    project_slugs=None,
+                    include_all_accessible=True,
+                ),
+            )
 
         return self.paginate(
             request=request,
@@ -261,17 +198,10 @@ class TracesExecutor:
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
     ):
-        use_rpc = dataset == Dataset.EventsAnalyticsPlatform
-
         self.dataset = dataset
         self.snuba_params = snuba_params
         self.raw_user_queries = user_queries
-        self.rpc_user_queries = (
-            process_rpc_user_queries(snuba_params, user_queries) if use_rpc else None
-        )
-        self.user_queries = (
-            {} if use_rpc else process_user_queries(snuba_params, user_queries, dataset)
-        )
+        self.rpc_user_queries = process_rpc_user_queries(snuba_params, user_queries)
         self.sort = sort
         self.offset = 0
         self.limit = limit
@@ -288,13 +218,10 @@ class TracesExecutor:
     def execute(self, offset: int, limit: int):
         # To support pagination on only EAP, we use the offset/limit
         # values from the paginator here.
-        if self.dataset == Dataset.EventsAnalyticsPlatform:
-            self.offset = offset
-            self.limit = limit
+        self.offset = offset
+        self.limit = limit
 
-            return {"data": self._execute_rpc()}
-
-        return {"data": self._execute()}
+        return {"data": self._execute_rpc()}
 
     def _execute_rpc(self):
         if self.snuba_params.organization_id is None:
@@ -562,66 +489,6 @@ class TracesExecutor:
             ],
         )
 
-    def _execute(self):
-        with handle_span_query_errors():
-            min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_conditions(
-                self.snuba_params,
-            )
-
-        if not trace_ids:
-            return []
-
-        self.refine_params(min_timestamp, max_timestamp)
-
-        with handle_span_query_errors():
-            snuba_params = self.params_with_all_projects()
-
-            all_queries = self.get_all_queries(
-                snuba_params,
-                trace_ids,
-            )
-
-            all_raw_results = bulk_snuba_queries_with_referrers(
-                [(query.get_snql_query(), referrer.value) for query, referrer in all_queries]
-            )
-
-            all_results = [
-                query.process_results(result)
-                for (query, _), result in zip(all_queries, all_raw_results)
-            ]
-
-            # the order of these results is defined by the order
-            # of the queries in `get_all_meta_data_queries`
-
-            idx = 0
-
-            traces_metas_results = all_results[idx]
-            idx += 1
-
-            traces_errors_results = all_results[idx]
-            idx += 1
-
-            traces_occurrences_results = all_results[idx]
-            idx += 1
-
-            traces_breakdown_projects_results = all_results[idx]
-            idx += 1
-
-            data = self.process_final_results(
-                traces_metas_results=traces_metas_results,
-                traces_errors_results=traces_errors_results,
-                traces_occurrences_results=traces_occurrences_results,
-                traces_breakdown_projects_results=traces_breakdown_projects_results,
-            )
-
-        # We now sort the traces in the order we expect from the initial query.
-        # This is because the queries to populate the trace metadata does not
-        # guarantee any kind of ordering.
-        ordering = {trace_id: i for i, trace_id in enumerate(trace_ids)}
-        data.sort(key=lambda trace: ordering[trace["trace"]])
-
-        return data
-
     def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
         """
         Once we have a min/max timestamp for all the traces in the query,
@@ -634,135 +501,6 @@ class TracesExecutor:
 
         self.snuba_params.start = min_timestamp - buffer
         self.snuba_params.end = max_timestamp + buffer
-
-    def get_traces_matching_conditions(
-        self,
-        snuba_params: SnubaParams,
-    ) -> tuple[datetime, datetime, list[str]]:
-        query, timestamp_column = self.get_traces_matching_span_conditions_query(
-            snuba_params,
-        )
-
-        results = query.run_query(
-            referrer=Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
-        )
-        results = query.process_results(results)
-
-        matching_trace_ids: list[str] = []
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        for row in results["data"]:
-            matching_trace_ids.append(row["trace"])
-            timestamp = datetime.fromisoformat(row[timestamp_column])
-            min_timestamp = min(min_timestamp, timestamp)
-            max_timestamp = max(max_timestamp, timestamp)
-
-            # early escape once we have enough results
-            if len(matching_trace_ids) >= self.limit:
-                return min_timestamp, max_timestamp, matching_trace_ids
-
-        return min_timestamp, max_timestamp, matching_trace_ids
-
-    def get_traces_matching_span_conditions_query(
-        self,
-        snuba_params: SnubaParams,
-    ) -> tuple[BaseQueryBuilder, str]:
-        if len(self.user_queries) < 2:
-            timestamp_column = "timestamp"
-        else:
-            timestamp_column = "min(timestamp)"
-
-        if len(self.user_queries) < 2:
-            # Optimization: If there is only a condition for a single span,
-            # we can take the fast path and query without using aggregates.
-            query = SpansIndexedQueryBuilder(
-                Dataset.SpansIndexed,
-                params={},
-                snuba_params=snuba_params,
-                query=None,
-                selected_columns=["trace", timestamp_column],
-                limit=self.limit,
-                limitby=("trace", 1),
-                config=QueryBuilderConfig(
-                    transform_alias_to_input_format=True,
-                ),
-            )
-
-            for where in self.user_queries.values():
-                query.where.extend(where)
-        else:
-            query = SpansIndexedQueryBuilder(
-                Dataset.SpansIndexed,
-                params={},
-                snuba_params=snuba_params,
-                query=None,
-                selected_columns=["trace", timestamp_column],
-                limit=self.limit,
-                config=QueryBuilderConfig(
-                    auto_aggregations=True,
-                    transform_alias_to_input_format=True,
-                ),
-            )
-
-            trace_conditions = []
-            for where in self.user_queries.values():
-                if len(where) == 1:
-                    trace_conditions.extend(where)
-                elif len(where) > 1:
-                    trace_conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
-
-                # Transform the condition into it's aggregate form so it can be used to
-                # match on the trace.
-                new_condition = generate_trace_condition(where)
-                if new_condition:
-                    query.having.append(new_condition)
-
-            if len(trace_conditions) == 1:
-                # This should never happen since it should use a flat query
-                # but handle it just in case.
-                query.where.extend(trace_conditions)
-            elif len(trace_conditions) > 1:
-                query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
-
-        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
-            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
-
-        return query, timestamp_column
-
-    def get_all_queries(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-    ) -> list[tuple[BaseQueryBuilder, Referrer]]:
-        traces_metas_query_with_referrer = self.get_traces_metas_query(
-            snuba_params,
-            trace_ids,
-        )
-
-        traces_errors_query_with_referrer = self.get_traces_errors_query(
-            snuba_params,
-            trace_ids,
-        )
-
-        traces_occurrences_query_with_referrer = self.get_traces_occurrences_query(
-            snuba_params,
-            trace_ids,
-        )
-
-        traces_breakdown_projects_query_with_referrer = self.get_traces_breakdown_projects_query(
-            snuba_params,
-            trace_ids,
-        )
-
-        return [
-            traces_metas_query_with_referrer,
-            traces_errors_query_with_referrer,
-            traces_occurrences_query_with_referrer,
-            traces_breakdown_projects_query_with_referrer,
-        ]
 
     def process_final_results(
         self,
@@ -813,101 +551,6 @@ class TracesExecutor:
     def process_meta_results(self, results):
         return results["meta"]
 
-    def get_traces_breakdown_projects_query(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-    ) -> tuple[BaseQueryBuilder, Referrer]:
-        query = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params={},
-            snuba_params=snuba_params,
-            query="is_transaction:1",
-            selected_columns=[
-                "trace",
-                "project",
-                "sdk.name",
-                "span.op",
-                "parent_span",
-                "transaction",
-                "precise.start_ts",
-                "precise.finish_ts",
-                "span.duration",
-            ],
-            orderby=["precise.start_ts", "-precise.finish_ts"],
-            # limit the number of segments we fetch per trace so a single
-            # large trace does not result in the rest being blank
-            limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
-            limit=MAX_SNUBA_RESULTS,
-            config=QueryBuilderConfig(
-                transform_alias_to_input_format=True,
-            ),
-        )
-
-        # restrict the query to just this subset of trace ids
-        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
-
-        return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
-
-    def get_traces_metas_query(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-    ) -> tuple[BaseQueryBuilder, Referrer]:
-        query = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params={},
-            snuba_params=snuba_params,
-            query=None,
-            selected_columns=[
-                "trace",
-                "count()",
-                "first_seen()",
-                "last_seen()",
-            ],
-            limit=len(trace_ids),
-            config=QueryBuilderConfig(
-                functions_acl=["first_seen", "last_seen"],
-                transform_alias_to_input_format=True,
-            ),
-        )
-
-        # restrict the query to just this subset of trace ids
-        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
-
-        """
-        We want to get a count of the number of matching spans. To do this, we have to
-        translate the user queries into conditions, and get a count of spans that match
-        any one of the user queries.
-        """
-
-        # Translate each user query into a condition to match one
-        trace_conditions = []
-        for where in self.user_queries.values():
-            trace_condition = format_as_trace_conditions(where)
-            if not trace_condition:
-                continue
-            elif len(trace_condition) == 1:
-                trace_conditions.append(trace_condition[0])
-            else:
-                trace_conditions.append(Function("and", trace_condition))
-
-        # Join all the user queries together into a single one where at least 1 have
-        # to be true.
-        if not trace_conditions:
-            query.columns.append(Function("count", [], MATCHING_COUNT_ALIAS))
-        elif len(trace_conditions) == 1:
-            query.columns.append(Function("countIf", trace_conditions, MATCHING_COUNT_ALIAS))
-        else:
-            query.columns.append(
-                Function("countIf", [Function("or", trace_conditions)], MATCHING_COUNT_ALIAS)
-            )
-
-        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
-            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
-
-        return query, Referrer.API_TRACE_EXPLORER_TRACES_META
-
     def get_traces_errors_query(
         self,
         snuba_params: SnubaParams,
@@ -951,124 +594,6 @@ class TracesExecutor:
         query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
-
-
-class TraceSpansExecutor:
-    def __init__(
-        self,
-        *,
-        dataset: Dataset,
-        snuba_params: SnubaParams,
-        trace_id: str,
-        fields: list[str],
-        user_queries: list[str],
-        sort: list[str] | None,
-    ):
-        self.dataset = dataset
-        self.snuba_params = snuba_params
-        self.trace_id = trace_id
-        self.fields = fields
-        self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
-        self.sort = sort
-
-    def execute(self, offset: int, limit: int):
-        with handle_span_query_errors():
-            return self.get_user_spans(
-                self.snuba_params,
-                offset=offset,
-                limit=limit,
-            )
-
-    def get_user_spans(
-        self,
-        snuba_params: SnubaParams,
-        limit: int,
-        offset: int,
-    ):
-        user_spans_query = self.get_user_spans_query(
-            snuba_params,
-            limit=limit,
-            offset=offset,
-        )
-
-        user_spans_results = user_spans_query.run_query(
-            referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_LIST.value
-        )
-        user_spans_results = user_spans_query.process_results(user_spans_results)
-
-        meta = self.process_meta_results(user_spans_results)
-        data = self.process_final_results(user_spans_results)
-
-        return {"data": data, "meta": meta}
-
-    def get_user_spans_query(
-        self,
-        snuba_params: SnubaParams,
-        limit: int,
-        offset: int,
-    ) -> BaseQueryBuilder:
-        user_spans_query = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params={},
-            snuba_params=snuba_params,
-            query=None,  # Note: conditions are added below
-            selected_columns=self.fields,
-            orderby=self.sort,
-            limit=limit,
-            offset=offset,
-            config=QueryBuilderConfig(
-                transform_alias_to_input_format=True,
-            ),
-        )
-
-        user_conditions = []
-
-        for where in self.user_queries.values():
-            user_conditions.append(where)
-
-        # First make sure that we only return spans from the trace specified
-        user_spans_query.add_conditions([Condition(Column("trace_id"), Op.EQ, self.trace_id)])
-
-        conditions = []
-
-        # Next we have to turn the user queries into the appropriate conditions in
-        # the SnQL that we produce.
-
-        # There are multiple sets of user conditions that needs to be satisfied
-        # and if a span satisfy any of them, it should be considered.
-        #
-        # To handle this use case, we want to OR all the user specified
-        # conditions together in this query.
-        for where in user_conditions:
-            if len(where) > 1:
-                conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
-            elif len(where) == 1:
-                conditions.append(where[0])
-
-        if len(conditions) > 1:
-            # More than 1 set of conditions were specified, we want to show
-            # spans that match any 1 of them so join the conditions with `OR`s.
-            user_spans_query.add_conditions(
-                [BooleanCondition(op=BooleanOp.OR, conditions=conditions)]
-            )
-        elif len(conditions) == 1:
-            # Only 1 set of user conditions were specified, simply insert them into
-            # the final query.
-            user_spans_query.add_conditions([conditions[0]])
-
-        return user_spans_query
-
-    def process_meta_results(self, user_spans_results):
-        fields = user_spans_results["meta"].get("fields", {})
-        return {
-            **user_spans_results["meta"],
-            "fields": {field: fields[field] for field in self.fields},
-        }
-
-    def process_final_results(self, user_spans_results) -> list[Mapping[str, Any]]:
-        return [
-            {field: span[field] for field in self.fields} for span in user_spans_results["data"]
-        ]
 
 
 def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
@@ -1370,57 +895,6 @@ def process_breakdowns(data, traces_range):
             interval["sliceWidth"] = interval["sliceEnd"] - interval["sliceStart"]
 
     return breakdowns
-
-
-def process_user_queries(
-    snuba_params: SnubaParams,
-    user_queries: list[str],
-    dataset: Dataset = Dataset.SpansIndexed,
-) -> dict[str, list[list[WhereType]]]:
-    with handle_span_query_errors():
-        if dataset == Dataset.EventsAnalyticsPlatform:
-            span_indexed_builder = SpansEAPQueryBuilder(
-                dataset,
-                params={},
-                snuba_params=snuba_params,
-                query=None,  # Note: conditions are added below
-                selected_columns=[],
-                config=QueryBuilderConfig(
-                    transform_alias_to_input_format=True,
-                ),
-            )
-            resolve_conditions = span_indexed_builder.resolve_conditions
-        else:
-            span_eap_builder = SpansIndexedQueryBuilder(
-                dataset,
-                params={},
-                snuba_params=snuba_params,
-                query=None,  # Note: conditions are added below
-                selected_columns=[],
-                config=QueryBuilderConfig(
-                    transform_alias_to_input_format=True,
-                ),
-            )
-            resolve_conditions = span_eap_builder.resolve_conditions
-
-        queries: dict[str, list[list[WhereType]]] = {}
-
-        for user_query in user_queries:
-            user_query = user_query.strip()
-
-            # Filter out empty queries as they do not do anything to change the results.
-            if not user_query:
-                continue
-
-            # We want to ignore all the aggregate conditions here because we're strictly
-            # searching on span attributes, not aggregates
-            where, _ = resolve_conditions(user_query)
-            queries[user_query] = where
-
-    set_span_attribute("user_queries_count", len(queries))
-    sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
-
-    return queries
 
 
 def process_rpc_user_queries(

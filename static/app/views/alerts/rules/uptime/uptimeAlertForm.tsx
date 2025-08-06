@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';

@@ -623,12 +623,21 @@ function FileDiff({
           </FileAddedRemoved>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
-            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
             borderless
           />
+        </FileHeader>
+      )}
+      {integratedStyle && (
+        <FileHeader>
+          <FileAddedRemoved>
+            <FileAdded>+{file.added}</FileAdded>
+            <FileRemoved>-{file.removed}</FileRemoved>
+          </FileAddedRemoved>
+          <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
       {isExpanded && (
