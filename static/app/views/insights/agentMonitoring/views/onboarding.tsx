@@ -288,7 +288,7 @@ export function Onboarding() {
           </p>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/insights/agent-monitoring/"
+            href="https://docs.sentry.io/product/insights/ai/agents/"
             external
           >
             {t('Go to Documentation')}
