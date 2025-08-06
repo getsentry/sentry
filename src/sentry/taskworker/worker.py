@@ -377,5 +377,12 @@ class TaskWorker:
             self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
             return None
 
+        if options.get("taskworkers.killswitch.task_names").get(activation.activation.taskname):
+            metrics.incr(
+                "taskworker.worker.fetch_task.dropped_killswitched",
+                tags={"processing_pool": self._processing_pool_name},
+            )
+            return None
+
         self._gettask_backoff_seconds = 0
         return activation
