@@ -173,6 +173,7 @@ export class Results extends Component<Props, State> {
     tips: [],
     showForcedDatasetAlert: true,
     showQueryIncompatibleWithDataset: false,
+    showTransactionsDeprecationAlert: true,
   };
 
   componentDidMount() {
@@ -191,7 +192,6 @@ export class Results extends Component<Props, State> {
         query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
       });
     }
-    this.setState({showTransactionsDeprecationAlert: true});
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
