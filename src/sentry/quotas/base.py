@@ -742,3 +742,9 @@ class Quota(Service):
                   Always False if data category is not a profile duration category.
         """
         return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1
