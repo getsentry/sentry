@@ -507,7 +507,11 @@ export function CreateProject() {
               });
             }}
           />
-          <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
+          <StyledListItem>
+            {isOrgMemberWithNoAccess
+              ? t('Name your project')
+              : t('Name your project and assign it a team')}
+          </StyledListItem>
           <FormFieldGroup>
             <div>
               <FormLabel>{t('Project name')}</FormLabel>
