@@ -130,6 +130,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                         project_id=project.id,
                         checksum=checksum,
                         chunks=chunks,
+                        git_sha=data.get("git_sha"),
+                        build_configuration=data.get("build_configuration"),
                     )
                     if artifact_id:
                         return Response(
