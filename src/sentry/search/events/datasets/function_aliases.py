@@ -1,7 +1,7 @@
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from snuba_sdk import Column, Function
+from snuba_sdk import Column, Entity, Function
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
@@ -390,7 +390,18 @@ def resolve_upsampled_eps(
         interval = args["interval"]
     return Function(
         "divide",
-        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]), interval],
+        [
+            Function(
+                "sum",
+                [
+                    Function(
+                        "ifNull",
+                        [Column("sample_weight", entity=Entity("events", alias="events")), 1],
+                    )
+                ],
+            ),
+            interval,
+        ],
         alias,
     )
 
@@ -423,7 +434,15 @@ def resolve_upsampled_epm(
     return Function(
         "divide",
         [
-            Function("sum", [Function("ifNull", [Column("sample_weight"), 1])]),
+            Function(
+                "sum",
+                [
+                    Function(
+                        "ifNull",
+                        [Column("sample_weight", entity=Entity("events", alias="events")), 1],
+                    )
+                ],
+            ),
             Function("divide", [interval, 60]),
         ],
         alias,

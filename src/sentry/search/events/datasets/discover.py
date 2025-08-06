@@ -10,6 +10,7 @@ from snuba_sdk import (
     Condition,
     CurriedFunction,
     Direction,
+    Entity,
     Function,
     Identifier,
     Lambda,
@@ -1043,7 +1044,23 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[],
                     snql_aggregate=lambda args, alias: Function(
                         "toInt64",
-                        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])])],
+                        [
+                            Function(
+                                "sum",
+                                [
+                                    Function(
+                                        "ifNull",
+                                        [
+                                            Column(
+                                                "sample_weight",
+                                                entity=Entity("events", alias="events"),
+                                            ),
+                                            1,
+                                        ],
+                                    )
+                                ],
+                            )
+                        ],
                         alias,
                     ),
                     default_result_type="integer",
