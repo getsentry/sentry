@@ -63,7 +63,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
         return self.respond(
             SlackHelpMessageBuilder(
                 command=command,
-                integration_id=slack_request.integration.id,
+                integration_id=slack_request.integration.id if slack_request.integration else None,
             ).build()
         )
 
