@@ -135,7 +135,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     const traceAge = defined(traceTimestamp)
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
-    const issuesCount = TraceTree.UniqueIssues(props.tree.root).length;
+
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
+    }
+
+    const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
     traceAnalytics.trackTraceShape(
       props.tree,

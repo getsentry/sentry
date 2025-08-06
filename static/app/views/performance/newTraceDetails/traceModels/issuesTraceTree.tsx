@@ -49,9 +49,24 @@ export class IssuesTraceTree extends TraceTree {
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
-    const tree = super.FromTrace(trace, options);
+    const baseTree = super.FromTrace(trace, options);
+
     const issuesTree = new IssuesTraceTree();
-    issuesTree.root = tree.root;
+
+    issuesTree.root = baseTree.root;
+    issuesTree.list = baseTree.list;
+
+    issuesTree.transactions_count = baseTree.transactions_count;
+    issuesTree.eap_spans_count = baseTree.eap_spans_count;
+
+    issuesTree.projects = new Map(baseTree.projects);
+
+    issuesTree.type = baseTree.type;
+    issuesTree.vital_types = new Set(baseTree.vital_types);
+    issuesTree.vitals = new Map(baseTree.vitals);
+    issuesTree.profiled_events = new Set(baseTree.profiled_events);
+    issuesTree.indicators = [...baseTree.indicators];
+
     return issuesTree;
   }
 
