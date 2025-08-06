@@ -2014,7 +2014,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
 
         assert meta["dataset"] == "spans"
-        assert meta["units"] == {"p75_if(span.duration, is_transaction, equals, true)": "millisecond"}
+        assert meta["units"] == {
+            "p75_if(span.duration, is_transaction, equals, true)": "millisecond"
+        }
         assert meta["fields"] == {"p75_if(span.duration, is_transaction, equals, true)": "duration"}
 
     def test_is_transaction(self) -> None:
