@@ -1069,7 +1069,6 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -1162,7 +1161,6 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
