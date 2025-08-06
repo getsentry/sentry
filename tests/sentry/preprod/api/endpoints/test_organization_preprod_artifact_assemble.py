@@ -339,8 +339,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": None,
-                "build_configuration": None,
             }
         )
 
@@ -374,8 +372,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
-                "build_configuration": "release",
             }
         )
 
@@ -540,8 +536,12 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
-    def test_check_existing_assembly_status(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_check_existing_assembly_status(self, mock_create_preprod_artifact: MagicMock) -> None:
         checksum = sha1(b"test existing status").hexdigest()
+        mock_create_preprod_artifact.return_value = "12345"
 
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
@@ -559,8 +559,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
+        assert "artifact_id" in response.data
+        assert response.data["artifact_id"] == "12345"
 
-    def test_integration_task_sets_status_api_can_read_it(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_integration_task_sets_status_api_can_read_it(
+        self, mock_create_preprod_artifact: MagicMock
+    ) -> None:
         """
         Integration test that verifies the task and API endpoint use consistent scope.
 
@@ -572,6 +579,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         """
         content = b"test integration content"
         total_checksum = sha1(content).hexdigest()
+        mock_create_preprod_artifact.return_value = "98765"
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -592,6 +600,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
+        assert "artifact_id" in response.data
+        assert response.data["artifact_id"] == "98765"
 
     def test_permission_required(self) -> None:
         content = b"test permission content"
