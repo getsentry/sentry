@@ -34,7 +34,6 @@ export default function GroupingInfo({
       event,
       group,
       projectSlug,
-      query: {},
     });
 
   const variants = groupInfo

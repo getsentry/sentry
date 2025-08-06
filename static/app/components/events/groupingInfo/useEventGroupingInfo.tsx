@@ -50,22 +50,17 @@ export function useEventGroupingInfo({
   event,
   group,
   projectSlug,
-  query,
 }: {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
-  query: Record<string, string>;
 }) {
   const organization = useOrganization();
 
   const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
-      {query},
-    ],
+    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
     {enabled: !hasPerformanceGrouping, staleTime: Infinity}
   );
 
