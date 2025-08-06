@@ -74,17 +74,18 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
 def make_signed_seer_request_simple(
     url: str,
     data: str | dict[str, Any],
-    timeout: int | tuple[int, int] | None = settings.SEER_DEFAULT_TIMEOUT or 5,
+    timeout: int | tuple[int, int] | None = None,
     metric_tags: dict[str, Any] | None = None,
 ) -> tuple[requests.Response | None, int]:
     """
     Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
 
-    The timeout argument is passed directly to requests.post.
+    The timeout argument is passed to requests.post. Defaults to settings.SEER_DEFAULT_TIMEOUT.
 
     Returns a tuple of (response, status code). If a request error occurred the response will be None.
     """
     str_data = json.dumps(data) if isinstance(data, dict) else data
+    timeout = timeout or settings.SEER_DEFAULT_TIMEOUT or 5
 
     try:
         with metrics.timer(

@@ -225,7 +225,6 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
                 job.project_id,
                 [row["replay_id"] for row in results["rows"]],
                 synchronous=False,
-                timeout=15,
             )
     except Exception:
         logger.exception("Bulk delete replays failed.")
@@ -291,5 +290,4 @@ def delete_replay(
         project_id=project_id,
         replay_ids=[replay_id],
         synchronous=True,
-        timeout=5,
     )
