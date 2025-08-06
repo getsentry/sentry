@@ -1,5 +1,9 @@
 from django.urls import re_path
 
+from sentry.workflow_engine.endpoints.organization_alertrule_workflow_index import (
+    OrganizationAlertRuleWorkflowIndexEndpoint,
+)
+
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
@@ -84,5 +88,10 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/test-fire-actions/$",
         OrganizationTestFireActionsEndpoint.as_view(),
         name="sentry-api-0-organization-test-fire-actions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/alert-rule-workflow/$",
+        OrganizationAlertRuleWorkflowIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-workflow-index",
     ),
 ]
