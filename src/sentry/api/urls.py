@@ -230,8 +230,8 @@ from sentry.issues.endpoints import (
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
 from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
-from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
+from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
