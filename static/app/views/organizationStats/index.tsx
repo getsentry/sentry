@@ -463,18 +463,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
   }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.borderRadius};
-  }
 `;
 
 const NewLayoutBody = styled('div')``;

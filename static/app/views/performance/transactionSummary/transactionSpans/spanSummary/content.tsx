@@ -12,7 +12,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -113,7 +112,6 @@ export default function SpanSummary(props: Props) {
         <BackendHeader {...domainViewHeaderProps} />
       )}
       {isInDomainView && view === 'mobile' && <MobileHeader {...domainViewHeaderProps} />}
-      {isInDomainView && view === 'ai' && <AiHeader {...domainViewHeaderProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <SpanSummaryContent
