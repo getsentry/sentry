@@ -167,11 +167,11 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             json={
                 "data": [
                     {
-                        "primary_label": "User Interface",
-                        "associated_labels": ["Usability"],
+                        "primaryLabel": "User Interface",
+                        "associatedLabels": ["Usability"],
                     },
-                    {"primary_label": "Performance", "associated_labels": ["Speed", "Loading"]},
-                    {"primary_label": "Authentication", "associated_labels": ["Security"]},
+                    {"primaryLabel": "Performance", "associatedLabels": ["Speed", "Loading"]},
+                    {"primaryLabel": "Authentication", "associatedLabels": ["Security"]},
                 ]
             },
         )
@@ -187,24 +187,24 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         categories = response.data["categories"]
         assert len(categories) == 3
 
-        assert any(category["primary_label"] == "User Interface" for category in categories)
-        assert any(category["primary_label"] == "Performance" for category in categories)
-        assert any(category["primary_label"] == "Authentication" for category in categories)
+        assert any(category["primaryLabel"] == "User Interface" for category in categories)
+        assert any(category["primaryLabel"] == "Performance" for category in categories)
+        assert any(category["primaryLabel"] == "Authentication" for category in categories)
 
         for category in categories:
-            assert "primary_label" in category
-            assert "associated_labels" in category
-            assert "feedback_count" in category
-            assert isinstance(category["primary_label"], str)
-            assert isinstance(category["associated_labels"], list)
-            assert isinstance(category["feedback_count"], int)
+            assert "primaryLabel" in category
+            assert "associatedLabels" in category
+            assert "feedbackCount" in category
+            assert isinstance(category["primaryLabel"], str)
+            assert isinstance(category["associatedLabels"], list)
+            assert isinstance(category["feedbackCount"], int)
 
-            if category["primary_label"] == "User Interface":
-                assert category["feedback_count"] == 11
-            elif category["primary_label"] == "Performance":
-                assert category["feedback_count"] == 4
-            elif category["primary_label"] == "Authentication":
-                assert category["feedback_count"] == 3
+            if category["primaryLabel"] == "User Interface":
+                assert category["feedbackCount"] == 11
+            elif category["primaryLabel"] == "Performance":
+                assert category["feedbackCount"] == 4
+            elif category["primaryLabel"] == "Authentication":
+                assert category["feedbackCount"] == 3
 
     @django_db_all
     @responses.activate
@@ -214,10 +214,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             json={
                 "data": [
                     {
-                        "primary_label": "User Interface",
-                        "associated_labels": ["Performance", "Usability"],
+                        "primaryLabel": "User Interface",
+                        "associatedLabels": ["Performance", "Usability"],
                     },
-                    {"primary_label": "Authentication", "associated_labels": ["Security", "Login"]},
+                    {"primaryLabel": "Authentication", "associatedLabels": ["Security", "Login"]},
                 ]
             },
         )
@@ -237,21 +237,21 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         categories = response.data["categories"]
         assert len(categories) == 2
 
-        assert any(category["primary_label"] == "User Interface" for category in categories)
-        assert any(category["primary_label"] == "Authentication" for category in categories)
+        assert any(category["primaryLabel"] == "User Interface" for category in categories)
+        assert any(category["primaryLabel"] == "Authentication" for category in categories)
 
         for category in categories:
-            assert "primary_label" in category
-            assert "associated_labels" in category
-            assert "feedback_count" in category
-            assert isinstance(category["primary_label"], str)
-            assert isinstance(category["associated_labels"], list)
-            assert isinstance(category["feedback_count"], int)
+            assert "primaryLabel" in category
+            assert "associatedLabels" in category
+            assert "feedbackCount" in category
+            assert isinstance(category["primaryLabel"], str)
+            assert isinstance(category["associatedLabels"], list)
+            assert isinstance(category["feedbackCount"], int)
 
-            if category["primary_label"] == "User Interface":
-                assert category["feedback_count"] == 8
-            elif category["primary_label"] == "Authentication":
-                assert category["feedback_count"] == 3
+            if category["primaryLabel"] == "User Interface":
+                assert category["feedbackCount"] == 8
+            elif category["primaryLabel"] == "Authentication":
+                assert category["feedbackCount"] == 3
 
     @django_db_all
     @responses.activate

@@ -58,8 +58,8 @@ class LabelGroupsRequest(TypedDict):
 class FeedbackLabelGroup(TypedDict):
     """Corresponds to FeedbackLabelGroup in Seer."""
 
-    primary_label: str
-    associated_labels: list[str]
+    primaryLabel: str
+    associatedLabels: list[str]
 
 
 @region_silo_endpoint
@@ -82,9 +82,9 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         {
             "categories": [
                 {
-                    "primary_label": str,
-                    "associated_labels": list[str],
-                    "feedback_count": int,
+                    "primaryLabel": str,
+                    "associatedLabels": list[str],
+                    "feedbackCount": int,
                 }
                 ...
             ],
@@ -203,7 +203,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         # If the LLM hallucinates primary label(s), log it but still generate categories
         for label_group in label_groups:
-            if label_group["primary_label"] not in top_10_labels:
+            if label_group["primaryLabel"] not in top_10_labels:
                 logger.warning(
                     "LLM hallucinated primary label",
                     extra={"label_group": label_group},
@@ -211,7 +211,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
         label_groups_lists: list[list[str]] = [
-            [label_group["primary_label"]] + label_group["associated_labels"]
+            [label_group["primaryLabel"]] + label_group["associatedLabels"]
             for label_group in label_groups
         ]
 
@@ -227,18 +227,18 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         categories = []
         for i, list_group in enumerate(label_groups_lists):
-            primary_label = list_group[0]
-            associated_labels = list_group[1:]
+            primaryLabel = list_group[0]
+            associatedLabels = list_group[1:]
 
             categories.append(
                 {
-                    "primary_label": primary_label,
-                    "associated_labels": associated_labels,
-                    "feedback_count": label_feedback_counts[i],
+                    "primaryLabel": primaryLabel,
+                    "associatedLabels": associatedLabels,
+                    "feedbackCount": label_feedback_counts[i],
                 }
             )
 
-        categories.sort(key=lambda x: x["feedback_count"], reverse=True)
+        categories.sort(key=lambda x: x["feedbackCount"], reverse=True)
         categories = categories[:MAX_RETURN_CATEGORIES]
 
         cache.set(
