@@ -12,7 +12,6 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import type {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
@@ -80,7 +79,6 @@ type UseTraceScrollToEventOnLoadOptions = {
   meta: TraceMetaQueryResults;
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
-  subscriptionQueryResults: ReturnType<typeof usePerformanceSubscriptionDetails>;
   tree: TraceTree;
 };
 
@@ -108,11 +106,7 @@ export function useTraceOnLoad(
       return undefined;
     }
 
-    if (
-      tree.type !== 'trace' ||
-      options.subscriptionQueryResults.isLoading ||
-      options.meta.status === 'pending'
-    ) {
+    if (tree.type !== 'trace') {
       return undefined;
     }
 
@@ -162,15 +156,7 @@ export function useTraceOnLoad(
     return () => {
       cancel = true;
     };
-  }, [
-    tree,
-    api,
-    onTraceLoad,
-    organization,
-    pathToNodeOrEventId,
-    options.meta,
-    options.subscriptionQueryResults.isLoading,
-  ]);
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId, options.meta]);
 
   return status;
 }
@@ -178,7 +164,6 @@ export function useTraceOnLoad(
 type UseTraceIssuesOnLoadOptions = {
   event: Event;
   onTraceLoad: () => void;
-  subscriptionQueryResults: ReturnType<typeof usePerformanceSubscriptionDetails>;
   tree: IssuesTraceTree;
 };
 
@@ -206,7 +191,7 @@ export function useTraceIssuesOnLoad(
       return undefined;
     }
 
-    if (tree.type !== 'trace' || options.subscriptionQueryResults.isLoading) {
+    if (tree.type !== 'trace') {
       return undefined;
     }
 
@@ -243,14 +228,7 @@ export function useTraceIssuesOnLoad(
     return () => {
       cancel = true;
     };
-  }, [
-    tree,
-    api,
-    onTraceLoad,
-    organization,
-    options.subscriptionQueryResults.isLoading,
-    options.event,
-  ]);
+  }, [tree, api, onTraceLoad, organization, options.event]);
 
   return status;
 }
