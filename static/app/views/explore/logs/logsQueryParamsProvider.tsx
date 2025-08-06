@@ -1,11 +1,9 @@
 import type {ReactNode} from 'react';
 
 import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLocationQueryParamsProvider';
-import type {QueryExtrasContextValue} from 'sentry/views/explore/logs/logsQueryExtrasProvider';
-import {QueryExtrasContextProvider} from 'sentry/views/explore/logs/logsQueryExtrasProvider';
 import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
 
-interface LogsQueryParamsProviderProps extends QueryExtrasContextValue {
+interface LogsQueryParamsProviderProps {
   children: ReactNode;
   source: 'location' | 'state';
 }
@@ -13,9 +11,6 @@ interface LogsQueryParamsProviderProps extends QueryExtrasContextValue {
 export function LogsQueryParamsProvider({
   children,
   source,
-  projectIds,
-  spanId,
-  traceId,
 }: LogsQueryParamsProviderProps) {
   const LogsQueryParamsProviderComponent =
     source === 'location'
@@ -28,9 +23,5 @@ export function LogsQueryParamsProvider({
     throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
   }
 
-  return (
-    <QueryExtrasContextProvider projectIds={projectIds} spanId={spanId} traceId={traceId}>
-      <LogsQueryParamsProviderComponent>{children}</LogsQueryParamsProviderComponent>
-    </QueryExtrasContextProvider>
-  );
+  return <LogsQueryParamsProviderComponent>{children}</LogsQueryParamsProviderComponent>;
 }
