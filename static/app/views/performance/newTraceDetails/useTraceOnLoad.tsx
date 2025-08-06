@@ -33,15 +33,12 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  // We no longer collect the spans count for non-EAP traces, since
-  // we no longer use the old spans dataset used by the transaction based /events-trace-meta/ endpoint
-  // only accessible to am1 members.
-  const spansCount = isEAPTraceNode(traceNode) ? tree.eap_spans_count : 0;
-
   if (
     !(
       tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
-      (spansCount ?? 0) < AUTO_EXPAND_SPANS_THRESHOLD
+      // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
+      // by spans count.
+      (isEAPTraceNode(traceNode) && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
     )
   ) {
     return tree;
