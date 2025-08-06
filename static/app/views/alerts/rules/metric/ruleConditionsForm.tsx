@@ -137,11 +137,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.project.id === this.props.project.id) {
+    if (
+      prevProps.project.id === this.props.project.id &&
+      prevProps.tags === this.props.tags
+    ) {
       return;
     }
 
     this.fetchData();
+    const filterKeys = this.getFilterKeys();
+    this.setState({filterKeys});
   }
 
   getFilterKeys = () => {
