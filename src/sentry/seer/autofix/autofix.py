@@ -582,17 +582,32 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     ):  # if there is only one thread, use that as the main thread
         main_thread_id = list(thread_metadata.keys())[0]
 
+    def _get_elapsed_since_start_ns(
+        sample: dict[str, Any], all_samples: list[dict[str, Any]]
+    ) -> int:
+        """
+        Get the elapsed time since start for a sample.
+        Handles both transaction and continuous profiles.
+        """
+        if "elapsed_since_start_ns" in sample:
+            return sample["elapsed_since_start_ns"]
+        elif "timestamp" in sample:
+            min_timestamp = min(s["timestamp"] for s in all_samples)
+            return int((sample["timestamp"] - min_timestamp) * 1e9)
+        else:
+            return 0
+
     # Sort samples chronologically
-    sorted_samples = sorted(samples, key=lambda x: x["elapsed_since_start_ns"])
+    sorted_samples = sorted(samples, key=lambda x: _get_elapsed_since_start_ns(x, samples))
 
     # Calculate average sampling interval
     if len(sorted_samples) >= 2:
         time_diffs = [
-            sorted_samples[i + 1]["elapsed_since_start_ns"]
-            - sorted_samples[i]["elapsed_since_start_ns"]
+            _get_elapsed_since_start_ns(sorted_samples[i + 1], sorted_samples)
+            - _get_elapsed_since_start_ns(sorted_samples[i], sorted_samples)
             for i in range(len(sorted_samples) - 1)
         ]
-        sample_interval_ns = sum(time_diffs) / len(time_diffs) if time_diffs else 10000000
+        sample_interval_ns = int(sum(time_diffs) / len(time_diffs)) if time_diffs else 10000000
     else:
         sample_interval_ns = 10000000  # default 10ms
 
@@ -658,7 +673,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         if str(sample["thread_id"]) != str(main_thread_id):
             continue
 
-        timestamp_ns = sample["elapsed_since_start_ns"]
+        timestamp_ns = _get_elapsed_since_start_ns(sample, sorted_samples)
         stack_frames = process_stack(sample["stack_id"])
         if not stack_frames:
             continue
