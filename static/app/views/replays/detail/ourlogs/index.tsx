@@ -1,7 +1,6 @@
-import {useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {GridBody} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
@@ -30,6 +29,7 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 export default function OurLogs() {
@@ -109,46 +109,34 @@ function OurLogsContent() {
   const clearSearchTerm = () => setSearchTerm('');
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Fragment>
       <OurLogFilters logItems={logItems} traceIds={traceIds} {...filterProps} />
-      <OurLogsReplayTableWrapper>
+      <StyledTabItemContainer ref={scrollContainerRef}>
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
-          <PaddedFluidHeight ref={scrollContainerRef}>
-            <LogsInfiniteTable
-              stringAttributes={stringAttributes}
-              numberAttributes={numberAttributes}
-              scrollContainer={scrollContainerRef}
-              allowPagination
-              embedded
-              localOnlyItemFilters={{
-                filteredItems: filteredLogItems,
-                filterText: filterProps.searchTerm,
-              }}
-              embeddedStyling={{disableBodyPadding: true}}
-              emptyRenderer={() => (
-                <NoRowRenderer
-                  unfilteredItems={logItems}
-                  clearSearchTerm={clearSearchTerm}
-                >
-                  {t('No logs recorded')}
-                </NoRowRenderer>
-              )}
-            />
-          </PaddedFluidHeight>
+          <LogsInfiniteTable
+            stringAttributes={stringAttributes}
+            numberAttributes={numberAttributes}
+            scrollContainer={scrollContainerRef}
+            allowPagination
+            embedded
+            localOnlyItemFilters={{
+              filteredItems: filteredLogItems,
+              filterText: filterProps.searchTerm,
+            }}
+            embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: true}}
+            emptyRenderer={() => (
+              <NoRowRenderer unfilteredItems={logItems} clearSearchTerm={clearSearchTerm}>
+                {t('No logs recorded')}
+              </NoRowRenderer>
+            )}
+          />
         )}
-      </OurLogsReplayTableWrapper>
-    </Flex>
+      </StyledTabItemContainer>
+    </Fragment>
   );
 }
-
-const PaddedFluidHeight = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-`;
 
 const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.border};
@@ -160,11 +148,7 @@ const StatusGridBody = styled(GridBody)`
   height: unset;
 `;
 
-const OurLogsReplayTableWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+const StyledTabItemContainer = styled(TabItemContainer)`
+  overflow-y: auto;
+  overflow-x: hidden;
 `;

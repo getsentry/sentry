@@ -49,5 +49,5 @@ export function OurLogFilters({
 }
 
 const StyledFiltersGrid = styled(FiltersGrid)`
-  grid-template-columns: repeat(1, max-content) 1fr min-content;
+  grid-template-columns: max-content 1fr min-content;
 `;

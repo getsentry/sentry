@@ -61,6 +61,7 @@ type LogsTableProps = {
   embedded?: boolean;
   embeddedStyling?: {
     disableBodyPadding?: boolean;
+    showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
   localOnlyItemFilters?: {
@@ -257,6 +258,7 @@ export function LogsInfiniteTable({
         css={tableStaticCSS}
         hideBorder={embedded}
         data-test-id="logs-table"
+        showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
           <LogsTableHeader
