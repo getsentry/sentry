@@ -708,7 +708,7 @@ class EnhancementsTest(TestCase):
         assert "<EnhancementRule function:playFetch +app>" not in {
             str(rule) for rule in strategy_config.enhancements.rules
         }
-        assert strategy_config.enhancements.id == DEFAULT_GROUPING_CONFIG
+        assert strategy_config.enhancements.id == DEFAULT_ENHANCEMENTS_BASE
 
 
 # Note: This primarily tests `assemble_stacktrace_component`'s handling of `contributes` values, as
