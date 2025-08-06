@@ -1,6 +1,6 @@
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import type {QueryTokensProps} from 'sentry/views/explore/components/queryTokens';
+import type {QueryTokensProps} from 'sentry/views/explore/components/seerComboBox/queryTokens';
 
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');

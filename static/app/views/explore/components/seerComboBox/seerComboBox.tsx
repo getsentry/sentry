@@ -17,12 +17,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {
   type SeerSearchItem,
   useApplySeerSearchQuery,
   useSeerSearch,
 } from 'sentry/views/explore/components/seerComboBox/hooks';
+import QueryTokens from 'sentry/views/explore/components/seerComboBox/queryTokens';
 import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
 import {SeerSearchListBox} from 'sentry/views/explore/components/seerComboBox/seerSearchListBox';
 import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/seerSearchPopover';
