@@ -197,18 +197,26 @@ def get_detectors_by_groupevents_bulk(
     return result
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
+def create_issue_platform_payload(result: DetectorEvaluationResult, detector: Detector) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
         occurrence = result.result
         payload_type = PayloadType.OCCURRENCE
 
-        metrics.incr("workflow_engine.issue_platform.payload.sent.occurrence")
+        metrics.incr(
+            "workflow_engine.issue_platform.payload.sent.occurrence",
+            tags={"detector_type": detector.type},
+            sample_rate=0.01,
+        )
     else:
         status_change = result.result
         payload_type = PayloadType.STATUS_CHANGE
-        metrics.incr("workflow_engine.issue_platform.payload.sent.status_change")
+        metrics.incr(
+            "workflow_engine.issue_platform.payload.sent.status_change",
+            tags={"detector_type": detector.type},
+            sample_rate=1,
+        )
 
     produce_occurrence_to_kafka(
         payload_type=payload_type,
@@ -219,9 +227,11 @@ def create_issue_platform_payload(result: DetectorEvaluationResult) -> None:
 
 
 @sentry_sdk.trace
-def process_detectors[T](
-    data_packet: DataPacket[T], detectors: list[Detector]
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+def process_detectors[
+    T
+](data_packet: DataPacket[T], detectors: list[Detector]) -> list[
+    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+]:
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
@@ -266,7 +276,7 @@ def process_detectors[T](
                         "detector_resolved",
                         extra=logger_extra,
                     )
-                create_issue_platform_payload(result)
+                create_issue_platform_payload(result, detector)
 
         if detector_results:
             results.append((detector, detector_results))
