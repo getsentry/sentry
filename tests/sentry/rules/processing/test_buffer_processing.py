@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -55,6 +56,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         fingerprint: str,
         environment=None,
         tags: list[list[str]] | None = None,
+        contexts: dict[str, Any] | None = None,
     ) -> Event:
         data = {
             "timestamp": timestamp.isoformat(),
@@ -70,6 +72,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
                     }
                 ]
             },
+            "contexts": contexts,
         }
         if tags:
             data["tags"] = tags
