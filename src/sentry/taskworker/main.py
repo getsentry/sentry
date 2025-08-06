@@ -1,4 +1,4 @@
-# Configure the application only if it seemingly isn't already configured
+# Configure the application and django if it hasn't been done already.
 from django.conf import settings
 
 if not settings.configured:

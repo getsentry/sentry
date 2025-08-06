@@ -333,6 +333,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The name of the processing pool being used",
     default="unknown",
 )
+@click.option(
+    "--process-type",
+    help="The type of process pool to use. Accepted values: (fork, forkserver, spawn)",
+    default="spawn",
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -355,6 +360,7 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
+    process_type: str,
     **options: Any,
 ) -> None:
     """
@@ -375,6 +381,7 @@ def run_taskworker(
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
             processing_pool_name=processing_pool_name,
+            process_type=process_type,
             **options,
         )
         exitcode = worker.start()
