@@ -9,16 +9,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import type {
-  MetricDetector,
-  MetricDetectorConfig,
-} from 'sentry/types/workflowEngine/detectors';
+import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import type {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import {
-  DetectorDataset,
-  getDetectorDataset,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
@@ -29,42 +22,38 @@ interface MetricDetectorDetailsChartProps {
 }
 const CHART_HEIGHT = 180;
 
-export function MetricDetectorDetailsChart({
-  detector,
+interface MetricDetectorChartProps {
+  detector: MetricDetector;
+  snubaQuery: SnubaQuery;
+  /**
+   * The time period for the chart data (optional, defaults to 7d)
+   */
+  statsPeriod: TimePeriod;
+}
+
+function MetricDetectorChart({
   statsPeriod,
-}: MetricDetectorDetailsChartProps) {
-  const dataSource = detector.dataSources[0];
-  const snubaQuery = dataSource.queryObj?.snubaQuery;
-
-  if (!snubaQuery) {
-    // Unlikely, helps narrow types
-    return null;
-  }
-
-  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const aggregate = snubaQuery.aggregate;
-  const query = snubaQuery.query;
-  const environment = snubaQuery.environment;
-  const interval = snubaQuery.timeWindow;
-  const conditions = detector.conditionGroup?.conditions || [];
+  snubaQuery,
+  detector,
+}: MetricDetectorChartProps) {
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
-
+  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const {series, comparisonSeries, isLoading, isError} = useMetricDetectorSeries({
     dataset,
-    aggregate,
-    interval,
-    query,
-    environment,
-    projectId,
+    aggregate: snubaQuery.aggregate,
+    interval: snubaQuery.timeWindow,
+    query: snubaQuery.query,
+    environment: snubaQuery.environment,
+    projectId: detector.projectId,
     statsPeriod,
     comparisonDelta,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
-      conditions,
+      conditions: detector.conditionGroup?.conditions,
       detectionType,
       comparisonSeries,
     });
@@ -126,7 +115,6 @@ export function MetricDetectorDetailsChart({
 
     const axes: YAXisComponentOption[] = [mainYAxis];
 
-    // Add anomaly bubble Y-axis if available
     if (openPeriodMarkerResult.incidentMarkerYAxis) {
       axes.push(openPeriodMarkerResult.incidentMarkerYAxis);
     }
@@ -134,7 +122,6 @@ export function MetricDetectorDetailsChart({
     return axes;
   }, [maxValue, openPeriodMarkerResult.incidentMarkerYAxis]);
 
-  // Prepare grid with anomaly bubble adjustments
   const grid = useMemo(() => {
     return {
       left: space(0.25),
@@ -165,20 +152,42 @@ export function MetricDetectorDetailsChart({
   }
 
   return (
+    <AreaChart
+      isGroupedByDate
+      showTimeInTooltip
+      height={CHART_HEIGHT}
+      stacked={false}
+      series={series}
+      additionalSeries={additionalSeries}
+      yAxes={yAxes.length > 1 ? yAxes : undefined}
+      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+      grid={grid}
+      xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
+      ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+    />
+  );
+}
+
+export function MetricDetectorDetailsChart({
+  detector,
+  statsPeriod,
+}: MetricDetectorDetailsChartProps) {
+  const dataSource = detector.dataSources[0];
+  const snubaQuery = dataSource.queryObj?.snubaQuery;
+
+  if (!snubaQuery) {
+    // Unlikely, helps narrow types
+    return null;
+  }
+
+  return (
     <ChartContainer>
       <ChartContainerBody>
-        <AreaChart
-          isGroupedByDate
-          showTimeInTooltip
-          height={CHART_HEIGHT}
-          stacked={false}
-          series={series}
-          additionalSeries={additionalSeries}
-          yAxes={yAxes.length > 1 ? yAxes : undefined}
-          yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
-          grid={grid}
-          xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-          ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+        <MetricDetectorChart
+          detector={detector}
+          // Pass snubaQuery separately to avoid checking null in all places
+          snubaQuery={snubaQuery}
+          statsPeriod={statsPeriod}
         />
       </ChartContainerBody>
     </ChartContainer>
