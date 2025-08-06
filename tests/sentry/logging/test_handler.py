@@ -97,7 +97,7 @@ def make_logrecord(
         ({"exc_info": True}, {"exc_info": True}),
     ),
 )
-def test_emit(record, out, handler, logger):
+def test_emit(record, out, handler, logger) -> None:
     record = make_logrecord(**record)
     handler.emit(record, logger=logger)
     expected = {
@@ -119,7 +119,7 @@ def test_emit(record, out, handler, logger):
         ({"exc_info": True}, {"exc_info": True}),
     ),
 )
-def test_emit_with_trace_id(record, out, handler, logger):
+def test_emit_with_trace_id(record, out, handler, logger) -> None:
     with sentry_sdk.start_span(name="test_emit_with_trace_id"):
         record = make_logrecord(**record)
         handler.emit(record, logger=logger)
@@ -174,7 +174,7 @@ def test_JSONRenderer_prod() -> None:
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
+def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu) -> None:
     logger = logging.getLogger(__name__)
 
     with pytest.raises(Exception) as exc_info:
@@ -183,7 +183,7 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu):
+def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu) -> None:
     logger = logging.getLogger(__name__)
     logger.log(logging.INFO, snafu)
 
@@ -201,7 +201,7 @@ def test_gke_emit() -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter(caplog, set_level_debug):
+def test_sampling_filter(caplog, set_level_debug) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.2)]):
         logger.info("msg1")
@@ -216,7 +216,7 @@ def test_sampling_filter(caplog, set_level_debug):
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level(caplog, set_level_debug):
+def test_sampling_filter_level(caplog, set_level_debug) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05, level=logging.WARNING)]):
         logger.debug("debug")
@@ -230,7 +230,7 @@ def test_sampling_filter_level(caplog, set_level_debug):
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level_default(caplog, set_level_debug):
+def test_sampling_filter_level_default(caplog, set_level_debug) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05)]):
         logger.debug("debug")

@@ -1,9 +1,14 @@
+from collections.abc import Sequence
 from unittest import mock
 
 from django.db.models import Q
 from rest_framework.exceptions import ErrorDetail
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -16,14 +21,18 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -58,6 +67,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id}
         )
         assert response.data == serialize([detector, detector_2])
+
+        # Verify X-Hits header is present and correct
+        assert "X-Hits" in response
+        hits = int(response["X-Hits"])
+        assert hits == 2
 
     def test_uptime_detector(self) -> None:
         subscription = self.create_uptime_subscription()
@@ -199,6 +213,61 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert [d["name"] for d in response2.data] == [
             detector_2.name,
             detector.name,
+        ]
+
+    def test_sort_by_latest_group(self) -> None:
+        detector_1 = self.create_detector(
+            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+        )
+        detector_3 = self.create_detector(
+            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+        )
+        detector_4 = self.create_detector(
+            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+        )
+
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        group_3 = self.create_group(project=self.project)
+
+        # detector_1 has the oldest group
+        detector_group_1 = DetectorGroup.objects.create(detector=detector_1, group=group_1)
+        detector_group_1.date_added = before_now(hours=3)
+        detector_group_1.save()
+
+        # detector_2 has the newest grbefore_now
+        detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
+        detector_group_2.date_added = before_now(hours=1)  # Most recent
+        detector_group_2.save()
+
+        # detector_3 has one in the middle
+        detector_group_3 = DetectorGroup.objects.create(detector=detector_3, group=group_3)
+        detector_group_3.date_added = before_now(hours=2)
+        detector_group_3.save()
+
+        # Test descending sort (newest groups first)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-latestGroup"}
+        )
+        assert [d["name"] for d in response.data] == [
+            detector_2.name,
+            detector_3.name,
+            detector_1.name,
+            detector_4.name,  # No groups, should be last
+        ]
+
+        # Test ascending sort (oldest groups first)
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
+        )
+        assert [d["name"] for d in response2.data] == [
+            detector_4.name,  # No groups, should be first
+            detector_1.name,
+            detector_3.name,
+            detector_2.name,
         ]
 
     def test_query_by_name(self) -> None:
@@ -890,3 +959,254 @@ class ConvertAssigneeValuesTest(APITestCase):
         result = convert_assignee_values([], self.projects, self.user)
         expected = Q()
         self.assertEqual(str(result), str(expected))
+
+
+@region_silo_test
+class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
+    method = "DELETE"
+
+    def assert_unaffected_detectors(self, detectors: Sequence[Detector]) -> None:
+        for detector in detectors:
+            detector.refresh_from_db()
+            assert Detector.objects.get(id=detector.id).status != ObjectStatus.PENDING_DELETION
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+        self.detector_two = self.create_detector(
+            project_id=self.project.id, name="Another Detector", type=MetricIssue.slug
+        )
+        self.detector_three = self.create_detector(
+            project_id=self.project.id, name="Third Detector", type=MetricIssue.slug
+        )
+
+    def test_delete_detectors_by_ids_success(self) -> None:
+        """Test successful deletion of detectors by specific IDs"""
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+                status_code=204,
+            )
+
+        # Ensure the detectors are scheduled for deletion
+        self.detector.refresh_from_db()
+        self.detector_two.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert self.detector_two.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector.id,
+        ).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector_two.id,
+        ).exists()
+
+        # Delete the detectors
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure detectors are removed
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+        assert not Detector.objects.filter(id=self.detector_two.id).exists()
+
+        # Verify third detector is unaffected
+        self.assert_unaffected_detectors([self.detector_three])
+
+    def test_delete_detectors_by_query_success(self) -> None:
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"query": "test", "project": self.project.id},
+                status_code=204,
+            )
+
+        # Ensure the detector is scheduled for deletion
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector.id,
+        ).exists()
+
+        # Delete the detectors
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure detector is removed
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+
+        # Other detectors should be unaffected
+        self.assert_unaffected_detectors([self.detector_two, self.detector_three])
+
+    def test_delete_detectors_by_project_success(self) -> None:
+        # Create detector in another project
+        other_project = self.create_project(organization=self.organization)
+        detector_other_project = self.create_detector(
+            project_id=other_project.id, name="Other Project Detector", type=MetricIssue.slug
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": str(self.project.id)},
+                status_code=204,
+            )
+
+        # Ensure the detectors in the target project are scheduled for deletion
+        self.detector.refresh_from_db()
+        self.detector_two.refresh_from_db()
+        self.detector_three.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert self.detector_two.status == ObjectStatus.PENDING_DELETION
+        assert self.detector_three.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector.id,
+        ).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector_two.id,
+        ).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector_three.id,
+        ).exists()
+
+        # Delete the detectors
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure detectors are removed
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+        assert not Detector.objects.filter(id=self.detector_two.id).exists()
+        assert not Detector.objects.filter(id=self.detector_three.id).exists()
+
+        # Detector in other project should be unaffected
+        self.assert_unaffected_detectors([detector_other_project])
+
+    def test_delete_no_matching_detectors(self) -> None:
+        # Test deleting detectors with non-existent ID
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+            status_code=204,
+        )
+
+        # Verify no detectors were affected
+        self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
+
+        # Test deleting detectors with non-matching query
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "nonexistent-detector-name", "project": self.project.id},
+            status_code=204,
+        )
+
+        # Verify no detectors were affected
+        self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
+
+    def test_delete_detectors_invalid_id_format(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-a-number"},
+            status_code=400,
+        )
+
+        assert "Invalid ID format" in str(response.data["id"])
+
+    def test_delete_detectors_filtering_ignored_with_ids(self) -> None:
+        # Other project detector
+        other_project = self.create_project(organization=self.organization)
+        detector_other_project = self.create_detector(
+            project_id=other_project.id, name="Other Project Detector", type=MetricIssue.slug
+        )
+
+        # Other filters should be ignored when specific IDs are provided
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "id": str(self.detector_two.id),
+                    "project": str(self.project.id),
+                },
+                status_code=204,
+            )
+
+        # Ensure the detector is scheduled for deletion
+        self.detector_two.refresh_from_db()
+        assert self.detector_two.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id=self.detector_two.id,
+        ).exists()
+
+        # Delete the detectors
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # Ensure detector is removed
+        assert not Detector.objects.filter(id=self.detector_two.id).exists()
+
+        # Other detectors should be unaffected
+        self.assert_unaffected_detectors(
+            [self.detector, self.detector_three, detector_other_project]
+        )
+
+    def test_delete_detectors_no_parameters_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+        )
+
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
+            response.data["detail"]
+        )
+
+        # Verify no detectors were affected
+        self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
+
+    def test_delete_detectors_audit_entry(self) -> None:
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.detector.id)},
+                status_code=204,
+            )
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            target_object=self.detector.id,
+            actor=self.user,
+        )
+
+    def test_delete_detectors_permission_denied(self) -> None:
+        # Members can not delete detectors for projects they are not part of
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=self.user.id,
+        )
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=member_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.detector.id)), ("id", str(other_detector.id))],
+            status_code=403,
+        )
+
+        # Verify detector was not affected
+        self.assert_unaffected_detectors([self.detector, other_detector])

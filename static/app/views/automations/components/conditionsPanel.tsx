@@ -80,10 +80,6 @@ interface ActionFilterProps {
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
 
-  // if (isLoading) {
-  //   return <LoadingIndicator />;
-  // }
-
   return (
     <ConditionGroupWrapper showDivider={totalFilters > 1}>
       <ConditionGroupHeader>
@@ -157,6 +153,7 @@ const Panel = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
+  word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`

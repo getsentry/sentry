@@ -44,7 +44,9 @@ export interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  additionalIdentifier?: string;
   className?: string;
+  dataTestId?: string;
   /**
    * Disable persisting collapse state to localStorage
    */
@@ -87,6 +89,8 @@ export function FoldSection({
   initialCollapse = false,
   preventCollapse = false,
   disableCollapsePersistence = false,
+  additionalIdentifier = '',
+  dataTestId,
 }: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
@@ -168,11 +172,12 @@ export function FoldSection({
     <Fragment>
       <Section
         ref={mergeRefs(ref, scrollToSection)}
-        id={sectionKey}
+        id={sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
         aria-label={titleLabel}
         className={className}
+        data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
       >
         <SectionExpander
           preventCollapse={preventCollapse}

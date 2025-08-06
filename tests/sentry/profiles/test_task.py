@@ -302,7 +302,7 @@ def sample_v2_profile_samples_not_sorted():
 
 
 @django_db_all
-def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+def test_normalize_sample_v1_profile(organization, sample_v1_profile) -> None:
     sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=sample_v1_profile, organization=organization)
@@ -313,7 +313,7 @@ def test_normalize_sample_v1_profile(organization, sample_v1_profile):
 
 
 @django_db_all
-def test_normalize_ios_profile(organization, ios_profile):
+def test_normalize_ios_profile(organization, ios_profile) -> None:
     ios_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=ios_profile, organization=organization)
@@ -324,7 +324,7 @@ def test_normalize_ios_profile(organization, ios_profile):
 
 
 @django_db_all
-def test_normalize_android_profile(organization, android_profile):
+def test_normalize_android_profile(organization, android_profile) -> None:
     android_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=android_profile, organization=organization)
@@ -498,7 +498,7 @@ def test_process_symbolicator_results_for_sample_js() -> None:
 
 
 @django_db_all
-def test_decode_signature(project, android_profile):
+def test_decode_signature(project, android_profile) -> None:
     android_profile.update(
         {
             "project_id": project.id,
@@ -543,7 +543,7 @@ def test_decode_signature(project, android_profile):
         ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
-def test_calculate_profile_duration(profile, duration_ms, request):
+def test_calculate_profile_duration(profile, duration_ms, request) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
 
 

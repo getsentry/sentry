@@ -422,7 +422,7 @@ class SubscriptionProcessor:
 
                     if features.has(
                         "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                        self.alert_rule.organization,
+                        organization,
                     ):
                         logger.info(
                             "dual processing results for alert rule",

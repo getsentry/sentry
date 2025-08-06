@@ -24,6 +24,7 @@ import {
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
@@ -72,9 +73,11 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </PageParamsProvider>
+      <SpansQueryParamsProvider>
+        <PageParamsProvider>
+          <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        </PageParamsProvider>
+      </SpansQueryParamsProvider>
     </SpansTabTourProvider>
   );
 }
