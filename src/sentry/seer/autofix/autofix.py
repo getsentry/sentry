@@ -607,7 +607,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             - _get_elapsed_since_start_ns(sorted_samples[i], sorted_samples)
             for i in range(len(sorted_samples) - 1)
         ]
-        sample_interval_ns = sum(time_diffs) / len(time_diffs) if time_diffs else 10000000
+        sample_interval_ns = int(sum(time_diffs) / len(time_diffs)) if time_diffs else 10000000
     else:
         sample_interval_ns = 10000000  # default 10ms
 
