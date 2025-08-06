@@ -21,7 +21,6 @@ class CommitComparison(DefaultFieldsModel):
     # Core commit information
     head_sha = models.CharField(max_length=64)
     base_sha = models.CharField(max_length=64, null=True)  # merge-base
-    previous_sha = models.CharField(max_length=64, null=True)  # prior commit
 
     # Repository information
     provider = models.CharField(max_length=64, null=True)
@@ -41,9 +40,6 @@ class CommitComparison(DefaultFieldsModel):
     )
     base_commit = FlexibleForeignKey(
         "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="base_commit_set"
-    )
-    previous_commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="previous_commit_set"
     )
 
     class Meta:
