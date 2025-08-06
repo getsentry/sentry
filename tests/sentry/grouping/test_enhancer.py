@@ -12,6 +12,7 @@ from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
     ENHANCEMENT_BASES,
     Enhancements,
     _is_valid_profiling_action,
@@ -138,7 +139,7 @@ def test_basic_parsing(insta_snapshot: InstaSnapshotter, version: int) -> None:
 def test_parse_empty_with_base() -> None:
     enhancements = Enhancements.from_rules_text(
         "",
-        bases=["newstyle:2023-01-11"],
+        bases=[DEFAULT_ENHANCEMENTS_BASE],
     )
     assert enhancements
 

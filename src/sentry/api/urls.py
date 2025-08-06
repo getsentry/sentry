@@ -73,6 +73,7 @@ from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpo
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
+from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -228,6 +229,10 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
+from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
+from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
+from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -501,11 +506,7 @@ from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
-from .endpoints.group_reprocessing import GroupReprocessingEndpoint
-from .endpoints.group_stats import GroupStatsEndpoint
-from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
-from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
@@ -1084,6 +1085,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repositories/$",
         RepositoriesEndpoint.as_view(),
         name="sentry-api-0-repositories",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repositories/tokens/$",
+        RepositoryTokensEndpoint.as_view(),
+        name="sentry-api-0-repository-tokens",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
@@ -2383,12 +2389,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/builtin-symbol-sources/$",
         BuiltinSymbolSourcesEndpoint.as_view(),
         name="sentry-api-0-organization-builtin-symbol-sources",
-    ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/grouping-configs/$",
-        GroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-organization-grouping-configs",
     ),
     # Unsubscribe from organization notifications
     re_path(

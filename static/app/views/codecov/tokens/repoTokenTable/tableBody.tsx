@@ -55,10 +55,6 @@ export function renderTableBody({column, row}: TableBodyProps) {
     return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
   }
 
-  if (key === 'createdAt') {
-    return <DateContainer>{value}</DateContainer>;
-  }
-
   return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
 }
 
@@ -68,9 +64,4 @@ const StyledButton = styled(Button)`
 
 export const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
-`;
-
-const DateContainer = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
-  text-align: 'left';
 `;

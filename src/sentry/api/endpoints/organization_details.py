@@ -48,6 +48,8 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLE_SEER_CODING_DEFAULT,
+    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -252,6 +254,18 @@ ORG_OPTIONS = (
         ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ),
     (
+        "enableSeerEnhancedAlerts",
+        "sentry:enable_seer_enhanced_alerts",
+        bool,
+        ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+    ),
+    (
+        "enableSeerCoding",
+        "sentry:enable_seer_coding",
+        bool,
+        ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -343,6 +357,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
     )
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
+    enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
+    enableSeerCoding = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
