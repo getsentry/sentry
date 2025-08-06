@@ -1,5 +1,3 @@
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import type {QueryTokensProps} from 'sentry/views/explore/components/seerComboBox/queryTokens';
 
 function formatToken(token: string): string {
@@ -78,17 +76,8 @@ export function generateQueryTokensString({
   const parts = [];
 
   if (query) {
-    const parsedQuery = parseQueryBuilderValue(query, getFieldDefinition);
-    if (parsedQuery?.length) {
-      const queryText = parsedQuery
-        .filter(({text}) => text.trim() !== '')
-        .map(({text}) => text)
-        .join(' ');
-      if (queryText) {
-        const formattedFilter = formatQueryToNaturalLanguage(queryText.trim());
-        parts.push(`Filter is '${formattedFilter}'`);
-      }
-    }
+    const formattedFilter = formatQueryToNaturalLanguage(query.trim());
+    parts.push(`Filter is '${formattedFilter}'`);
   }
 
   if (visualizations && visualizations.length > 0) {
