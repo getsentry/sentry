@@ -3088,6 +3088,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_workflow.use_workflow_engine_pool",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
