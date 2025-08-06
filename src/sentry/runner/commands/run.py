@@ -258,8 +258,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
 
     from sentry import options as runtime_options
+    from sentry.conf.types.taskworker import ScheduleConfig
     from sentry.taskworker.registry import taskregistry
-    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleConfig, ScheduleRunner
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
 
     for module in settings.TASKWORKER_IMPORTS:
