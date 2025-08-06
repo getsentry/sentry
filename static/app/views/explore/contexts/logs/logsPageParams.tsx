@@ -152,13 +152,10 @@ export function LogsPageParamsProvider({
 
   if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    // Use square bracket notation for multiple trace IDs
     const traceIdValue = `[${traceIds.join(',')}]`;
-    if (traceIdValue) {
-      baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
-      if (limitToSpanId) {
-        baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-      }
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+    if (limitToSpanId) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
     }
   }
 
