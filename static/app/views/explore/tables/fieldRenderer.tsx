@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -12,7 +12,8 @@ import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRenderers';
+import {nullableValue} from 'sentry/utils/discover/fieldRenderers';
+import {BaseFieldRenderer} from 'sentry/utils/discover/fieldRenderers/baseFieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -35,6 +36,7 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface FieldProps {
   data: EventData;
@@ -101,7 +103,6 @@ function BaseExploreFieldRenderer({
 }: BaseFieldProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
@@ -121,22 +122,14 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
-
-  let rendered = renderer(data, {
-    location,
-    organization,
-    theme,
-    unit,
-  });
+  let target: LocationDescriptor | undefined;
+  let rendered: React.ReactNode | undefined;
 
   if (field === 'timestamp') {
     const date = new Date(data.timestamp);
     rendered = <StyledTimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />;
-  }
-
-  if (field === 'trace') {
-    const target = getTraceDetailsUrl({
+  } else if (field === 'trace') {
+    target = getTraceDetailsUrl({
       traceSlug: data.trace,
       timestamp: data.timestamp,
       organization,
@@ -146,11 +139,9 @@ function BaseExploreFieldRenderer({
     });
 
     rendered = <Link to={target}>{rendered}</Link>;
-  }
-
-  if (['id', 'span_id', 'transaction.id'].includes(field)) {
+  } else if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
-    const target = generateLinkToEventInTraceView({
+    target = generateLinkToEventInTraceView({
       traceSlug: data.trace,
       timestamp: data.timestamp,
       targetId: data['transaction.span_id'],
@@ -161,95 +152,97 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    rendered = <Link to={target}>{rendered}</Link>;
-  }
-
-  if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
+    rendered = <Link to={target}>{formatId(field, data)}</Link>;
+  } else if (field === 'profile.id') {
+    target = generateProfileFlamechartRouteWithQuery({
       organization,
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
-    rendered = <Link to={target}>{rendered}</Link>;
+    rendered = <Link to={target}>{formatId(field, data)}</Link>;
+  } else if (field === 'span.description') {
+    const project = projectsMap[data.project];
+    target = project
+      ? makeProjectsPathname({
+          path: `/${project.slug}/`,
+          organization,
+        }) + (project.id ? `?project=${project.id}` : '')
+      : undefined;
+    rendered = spanDescriptionRenderFunc(data, project);
+  }
+
+  if (rendered) {
+    return (
+      <CellAction
+        column={column}
+        dataRow={data as TableDataRow}
+        handleCellAction={(actions, value) => {
+          updateQuery(query, actions, column, value);
+          setUserQuery(query.formatString());
+        }}
+        allowActions={ALLOWED_CELL_ACTIONS}
+        to={target}
+      >
+        {rendered}
+      </CellAction>
+    );
   }
 
   return (
-    <CellAction
+    <BaseFieldRenderer
       column={column}
-      dataRow={data as TableDataRow}
-      handleCellAction={(actions, value) => {
+      data={data as TableDataRow}
+      meta={meta}
+      unit={unit}
+      allowedActions={ALLOWED_CELL_ACTIONS}
+      onSelectAction={(actions, value) => {
         updateQuery(query, actions, column, value);
         setUserQuery(query.formatString());
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
-    >
-      {rendered}
-    </CellAction>
+    />
   );
 }
 
-function getExploreFieldRenderer(
-  field: string,
-  meta: MetaType,
-  projects: Record<string, Project>
-): ReturnType<typeof getFieldRenderer> {
-  if (field === 'id' || field === 'span_id') {
-    return eventIdRenderFunc(field);
+function formatId(field: string, data: EventData) {
+  const id: string | unknown = data?.[field];
+  if (typeof id !== 'string') {
+    return null;
   }
-  if (field === 'span.description') {
-    return spanDescriptionRenderFunc(projects);
-  }
-  return getFieldRenderer(field, meta, false);
+
+  return <Container>{getShortEventId(id)}</Container>;
 }
 
-function eventIdRenderFunc(field: string) {
-  function renderer(data: EventData) {
-    const spanId: string | unknown = data?.[field];
-    if (typeof spanId !== 'string') {
-      return null;
-    }
+function spanDescriptionRenderFunc(data: EventData, project?: Project) {
+  const value = data['span.description'];
 
-    return <Container>{getShortEventId(spanId)}</Container>;
-  }
-  return renderer;
-}
-
-function spanDescriptionRenderFunc(projects: Record<string, Project>) {
-  function renderer(data: EventData) {
-    const project = projects[data.project];
-
-    const value = data['span.description'];
-
-    return (
-      <span>
-        <Tooltip
-          title={value}
-          containerDisplayMode="block"
-          showOnlyOnOverflow
-          maxWidth={400}
-        >
-          <Description>
-            {project && (
-              <ProjectBadge
-                project={project ? project : {slug: data.project}}
-                avatarSize={16}
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                hideName
-              />
+  return (
+    <span>
+      <Tooltip
+        title={value}
+        containerDisplayMode="block"
+        showOnlyOnOverflow
+        maxWidth={400}
+      >
+        <Description>
+          {project && (
+            <ProjectBadge
+              project={project ? project : {slug: data.project}}
+              avatarSize={16}
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              hideName
+            />
+          )}
+          <WrappingText>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
             )}
-            <WrappingText>
-              {isUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </WrappingText>
-          </Description>
-        </Tooltip>
-      </span>
-    );
-  }
-  return renderer;
+          </WrappingText>
+        </Description>
+      </Tooltip>
+    </span>
+  );
 }
 
 const StyledTimeSince = styled(TimeSince)`

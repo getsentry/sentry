@@ -103,7 +103,9 @@ export type RenderFunctionBaggage = {
    */
   disableLazyLoad?: boolean;
   eventView?: EventView;
+  // TODO: refactor and remove projectSlug, figure out if projects can be changed
   projectSlug?: string;
+  projects?: Project[];
   unit?: string;
 };
 
@@ -144,7 +146,7 @@ type FieldFormatters = {
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};
 `;
-const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+export const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
   <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>
 );
@@ -156,7 +158,7 @@ const missingUserMisery = tct(
     ),
   }
 );
-const userAgentLocking = t(
+export const userAgentLocking = t(
   'This operating system does not provide detailed version information in the User-Agent HTTP header. The exact operating system version is unknown.'
 );
 
@@ -395,6 +397,8 @@ const RightAlignedContainer = styled('span')`
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
+ *
+ * @deprecated add new SPECIAL_FIELDS in specialFieldRenderers instead
  */
 const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
@@ -967,7 +971,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
  * Returns a logo icon component for operating system (OS) and browser related fields
  * @param value OS or browser string. E.g., 'Safari', 'Mac OS X'
  */
-const getContextIcon = (value: string) => {
+export const getContextIcon = (value: string) => {
   const valueArray = value.split(' ');
   const formattedValue = valueArray.join('-').toLocaleLowerCase();
 
@@ -980,7 +984,7 @@ const getContextIcon = (value: string) => {
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
  * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
-const dropVersion = (value: string) => {
+export const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
   if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
@@ -1293,6 +1297,8 @@ const StyledTooltip = styled(Tooltip)`
  * @param {object} metadata mapping.
  * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
+ *
+ * @deprecated use `BaseFieldRenderer` or `getFieldRendererV2` instead
  */
 export function getFieldRenderer(
   field: string,

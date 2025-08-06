@@ -1,5 +1,5 @@
-import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -18,9 +18,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanFields} from 'sentry/views/insights/types';
 
 import type {TableColumn} from './types';
 
@@ -191,7 +189,7 @@ type CellActionsOpts = {
   /**
    * Any parsed out internal links that should be added to the menu as an option
    */
-  to?: string;
+  to?: LocationDescriptor;
 };
 
 function makeCellActions({
@@ -241,7 +239,7 @@ function makeCellActions({
   }
 
   if (to) {
-    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name, to));
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name));
   }
 
   if (isUrl(value)) {
@@ -304,7 +302,7 @@ function makeCellActions({
  * Provides the correct text for the dropdown menu based on the field.
  * @param field column field name
  */
-function getCellActionText(field: string, to?: string): string {
+function getCellActionText(field: string): string {
   switch (field) {
     case FieldKey.ID:
     case FieldKey.TRACE:
@@ -319,13 +317,6 @@ function getCellActionText(field: string, to?: string): string {
       return t('Open issue');
     case FieldKey.REPLAY_ID:
       return t('Open replay');
-    case SpanFields.SPAN_DESCRIPTION: {
-      // Some span description renderers have a project icon link instead
-      if (to?.includes('/projects/')) {
-        return t('Open project');
-      }
-      return t('Open summary');
-    }
     default:
       break;
   }
@@ -341,7 +332,7 @@ export enum ActionTriggerType {
   BOLD_HOVER = 'bold_hover',
 }
 
-type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
+type Props = React.PropsWithoutRef<CellActionsOpts> & {
   triggerType?: ActionTriggerType;
 };
 
@@ -351,9 +342,7 @@ function CellAction({
   ...props
 }: Props) {
   const organization = useOrganization();
-  const {children, column, dataRow} = props;
-  const childRef = useRef<HTMLDivElement>(null);
-  const [target, setTarget] = useState<string>();
+  const {children, column} = props;
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   let filteredActions = allowActions;
@@ -365,22 +354,9 @@ function CellAction({
     ];
   }
 
-  // Extract any internal links to add them to the dropdown menu
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const linkElements = childRef.current?.getElementsByTagName('a');
-
-      if (linkElements?.[0]) {
-        const href = linkElements[0].href;
-        if (href !== dataRow[column.key]) setTarget(stripURLOrigin(href));
-      }
-    });
-  }, [column.key, dataRow]);
-
   const cellActions = makeCellActions({
     ...props,
     allowActions: filteredActions,
-    to: target,
   });
   const align = fieldAlignment(column.key as string, column.type);
 
@@ -421,7 +397,7 @@ function CellAction({
                   }
                 }}
               >
-                <div ref={childRef}> {children}</div>
+                {children}
               </ActionMenuTriggerV2>
             )}
             minMenuWidth={0}
