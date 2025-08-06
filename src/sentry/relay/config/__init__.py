@@ -1142,11 +1142,32 @@ def _get_project_config(
     if features.has("organizations:log-project-config", project.organization):
         try:
             logger.info(
-                "Logging project config for project %s in org %s.",
+                "Logging sampling feature flags for project %s in org %s.",
                 project.id,
                 project.organization.id,
                 extra={
-                    "project_config": config,
+                    "project_id": str(project.id),
+                    "org_id": str(project.organization.id),
+                    "dynamic_sampling_feature_flag": features.has(
+                        "organizations:dynamic-sampling", project.organization
+                    ),
+                    "dynamic_sampling_custom_feature_flag": features.has(
+                        "organizations:dynamic-sampling-custom", project.organization
+                    ),
+                    "dynamic_sampling_mode": project.organization.get_option(
+                        "sentry:dynamic_sampling_mode", None
+                    ),
+                    "dynamic_sampling_org_target_rate": project.organization.get_option(
+                        "sentry:target_sample_rate", None
+                    ),
+                },
+            )
+            logger.info(
+                "Logging project sampling config for project %s in org %s.",
+                project.id,
+                project.organization.id,
+                extra={
+                    "project_sampling_config": config["sampling"],
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
                     "dynamic_sampling_feature_flag": features.has(
