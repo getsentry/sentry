@@ -54,7 +54,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.status === 'error' ||
     props.tree.type === 'error';
 
-  if (isLoading || isError) {
+  if (isLoading || isError || props.tree.type === 'empty') {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 

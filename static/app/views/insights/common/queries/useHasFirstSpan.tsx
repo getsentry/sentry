@@ -27,7 +27,6 @@ const modulePropertyMap: Record<
   [ModuleName.MCP]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
-  [ModuleName.AI]: 'hasInsightsLlmMonitoring',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
   [ModuleName.MOBILE_VITALS]: 'hasInsightsScreenLoad',
 };
