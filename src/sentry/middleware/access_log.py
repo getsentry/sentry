@@ -57,7 +57,7 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
     rate_limit_type = "DNE"
     if rate_limit_metadata:
         rate_limit_type = str(getattr(rate_limit_metadata, "rate_limit_type", "DNE"))
-    elif snuba_rate_limit_metadata:
+    if snuba_rate_limit_metadata:
         rate_limit_type = "RateLimitType.SNUBA"
 
     rate_limit_stats = {
