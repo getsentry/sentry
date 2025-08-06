@@ -23,6 +23,7 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -31,6 +32,7 @@ from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -211,6 +213,61 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert [d["name"] for d in response2.data] == [
             detector_2.name,
             detector.name,
+        ]
+
+    def test_sort_by_latest_group(self) -> None:
+        detector_1 = self.create_detector(
+            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+        )
+        detector_3 = self.create_detector(
+            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+        )
+        detector_4 = self.create_detector(
+            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+        )
+
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        group_3 = self.create_group(project=self.project)
+
+        # detector_1 has the oldest group
+        detector_group_1 = DetectorGroup.objects.create(detector=detector_1, group=group_1)
+        detector_group_1.date_added = before_now(hours=3)
+        detector_group_1.save()
+
+        # detector_2 has the newest grbefore_now
+        detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
+        detector_group_2.date_added = before_now(hours=1)  # Most recent
+        detector_group_2.save()
+
+        # detector_3 has one in the middle
+        detector_group_3 = DetectorGroup.objects.create(detector=detector_3, group=group_3)
+        detector_group_3.date_added = before_now(hours=2)
+        detector_group_3.save()
+
+        # Test descending sort (newest groups first)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-latestGroup"}
+        )
+        assert [d["name"] for d in response.data] == [
+            detector_2.name,
+            detector_3.name,
+            detector_1.name,
+            detector_4.name,  # No groups, should be last
+        ]
+
+        # Test ascending sort (oldest groups first)
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
+        )
+        assert [d["name"] for d in response2.data] == [
+            detector_4.name,  # No groups, should be first
+            detector_1.name,
+            detector_3.name,
+            detector_2.name,
         ]
 
     def test_query_by_name(self) -> None:
@@ -500,6 +557,56 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": self.project.id, "query": "assignee:nonexistent@example.com"},
         )
         assert len(response.data) == 0
+
+    def test_query_by_project_owner_user(self) -> None:
+        new_project = self.create_project(organization=self.organization)
+        detector = self.create_detector(
+            project_id=new_project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        owner = self.create_user()
+        self.create_member(
+            user=owner,
+            role="owner",
+            organization=self.organization,
+        )
+        self.login_as(user=owner)
+
+        # Verify that the owner can see detectors for projects that they are not a member of
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": new_project.id},
+            status_code=200,
+        )
+        assert {d["name"] for d in response.data} == {detector.name}
+
+    def test_query_by_id_owner_user(self) -> None:
+        self.detector = self.create_detector(
+            project_id=self.project.id,
+            name="Detector 1",
+            type=MetricIssue.slug,
+        )
+        self.detector_2 = self.create_detector(
+            project_id=self.project.id,
+            name="Detector 2",
+            type=MetricIssue.slug,
+        )
+
+        owner = self.create_user()
+        self.create_member(
+            user=owner,
+            role="owner",
+            organization=self.organization,
+        )
+        self.login_as(user=owner)
+
+        # Verify that the owner can see detectors for projects that they are not a member of
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_2.id))],
+            status_code=200,
+        )
+        assert {d["name"] for d in response.data} == {self.detector.name, self.detector_2.name}
 
 
 @region_silo_test
@@ -839,6 +946,280 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
+@with_feature("organizations:incidents")
+class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug, enabled=True
+        )
+        self.detector_two = self.create_detector(
+            project_id=self.project.id, name="Another Detector", type=MetricIssue.slug, enabled=True
+        )
+        self.detector_three = self.create_detector(
+            project_id=self.project.id, name="Third Detector", type=MetricIssue.slug, enabled=True
+        )
+
+        self.user_detector = self.create_detector(
+            project=self.project,
+            name="User Created Detector",
+            type=MetricIssue.slug,
+            enabled=True,
+            created_by_id=self.user.id,
+        )
+
+        self.member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=self.member_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        self.org_manager_user = self.create_user()
+        self.create_member(
+            user=self.org_manager_user,
+            role="manager",
+            organization=self.organization,
+        )
+
+    def test_update_detectors_by_ids_success(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+            enabled=False,
+            status_code=200,
+        )
+
+        # Verify detectors were updated
+        self.detector.refresh_from_db()
+        self.detector_two.refresh_from_db()
+        assert self.detector.enabled is False
+        assert self.detector_two.enabled is False
+
+        # Verify third detector was not affected
+        self.detector_three.refresh_from_db()
+        assert self.detector_three.enabled is True
+
+        # Verify response data
+        assert len(response.data) == 2
+        detector_ids = {d["id"] for d in response.data}
+        assert detector_ids == {str(self.detector.id), str(self.detector_two.id)}
+        assert all(d["enabled"] is False for d in response.data)
+
+    def test_update_detectors_by_query_success(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "test", "project": self.project.id},
+            enabled=False,
+            status_code=200,
+        )
+
+        # Verify detector matching query was updated
+        self.detector.refresh_from_db()
+        assert self.detector.enabled is False
+
+        # Verify other detectors were not affected
+        self.detector_two.refresh_from_db()
+        self.detector_three.refresh_from_db()
+        assert self.detector_two.enabled is True
+        assert self.detector_three.enabled is True
+
+        # Verify response
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.detector.id)
+        assert response.data[0]["enabled"] is False
+
+    def test_update_detectors_enable_success(self) -> None:
+        self.detector.update(enabled=False)
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector_three.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        # Verify detector was enabled
+        self.detector_three.refresh_from_db()
+        assert self.detector_three.enabled is True
+
+        # Verify response
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.detector_three.id)
+        assert response.data[0]["enabled"] is True
+
+    def test_update_detectors_no_parameters_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            enabled=False,
+            status_code=400,
+        )
+
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
+            response.data["detail"]
+        )
+
+    def test_update_detectors_missing_enabled_field(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            status_code=400,
+        )
+
+        assert "This field is required." in str(response.data["enabled"])
+
+    def test_update_detectors_invalid_id_format(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-a-number"},
+            enabled=False,
+            status_code=400,
+        )
+
+        assert "Invalid ID format" in str(response.data["id"])
+
+    def test_update_detectors_no_matching_detectors(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+            enabled=False,
+            status_code=200,
+        )
+
+        assert response.data["detail"] == "No detectors found."
+
+    def test_update_detectors_permission_denied_for_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.login_as(user=self.member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=False,
+            status_code=403,
+        )
+
+        # Verify detector was not modified
+        self.detector.refresh_from_db()
+        assert self.detector.enabled is True
+
+    def test_update_detectors_permission_allowed_for_team_admin(self) -> None:
+        self.login_as(user=self.team_admin_user)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=False,
+            status_code=200,
+        )
+
+        # Verify detector was updated
+        self.detector.refresh_from_db()
+        assert self.detector.enabled is False
+
+    def test_update_detectors_member_permission_allowed_for_user_created_detector(self) -> None:
+        self.login_as(user=self.member_user)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_detector.id)},
+            enabled=False,
+            status_code=200,
+        )
+
+        # Verify detector was updated
+        self.user_detector.refresh_from_db()
+        assert self.user_detector.enabled is False
+
+    def test_update_detectors_member_permission_denied_for_non_user_created_detector(self) -> None:
+        self.login_as(user=self.member_user)
+
+        # Try to update a detector not created by a user
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=False,
+            status_code=403,
+        )
+
+        # Verify detector was not modified
+        self.detector.refresh_from_db()
+        assert self.detector.enabled is True
+
+    def test_update_detectors_org_manager_permission(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+            enabled=False,
+            status_code=200,
+        )
+
+        # Verify detectors were updated
+        self.detector.refresh_from_db()
+        self.detector_two.refresh_from_db()
+        assert self.detector.enabled is False
+        assert self.detector_two.enabled is False
+
+    def test_update_owner_query_by_project(self) -> None:
+        new_project = self.create_project(organization=self.organization)
+        detector = self.create_detector(
+            project_id=new_project.id, name="Test Detector", type=MetricIssue.slug, enabled=True
+        )
+
+        owner = self.create_user()
+        self.create_member(
+            user=owner,
+            role="owner",
+            organization=self.organization,
+        )
+        self.login_as(user=owner)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": new_project.id},
+            enabled=False,
+            status_code=200,
+        )
+
+        detector.refresh_from_db()
+        assert detector.enabled is False
+
+    def test_update_detectors_mixed_permissions(self) -> None:
+        self.login_as(user=self.member_user)
+
+        # Try to update both detectors - should fail because of mixed permissions
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.user_detector.id)), ("id", str(self.detector.id))],
+            enabled=False,
+            status_code=403,
+        )
+
+        # Verify neither detector was modified
+        self.user_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.user_detector.enabled is True
+        assert self.detector.enabled is True
+
+
+@region_silo_test
 class ConvertAssigneeValuesTest(APITestCase):
     """Test the convert_assignee_values function"""
 
@@ -1033,11 +1414,12 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_no_matching_detectors(self) -> None:
         # Test deleting detectors with non-existent ID
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             qs_params={"id": "999999"},
-            status_code=204,
+            status_code=200,
         )
+        assert response.data["detail"] == "No detectors found."
 
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
@@ -1046,8 +1428,9 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         self.get_success_response(
             self.organization.slug,
             qs_params={"query": "nonexistent-detector-name", "project": self.project.id},
-            status_code=204,
+            status_code=200,
         )
+        assert response.data["detail"] == "No detectors found."
 
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])

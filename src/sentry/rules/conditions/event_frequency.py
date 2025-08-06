@@ -349,19 +349,36 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
     ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
-            model=model,
-            keys=keys,
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-            jitter_value=group_id,
-            tenant_ids={"organization_id": organization_id},
-            referrer_suffix=referrer_suffix,
-            group_on_time=group_on_time,
-        )
+        kwargs = {
+            "model": model,
+            "keys": keys,
+            "start": start,
+            "end": end,
+            "environment_id": environment_id,
+            "use_cache": True,
+            "jitter_value": group_id,
+            "tenant_ids": {"organization_id": organization_id},
+            "referrer_suffix": referrer_suffix,
+            "group_on_time": group_on_time,
+        }
+
+        # Try to pass project_ids if provided, but fall back gracefully if not supported
+        result: Mapping[int, int]
+        if project_ids is not None:
+            try:
+                kwargs["project_ids"] = project_ids
+                result = tsdb_function(**kwargs)
+            except TypeError as e:
+                if "project_ids" in str(e):
+                    # Function doesn't support project_ids, try without it
+                    kwargs.pop("project_ids", None)
+                    result = tsdb_function(**kwargs)
+                else:
+                    raise
+        else:
+            result = tsdb_function(**kwargs)
         return result
 
     def get_chunked_result(
@@ -375,6 +392,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -390,6 +408,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
                 group_on_time=group_on_time,
+                project_ids=project_ids,
             )
             batch_totals.update(result)
         return batch_totals
@@ -448,6 +467,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             referrer_suffix="alert_event_frequency",
             group_on_time=False,
+            project_ids=[event.group.project_id],
         )
         return sums[event.group_id]
 
@@ -467,6 +487,8 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
         if error_issue_ids and organization_id:
+            # Extract project_ids for error groups
+            error_project_ids = [g["project_id"] for g in groups if g["id"] in error_issue_ids]
             error_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
                 model=get_issue_tsdb_group_model(GroupCategory.ERROR),
@@ -477,6 +499,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
                 group_on_time=group_on_time,
+                project_ids=error_project_ids,
             )
             batch_sums.update(error_sums)
 
@@ -726,6 +749,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -754,6 +778,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         environment_id: int,
         referrer_suffix: str,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -769,6 +794,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
+                project_ids=project_ids,
                 conditions=conditions,
                 group_on_time=group_on_time,
             )
@@ -939,6 +965,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 referrer_suffix="alert_event_frequency_percent",
                 group_on_time=False,
+                project_ids=[event.group.project_id],
             )[event.group_id]
 
             if issue_count > avg_sessions_in_interval:
@@ -986,6 +1013,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         if not (error_issue_ids and organization_id):
             return {group["id"]: 0 for group in groups}
 
+        error_project_ids = [g["project_id"] for g in groups if g["id"] in error_issue_ids]
         error_issue_count = self.get_chunked_result(
             tsdb_function=self.tsdb.get_sums,
             model=get_issue_tsdb_group_model(GroupCategory.ERROR),
@@ -996,6 +1024,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             referrer_suffix="batch_alert_event_frequency_percent",
             group_on_time=group_on_time,
+            project_ids=error_project_ids,
         )
 
         batch_percents: dict[int, int | float] = {}

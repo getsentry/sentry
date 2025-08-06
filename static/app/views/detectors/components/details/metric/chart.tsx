@@ -29,58 +29,28 @@ interface MetricDetectorDetailsChartProps {
 }
 const CHART_HEIGHT = 180;
 
-interface MetricDetectorChartProps {
-  /**
-   * The aggregate function to use (e.g., "avg(span.duration)")
-   */
-  aggregate: string;
-  /**
-   * Comparison delta in seconds for % change alerts
-   */
-  comparisonDelta: number | undefined;
-  /**
-   * The condition group containing threshold conditions
-   */
-  conditions: Array<Omit<DataCondition, 'id'>>;
-  /**
-   * The dataset to use for the chart
-   */
-  dataset: DetectorDataset;
-  detectionType: MetricDetectorConfig['detectionType'];
-  /**
-   * The environment filter
-   */
-  environment: string | undefined;
-  /**
-   * The time interval in seconds
-   */
-  interval: number;
-  /**
-   * The project ID
-   */
-  projectId: string;
-  /**
-   * The query filter string
-   */
-  query: string;
-  /**
-   * The time period for the chart data (optional, defaults to 7d)
-   */
-  statsPeriod: TimePeriod;
-}
-
-function MetricDetectorChart({
-  dataset,
-  aggregate,
-  interval,
-  query,
-  environment,
-  projectId,
-  conditions,
-  detectionType,
+export function MetricDetectorDetailsChart({
+  detector,
   statsPeriod,
-  comparisonDelta,
-}: MetricDetectorChartProps) {
+}: MetricDetectorDetailsChartProps) {
+  const dataSource = detector.dataSources[0];
+  const snubaQuery = dataSource.queryObj?.snubaQuery;
+
+  if (!snubaQuery) {
+    // Unlikely, helps narrow types
+    return null;
+  }
+
+  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const aggregate = snubaQuery.aggregate;
+  const query = snubaQuery.query;
+  const environment = snubaQuery.environment;
+  const interval = snubaQuery.timeWindow;
+  const conditions = detector.conditionGroup?.conditions || [];
+  const detectionType = detector.config.detectionType;
+  const comparisonDelta =
+    detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
+
   const {series, comparisonSeries, isLoading, isError} = useMetricDetectorSeries({
     dataset,
     aggregate,
@@ -195,58 +165,20 @@ function MetricDetectorChart({
   }
 
   return (
-    <AreaChart
-      isGroupedByDate
-      showTimeInTooltip
-      height={CHART_HEIGHT}
-      stacked={false}
-      series={series}
-      additionalSeries={additionalSeries}
-      yAxes={yAxes.length > 1 ? yAxes : undefined}
-      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
-      grid={grid}
-      xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-      ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
-    />
-  );
-}
-
-export function MetricDetectorDetailsChart({
-  detector,
-  statsPeriod,
-}: MetricDetectorDetailsChartProps) {
-  const dataSource = detector.dataSources[0];
-  const snubaQuery = dataSource.queryObj?.snubaQuery;
-
-  if (!snubaQuery) {
-    // Unlikely, helps narrow types
-    return null;
-  }
-
-  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const aggregate = snubaQuery.aggregate;
-  const query = snubaQuery.query;
-  const environment = snubaQuery.environment;
-  const interval = snubaQuery.timeWindow;
-  const conditions = detector.conditionGroup?.conditions || [];
-  const detectionType = detector.config.detectionType;
-  const comparisonDelta =
-    detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
-
-  return (
     <ChartContainer>
       <ChartContainerBody>
-        <MetricDetectorChart
-          dataset={dataset}
-          aggregate={aggregate}
-          interval={interval}
-          query={query}
-          environment={environment}
-          projectId={detector.projectId}
-          conditions={conditions}
-          detectionType={detectionType}
-          statsPeriod={statsPeriod}
-          comparisonDelta={comparisonDelta}
+        <AreaChart
+          isGroupedByDate
+          showTimeInTooltip
+          height={CHART_HEIGHT}
+          stacked={false}
+          series={series}
+          additionalSeries={additionalSeries}
+          yAxes={yAxes.length > 1 ? yAxes : undefined}
+          yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+          grid={grid}
+          xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
+          ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
         />
       </ChartContainerBody>
     </ChartContainer>
