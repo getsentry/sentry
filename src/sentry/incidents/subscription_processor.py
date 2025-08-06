@@ -50,6 +50,7 @@ from sentry.incidents.utils.types import (
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.utils import (
@@ -65,6 +66,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.data_packet import process_data_packet
+from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorGroupKey
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -294,6 +296,140 @@ class SubscriptionProcessor:
 
         return fired_incident_triggers
 
+    def get_comparison_delta(self, detector: Detector | None) -> int | None:
+        comparison_delta = None
+
+        if detector:
+            comparison_delta = detector.config.get("comparison_delta")
+        else:
+            comparison_delta = self.alert_rule.comparison_delta
+
+        return comparison_delta
+
+    def get_detector(self, has_metric_alert_processing: bool) -> Detector | None:
+        detector = None
+        if has_metric_alert_processing:
+            try:
+                detector = Detector.objects.get(
+                    data_sources__source_id=str(self.subscription.id),
+                    data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
+            except Detector.DoesNotExist:
+                logger.exception(
+                    "Detector not found", extra={"subscription_id": self.subscription.id}
+                )
+        return detector
+
+    def handle_trigger_alerts(
+        self,
+        trigger: AlertRuleTrigger,
+        aggregation_value: float,
+        fired_incident_triggers: list[IncidentTrigger],
+        metrics_incremented: bool,
+    ) -> tuple[list[IncidentTrigger], bool]:
+        # OVER/UNDER value trigger
+        alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
+            AlertRuleThresholdType(self.alert_rule.threshold_type)
+        ]
+        if alert_operator(
+            aggregation_value, trigger.alert_threshold
+        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+            # If the value has breached our threshold (above/below)
+            # And the trigger is not yet active
+            metrics.incr(
+                "incidents.alert_rules.threshold.alert",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            if (
+                features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                    self.subscription.project.organization,
+                )
+                and not metrics_incremented
+            ):
+                metrics.incr("dual_processing.alert_rules.fire")
+                metrics_incremented = True
+            # triggering a threshold will create an incident and set the status to active
+            incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+            if incident_trigger is not None:
+                fired_incident_triggers.append(incident_trigger)
+        else:
+            self.trigger_alert_counts[trigger.id] = 0
+
+        if (
+            resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
+            and self.active_incident
+            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+        ):
+            metrics.incr(
+                "incidents.alert_rules.threshold.resolve",
+                tags={"detection_type": self.alert_rule.detection_type},
+            )
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                self.subscription.project.organization,
+            ):
+                metrics.incr("dual_processing.alert_rules.resolve")
+            incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+
+            if incident_trigger is not None:
+                fired_incident_triggers.append(incident_trigger)
+        else:
+            self.trigger_resolve_counts[trigger.id] = 0
+
+        return fired_incident_triggers, metrics_incremented
+
+    def process_results_workflow_engine(
+        self,
+        subscription_update: QuerySubscriptionUpdate,
+        aggregation_value: float,
+        organization: Organization,
+    ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+        if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            anomaly_detection_packet = AnomalyDetectionUpdate(
+                entity=subscription_update.get("entity", ""),
+                subscription_id=subscription_update["subscription_id"],
+                values={
+                    "value": aggregation_value,
+                    "source_id": str(self.subscription.id),
+                    "subscription_id": subscription_update["subscription_id"],
+                    "timestamp": self.last_update,
+                },
+                timestamp=self.last_update,
+            )
+            anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
+                source_id=str(self.subscription.id), packet=anomaly_detection_packet
+            )
+            results = process_data_packet(
+                anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
+        else:
+            metric_packet = ProcessedSubscriptionUpdate(
+                entity=subscription_update.get("entity", ""),
+                subscription_id=subscription_update["subscription_id"],
+                values={"value": aggregation_value},
+                timestamp=self.last_update,
+            )
+            metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
+                source_id=str(self.subscription.id), packet=metric_packet
+            )
+            results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            organization,
+        ):
+            logger.info(
+                "dual processing results for alert rule",
+                extra={
+                    "results": results,
+                    "num_results": len(results),
+                    "value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
+        return results
+
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
@@ -369,70 +505,15 @@ class SubscriptionProcessor:
                 tags={"dual_processing": has_metric_alert_processing},
             ),
         ):
-            if has_metric_alert_processing:
-                try:
-                    detector = Detector.objects.get(
-                        data_sources__source_id=str(self.subscription.id),
-                        data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-                    )
-                    comparison_delta = detector.config.get("comparison_delta")
-                except Detector.DoesNotExist:
-                    logger.exception(
-                        "Detector not found", extra={"subscription_id": self.subscription.id}
-                    )
-
-            else:
-                comparison_delta = self.alert_rule.comparison_delta
-
+            detector = self.get_detector(has_metric_alert_processing)
+            comparison_delta = self.get_comparison_delta(detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is not None:
                 if has_metric_alert_processing:
-                    if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                        anomaly_detection_packet = AnomalyDetectionUpdate(
-                            entity=subscription_update.get("entity", ""),
-                            subscription_id=subscription_update["subscription_id"],
-                            values={
-                                "value": aggregation_value,
-                                "source_id": str(self.subscription.id),
-                                "subscription_id": subscription_update["subscription_id"],
-                                "timestamp": self.last_update,
-                            },
-                            timestamp=self.last_update,
-                        )
-                        anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
-                            source_id=str(self.subscription.id), packet=anomaly_detection_packet
-                        )
-                        results = process_data_packet(
-                            anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-                        )
-                    else:
-                        metric_packet = ProcessedSubscriptionUpdate(
-                            entity=subscription_update.get("entity", ""),
-                            subscription_id=subscription_update["subscription_id"],
-                            values={"value": aggregation_value},
-                            timestamp=self.last_update,
-                        )
-                        metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
-                            source_id=str(self.subscription.id), packet=metric_packet
-                        )
-                        results = process_data_packet(
-                            metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-                        )
-
-                    if features.has(
-                        "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                        organization,
-                    ):
-                        logger.info(
-                            "dual processing results for alert rule",
-                            extra={
-                                "results": results,
-                                "num_results": len(results),
-                                "value": aggregation_value,
-                                "rule_id": self.alert_rule.id,
-                            },
-                        )
+                    results = self.process_results_workflow_engine(
+                        subscription_update, aggregation_value, organization
+                    )
 
             if has_metric_issue_single_processing:
                 # don't go through the legacy system
@@ -531,61 +612,9 @@ class SubscriptionProcessor:
                             )
                             return
 
-                        # OVER/UNDER value trigger
-                        alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
-                            AlertRuleThresholdType(self.alert_rule.threshold_type)
-                        ]
-                        if alert_operator(
-                            aggregation_value, trigger.alert_threshold
-                        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                            # If the value has breached our threshold (above/below)
-                            # And the trigger is not yet active
-                            metrics.incr(
-                                "incidents.alert_rules.threshold.alert",
-                                tags={"detection_type": self.alert_rule.detection_type},
-                            )
-                            if (
-                                features.has(
-                                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                                    self.subscription.project.organization,
-                                )
-                                and not metrics_incremented
-                            ):
-                                metrics.incr("dual_processing.alert_rules.fire")
-                                metrics_incremented = True
-                            # triggering a threshold will create an incident and set the status to active
-                            incident_trigger = self.trigger_alert_threshold(
-                                trigger, aggregation_value
-                            )
-                            if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
-                        else:
-                            self.trigger_alert_counts[trigger.id] = 0
-
-                        if (
-                            resolve_operator(
-                                aggregation_value, self.calculate_resolve_threshold(trigger)
-                            )
-                            and self.active_incident
-                            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                        ):
-                            metrics.incr(
-                                "incidents.alert_rules.threshold.resolve",
-                                tags={"detection_type": self.alert_rule.detection_type},
-                            )
-                            if features.has(
-                                "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                                self.subscription.project.organization,
-                            ):
-                                metrics.incr("dual_processing.alert_rules.resolve")
-                            incident_trigger = self.trigger_resolve_threshold(
-                                trigger, aggregation_value
-                            )
-
-                            if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
-                        else:
-                            self.trigger_resolve_counts[trigger.id] = 0
+                        fired_incident_triggers, metrics_incremented = self.handle_trigger_alerts(
+                            trigger, aggregation_value, fired_incident_triggers, metrics_incremented
+                        )
 
                 if fired_incident_triggers:
                     # For all the newly created incidents
