@@ -1,11 +1,16 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrComments from 'sentry-images/features/prevent-pr-comments.svg';
 
+import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
-import {t} from 'sentry/locale';
+import {Text} from 'sentry/components/core/text';
+import {Heading} from 'sentry/components/core/text/heading';
+import {t, tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface OnboardingStepProps {
   description: React.ReactNode;
@@ -14,210 +19,206 @@ interface OnboardingStepProps {
 }
 
 function OnboardingStep({step, title, description}: OnboardingStepProps) {
+  const theme = useTheme();
   return (
-    <StepContainer>
+    <Flex align="start" gap="md" style={{marginTop: theme.space.md}}>
       <StepNumber>{step}</StepNumber>
       <StepContent>
-        <StyledH6>{title}</StyledH6>
-        <StyledP>{description}</StyledP>
+        <Heading as="h2">{title}</Heading>
+        <Text variant="primary" size="md">
+          {description}
+        </Text>
       </StepContent>
-    </StepContainer>
+    </Flex>
   );
 }
 
 export default function PreventAIOnboarding() {
+  const organization = useOrganization();
+  const theme = useTheme();
   return (
     <Fragment>
-      <Container style={{justifyContent: 'space-around'}}>
-        <StyledImg src={preventHero} alt="Prevent AI Hero" />
-        <RightSideContainer>
-          <StyledH3>
-            {t('Ship Code That Breaks Less With Code Reviews And Tests')}
-          </StyledH3>
-          <StyledP>
-            {t('Prevent AI is an AI agent that automates tasks in your PR:')}
-          </StyledP>
-          <StyledUl>
-            <li>
-              {t(
-                'It reviews your pull requests, predicting errors and suggesting code fixes'
-              )}
-            </li>
-            <li>{t('It generates unit tests for untested code in your PR')}</li>
-          </StyledUl>
-        </RightSideContainer>
-      </Container>
-      <Container>
-        <LeftSideContainer>
-          <HeaderContainer>
-            <StyledH4>{t('Setup Prevent AI')}</StyledH4>
+      <SectionWrapper>
+        <Flex
+          direction="row"
+          gap="md"
+          justify="around"
+          border="primary"
+          radius="md"
+          padding="xl 2xl"
+          maxWidth="1000px"
+        >
+          <StyledImg src={preventHero} alt="Prevent AI Hero" />
+          <Flex direction="column" gap="md" maxWidth="500px">
+            <Heading as="h1" style={{maxWidth: '400px', marginTop: theme.space['3xl']}}>
+              {t('Ship Code That Breaks Less With Code Reviews And Tests')}
+            </Heading>
+            <Text variant="primary" size="md">
+              {t('Prevent AI is an AI agent that automates tasks in your PR:')}
+            </Text>
+            <Container as="ul" style={{margin: 0, fontSize: theme.fontSize.sm}}>
+              <Container as="li">
+                {t(
+                  'It reviews your pull requests, predicting errors and suggesting code fixes.'
+                )}
+              </Container>
+              <Container as="li">
+                {t('It generates unit tests for untested code in your PR.')}
+              </Container>
+            </Container>
+          </Flex>
+        </Flex>
+      </SectionWrapper>
+      <SectionWrapper>
+        <Flex
+          direction="row"
+          gap="md"
+          border="primary"
+          radius="md"
+          padding="xl 2xl"
+          maxWidth="1000px"
+        >
+          <Flex direction="column" gap="md" maxWidth="600px">
+            <Flex
+              direction="column"
+              gap="md"
+              style={{borderBottom: `1px solid ${theme.border}`}}
+            >
+              <Heading as="h1" style={{marginTop: theme.space.lg}}>
+                {t('Setup Prevent AI')}
+              </Heading>
 
-            <StyledP>
-              {t(
-                `These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation.`
-              )}
-            </StyledP>
-          </HeaderContainer>
-          <OnboardingStep
-            step={1}
-            title={t(`Enable Generative AI features`)}
-            description={t(
-              'Make sure AI features are enabled in your organization settings.'
-            )}
-          />
-          <OnboardingStep
-            step={2}
-            title={t(`Setup GitHub Integration`)}
-            description={
-              <Fragment>
-                {t('To grant Seer access to your codebase, follow these ')}{' '}
-                <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github">
-                  {t('GitHub integration instructions')}
-                </ExternalLink>
+              <Text variant="primary" size="sm" style={{marginBottom: theme.space.xl}}>
                 {t(
-                  ': 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+                  `These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation.`
                 )}
-              </Fragment>
-            }
-          />
-          <OnboardingStep
-            step={3}
-            title={t(`Setup Seer`)}
-            description={
-              <Fragment>
-                {t('Install the ')}{' '}
-                <ExternalLink href="https://github.com/apps/seer-by-sentry">
-                  {t('Seer by Sentry GitHub App')}
-                </ExternalLink>{' '}
-                {t('within the same GitHub organization.')}
-              </Fragment>
-            }
-          />
+              </Text>
+            </Flex>
+            <OnboardingStep
+              step={1}
+              title={t(`Enable Generative AI features`)}
+              description={tct(
+                'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
+                {
+                  organizationSettingsLink: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/security-and-privacy`}
+                    />
+                  ),
+                }
+              )}
+            />
+            <OnboardingStep
+              step={2}
+              title={t(`Setup GitHub Integration`)}
+              description={tct(
+                'To grant Seer access to your codebase, follow these [link:GitHub integration instructions]: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
+                  ),
+                }
+              )}
+            />
+            <OnboardingStep
+              step={3}
+              title={t(`Setup Seer`)}
+              description={tct(
+                'Prevent AI uses the Sentry Seer agent to power its core functionalities. Install the [link:Seer by Sentry GitHub App] within the same GitHub organization.',
+                {
+                  link: <ExternalLink href="https://github.com/apps/seer-by-sentry" />,
+                }
+              )}
+            />
 
-          <GrayContainer>
-            <BoldP>{t('How to use Prevent AI')}</BoldP>
-            <StyledP>
-              {t('Prevent AI helps you ship better code with three features')}
-            </StyledP>
-            <ul>
-              <li>
-                {t(
-                  'It reviews your code, suggesting broader fixes when you prompt @sentry review'
+            <Flex
+              direction="column"
+              gap="md"
+              padding="xl"
+              background="secondary"
+              radius="md"
+            >
+              <Text variant="primary" size="sm" bold>
+                {t('How to use Prevent AI')}
+              </Text>
+              <Text variant="primary" size="sm">
+                {t('Prevent AI helps you ship better code with three features:')}
+              </Text>
+              <Container
+                as="ul"
+                style={{marginBottom: theme.space.md, fontSize: theme.fontSize.sm}}
+              >
+                <Container as="li">
+                  {tct(
+                    'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry review
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Container>
+                <Container as="li">
+                  {tct(
+                    'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry review
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Container>
+                <Container as="li">
+                  {tct(
+                    'It generates unit tests for your PR when you prompt [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry generate-test
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Container>
+              </Container>
+              <Text variant="primary" size="xs">
+                {tct(
+                  'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+                    ),
+                  }
                 )}
-              </li>
-              <li>
-                {t(
-                  'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
-                )}
-              </li>
-              <li>
-                {t(
-                  'It generates unit tests for your PR when you prompt @sentry generate-test.'
-                )}
-              </li>
-            </ul>
-            <StyledP>
-              {t(
-                'Sentry Error Prediction works better with Sentry Issue Context. Learn more on how to set this up to get the most accurate error prediction we can offer.'
-              )}
-            </StyledP>
-          </GrayContainer>
-        </LeftSideContainer>
-        <StyledImg
-          style={{maxWidth: '40%'}}
-          src={preventPrComments}
-          alt="Prevent PR Comments"
-        />
-      </Container>
+              </Text>
+            </Flex>
+          </Flex>
+          <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+        </Flex>
+      </SectionWrapper>
     </Fragment>
   );
 }
 
-const Container = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+const SectionWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space['2xl']};
-  max-width: 1000px;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
+  & > div {
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
+      flex-direction: column;
+    }
   }
-`;
-
-const LeftSideContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  max-width: 600px;
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  padding-bottom: ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const GrayContainer = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  padding: ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const BoldP = styled('p')`
-  font-weight: bold;
-  margin: 0px;
-`;
-
-const StyledH6 = styled('h6')`
-  margin: 0;
-`;
-
-const StyledH4 = styled('h4')`
-  margin: 0;
-  margin-top: ${p => p.theme.space.xl};
-`;
-
-const StyledH3 = styled('h3')`
-  margin: 0;
-  max-width: 400px;
-  margin-top: ${p => p.theme.space['2xl']};
-`;
-
-const StyledP = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const RightSideContainer = styled('div')`
-  display: flex;
-  max-width: 500px;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
-const StyledUl = styled('ul')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledImg = styled('img')`
   overflow: hidden;
-  max-width: 30%;
-  margin-top: ${p => p.theme.space['2xl']};
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const StepContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
-  margin-top: ${p => p.theme.space.lg};
+  height: 100%;
+  max-width: 40%;
+  align-self: center;
 `;
 
 const StepNumber = styled('div')`
@@ -231,7 +232,7 @@ const StepNumber = styled('div')`
   border-radius: 50%;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const StepContent = styled('div')`
