@@ -582,7 +582,8 @@ class GSBanner extends Component<Props, State> {
     // check for required conditions of triggering a forced trial of any type
     const considerTrigger =
       subscription.canSelfServe && // must be self serve
-      subscription.isFree &&
+      subscription.isFree && // must be on Developer plan
+      !subscription.isTrial && // don't trigger if already on a trial
       hasPerformance(subscription.planDetails) &&
       !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
       !user?.isSuperuser; // never trigger for superusers
