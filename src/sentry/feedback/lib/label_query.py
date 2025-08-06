@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import TypedDict
 
 from snuba_sdk import (
     Column,
@@ -20,20 +19,6 @@ from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
-
-
-class LabelCount(TypedDict):
-    """Result from query_top_ai_labels_by_feedback_count."""
-
-    label: str
-    count: int
-
-
-class FeedbackWithLabels(TypedDict):
-    """Result from query_recent_feedbacks_with_ai_labels."""
-
-    labels: list[str]
-    feedback: str
 
 
 def _get_ai_labels_from_tags(alias: str | None = None):
@@ -95,7 +80,7 @@ def query_top_ai_labels_by_feedback_count(
     start: datetime,
     end: datetime,
     limit: int,
-) -> list[LabelCount]:
+):
     """
     Query the top `limit` AI-generated labels by feedback count.
 
@@ -155,7 +140,7 @@ def query_recent_feedbacks_with_ai_labels(
     start: datetime,
     end: datetime,
     limit: int,
-) -> list[FeedbackWithLabels]:
+):
     """
     Query the most recent `limit` feedbacks, along with their AI labels. Ensures feedbacks have at least one AI label.
 
@@ -262,7 +247,7 @@ def query_label_group_counts(
     start: datetime,
     end: datetime,
     labels_groups: list[list[str]],
-) -> list[int]:
+):
     """
     Query how many feedbacks are in each of the given `labels_groups`.
 
