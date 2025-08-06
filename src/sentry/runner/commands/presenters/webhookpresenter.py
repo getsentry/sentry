@@ -88,9 +88,10 @@ class WebhookPresenter(OptionsPresenter):
             ],
         }
 
-        start_time = float(self.timestamp)  # Ensure timestamp is a valid float
-        latency_seconds = time.time() - start_time
-        json_data["latency_seconds"] = latency_seconds
+        if self.timestamp:
+            start_time = self.timestamp
+            latency_seconds = time.time() - start_time
+            json_data["latency_seconds"] = latency_seconds
 
         self._send_to_webhook(json_data)
 
