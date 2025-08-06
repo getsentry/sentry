@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -44,14 +44,11 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any, Query>;
-
-export function DatabaseSpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage() {
+  const {groupId} = useParams<{groupId: string}>();
   const moduleTitle = useModuleTitle(ModuleName.DB);
   const moduleURL = useModuleURL(ModuleName.DB);
   const location = useLocation<Query>();
-
-  const {groupId} = params;
 
   const filters: SpanQueryFilters = {
     'span.group': groupId,
@@ -68,7 +65,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpans(
       {
-        search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
+        search: MutableSearch.fromQueryObject({'span.group': groupId}),
         limit: 1,
         sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
         fields: [
@@ -268,10 +265,10 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
 `;
 
-function PageWithProviders(props: Props) {
+function PageWithProviders() {
   return (
     <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
-      <DatabaseSpanSummaryPage {...props} />
+      <DatabaseSpanSummaryPage />
     </ModulePageProviders>
   );
 }
