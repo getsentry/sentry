@@ -55,7 +55,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 offset=offset,
                 limit=limit,
                 referrer=referrer,
-                sampling_mode=None,
+                sampling_mode=sampling_mode,
                 resolver=search_resolver
                 or cls.get_resolver(
                     params=params,
@@ -87,7 +87,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
             y_axes=y_axes,
             groupby=[],
             referrer=referrer,
-            sampling_mode=None,
+            sampling_mode=sampling_mode,
         )
 
         """Run the query"""
