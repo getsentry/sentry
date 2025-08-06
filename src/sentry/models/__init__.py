@@ -16,6 +16,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
+from .commitcomparison import *  # NOQA
 from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
