@@ -6,7 +6,6 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
@@ -26,8 +25,7 @@ async function maybeAutoExpandTrace(
     api: Client;
     organization: Organization;
     preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-  },
-  meta: TraceMetaQueryResults
+  }
 ): Promise<TraceTree> {
   const traceNode = tree.root.children[0];
 
@@ -35,9 +33,10 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const spansCount = isEAPTraceNode(traceNode)
-    ? tree.eap_spans_count
-    : (meta.data?.span_count ?? 0);
+  // We no longer collect the spans count for non-EAP traces, since
+  // we no longer use the old spans dataset used by the transaction based /events-trace-meta/ endpoint
+  // only accessible to am1 members.
+  const spansCount = isEAPTraceNode(traceNode) ? tree.eap_spans_count : 0;
 
   if (
     !(
@@ -76,7 +75,6 @@ async function maybeAutoExpandTrace(
 }
 
 type UseTraceScrollToEventOnLoadOptions = {
-  meta: TraceMetaQueryResults;
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
   tree: TraceTree;
@@ -121,7 +119,7 @@ export function useTraceOnLoad(
     };
 
     // If eligible, auto-expand the trace
-    maybeAutoExpandTrace(tree, expandOptions, options.meta)
+    maybeAutoExpandTrace(tree, expandOptions)
       .then(() => {
         if (cancel) {
           return Promise.resolve();
@@ -156,7 +154,7 @@ export function useTraceOnLoad(
     return () => {
       cancel = true;
     };
-  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId, options.meta]);
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
 
   return status;
 }

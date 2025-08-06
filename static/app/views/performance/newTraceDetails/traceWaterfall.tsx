@@ -539,6 +539,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         );
       });
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setRowAsFocused,
     traceDispatch,
@@ -550,7 +552,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
-    props.meta?.data?.span_count,
     source,
     timestamp,
   ]);
@@ -645,7 +646,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
-    meta: props.meta,
   });
 
   // Sync part of the state with the URL
