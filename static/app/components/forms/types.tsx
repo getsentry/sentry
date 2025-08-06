@@ -48,6 +48,7 @@ interface BaseField {
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
   extraHelp?: string;
+  feature?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
   /**
