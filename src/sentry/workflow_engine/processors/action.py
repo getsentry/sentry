@@ -46,7 +46,7 @@ def get_workflow_action_group_statuses(
 
     all_statuses = WorkflowActionGroupStatus.objects.filter(
         group=group, action_id__in=action_to_workflows_ids.keys(), workflow_id__in=workflow_ids
-    ).order_by("workflow_id")
+    )
 
     actions_with_statuses: dict[int, list[WorkflowActionGroupStatus]] = defaultdict(list)
 
