@@ -573,11 +573,16 @@ class StatefulDetectorHandler(
             hasattr(self.detector.workflow_condition_group, "_prefetched_objects_cache")
             and "conditions" in self.detector.workflow_condition_group._prefetched_objects_cache
         ):
-            condition_result_levels = list(self.detector.workflow_condition_group.conditions.all())
+            condition_result_levels = list(
+                condition.condition_result
+                for condition in self.detector.workflow_condition_group.conditions.all()
+            )
         else:
-            condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-                condition_result__in=priority_levels
-            ).values_list("condition_result", flat=True)
+            condition_result_levels = list(
+                self.detector.workflow_condition_group.conditions.filter(
+                    condition_result__in=priority_levels
+                ).values_list("condition_result", flat=True)
+            )
 
         return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 

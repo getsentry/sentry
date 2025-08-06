@@ -35,6 +35,53 @@ class TestStatefulDetectorHandler(TestCase):
         handler = MockDetectorStateHandler(detector=self.detector)
         assert handler.state_manager.counter_names == [Level.OK]
 
+    def test_init__threshold_query(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        self.create_data_condition(
+            type="eq",
+            comparison="HIGH",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=Level.HIGH,
+        )
+
+        with mock.patch.object(
+            self.detector.workflow_condition_group.conditions, "filter"
+        ) as mock_filter:
+            handler = MockDetectorStateHandler(detector=self.detector)
+            assert not mock_filter.called
+            assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
+
+    def test_init__threshold_query_no_conditions(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        with mock.patch.object(
+            self.detector.workflow_condition_group.conditions, "filter"
+        ) as mock_filter:
+            handler = MockDetectorStateHandler(detector=self.detector)
+            assert not mock_filter.called
+            assert handler._thresholds == {Level.OK: 1}
+
+    def test_init__threshold_makes_query(self) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.detector.save()
+
+        self.create_data_condition(
+            type="eq",
+            comparison="HIGH",
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=Level.HIGH,
+        )
+
+        with mock.patch.object(
+            self.detector.workflow_condition_group.conditions, "filter"
+        ) as mock_filter:
+            handler = MockDetectorStateHandler(detector=self.detector)
+            assert mock_filter.called
+            assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
+
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
     def setUp(self) -> None:
