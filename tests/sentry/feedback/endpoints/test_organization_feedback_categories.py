@@ -13,16 +13,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
-SEER_CATEGORY_GENERATION_URL = (
-    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/label-groups"
-)
-
 
 def mock_seer_category_response(**kwargs) -> None:
     """Use with @responses.activate to mock Seer category generation responses."""
     responses.add(
         responses.POST,
-        SEER_CATEGORY_GENERATION_URL,
+        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/label-groups",
         **kwargs,
     )
 

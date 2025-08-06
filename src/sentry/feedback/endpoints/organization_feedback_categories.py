@@ -187,7 +187,9 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             feedbacks_context=context_feedbacks,
         )
 
-        label_groups = json.loads(make_seer_request(seer_request).decode("utf-8"))["data"]
+        label_groups: list[FeedbackLabelGroup] = json.loads(
+            make_seer_request(seer_request).decode("utf-8")
+        )["data"]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories
         if len(label_groups) != len(top_10_labels):
