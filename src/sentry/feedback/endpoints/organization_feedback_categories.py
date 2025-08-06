@@ -74,9 +74,9 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Gets 3-4 categories of feedbacks for an organization.
+        Gets categories of feedbacks for an organization.
 
-        Returns 3-4 groups of labels, which correspond to categories, for feedbacks that can be filtered by:
+        Returns groups of labels, which correspond to categories, for feedbacks that can be filtered by:
         - A list of projects
         - The date range that they were first seen in (defaults to the last 7 days)
 
