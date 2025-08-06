@@ -11,15 +11,12 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
-# Number of days that determine whether a debug file is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = options.get("system.debug-file-renewal-interval")
-
 
 def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(days=options.get("system.debug-files-renewal-age-threshold"))
 
     # We first check if any file needs renewal, before going to the database.
     needs_bump = any(dif.date_accessed <= threshold_date for dif in debug_files)

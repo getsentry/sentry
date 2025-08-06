@@ -45,10 +45,8 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO: Understand if we want/need the: FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
-# TODO: Come up with a better name
 register(
-    "system.debug-file-renewal-interval",
+    "system.debug-files-renewal-age-threshold",
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
