@@ -104,7 +104,7 @@ export function useMetricDetectorAnomalies({
       },
     ],
     {
-      staleTime: 30_000,
+      staleTime: Infinity,
       enabled: filteredHistoricalData.length > 0 && currentData.length > 0 && enabled,
     }
   );
