@@ -5,6 +5,7 @@ import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -218,14 +219,6 @@ function OnboardingPanel({
             <Divider />
             <Body>
               <Setup>{children}</Setup>
-              {/* <Preview>
-                <BodyTitle>{t('Preview MCP Monitoring')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview> */}
             </Body>
           </div>
         </AuthTokenGeneratorProvider>
@@ -263,8 +256,13 @@ export function Onboarding() {
         <DescriptionWrapper>
           <p>
             {tct(
-              'Fiddlesticks. MCP monitoring is not available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
-              {platform: currentPlatform?.name || project.slug}
+              'Fiddlesticks. MCP monitoring is not available for your [platform] project yet but we’re definitely still working on it. Stay tuned. In the meantime, you can follow the [link:manual instrumentation guide] to get started.',
+              {
+                platform: currentPlatform?.name || project.slug,
+                link: (
+                  <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/mcp-instrumentation/tracing/" />
+                ),
+              }
             )}
           </p>
         </DescriptionWrapper>
@@ -290,7 +288,7 @@ export function Onboarding() {
           </p>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/insights/agent-monitoring/"
+            href="https://docs.sentry.io/product/insights/ai/mcp/"
             external
           >
             {t('Go to Documentation')}
