@@ -25,6 +25,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import OverviewAssetsByTimeSpentWidget from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -49,6 +50,7 @@ import {
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
+import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -243,10 +245,10 @@ export function NewFrontendOverviewPage() {
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <div>Web perf score chart</div>
+                      <WebVitalsWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <div>Assets by time spent</div>
+                      <OverviewAssetsByTimeSpentWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
                       <div>Requests by time spent</div>
