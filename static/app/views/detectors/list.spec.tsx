@@ -208,12 +208,12 @@ describe('DetectorsList', function () {
       const {router} = render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');
 
-      // Default sort is connectedWorkflows descending
+      // Default sort is latestGroup descending
       expect(mockDetectorsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            sortBy: '-connectedWorkflows',
+            sortBy: '-latestGroup',
           }),
         })
       );
