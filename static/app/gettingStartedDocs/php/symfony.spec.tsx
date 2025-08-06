@@ -47,30 +47,6 @@ describe('symfony onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with logs selected', function () {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    // Renders logs configuration
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs: true/))
-    ).toBeInTheDocument();
-
-    // Renders the YAML configuration file instruction
-    expect(
-      screen.getByText(textWithMarkupMatcher(/config\/packages\/sentry\.yaml/))
-    ).toBeInTheDocument();
-
-    // Ensure other config options are not rendered when not selected
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0/))
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
-    ).not.toBeInTheDocument();
-  });
-
   it('renders with performance monitoring selected', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -93,9 +69,6 @@ describe('symfony onboarding docs', function () {
     expect(
       screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs: true/))
-    ).not.toBeInTheDocument();
   });
 
   it('renders with all products selected', function () {
@@ -104,7 +77,6 @@ describe('symfony onboarding docs', function () {
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.PROFILING,
-        ProductSolution.LOGS,
       ],
     });
 
@@ -114,9 +86,6 @@ describe('symfony onboarding docs', function () {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs: true/))
     ).toBeInTheDocument();
 
     // Renders the YAML configuration file instruction

@@ -74,9 +74,7 @@ SENTRY_DSN="${params.dsn.public}"
 ###< sentry/sentry-symfony ###
           `,
         },
-        ...(params.isPerformanceSelected ||
-        params.isProfilingSelected ||
-        params.isLogsSelected
+        ...(params.isPerformanceSelected || params.isProfilingSelected
           ? [
               {
                 description: tct(
@@ -87,9 +85,7 @@ SENTRY_DSN="${params.dsn.public}"
                 code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
-            params.isPerformanceSelected ||
-            params.isProfilingSelected ||
-            params.isLogsSelected
+            params.isPerformanceSelected || params.isProfilingSelected
               ? `
           options:`
               : ''
@@ -104,12 +100,6 @@ SENTRY_DSN="${params.dsn.public}"
               ? `
               # Set a sampling rate for profiling - this is relative to traces_sample_rate
               profiles_sample_rate: 1.0`
-              : ''
-          }${
-            params.isLogsSelected
-              ? `
-              # Enable logs to be sent to Sentry
-              enable_logs: true`
               : ''
           }`,
               },
@@ -251,9 +241,7 @@ SENTRY_DSN="${params.dsn.public}"
 ###< sentry/sentry-symfony ###
           `,
         },
-        ...(params.isPerformanceSelected ||
-        params.isProfilingSelected ||
-        params.isLogsSelected
+        ...(params.isPerformanceSelected || params.isProfilingSelected
           ? [
               {
                 description: tct(
@@ -264,9 +252,7 @@ SENTRY_DSN="${params.dsn.public}"
                 code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
-            params.isPerformanceSelected ||
-            params.isProfilingSelected ||
-            params.isLogsSelected
+            params.isPerformanceSelected || params.isProfilingSelected
               ? `
           options:`
               : ''
@@ -281,12 +267,6 @@ SENTRY_DSN="${params.dsn.public}"
               ? `
               # Set a sampling rate for profiling - this is relative to traces_sample_rate
               profiles_sample_rate: 1.0`
-              : ''
-          }${
-            params.isLogsSelected
-              ? `
-              # Enable logs to be sent to Sentry
-              enable_logs: true`
               : ''
           }`,
               },
