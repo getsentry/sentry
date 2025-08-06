@@ -24,8 +24,10 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
     <StepContainer style={{marginTop: theme.space.md}}>
       <StepNumber>{step}</StepNumber>
       <StepContent isLastStep={step === 3}>
-        <Heading as="h3">{title}</Heading>
-        <Text variant="primary" size="md">
+        <Heading as="h3" style={{marginBottom: theme.space.sm}}>
+          {title}
+        </Heading>
+        <Text variant="muted" size="md">
           {description}
         </Text>
       </StepContent>
@@ -142,51 +144,57 @@ export default function PreventAIOnboarding() {
               <Text variant="primary" size="sm" bold>
                 {t('How to use Prevent AI')}
               </Text>
-              <Text variant="primary" size="sm">
+              <Text variant="muted" size="sm">
                 {t('Prevent AI helps you ship better code with three features:')}
               </Text>
               <Container
                 as="ul"
                 style={{marginBottom: theme.space.md, fontSize: theme.fontSize.sm}}
               >
-                <Container as="li">
-                  {tct(
-                    'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry review
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Container>
-                <Container as="li">
-                  {tct(
-                    'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry review
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Container>
-                <Container as="li">
-                  {tct(
-                    'It generates unit tests for your PR when you prompt [sentryCommand].',
-                    {
-                      sentryCommand: (
-                        <Text variant="accent" size="sm" bold>
-                          @sentry generate-test
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Container>
+                <li>
+                  <Text variant="muted" size="sm">
+                    {tct(
+                      'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
+                      {
+                        sentryCommand: (
+                          <Text variant="accent" size="sm" bold>
+                            @sentry review
+                          </Text>
+                        ),
+                      }
+                    )}
+                  </Text>
+                </li>
+                <li>
+                  <Text variant="muted" size="sm">
+                    {tct(
+                      'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+                      {
+                        sentryCommand: (
+                          <Text variant="accent" size="sm" bold>
+                            @sentry review
+                          </Text>
+                        ),
+                      }
+                    )}
+                  </Text>
+                </li>
+                <li>
+                  <Text variant="muted" size="sm">
+                    {tct(
+                      'It generates unit tests for your PR when you prompt [sentryCommand].',
+                      {
+                        sentryCommand: (
+                          <Text variant="accent" size="sm" bold>
+                            @sentry generate-test
+                          </Text>
+                        ),
+                      }
+                    )}
+                  </Text>
+                </li>
               </Container>
-              <Text variant="primary" size="xs">
+              <Text variant="muted" size="xs">
                 {tct(
                   'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
                   {
