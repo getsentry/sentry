@@ -164,7 +164,6 @@ export function compareProfiles(activeThreadId?: number) {
   };
 }
 
-
 const StyledCompactSelect = styled(CompactSelect)`
   width: 14ch;
   min-width: 14ch;
