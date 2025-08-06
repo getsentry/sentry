@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import functools
 from collections.abc import Callable, Iterable
-from typing import Any, Concatenate, Protocol
+from typing import Any
 
 import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
-from django.db.backends.utils import CursorWrapper
-from django.db.utils import DatabaseError, InterfaceError
 
 from sentry.utils.strings import strip_lone_surrogates
 
@@ -75,81 +72,14 @@ def _execute__include_sql_in_error(
         raise
 
 
-def can_reconnect(exc: Exception) -> bool:
-    if isinstance(exc, (psycopg2.InterfaceError, InterfaceError)):
-        return True
-    # elif isinstance(exc, psycopg2.OperationalError):
-    #     exc_msg = str(exc)
-    #     if "can't fetch default_isolation_level" in exc_msg:
-    #         return True
-    #     elif "can't set datestyle to ISO" in exc_msg:
-    #         return True
-    #     return True
-    elif isinstance(exc, DatabaseError):
-        exc_msg = str(exc)
-        if "server closed the connection unexpectedly" in exc_msg:
-            return True
-        elif "client_idle_timeout" in exc_msg:
-            return True
-    return False
-
-
-class _Reconnectable(Protocol):
-    def _reconnect(self) -> None: ...
-
-
-def _auto_reconnect[
-    T: _Reconnectable, R, **P
-](func: Callable[Concatenate[T, P], R]) -> Callable[Concatenate[T, P], R]:
-    @functools.wraps(func)
-    def _auto_reconnect_impl(self: T, *args: P.args, **kwargs: P.kwargs) -> R:
-        try:
-            return func(self, *args, **kwargs)
-        except Exception as e:
-            if not can_reconnect(e):
-                raise
-            else:
-                self._reconnect()
-                return func(self, *args, **kwargs)
-
-    return _auto_reconnect_impl
-
-
-class SentryCursorWrapper(CursorWrapper):
-    """A wrapper around the postgresql_psycopg2 backend which handles auto reconnects"""
-
-    def _reconnect(self) -> None:
-        self.db.close(reconnect=True)
-        # important: unwrap the cursor or we'll double wrap!
-        self.cursor = self.db.cursor().cursor
-
-    @_auto_reconnect
-    def execute(self, *args: Any, **kwargs: Any) -> Any:
-        return super().execute(*args, **kwargs)
-
-    @_auto_reconnect
-    def executemany(self, *args: Any, **kwargs: Any) -> Any:
-        return super().executemany(*args, **kwargs)
-
-
 class DatabaseWrapper(DjangoDatabaseWrapper):
     SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]  # a proxy class isn't exactly the original type
     queries_limit = 15000
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
-
-    def _reconnect(self) -> None:
-        self.close(reconnect=True)
-
-    @_auto_reconnect
-    def cursor(self) -> CursorWrapper:
-        return super().cursor()
-
-    def make_cursor(self, cursor: CursorWrapper) -> CursorWrapper:
-        return SentryCursorWrapper(cursor, self)
 
     def close(self, reconnect: bool = False) -> None:
         """

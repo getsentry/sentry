@@ -87,7 +87,7 @@ class ApiGrant(Model):
         app_label = "sentry"
         db_table = "sentry_apigrant"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
         )

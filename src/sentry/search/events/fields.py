@@ -1844,6 +1844,12 @@ FUNCTIONS = {
             default_result_type="integer",
         ),
         DiscoverFunction(
+            "upsampled_count",
+            optional_args=[NullColumn("column")],
+            aggregate=["toInt64(sum(ifNull(sample_weight, 1)))", None, None],
+            default_result_type="integer",
+        ),
+        DiscoverFunction(
             "count_at_least",
             required_args=[NumericColumn("column"), NumberRange("threshold", 0, None)],
             aggregate=[

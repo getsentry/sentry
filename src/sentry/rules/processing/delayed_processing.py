@@ -72,7 +72,7 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
             f"comp interval: {self.comparison_interval}\n>"
@@ -84,7 +84,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
     rule_id: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
         )
