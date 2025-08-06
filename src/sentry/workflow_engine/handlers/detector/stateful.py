@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -569,10 +570,7 @@ class StatefulDetectorHandler(
         if self.detector.workflow_condition_group is None:
             return []
 
-        if (
-            hasattr(self.detector.workflow_condition_group, "_prefetched_objects_cache")
-            and "conditions" in self.detector.workflow_condition_group._prefetched_objects_cache
-        ):
+        if is_model_attr_cached(self.detector.workflow_condition_group, "conditions"):
             condition_result_levels = list(
                 condition.condition_result
                 for condition in self.detector.workflow_condition_group.conditions.all()
