@@ -104,7 +104,7 @@ export default function LogsContent() {
             </Layout.HeaderActions>
           </Layout.Header>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsQueryParamsProvider>
+            <LogsQueryParamsProvider source="location">
               <LogsPageParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               >

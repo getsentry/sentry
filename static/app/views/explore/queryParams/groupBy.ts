@@ -7,6 +7,10 @@ export interface GroupBy {
   groupBy: string;
 }
 
+export function defaultGroupBys() {
+  return [{groupBy: ''}];
+}
+
 export function getGroupBysFromLocation(
   location: Location,
   key: string

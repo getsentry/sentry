@@ -7,7 +7,7 @@ export enum Mode {
   AGGREGATE = 'aggregate',
 }
 
-function defaultMode(): Mode {
+export function defaultMode(): Mode {
   return Mode.SAMPLES;
 }
 
