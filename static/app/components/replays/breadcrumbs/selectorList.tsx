@@ -12,7 +12,7 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const componentName = frame.data.node?.attributes['data-sentry-component'];
+  const componentName = frame.data?.node?.attributes['data-sentry-component'];
   const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
   const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 

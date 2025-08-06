@@ -264,19 +264,19 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
 
 export function isDeadClick(frame: SlowClickFrame) {
   return (
-    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
-    frame.data.endReason === 'timeout'
+    ['a', 'button', 'input'].includes(frame.data?.node?.tagName.toLowerCase() ?? '') &&
+    frame.data?.endReason === 'timeout'
   );
 }
 
 export function isDeadRageClick(frame: SlowClickFrame) {
   return Boolean(
-    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+    isDeadClick(frame) && frame.data?.clickCount && frame.data.clickCount >= 5
   );
 }
 
 export function isRageClick(frame: MultiClickFrame) {
-  return frame.data.clickCount >= 5;
+  return frame.data?.clickCount >= 5;
 }
 
 export function isHydrationErrorFrame(

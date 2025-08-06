@@ -64,7 +64,7 @@ async function extractDiffMutations({
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
       if (lastFrame && lastFrame.type === EventType.FullSnapshot) {
-        const node = mirror.getNode(lastFrame.data.node.id) as Document | null;
+        const node = mirror.getNode(lastFrame.data?.node?.id) as Document | null;
         const item = collection.get(lastFrame);
         if (node && item) {
           const formattedTimestamp = formatDuration({
@@ -87,7 +87,7 @@ async function extractDiffMutations({
       ) {
         const adds = {};
         for (const add of lastFrame.data.adds) {
-          const node = mirror.getNode(add.node.id) as HTMLElement | null;
+          const node = mirror.getNode(add.node?.id) as HTMLElement | null;
           if (!node?.outerHTML) {
             continue;
           }
