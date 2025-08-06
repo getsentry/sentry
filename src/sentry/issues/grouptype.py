@@ -214,6 +214,9 @@ class GroupType:
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
+    # Controls whether _all_ workflow notification types are enabled (e.g. assignment).
+    # Useful when the group type is still in development
+    enable_workflow_notifications = True
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
