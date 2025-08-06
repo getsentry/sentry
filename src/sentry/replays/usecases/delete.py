@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 import functools
+import threading
 from datetime import datetime
 from typing import TypedDict
 
+from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -20,6 +22,7 @@ from snuba_sdk import (
     Query,
 )
 
+from sentry import features
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
@@ -32,6 +35,7 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
+from sentry.seer.signed_seer_api import make_signed_seer_request_simple
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -182,3 +186,34 @@ def fetch_rows_matching_pattern(
             for row in rows
         ],
     }
+
+
+def delete_seer_replay_data(
+    organization: Organization,
+    project_id: int,
+    replay_ids: list[str],
+    synchronous: bool,
+    timeout: int | tuple[int, int] | None = None,
+) -> bool:
+    """Makes feature flag query(s). If synchronous, this returns whether the request was successful."""
+    if not features.has("organizations:replay-ai-summaries", organization):
+        return True
+
+    def make_seer_request():
+        make_signed_seer_request_simple(
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/delete",
+            {
+                "organization_id": organization.id,
+                "project_id": project_id,
+                "replay_ids": replay_ids,
+            },
+            timeout=timeout,
+        )
+
+    if synchronous:
+        _, status_code = make_seer_request()
+        return str(status_code).startswith("2")
+
+    thread = threading.Thread(target=make_seer_request)
+    thread.start()
+    return True

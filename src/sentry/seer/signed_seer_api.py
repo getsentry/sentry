@@ -5,12 +5,13 @@ from random import random
 from typing import Any
 from urllib.parse import urlparse
 
+import requests
 import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import options
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -68,3 +69,47 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
                 "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
             )
     return auth_headers
+
+
+def make_signed_seer_request_simple(
+    url: str,
+    data: str | dict[str, Any],
+    timeout: int | tuple[int, int] | None = None,
+    metric_tags: dict[str, Any] | None = None,
+) -> tuple[requests.Response | None, int]:
+    """
+    Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
+
+    The timeout argument is passed directly to requests.post. Defaults to 5s connect timeout, 5s read timeout.
+
+    Returns a tuple of (response, status code). If a request error occurred the response will be None.
+    """
+    str_data = json.dumps(data) if isinstance(data, dict) else data
+
+    try:
+        with metrics.timer(
+            "seer.request_to_seer_simple",
+            sample_rate=1.0,
+            tags={"endpoint": url, **(metric_tags or {})},
+        ):
+            response = requests.post(
+                url,
+                data=str_data,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(str_data.encode()),
+                },
+                timeout=timeout,
+            )
+        response.raise_for_status()  # Raises HTTPError for 4xx and 5xx.
+
+    except requests.exceptions.HTTPError as e:
+        return (e.response, e.response.status_code) if e.response is not None else (None, 502)
+
+    except requests.exceptions.Timeout:
+        return (None, 504)
+
+    except requests.exceptions.RequestException:
+        return (None, 502)
+
+    return (response, response.status_code)

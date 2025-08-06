@@ -6,6 +6,8 @@ from typing import Any
 
 from google.cloud.exceptions import NotFound
 
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -15,7 +17,11 @@ from sentry.replays.lib.storage import (
     storage_kv,
 )
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
-from sentry.replays.usecases.delete import delete_matched_rows, fetch_rows_matching_pattern
+from sentry.replays.usecases.delete import (
+    delete_matched_rows,
+    delete_seer_replay_data,
+    fetch_rows_matching_pattern,
+)
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
@@ -213,6 +219,14 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
+            organization = Organization.objects.get_from_cache(id=job.organization_id)
+            delete_seer_replay_data(
+                organization,
+                job.project_id,
+                [row["replay_id"] for row in results["rows"]],
+                synchronous=False,
+                timeout=15,
+            )
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
@@ -267,4 +281,15 @@ def delete_replay(
                 "retention_days": retention_days,
             }
         ],
+    )
+
+    # TODO: how and where is this task used? Can we pass org id?
+    project = Project.objects.get_from_cache(id=project_id)
+    organization = project.organization
+    delete_seer_replay_data(
+        organization=organization,
+        project_id=project_id,
+        replay_ids=[replay_id],
+        synchronous=True,
+        timeout=5,
     )
