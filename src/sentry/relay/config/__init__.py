@@ -1158,7 +1158,7 @@ def _get_project_config(
                         "organizations:dynamic-sampling-custom", project.organization
                     ),
                     "dynamic_sampling_mode": project.organization.get_option(
-                        "sentry:dynamic_sampling_mode", None
+                        "sentry:sampling_mode", None
                     ),
                     "dynamic_sampling_org_target_rate": project.organization.get_option(
                         "sentry:target_sample_rate", None
@@ -1180,7 +1180,7 @@ def _get_project_config(
                         "organizations:dynamic-sampling-custom", project.organization
                     ),
                     "dynamic_sampling_mode": project.organization.get_option(
-                        "sentry:dynamic_sampling_mode", None
+                        "sentry:sampling_mode", None
                     ),
                     "dynamic_sampling_org_target_rate": project.organization.get_option(
                         "sentry:target_sample_rate", None
