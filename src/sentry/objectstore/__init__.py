@@ -1,3 +1,3 @@
-from sentry.objectstore.service import ObjectStoreService
+from sentry.objectstore.service import ClientBuilder
 
-attachments = ObjectStoreService("attachments")
+attachments = ClientBuilder("attachments")

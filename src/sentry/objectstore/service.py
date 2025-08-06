@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from io import BytesIO
-from typing import IO, Literal, NamedTuple, NotRequired, TypedDict, cast
+from typing import IO, Literal, NamedTuple, NotRequired, Self, TypedDict, cast
 
 import urllib3
 import zstandard
 from django.utils import timezone
 from urllib3.connectionpool import HTTPConnectionPool
 
+from sentry.objectstore.metadata import (
+    HEADER_EXPIRATION,
+    HEADER_META_PREFIX,
+    Compression,
+    ExpirationPolicy,
+    Metadata,
+    format_expiration,
+)
 from sentry.objectstore.metrics import measure_storage_put
 from sentry.utils import jwt, metrics
 
 Permission = Literal["read", "write"]
-Compression = Literal["zstd", "gzip", "lz4", "uncompressible"]
 
 JWT_VALIDITY_SECS = 30
 
@@ -24,42 +30,55 @@ class Scope(TypedDict):
 
 
 class GetResult(NamedTuple):
+    metadata: Metadata
     payload: IO[bytes]
-    compression: Compression | None
 
 
-class ObjectStoreService:
+class ClientBuilder:
     def __init__(self, usecase: str, options: dict | None = None):
-        self.usecase = usecase
-        self.options = options
+        self._usecase = usecase
+        self._options = options
+        self._default_compression: Compression = "zstd"
 
-    def _make_client(self, scope: Scope) -> ObjectStoreClient:
+    def _make_client(self, scope: Scope) -> Client:
         from sentry import options as options_store
 
-        options = self.options or options_store.get("objectstore.config")
+        options = self._options or options_store.get("objectstore.config")
         pool = urllib3.connectionpool.connection_from_url(options["base_url"])
         jwt_secret = options["jwt_secret"]
 
         claim = {
-            "usecase": self.usecase,
+            "usecase": self._usecase,
             "scope": scope,
         }
 
-        return ObjectStoreClient(self.usecase, claim, pool, jwt_secret)
+        return Client(pool, self._default_compression, self._usecase, claim, jwt_secret)
 
-    def for_organization(self, organization_id: int) -> ObjectStoreClient:
+    def default_compression(self, default_compression: Compression) -> Self:
+        self._default_compression = default_compression
+        return self
+
+    def for_organization(self, organization_id: int) -> Client:
         return self._make_client({"organization": organization_id})
 
-    def for_project(self, organization_id: int, project_id: int) -> ObjectStoreClient:
+    def for_project(self, organization_id: int, project_id: int) -> Client:
         return self._make_client({"organization": organization_id, "project": project_id})
 
 
-class ObjectStoreClient:
-    def __init__(self, usecase: str, claim: dict, pool: HTTPConnectionPool, jwt_secret: str):
-        self.pool = pool
-        self.jwt_secret = jwt_secret
-        self.usecase = usecase
-        self.claim = claim
+class Client:
+    def __init__(
+        self,
+        pool: HTTPConnectionPool,
+        default_compression: Compression,
+        usecase: str,
+        claim: dict,
+        jwt_secret: str,
+    ):
+        self._pool = pool
+        self._default_compression = default_compression
+        self._usecase = usecase
+        self._jwt_secret = jwt_secret
+        self._claim = claim
 
     def _make_headers(self, permission: Permission) -> dict:
         now = int(timezone.now().timestamp())
@@ -67,18 +86,20 @@ class ObjectStoreClient:
         claims = {
             "iat": now,
             "exp": exp,
-            **self.claim,
+            **self._claim,
             "permissions": [permission],
         }
 
-        authorization = jwt.encode(claims, self.jwt_secret)
+        authorization = jwt.encode(claims, self._jwt_secret)
         return {"Authorization": authorization}
 
     def put(
         self,
         contents: bytes | IO[bytes],
         id: str | None = None,
-        compression: Compression | None = None,
+        compression: Compression | Literal["none"] | None = None,
+        metadata: dict[str, str] | None = None,
+        expiration_policy: ExpirationPolicy | None = None,
     ) -> str:
         """
         Uploads the given `contents` to blob storage.
@@ -86,28 +107,31 @@ class ObjectStoreClient:
         If no `id` is provided, one will be automatically generated and returned
         from this function.
 
-        The storage service will manage storing the contents compressed, unless
-        the `compression` parameter is set, in which case the contents are treated
-        as already compressed, and no double-compression will happen.
-
-        The `"uncompressible"` compression is special in the sense that it denotes
-        a file format that is already internally compressed, and does not benefit
-        from another general-purpose compression algorithm.
+        The client will select the configured `default_compression` if none is given
+        explicitly.
+        This can be overridden by explicitly giving a `compression` argument.
+        Providing `"none"` as the argument will instruct the client to not apply
+        any compression to this upload, which is useful for uncompressible formats.
         """
         headers = self._make_headers("write")
         body = BytesIO(contents) if isinstance(contents, bytes) else contents
         original_body: IO[bytes] = body
 
-        if not compression:
+        compression = compression or self._default_compression
+        if compression == "zstd":
             cctx = zstandard.ZstdCompressor()
             body = cctx.stream_reader(original_body)
             headers["Content-Encoding"] = "zstd"
-        elif compression != "uncompressible":
-            headers["Content-Encoding"] = compression
 
-        compression_used = headers.get("Content-Encoding", "none")
-        with measure_storage_put(None, self.usecase, compression_used) as measurement:
-            response = self.pool.request(
+        if expiration_policy:
+            headers[HEADER_EXPIRATION] = format_expiration(expiration_policy)
+
+        if metadata:
+            for k, v in metadata.items():
+                headers[f"{HEADER_META_PREFIX}{k}"] = v
+
+        with measure_storage_put(None, self._usecase, compression) as measurement:
+            response = self._pool.request(
                 "PUT",
                 f"/{id}" if id else "/",
                 body=body,
@@ -117,37 +141,27 @@ class ObjectStoreClient:
             ).json()
 
             measurement.upload_size = body.tell()
-            if not compression:
+            if compression != "none":
                 metrics.distribution(
                     "storage.put.size",
                     original_body.tell(),
-                    tags={"usecase": self.usecase, "compression": "none"},
+                    tags={"usecase": self._usecase, "compression": "none"},
                     unit="byte",
                 )
 
             return response["key"]
 
-    def get(self, id: str, accept_compression: Sequence[Compression] | None = None) -> GetResult:
+    def get(self, id: str, decompress: bool = True) -> GetResult:
         """
         This fetches the blob with the given `id`, returning an `IO` stream that
         can be read.
 
-        Depending on the `accept_compression` parameter, the contents might be
-        in compressed form, matching one of the given compression algorithms.
-        The appropriate compression of the final stream is given as the second
-        output.
-
-        If the `accept_compression` parameter is missing, or it does not match
-        the blobs compression as stored, it will be decompressed on the fly,
-        and `None` will be returned as compression.
+        By default, content that was uploaded compressed will be automatically
+        decompressed, unless `decompress=True` is passed.
         """
         headers = self._make_headers("read")
-        compression = set()
-        if accept_compression:
-            compression = set(accept_compression)
-            headers["Accept-Encoding"] = ", ".join(compression)
 
-        response = self.pool.request(
+        response = self._pool.request(
             "GET",
             f"/{id}",
             headers=headers,
@@ -156,18 +170,19 @@ class ObjectStoreClient:
         )
         # OR: should I use `response.stream()`?
         stream = cast(IO[bytes], response)
+        metadata = Metadata.from_headers(response.headers)
 
-        content_encoding = response.getheader("Content-Encoding")
-        if content_encoding and content_encoding not in compression:
-            if content_encoding != "zstd":
+        if metadata.compression and decompress:
+            if metadata.compression != "zstd":
                 raise NotImplementedError(
-                    "Transparent decoding of anything buf `zstd` is not implemented yet"
+                    "Transparent decoding of anything but `zstd` is not implemented yet"
                 )
 
+            metadata.compression = None
             dctx = zstandard.ZstdDecompressor()
-            return GetResult(dctx.stream_reader(stream, read_across_frames=True), None)
+            stream = dctx.stream_reader(stream, read_across_frames=True)
 
-        return GetResult(stream, cast(Compression, content_encoding))
+        return GetResult(metadata, stream)
 
     def delete(self, id: str):
         """
@@ -175,7 +190,7 @@ class ObjectStoreClient:
         """
         headers = self._make_headers("write")
 
-        self.pool.request(
+        self._pool.request(
             "DELETE",
             f"/{id}",
             headers=headers,
