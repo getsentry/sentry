@@ -1,36 +1,28 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {Fragment} from 'react';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logsQueryParams';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLocationQueryParamsProvider';
+import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
 
 interface LogsQueryParamsProviderProps {
   children: ReactNode;
+  source: 'location' | 'state';
 }
 
-export function LogsQueryParamsProvider({children}: LogsQueryParamsProviderProps) {
-  const location = useLocation();
+export function LogsQueryParamsProvider({
+  children,
+  source,
+}: LogsQueryParamsProviderProps) {
+  children = <Fragment>{children}</Fragment>;
 
-  const readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location),
-    [location]
-  );
-
-  const setWritableQueryParams = useCallback(
-    (_writableQueryParams: WritableQueryParams) => {
-      // TODO
-    },
-    []
-  );
-
-  return (
-    <QueryParamsContextProvider
-      queryParams={readableQueryParams}
-      setQueryParams={setWritableQueryParams}
-    >
-      {children}
-    </QueryParamsContextProvider>
-  );
+  switch (source) {
+    case 'location':
+      return (
+        <LogsLocationQueryParamsProvider>{children}</LogsLocationQueryParamsProvider>
+      );
+    case 'state':
+      return <LogsStateQueryParamsProvider>{children}</LogsStateQueryParamsProvider>;
+    default:
+      throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
+  }
 }
