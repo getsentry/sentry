@@ -37,7 +37,6 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
-from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -217,7 +216,7 @@ class AuthIdentityHandler:
         parsed_url = urlparse(login_redirect_url)
 
         # Don't modify mobile app custom URL schemes - return them as-is
-        if parsed_url.scheme in ALLOWED_MOBILE_SCHEMES:
+        if parsed_url.scheme == "sentry-mobile-agent":
             return login_redirect_url
 
         if subdomain is not None:

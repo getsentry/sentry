@@ -17,7 +17,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -200,7 +199,7 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     parsed_url = urlparse(login_redirect)
 
     # Don't modify mobile app custom URL schemes - return them as-is
-    if parsed_url.scheme in ALLOWED_MOBILE_SCHEMES:
+    if parsed_url.scheme == "sentry-mobile-agent":
         return login_redirect
 
     url_prefix = None
@@ -219,7 +218,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
     parsed_url = urlparse(url)
 
     # Allow mobile app custom URL schemes for authentication redirects
-    if parsed_url.scheme in ALLOWED_MOBILE_SCHEMES:
+    if parsed_url.scheme == "sentry-mobile-agent":
         return True
 
     url_host = parsed_url.netloc
