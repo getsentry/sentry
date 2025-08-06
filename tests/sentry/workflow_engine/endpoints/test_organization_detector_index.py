@@ -23,6 +23,7 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -31,6 +32,7 @@ from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -211,6 +213,61 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert [d["name"] for d in response2.data] == [
             detector_2.name,
             detector.name,
+        ]
+
+    def test_sort_by_latest_group(self) -> None:
+        detector_1 = self.create_detector(
+            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+        )
+        detector_3 = self.create_detector(
+            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+        )
+        detector_4 = self.create_detector(
+            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+        )
+
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        group_3 = self.create_group(project=self.project)
+
+        # detector_1 has the oldest group
+        detector_group_1 = DetectorGroup.objects.create(detector=detector_1, group=group_1)
+        detector_group_1.date_added = before_now(hours=3)
+        detector_group_1.save()
+
+        # detector_2 has the newest grbefore_now
+        detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
+        detector_group_2.date_added = before_now(hours=1)  # Most recent
+        detector_group_2.save()
+
+        # detector_3 has one in the middle
+        detector_group_3 = DetectorGroup.objects.create(detector=detector_3, group=group_3)
+        detector_group_3.date_added = before_now(hours=2)
+        detector_group_3.save()
+
+        # Test descending sort (newest groups first)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-latestGroup"}
+        )
+        assert [d["name"] for d in response.data] == [
+            detector_2.name,
+            detector_3.name,
+            detector_1.name,
+            detector_4.name,  # No groups, should be last
+        ]
+
+        # Test ascending sort (oldest groups first)
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
+        )
+        assert [d["name"] for d in response2.data] == [
+            detector_4.name,  # No groups, should be first
+            detector_1.name,
+            detector_3.name,
+            detector_2.name,
         ]
 
     def test_query_by_name(self) -> None:
