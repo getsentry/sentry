@@ -212,7 +212,7 @@ def delete_seer_replay_data(
 
     if synchronous:
         _, status_code = make_seer_request()
-        return str(status_code).startswith("2")
+        return status_code < 400
 
     thread = threading.Thread(target=make_seer_request)
     thread.start()
