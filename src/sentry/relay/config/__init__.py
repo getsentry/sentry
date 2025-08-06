@@ -25,6 +25,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
+    get_log_messages_generic_filter,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -139,6 +140,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings[filter_id] = settings
 
     error_messages: list[str] = []
+    log_messages: list[str] = []
+
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -146,8 +149,13 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+        if features.has("organizations:ourlogs-ingestion", project.organization):
+            log_messages += project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
+
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
+
+    log_messages_filter = get_log_messages_generic_filter(log_messages) if log_messages else None
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
@@ -160,10 +168,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    base_generic_filters = []
+    if log_messages_filter:
+        base_generic_filters.append(log_messages_filter)
+
     try:
         # At the end we compute the generic inbound filters, which are inbound filters expressible with a
         # conditional DSL that Relay understands.
-        generic_filters = get_generic_filters(project)
+        generic_filters = get_generic_filters(project, base_generic_filters)
         if generic_filters is not None:
             filter_settings["generic"] = generic_filters
     except Exception as e:

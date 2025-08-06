@@ -883,6 +883,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
+            if f"filters:{FilterTypes.LOG_MESSAGES}" in options:
+                if features.has("projects:custom-inbound-filters", project, actor=request.user):
+                    project.update_option(
+                        f"sentry:{FilterTypes.LOG_MESSAGES}",
+                        clean_newline_inputs(
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
+                            case_insensitive=False,
+                        ),
+                    )
+                else:
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": "Copy project settings failed."}, status=409)
