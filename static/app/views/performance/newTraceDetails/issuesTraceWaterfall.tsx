@@ -29,7 +29,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
@@ -125,7 +125,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const {
     data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -136,17 +135,18 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     const traceAge = defined(traceTimestamp)
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
+    const issuesCount = TraceTree.UniqueIssues(props.tree.root).length;
 
-    if (!isLoadingSubscriptionDetails) {
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        'issue_details',
-        traceAge
-      );
-    }
+    traceAnalytics.trackTraceShape(
+      props.tree,
+      projectsRef.current,
+      props.organization,
+      hasExceededPerformanceUsageLimit,
+      'issue_details',
+      traceAge,
+      issuesCount,
+      props.tree.eap_spans_count
+    );
 
     // Construct the visual representation of the tree
     props.tree.build();
@@ -317,7 +317,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
-    isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
   ]);
