@@ -2,7 +2,6 @@ from urllib.parse import parse_qs, urlparse
 
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APITestCase
 
 from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.testutils.cases import TestCase as SentryTestCase
