@@ -220,8 +220,8 @@ def _fetch_profile_data(
     profile_id: str,
     organization_id: int,
     project_id: int,
-    start_ts: float,
-    end_ts: float,
+    start_ts: float | None = None,
+    end_ts: float | None = None,
     is_continuous: bool = False,
 ) -> dict[str, Any] | None:
     """
@@ -239,6 +239,18 @@ def _fetch_profile_data(
         Raw profile data or None if not found
     """
     if is_continuous:
+        if start_ts is None or end_ts is None:
+            logger.info(
+                "Start and end timestamps not provided for fetching continuous profiles, skipping",
+                extra={
+                    "profile_id": profile_id,
+                    "is_continuous": is_continuous,
+                    "start_ts": start_ts,
+                    "end_ts": end_ts,
+                },
+            )
+            return None
+
         span_start = datetime.fromtimestamp(start_ts, UTC)
         span_end = datetime.fromtimestamp(end_ts, UTC)
         try:
