@@ -12,7 +12,6 @@ export enum ModuleName {
   SCREEN_LOAD = 'screen_load',
   APP_START = 'app_start',
   RESOURCE = 'resource',
-  AI = 'ai',
   AGENTS = 'agents',
   MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
