@@ -86,6 +86,13 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    objectstore:
+      description: Storage for files and blobs
+      remote:
+        repo_name: objectstore
+        branch: main
+        repo_link: https://github.com/getsentry/objectstore.git
+        mode: containerized
     #########################################################
     # Supervisor Programs
     #########################################################
@@ -156,6 +163,7 @@ x-sentry-service-config:
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     launchpad: [snuba, postgres, relay, spotlight, launchpad]
+    objectstore: [snuba, postgres, relay, spotlight, objectstore]
     taskbroker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
@@ -271,6 +279,7 @@ x-sentry-service-config:
         monitors-incident-occurrences,
         ingest-profiles,
         ingest-occurrences,
+        objectstore,
         process-spans,
         process-segments,
         ingest-metrics,
