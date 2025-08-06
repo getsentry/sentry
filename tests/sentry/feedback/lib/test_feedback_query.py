@@ -101,7 +101,6 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
 
     def test_get_ai_labels_from_tags_retrieves_labels_correctly(self):
-        """Test that _get_ai_labels_from_tags correctly retrieves AI labels from issues."""
         # Create a query using the function to retrieve AI labels
         query = Query(
             match=Entity(Dataset.IssuePlatform.value),
@@ -136,13 +135,11 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert all_labels == expected_labels
 
     def test_query_top_ai_labels_by_feedback_count(self):
-        """Test that query_top_ai_labels_by_feedback_count correctly returns top labels by count."""
-        # Query for top 5 labels using our standard feedbacks
         result = query_top_ai_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
-            end=before_now(minutes=-1),
+            end=before_now(days=-1),
             count=5,
         )
 
@@ -165,7 +162,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             organization_id=self.organization.id,
             project_ids=[self.project.id],
             start=before_now(days=1),
-            end=before_now(minutes=-1),
+            end=before_now(days=-1),
             count=1,
         )
 
@@ -196,7 +193,6 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(result_no_project) == 0
 
     def test_query_recent_feedbacks_with_ai_labels(self):
-        """Test that query_recent_feedbacks_with_ai_labels correctly returns recent feedbacks with AI labels."""
         result = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -258,7 +254,6 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(result_no_project) == 0
 
     def test_query_given_labels_by_feedback_count(self):
-        """Test that query_given_labels_by_feedback_count correctly returns feedback counts for label groups."""
         label_groups = [
             ["User Interface", "Performance"],
             ["Authentication", "Security"],

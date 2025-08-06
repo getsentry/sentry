@@ -50,7 +50,6 @@ def _get_ai_labels_from_tags(alias: str | None = None):
     """
     Gets all the AI label values as an array from the tags column.
 
-    This function is used to get the AI label values from the tags column.
     It does this by zipping the keys and values together, filtering the tuples to only include those whose key starts with the correct AI label prefix, and then mapping the tuples to their values (second tuple element).
     """
 
@@ -96,9 +95,7 @@ def _get_ai_labels_from_tags(alias: str | None = None):
                 ],
             ),
         ],
-        **(
-            {"alias": alias} if alias is not None else {}
-        ),  # If alias is not None, set the alias of the function
+        **({"alias": alias} if alias is not None else {}),
     )
 
 
@@ -111,6 +108,8 @@ def query_top_ai_labels_by_feedback_count(
 ):
     """
     Query the top `count` AI-generated labels by feedback count.
+
+    This is done by arrayJoin-ing the AI label values then grouping by the label values.
     """
 
     dataset = Dataset.IssuePlatform
