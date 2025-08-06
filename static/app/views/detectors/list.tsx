@@ -28,7 +28,7 @@ export default function DetectorsList() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {
     sort: sorts,
@@ -41,21 +41,24 @@ export default function DetectorsList() {
       cursor: decodeScalar,
     },
   });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedWorkflows'};
+  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
 
   const {
     data: detectors,
-    isPending,
+    isLoading,
     isError,
     isSuccess,
     getResponseHeader,
-  } = useDetectorsQuery({
-    cursor,
-    query,
-    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-    projects: selection.projects,
-    limit: DETECTOR_LIST_PAGE_LIMIT,
-  });
+  } = useDetectorsQuery(
+    {
+      cursor,
+      query,
+      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      projects: selection.projects,
+      limit: DETECTOR_LIST_PAGE_LIMIT,
+    },
+    {enabled: isReady}
+  );
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -65,7 +68,7 @@ export default function DetectorsList() {
           <div>
             <DetectorListTable
               detectors={detectors ?? []}
-              isPending={isPending}
+              isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
