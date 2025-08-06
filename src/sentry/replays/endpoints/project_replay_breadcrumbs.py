@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.replays.lib.eap.read import QueryResult, query
+from sentry.replays.lib.eap.read import query
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -121,10 +121,13 @@ class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
             )
 
             results = query(snuba_query, settings, request_meta, virtual_columns=[])
-            results["data"] = [subset_event(item) for item in results["data"]]
-            return results
+            return [subset_event(item) for item in results["data"]]
 
-        return self.paginate(request=request, paginator=HasMorePaginator(data_fn=data_fn))
+        return self.paginate(
+            request=request,
+            paginator=HasMorePaginator(data_fn=data_fn),
+            on_results=lambda results: {"data": results},
+        )
 
 
 class Event(TypedDict):
@@ -208,9 +211,9 @@ CATEGORY_ATTRIBUTE_MAP = {
 
 def subset_event(source: MutableMapping[str, bool | float | int | str | None]) -> Event:
     return {
-        "id": None,
-        "type": source["category"],
-        "attributes": subset_of(source, CATEGORY_ATTRIBUTE_MAP[source["category"]]),
+        "id": "None",
+        "type": str(source["category"]),
+        "attributes": subset_of(source, CATEGORY_ATTRIBUTE_MAP[str(source["category"])]),
     }
 
 
@@ -226,7 +229,7 @@ class HasMorePaginator:
 
     def __init__(
         self,
-        data_fn: Callable[[int, int], QueryResult],
+        data_fn: Callable[[int, int], list[Event]],
     ) -> None:
         self.data_fn = data_fn
 
@@ -235,9 +238,9 @@ class HasMorePaginator:
         offset = int(cursor.offset) if cursor is not None else 0
         response = self.data_fn(offset, limit + 1)
 
-        has_more = len(response["data"]) > limit
+        has_more = len(response) > limit
         if has_more:
-            response["data"].pop()
+            response.pop()
 
         return CursorResult(
             response,
