@@ -326,6 +326,18 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         for instance in event_data.events.values():
             assert instance.timestamp == timezone.now()
 
+    @override_options(
+        {"delayed_processing.batch_size": 1, "delayed_workflow.use_workflow_engine_pool": True}
+    )
+    @patch(
+        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows_shim.apply_async"
+    )
+    def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
+        self._push_base_events()
+
+        process_in_batches(self.project.id, "delayed_workflow")
+        assert mock_process_delayed.call_count == 2
+
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
     def setUp(self) -> None:
