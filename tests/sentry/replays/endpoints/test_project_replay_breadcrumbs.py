@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.urls import reverse
 
 from sentry.replays.lib.eap.write import new_trace_item, write_trace_items_test_suite
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+
+REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestCase):
@@ -18,31 +20,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestC
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test(self):
+    def test_get_mutations_breadcrumb(self):
         write_trace_items_test_suite(
             [
                 new_trace_item(
                     {
-                        "attributes": {"abc": "hello", "def": 2, "replay_id": self.replay_id},
-                        "client_sample_rate": 1.0,
-                        "organization_id": self.project.organization.id,
-                        "project_id": self.project.id,
-                        "received": datetime.now(),
-                        "retention_days": 90,
-                        "server_sample_rate": 1.0,
-                        "timestamp": datetime.now(),
-                        "trace_id": uuid.uuid4().hex,
-                        "trace_item_id": uuid.uuid4().bytes,
-                        "trace_item_type": "replay",
-                    }
-                ),
-                new_trace_item(
-                    {
                         "attributes": {
-                            "abc": "world",
-                            "def": 1,
-                            "xyz": 1.0,
+                            "category": "replay.mutations",
                             "replay_id": self.replay_id,
+                            "count": 22,
                         },
                         "client_sample_rate": 1.0,
                         "organization_id": self.project.organization.id,
@@ -50,16 +36,20 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestC
                         "received": datetime.now(),
                         "retention_days": 90,
                         "server_sample_rate": 1.0,
-                        "timestamp": datetime.now(),
+                        "timestamp": datetime.now() - timedelta(minutes=1),
                         "trace_id": uuid.uuid4().hex,
                         "trace_item_id": uuid.uuid4().bytes,
                         "trace_item_type": "replay",
                     }
-                ),
+                )
             ]
         )
 
-        response = self.client.get(self.url)
-        import json
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?statsPeriod=1d")
+            assert response.status_code == 200
 
-        assert False, json.dumps(json.loads(response.content), indent=2)
+            response_json = response.json()
+            assert len(response_json["data"]) == 1
+            assert response_json["data"][0]["type"] == "replay.mutations"
+            assert response_json["data"][0]["attributes"]["count"] == 22
