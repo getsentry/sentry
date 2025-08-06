@@ -69,6 +69,7 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "projects:span-v2-experimental-processing",
 ]
 
 EXTRACT_METRICS_VERSION = 1
