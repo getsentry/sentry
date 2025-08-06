@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from typing import Any
 
@@ -58,10 +59,19 @@ class Buffer(Service):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(
+        self, key: str, min: float = -math.inf, max: float = math.inf
+    ) -> list[tuple[int, float]]:
+        """
+        Retrieve all members of a sorted set with scores between min and max.
+        """
         return []
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        """
+        Add a value or list of values to the sorted set at the provided key,
+        with the current time as the score.
+        """
         return None
 
     def push_to_hash(
@@ -89,7 +99,10 @@ class Buffer(Service):
     ) -> None:
         return None
 
-    def delete_key(self, key: str, min: float, max: float) -> None:
+    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> None:
+        """
+        Delete all members of a sorted set with scores between min and max.
+        """
         return None
 
     def incr(

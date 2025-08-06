@@ -3,7 +3,6 @@ import math
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from itertools import islice
 from typing import ClassVar
 
@@ -142,7 +141,6 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
 
 
 def process_buffer() -> None:
-    fetch_time = datetime.now(tz=timezone.utc)
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
@@ -152,9 +150,8 @@ def process_buffer() -> None:
             continue
 
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
-            project_ids = buffer.backend.get_sorted_set(
-                handler.buffer_key, min=0, max=fetch_time.timestamp()
-            )
+            # Retrieve all project IDs in the buffer with their timestamps.
+            project_ids = buffer.backend.get_sorted_set(handler.buffer_key)
             if should_emit_logs:
                 log_str = ", ".join(
                     f"{project_id}: {timestamp}" for project_id, timestamp in project_ids
@@ -165,7 +162,12 @@ def process_buffer() -> None:
             for project_id, _ in project_ids:
                 process_in_batches(project_id, processing_type)
 
-            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time.timestamp())
+            if project_ids:
+                max_observed = max(timestamp for _, timestamp in project_ids)
+                # Delete all project IDs that we've processed unless they've been updated since.
+                # Any newly added projects should be above max_observed and will be processed on
+                # next execution.
+                buffer.backend.delete_key(handler.buffer_key, max=max_observed)
 
 
 if not redis_buffer_registry.has(BufferHookEvent.FLUSH):

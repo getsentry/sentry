@@ -1,6 +1,7 @@
 import copy
 import datetime
 import pickle
+import time
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
@@ -361,6 +362,47 @@ class TestRedisBuffer:
 
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert rule_group_pairs == {}
+
+    def test_get_sorted_set(self) -> None:
+
+        with freeze_time() as coords:
+            early = time.time()
+            self.buf.push_to_sorted_set(key="foo", value=[1])
+
+            coords.move_to(early + 3)
+            mid = time.time()
+            self.buf.push_to_sorted_set(key="foo", value=[2, 3])
+
+            coords.move_to(mid + 3)
+            later = time.time()
+            self.buf.push_to_sorted_set(key="foo", value=[4])
+
+            # Our bounds exclude earliest and latest.
+            project_ids = self.buf.get_sorted_set("foo", min=mid - 1, max=mid)
+            assert project_ids == [(2, mid), (3, mid)]
+
+            # No bounds, so we get them all.
+            full_project_ids = self.buf.get_sorted_set("foo")
+            assert full_project_ids == [(1, early), (2, mid), (3, mid), (4, later)]
+
+    def test_delete_key(self) -> None:
+        with freeze_time() as coords:
+            KEY = "foo"
+            t1 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[1, 2])
+            coords.move_to(t1 + 3)
+            t2 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[3])
+            coords.move_to(t2 + 3)
+
+            # before delete
+            assert self.buf.get_sorted_set(KEY) == [(1, t1), (2, t1), (3, t2)]
+
+            self.buf.delete_key(KEY, max=t1)
+            assert self.buf.get_sorted_set(KEY) == [(3, t2)]
+
+            self.buf.delete_key(KEY, max=t2)
+            assert self.buf.get_sorted_set(KEY) == []
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+import math
 import pickle
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
-from typing import Any, TypeVar
+from typing import Any, TypeVar, override
 
 import rb
 from django.utils.encoding import force_bytes, force_str
@@ -376,7 +377,10 @@ class RedisBuffer(Buffer):
             value_dict = {value: now}
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    @override
+    def get_sorted_set(
+        self, key: str, min: float = -math.inf, max: float = math.inf
+    ) -> list[tuple[int, float]]:
         redis_set = self._execute_redis_operation(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
@@ -390,10 +394,12 @@ class RedisBuffer(Buffer):
             if isinstance(item, bytes):
                 item = item.decode("utf-8")
             data_and_timestamp = (int(item), items[1])
+            assert isinstance(data_and_timestamp[1], float)
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
-    def delete_key(self, key: str, min: float, max: float) -> None:
+    @override
+    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
 
     def delete_hash(
