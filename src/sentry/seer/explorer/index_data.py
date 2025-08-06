@@ -304,7 +304,7 @@ def _fetch_profile_data(
 
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
     """
-    Get profiles for a given trace, merging profiles with the same profile_id and is_continuous.
+    Get profiles for a given trace, with one profile per unique span/transaction.
 
     Args:
         trace_id: The trace ID to find profiles for
@@ -359,15 +359,8 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         sampling_mode="NORMAL",
     )
 
-    # Step 2: Collect all profiles and merge those with same profile_id, transaction, and is_continuous
+    # Step 2: Collect all profiles and merge those with same profile_id and is_continuous
     all_profiles = []
-
-    logger.info(
-        "Span query for profiles completed",
-        extra={
-            "num_rows": len(profiles_result.get("data", [])),
-        },
-    )
 
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
@@ -405,15 +398,6 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
 
         # Determine if this is a continuous profile (profiler.id without profile.id)
         is_continuous = profile_id is None and profiler_id is not None
-
-        logger.info(
-            "Span is continuous and has profile",
-            extra={
-                "span_id": span_id,
-                "is_continuous": is_continuous,
-                "actual_profile_id": actual_profile_id,
-            },
-        )
 
         all_profiles.append(
             {
