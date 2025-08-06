@@ -763,7 +763,8 @@ class Quota(Service):
         """
         return True
 
-    def get_dashboard_limit(self, org_id: int) -> int | None:
+    def get_dashboard_limit(self, org_id: int) -> int:
         """
         Returns the maximum number of dashboards allowed for the organization's plan type.
         """
+        return -1

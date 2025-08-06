@@ -320,7 +320,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboard_count = Dashboard.objects.filter(organization=organization).count()
             dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
 
-            if dashboard_limit is not None and dashboard_count >= dashboard_limit:
+            if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
                 return Response(
                     f"You may not exceed {dashboard_limit} dashboards on your current plan.",
                     status=400,
