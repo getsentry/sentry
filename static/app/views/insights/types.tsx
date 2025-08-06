@@ -410,14 +410,6 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type ConditionalAggregateOperator =
-  | 'equals'
-  | 'notEquals'
-  | 'lessOrEquals'
-  | 'greaterOrEquals'
-  | 'less'
-  | 'greater';
-
 type WebVitalsFunctions =
   | SpanFunction.PERFORMANCE_SCORE
   | SpanFunction.COUNT_SCORES
@@ -481,11 +473,12 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${ConditionalAggregateOperator},${string})`]: number;
+    // TODO: The middle arg represents the operator, however adding this creastes too large of a map and tsc fails
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`]: number;
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${ConditionalAggregateOperator},${string})`]: number;
+    [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;
