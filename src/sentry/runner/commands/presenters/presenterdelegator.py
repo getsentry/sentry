@@ -13,6 +13,8 @@ class PresenterDelegator:
         self._slackpresenter = None
         if WebhookPresenter.is_webhook_enabled():
             self._slackpresenter = WebhookPresenter(source, timestamp)
+
+        self._auditlogpresenter = None
         if AuditLogPresenter.is_webhook_enabled():
             self._auditlogpresenter = AuditLogPresenter(source, dry_run)
 
