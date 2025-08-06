@@ -51,7 +51,6 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         "group_state": event_data.group_state,
         "has_reappeared": event_data.has_reappeared,
         "has_escalated": event_data.has_escalated,
-        "workflow_env_id": event_data.workflow_env.id if event_data.workflow_env else None,
     }
 
 
@@ -85,7 +84,6 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    workflow_env_id: int | None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
@@ -113,11 +111,11 @@ def trigger_action(
             project_id=project_id,
             event_id=event_id,
             group_id=group_id,
+            workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
             has_reappeared=has_reappeared,
             has_escalated=has_escalated,
-            workflow_env_id=workflow_env_id,
         )
 
     elif activity_id is not None:
