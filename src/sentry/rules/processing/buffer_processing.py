@@ -182,10 +182,8 @@ def clear_processed_project_ids(
         for _, timestamp in to_delete:
             if timestamp >= min_new_proj_ts:
                 break
-            if timestamp > max_processed_ts:
-                break
             max_safe_ts = max(max_safe_ts or timestamp, timestamp)
-        if not max_safe_ts:
+        if max_safe_ts is None:
             # Something went wrong.
             logger.error(
                 "Can't safely clear projects from buffer",
