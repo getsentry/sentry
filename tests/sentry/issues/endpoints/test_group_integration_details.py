@@ -27,15 +27,15 @@ from sentry.utils.http import absolute_uri
 pytestmark = [requires_snuba]
 
 
-def raise_integration_form_error(*args, **kwargs):
+def raise_integration_form_error(*args: Any, **kwargs: Any) -> None:
     raise IntegrationFormError(field_errors={"foo": "Invalid foo provided"})
 
 
-def raise_integration_error(*args, **kwargs):
+def raise_integration_error(*args: Any, **kwargs: Any) -> None:
     raise IntegrationError("The whole operation was invalid")
 
 
-def raise_integration_installation_configuration_error(*args, **kwargs):
+def raise_integration_installation_configuration_error(*args: Any, **kwargs: Any) -> None:
     raise IntegrationInstallationConfigurationError("Repository has no issue tracker.")
 
 
@@ -55,8 +55,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.group = self.event.group
 
     def assert_metric_recorded(
-        self, mock_metric_method, expected_exc: type[Exception], exc_args: Any | None = None
-    ):
+        self, mock_metric_method: Any, expected_exc: type[Exception], exc_args: Any | None = None
+    ) -> None:
 
         assert mock_metric_method.call_count == 1
         mock_metric_method.assert_called_with(mock.ANY)
@@ -215,7 +215,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
     def assert_correctly_linked(
         self, group: Group, external_issue_id: str, integration: Integration, org: Organization
-    ):
+    ) -> None:
         external_issue = ExternalIssue.objects.get(
             key=external_issue_id, integration_id=integration.id, organization_id=org.id
         )
@@ -262,8 +262,8 @@ class GroupIntegrationDetailsTest(APITestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     def test_put_get_issue_raises_exception(
-        self, mock_record_failure, mock_record_halt, mock_get_issue
-    ):
+        self, mock_record_failure: Any, mock_record_halt: Any, mock_get_issue: Any
+    ) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -322,8 +322,8 @@ class GroupIntegrationDetailsTest(APITestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     def test_put_group_after_link_raises_exception(
-        self, mock_record_failure, mock_record_halt, mock_after_link_issue
-    ):
+        self, mock_record_failure: Any, mock_record_halt: Any, mock_after_link_issue: Any
+    ) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -428,8 +428,8 @@ class GroupIntegrationDetailsTest(APITestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     def test_post_raises_issue_creation_exception(
-        self, mock_record_failure, mock_record_halt, mock_create_issue
-    ):
+        self, mock_record_failure: Any, mock_record_halt: Any, mock_create_issue: Any
+    ) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -462,8 +462,8 @@ class GroupIntegrationDetailsTest(APITestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     def test_post_raises_issue_creation_exception_with_integration_installation_configuration_error(
-        self, mock_record_failure, mock_record_halt, mock_create_issue
-    ):
+        self, mock_record_failure: Any, mock_record_halt: Any, mock_create_issue: Any
+    ) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -566,7 +566,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
     def test_default_project(self) -> None:
-        def assert_default_project(path, action, expected_project_field):
+        def assert_default_project(
+            path: str, action: str, expected_project_field: dict[str, Any]
+        ) -> None:
             response = self.client.get(path)
             assert response.status_code == 200
             if action == "create":

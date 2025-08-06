@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -228,6 +227,7 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.issues.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
 from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
