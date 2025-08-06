@@ -221,7 +221,9 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
         path_params_list: list[str] = list(
-            dict.fromkeys([f"{', '.join(param_group)}" for param_group in path_params]).keys()
+            dict.fromkeys(
+                [f"{', '.join(param_group)}" for param_group in path_params if param_group]
+            ).keys()
         )
         query_params_list: list[str] = list(
             dict.fromkeys(
