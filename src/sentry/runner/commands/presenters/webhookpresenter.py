@@ -88,7 +88,7 @@ class WebhookPresenter(OptionsPresenter):
             ],
         }
 
-        if self.timestamp:
+        if self.timestamp is not None:
             start_time = self.timestamp
             latency_seconds = time.time() - start_time
             json_data["latency_seconds"] = latency_seconds
