@@ -515,8 +515,12 @@ def _get_profile_from_trace_tree(
                 "matching_transaction": matching_transaction,
                 "project_slug": project.slug,
                 "organization_slug": project.organization.slug,
-                "profile_id": matching_transaction.get("profile_id"),
-                "profiler_id": matching_transaction.get("profiler_id"),
+                "profile_id": (
+                    matching_transaction.get("profile_id") if matching_transaction else None
+                ),
+                "profiler_id": (
+                    matching_transaction.get("profiler_id") if matching_transaction else None
+                ),
             },
         )
         return None
