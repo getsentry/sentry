@@ -38,7 +38,7 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
 const StyledSummaryEntryLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 interface SummaryEntryLabelProps extends React.ComponentProps<typeof Hovercard> {
@@ -67,7 +67,7 @@ export const SummaryEntryValue = styled('span')`
 
 const StyledSummaryEntryValueLink = styled('span')`
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.linkColor};
   font-size: 2.25rem;
 
   /* This stops the text from jumping when becoming bold */
