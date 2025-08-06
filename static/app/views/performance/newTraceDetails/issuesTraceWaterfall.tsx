@@ -29,7 +29,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
@@ -137,6 +137,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
 
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
+    }
+
+    const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
         props.tree,
@@ -144,7 +152,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         props.organization,
         hasExceededPerformanceUsageLimit,
         'issue_details',
-        traceAge
+        traceAge,
+        issuesCount,
+        props.tree.eap_spans_count
       );
     }
 
@@ -317,9 +327,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
-    isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
+    isLoadingSubscriptionDetails,
   ]);
 
   useTraceTimelineChangeSync({

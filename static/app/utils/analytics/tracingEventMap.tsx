@@ -69,7 +69,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.metadata': {
+    eap_spans_count: number;
     has_exceeded_performance_usage_limit: boolean | null;
+    issues_count: number;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
