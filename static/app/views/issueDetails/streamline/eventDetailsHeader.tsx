@@ -122,7 +122,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 columns="auto minmax(100px, 1fr) auto"
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
-                <FilterBar condensed>
+                <FilterBar>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
                     menuTitle={t('Filter Time Range')}
