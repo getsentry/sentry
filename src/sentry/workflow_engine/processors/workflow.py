@@ -124,13 +124,21 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
-    logger.debug(
-        "workflow_engine.workflows.enqueued",
-        extra={"project_to_workflow": project_to_workflow},
-    )
 
     buffer.backend.push_to_sorted_set(
         key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
+    )
+
+    buffer_project_ids = buffer.backend.get_sorted_set(
+        WORKFLOW_ENGINE_BUFFER_LIST_KEY, min=0, max=timezone.now().timestamp()
+    )
+
+    logger.debug(
+        "workflow_engine.workflows.enqueued",
+        extra={
+            "project_to_workflow": project_to_workflow,
+            "buffer_project_ids": sorted([project_id for project_id, _ in buffer_project_ids]),
+        },
     )
 
 
