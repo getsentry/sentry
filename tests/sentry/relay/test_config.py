@@ -17,6 +17,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
@@ -132,6 +133,77 @@ def test_get_project_config(default_project, insta_snapshot) -> None:
 
 
 SOME_EXCEPTION = RuntimeError("foo")
+
+
+@django_db_all
+@region_silo_test
+@mock.patch("sentry.relay.config.logger")
+def test_get_project_config_with_logging(mock_logger, default_project, insta_snapshot) -> None:
+    # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
+
+    default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
+    default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
+    keys = ProjectKey.objects.filter(project=default_project)
+
+    # Create a custom dynamic sampling rule
+    start = datetime.now(tz=timezone.utc)
+    end = start + timedelta(hours=1)
+    condition = {"op": "eq", "name": "environment", "value": "production"}
+    CustomDynamicSamplingRule.update_or_create(
+        condition=condition,
+        start=start,
+        end=end,
+        project_ids=[default_project.id],
+        organization_id=default_project.organization.id,
+        num_samples=1000,
+        sample_rate=0.8,
+        query="environment:production",
+    )
+
+    with Feature(
+        {"organizations:log-project-config": True, "organizations:dynamic-sampling": True}
+    ):
+        project_cfg = get_project_config(default_project, project_keys=keys)
+        cfg = project_cfg.to_dict()
+
+    _validate_project_config(cfg["config"])
+
+    # Verify that logging was called
+    mock_logger.info.assert_called_once()
+    call_args = mock_logger.info.call_args
+
+    # Check that the log message contains the expected project and org IDs
+    assert "Logging project config for project" in call_args[0][0]
+    assert call_args[0][1] == default_project.id
+    assert call_args[0][2] == default_project.organization.id
+
+    # Check that extra logging data is present
+    extra_data = call_args[1]["extra"]
+    assert "project_config" in extra_data
+    assert "project_id" in extra_data
+    assert "org_id" in extra_data
+    assert "dynamic_sampling_feature_flag" in extra_data
+    assert "dynamic_sampling_custom_feature_flag" in extra_data
+    assert "dynamic_sampling_mode" in extra_data
+    assert "dynamic_sampling_org_target_rate" in extra_data
+
+    # Verify that the custom dynamic sampling rule is included in the config
+    sampling_config = get_path(cfg, "config", "sampling")
+    assert sampling_config is not None
+    assert "rules" in sampling_config
+
+    # Check if our custom rule is present in the rules
+    custom_rule_found = False
+    for rule in sampling_config["rules"]:
+        if (
+            rule.get("condition") == condition
+            and rule.get("samplingValue", {}).get("type") == "reservoir"
+            and rule.get("samplingValue", {}).get("limit") == 1000
+        ):
+            custom_rule_found = True
+            break
+
+    assert custom_rule_found, "Custom dynamic sampling rule should be present in the config"
 
 
 @django_db_all
