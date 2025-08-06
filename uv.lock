@@ -1928,7 +1928,7 @@ wheels = [
 
 [[package]]
 name = "sentry"
-version = "25.8.0.dev0"
+version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "avalara", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
