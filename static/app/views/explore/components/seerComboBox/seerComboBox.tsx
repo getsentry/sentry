@@ -17,18 +17,21 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import QueryTokens from 'sentry/views/explore/components/queryTokens';
 import {
   type SeerSearchItem,
   useApplySeerSearchQuery,
   useSeerSearch,
 } from 'sentry/views/explore/components/seerComboBox/hooks';
+import QueryTokens from 'sentry/views/explore/components/seerComboBox/queryTokens';
 import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
 import {SeerSearchListBox} from 'sentry/views/explore/components/seerComboBox/seerSearchListBox';
 import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/seerSearchPopover';
 import {SeerSearchSkeleton} from 'sentry/views/explore/components/seerComboBox/seerSearchSkeleton';
+import {
+  formatQueryToNaturalLanguage,
+  generateQueryTokensString,
+} from 'sentry/views/explore/components/seerComboBox/utils';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
-import {formatQueryToNaturalLanguage} from 'sentry/views/explore/utils';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -247,8 +250,20 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         );
       }
 
+      const readableQuery = generateQueryTokensString({
+        groupBys: item.groupBys,
+        query: item.query,
+        sort: item.sort,
+        statsPeriod: item.statsPeriod,
+        visualizations: item.visualizations,
+      });
+
       return (
-        <Item key={item.key} textValue={item.query}>
+        <Item
+          key={item.key}
+          textValue={readableQuery}
+          aria-label={`Query parameters: ${readableQuery}`}
+        >
           <QueryTokens
             groupBys={item.groupBys}
             query={item.query}
