@@ -506,6 +506,13 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
+    if start_time:
+        metrics.timing(
+            "events.since_received",
+            time() - start_time,
+            tags={"step": "start_save_event"},
+            sample_rate=0.01,
+        )
 
     set_current_event_project(project_id)
 
@@ -616,6 +623,19 @@ def _do_save_event(
                             "true" if reprocessing2.is_reprocessed_event(data) else "false"
                         ),
                     },
+                )
+
+                metrics.timing(
+                    "events.since_received",
+                    time() - start_time,
+                    instance=data["platform"],
+                    tags={
+                        "step": "end_save_event",
+                        "is_reprocessing2": (
+                            "true" if reprocessing2.is_reprocessed_event(data) else "false"
+                        ),
+                    },
+                    sample_rate=0.01,
                 )
 
 

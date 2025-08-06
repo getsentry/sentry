@@ -536,6 +536,8 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
+        start_post_process_at = time()
+
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
@@ -671,6 +673,23 @@ def post_process_group(
                     post_processed_at - received_at,
                     instance=event.data["platform"],
                     tags=metric_tags,
+                )
+
+                metric_tags["step"] = "end_post_process"
+                metrics.timing(
+                    "events.since_received",
+                    post_processed_at - received_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
+                    sample_rate=0.01,
+                )
+
+                metrics.timing(
+                    "events.since_received",
+                    start_post_process_at - received_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
+                    sample_rate=0.01,
                 )
             else:
                 metrics.incr("events.missing_received", tags=metric_tags)
