@@ -116,6 +116,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       organization,
     });
     traceDispatch({type: 'clear query'});
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
@@ -229,7 +233,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         placeholder={t('Search in trace')}
         onChange={onChange}
         onKeyDown={onKeyDown}
-        value={traceState.search.query ?? ''}
+        defaultValue={traceState.search.query}
         onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
