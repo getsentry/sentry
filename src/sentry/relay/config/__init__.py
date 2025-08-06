@@ -17,6 +17,9 @@ from sentry.constants import (
 )
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -1162,6 +1165,14 @@ def _get_project_config(
                     ),
                     "dynamic_sampling_org_target_rate": project.organization.get_option(
                         "sentry:target_sample_rate", None
+                    ),
+                    "dynamic_sampling_biases": project.get_option(
+                        "sentry:dynamic_sampling_biases", None
+                    ),
+                    "low_volume_projects_sample_rate": get_boost_low_volume_projects_sample_rate(
+                        org_id=project.organization.id,
+                        project_id=project.id,
+                        error_sample_rate_fallback=None,
                     ),
                 },
             )
