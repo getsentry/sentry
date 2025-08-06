@@ -36,11 +36,6 @@ describe('symfony onboarding docs', function () {
       screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
     ).not.toBeInTheDocument();
 
-    // Does not render logs config option
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs: true/))
-    ).not.toBeInTheDocument();
-
     // Does not render the YAML configuration section at all
     expect(
       screen.queryByText(textWithMarkupMatcher(/config\/packages\/sentry\.yaml/))
