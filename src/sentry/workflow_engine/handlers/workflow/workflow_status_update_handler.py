@@ -36,7 +36,11 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
         return
 
-    if features.has("organizations:workflow-engine-metric-alert-processing", group.organization):
+    if features.has(
+        "organizations:workflow-engine-single-process-metric-issues", group.organization
+    ) or features.has(
+        "organizations:workflow-engine-process-metric-issue-workflows", group.organization
+    ):
         process_workflow_activity.delay(
             activity_id=activity.id,
             group_id=group.id,
