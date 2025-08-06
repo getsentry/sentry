@@ -11,7 +11,6 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import Redirect from 'sentry/components/redirect';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,9 +23,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
 import {IssuesWidget} from 'sentry/views/insights/agentMonitoring/components/issuesWidget';
-import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
 import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmCallsWidget';
 import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/modelCostWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
@@ -41,10 +38,7 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {
-  AIInsightsFeature,
-  usePreferedAiModule,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
 import {
   TwoColumnWidgetGrid,
@@ -57,11 +51,8 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
-import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<TableType>;
@@ -78,24 +69,9 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-function useShouldShowLegacyLLMAlert() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-
-  const hasAgentMonitoring = selectedProjects.some(p => p.hasInsightsAgentMonitoring);
-  const hasLlmMonitoring = selectedProjects.some(p => p.hasInsightsLlmMonitoring);
-
-  return hasLlmMonitoring && !hasAgentMonitoring;
-}
-
 function AgentsMonitoringPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
-  const hasInsightsLlmMonitoring = useShouldShowLegacyLLMAlert();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
 
@@ -171,7 +147,6 @@ function AgentsMonitoringPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
-        headerActions={<AiModuleToggleButton />}
         headerTitle={
           <Fragment>
             {getAIModuleTitle(organization)}
@@ -199,7 +174,6 @@ function AgentsMonitoringPage() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                {hasInsightsLlmMonitoring && <LegacyLLMMonitoringInfoAlert />}
                 {showOnboarding ? (
                   <Onboarding />
                 ) : (
@@ -302,16 +276,6 @@ function ToolsView() {
 }
 
 function PageWithProviders() {
-  const preferedAiModule = usePreferedAiModule();
-
-  if (preferedAiModule === 'llm-monitoring') {
-    return (
-      <Redirect
-        to={`/${INSIGHTS_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-      />
-    );
-  }
-
   return (
     <AIInsightsFeature>
       <ModulePageProviders
