@@ -199,13 +199,18 @@ class Activity(Model):
         if self.group:
             group_type = get_group_type_by_type_id(self.group.type)
             has_status_change_notifications = group_type.enable_status_change_workflow_notifications
+            has_workflow_notifications = group_type.enable_workflow_notifications
             is_status_change = self.type in {
                 activity.value for activity in STATUS_CHANGE_ACTIVITY_TYPES
             }
 
             # Skip sending the activity notification if the group type does not
             # support status change workflow notifications
-            if is_status_change and not has_status_change_notifications:
+            if (
+                is_status_change
+                and not has_status_change_notifications
+                or not has_workflow_notifications
+            ):
                 return
 
         activity.send_activity_notifications.delay(self.id)
