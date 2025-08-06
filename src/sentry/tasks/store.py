@@ -35,7 +35,7 @@ from sentry.taskworker.namespaces import (
     issues_tasks,
 )
 from sentry.utils import metrics
-from sentry.utils.event import track_event
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
@@ -148,14 +148,9 @@ def _do_preprocess_event(
         return
 
     if start_time:
-        track_event(
+        track_event_since_received(
             step="start_preprocess_event",
-            value=time() - start_time,
-            platform=data.get("platform") if data else None,
-            tags={
-                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
-            },
-            sample_rate=0.01,
+            event_data=data,
         )
 
     original_data = data
@@ -331,16 +326,10 @@ def do_process_event(
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
 
-    if start_time:
-        track_event(
-            step="start_process_event",
-            value=time() - start_time,
-            platform=data.get("platform") if data else None,
-            tags={
-                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
-            },
-            sample_rate=0.01,
-        )
+    track_event_since_received(
+        step="start_process_event",
+        event_data=data,
+    )
 
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -529,16 +518,10 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
-    if start_time:
-        track_event(
-            step="start_save_event",
-            value=time() - start_time,
-            platform=data.get("platform") if data else None,
-            tags={
-                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
-            },
-            sample_rate=0.01,
-        )
+    track_event_since_received(
+        step="start_save_event",
+        event_data=data,
+    )
 
     set_current_event_project(project_id)
 
@@ -651,16 +634,9 @@ def _do_save_event(
                     },
                 )
 
-                track_event(
+                track_event_since_received(
                     step="end_save_event",
-                    value=time() - start_time,
-                    platform=data["platform"],
-                    tags={
-                        "reprocessing": (
-                            "true" if reprocessing2.is_reprocessed_event(data) else "false"
-                        ),
-                    },
-                    sample_rate=0.01,
+                    event_data=data,
                 )
 
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
+from time import time
 from typing import TYPE_CHECKING, Any
 
+from sentry import reprocessing2
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -93,20 +95,32 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
     ]
 
 
-def track_event(
+def track_event_since_received(
     step: str,
-    value: float,
+    event_data: MutableMapping[str, Any] | None,
     platform: str,
     tags: dict = None,
-    sample_rate: float = 0.01,
 ):
     """
     Helper function to track event timing metrics.
     """
+    if not event_data:
+        return
+
+    received_at = event_data.get("received")
+    if not received_at:
+        return
+
+    platform = event_data.get("platform")
+
     metrics.timing(
-        step,
-        value,
+        "events.since_received",
+        time() - received_at,
         instance=platform if platform else None,
-        tags={**(tags if tags is not None else {}), "step": step},
-        sample_rate=sample_rate,
+        tags={
+            **(tags if tags is not None else {}),
+            "step": step,
+            "reprocessing": "true" if reprocessing2.is_reprocessed_event(event_data) else "false",
+        },
+        sample_rate=0.01,
     )

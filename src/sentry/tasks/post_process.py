@@ -32,7 +32,7 @@ from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
-from sentry.utils.event import track_event
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
@@ -538,8 +538,6 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        start_post_process_at = time()
-
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
@@ -608,11 +606,9 @@ def post_process_group(
             event = fetch_retry_policy(get_event_raise_exception)
 
         if event.data.get("received"):
-            track_event(
+            track_event_since_received(
                 step="start_post_process",
-                value=start_post_process_at - event.data["received"],
-                platform=event.data["platform"],
-                sample_rate=0.01,
+                event_data=event.data,
             )
 
         set_current_event_project(event.project_id)
@@ -685,12 +681,10 @@ def post_process_group(
                     tags=metric_tags,
                 )
 
-                track_event(
+                track_event_since_received(
                     step="end_post_process",
-                    value=post_processed_at - received_at,
-                    platform=event.data["platform"],
+                    event_data=event.data,
                     tags=metric_tags,
-                    sample_rate=0.01,
                 )
 
             else:
