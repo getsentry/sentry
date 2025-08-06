@@ -573,6 +573,11 @@ def fire_rules(
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
+                    metrics.timing(
+                        "rule_fire_history.latency",
+                        (datetime.now() - groupevent.datetime).total_seconds(),
+                        tags={"delayed": True},
+                    )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
                     )

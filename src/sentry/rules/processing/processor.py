@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randrange
 from typing import Any
 
@@ -414,6 +414,11 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
+        metrics.timing(
+            "rule_fire_history.latency",
+            (datetime.now() - self.event.datetime).total_seconds(),
+            tags={"delayed": False},
+        )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history
