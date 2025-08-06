@@ -20,6 +20,7 @@ interface Visualization {
 
 interface SeerSearchQuery {
   groupBys: string[];
+  mode: string;
   query: string;
   sort: string;
   statsPeriod: string;
@@ -33,6 +34,7 @@ export interface SeerSearchItem<S extends string> extends SeerSearchQuery {
 interface SeerSearchResponse {
   queries: Array<{
     group_by: string[];
+    mode: string;
     query: string;
     sort: string;
     stats_period: string;
@@ -42,6 +44,7 @@ interface SeerSearchResponse {
     }>;
   }>;
   status: string;
+  unsupported_reason?: string;
 }
 
 export const useSeerSearch = () => {
@@ -50,6 +53,7 @@ export const useSeerSearch = () => {
   const organization = useOrganization();
   const memberProjects = projects.filter(p => p.isMember);
   const [rawResult, setRawResult] = useState<SeerSearchQuery[]>([]);
+  const [unsupportedReason, setUnsupportedReason] = useState<string | null>(null);
 
   const {
     mutate: submitQuery,
@@ -75,6 +79,7 @@ export const useSeerSearch = () => {
       });
     },
     onSuccess: result => {
+      setUnsupportedReason(result.unsupported_reason || null);
       setRawResult(
         result.queries.map((query: any) => {
           const visualizations =
@@ -89,11 +94,13 @@ export const useSeerSearch = () => {
             sort: query?.sort ?? '',
             groupBys: query?.group_by ?? [],
             statsPeriod: query?.stats_period ?? '',
+            mode: query?.mode ?? 'spans',
           };
         })
       );
     },
     onError: (error: Error) => {
+      setUnsupportedReason(null);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
@@ -103,6 +110,7 @@ export const useSeerSearch = () => {
     submitQuery,
     isPending,
     isError,
+    unsupportedReason,
   };
 };
 
@@ -139,7 +147,13 @@ export const useApplySeerSearchQuery = () => {
         },
       };
 
-      const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+      // TODO: Include traces mode once we can switch the table in getExploreUrl
+      const mode =
+        groupBys.length > 0
+          ? Mode.AGGREGATE
+          : result.mode === 'aggregates'
+            ? Mode.AGGREGATE
+            : Mode.SAMPLES;
       const visualize =
         visualizations?.map((v: Visualization) => ({
           chartType: v.chartType,

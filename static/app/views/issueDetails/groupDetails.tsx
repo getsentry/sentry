@@ -917,4 +917,5 @@ const GroupTabPanels = styled(TabPanels)`
   display: flex;
   flex-direction: column;
   justify-content: stretch;
+  padding-top: 0;
 `;
