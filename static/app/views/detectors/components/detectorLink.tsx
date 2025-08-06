@@ -203,6 +203,7 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
           <Details detector={detector} />
         </Fragment>
       }
+      disabled={!detector.enabled}
     />
   );
 }

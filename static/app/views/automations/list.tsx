@@ -10,6 +10,7 @@ import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -56,6 +57,22 @@ export default function AutomationsList() {
     limit: AUTOMATION_LIST_PAGE_LIMIT,
   });
 
+  const hits = getResponseHeader?.('X-Hits') || '';
+  const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
+  // If maxHits is not set, we assume there is no max
+  const maxHits = getResponseHeader?.('X-Max-Hits') || '';
+  const maxHitsInt = maxHits ? parseInt(maxHits, 10) || Infinity : Infinity;
+
+  const pageLinks = getResponseHeader?.('Link');
+
+  const allResultsVisible = useCallback(() => {
+    if (!pageLinks) {
+      return false;
+    }
+    const links = parseLinkHeader(pageLinks);
+    return links && !links.previous!.results && !links.next!.results;
+  }, [pageLinks]);
+
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
       <PageFiltersContainer>
@@ -68,9 +85,11 @@ export default function AutomationsList() {
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
+              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+              allResultsVisible={allResultsVisible()}
             />
             <Pagination
-              pageLinks={getResponseHeader?.('Link')}
+              pageLinks={pageLinks}
               onCursor={newCursor => {
                 navigate({
                   pathname: location.pathname,
