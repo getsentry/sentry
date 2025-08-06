@@ -38,7 +38,7 @@ READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(
