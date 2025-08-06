@@ -18,7 +18,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
@@ -74,10 +74,19 @@ export function searchInTraceTreeTokens(
 
   let i = 0;
   let matchCount = 0;
-  const count = tree.list.length;
   const resultsForSingleToken: TraceSearchResult[] = [];
 
   function searchSingleToken() {
+    // TODO Abdullah Khan: This implementation can be optimized;
+    // it should be possible to achieve the desired outcome in a single traversal.
+    // Currently, we first enforce that any matching node is visible, then we compute the results.
+    // Just have to figure out how to track the indices of the nodes as enforceVisibility adds new nodes
+    // to the visible list.s
+    enforceVisibilityForAllMatches(tree, node =>
+      evaluateTokenForValue(postfix[0]!, resolveValueFromKey(node, postfix[0]!))
+    );
+
+    const count = tree.list.length;
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i]!;
@@ -178,19 +187,29 @@ export function searchInTraceTreeTokens(
       return;
     }
 
-    if (li < count && !(leftToken instanceof Map)) {
-      while (li < count && performance.now() - ts < 12) {
+    if (li < tree.list.length && !(leftToken instanceof Map)) {
+      const token = leftToken;
+      enforceVisibilityForAllMatches(tree, node =>
+        evaluateTokenForValue(token, resolveValueFromKey(node, token))
+      );
+
+      while (li < tree.list.length && performance.now() - ts < 12) {
         const node = tree.list[li]!;
-        if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
+        if (evaluateTokenForValue(token, resolveValueFromKey(node, token))) {
           left.set(node, li);
         }
         li++;
       }
       handle.id = requestAnimationFrame(search);
-    } else if (ri < count && !(rightToken instanceof Map)) {
-      while (ri < count && performance.now() - ts < 12) {
+    } else if (ri < tree.list.length && !(rightToken instanceof Map)) {
+      const token = rightToken;
+      enforceVisibilityForAllMatches(tree, node =>
+        evaluateTokenForValue(token, resolveValueFromKey(node, token))
+      );
+
+      while (ri < tree.list.length && performance.now() - ts < 12) {
         const node = tree.list[ri]!;
-        if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
+        if (evaluateTokenForValue(token, resolveValueFromKey(node, token))) {
           right.set(node, ri);
         }
         ri++;
@@ -198,8 +217,8 @@ export function searchInTraceTreeTokens(
       handle.id = requestAnimationFrame(search);
     } else {
       if (
-        (li === count || leftToken instanceof Map) &&
-        (ri === count || rightToken instanceof Map)
+        (li === tree.list.length || leftToken instanceof Map) &&
+        (ri === tree.list.length || rightToken instanceof Map)
       ) {
         result_map = booleanResult(
           leftToken instanceof Map ? leftToken : left,
@@ -271,9 +290,11 @@ export function searchInTraceTreeText(
 
   let i = 0;
   let matchCount = 0;
-  const count = tree.list.length;
 
   function search() {
+    enforceVisibilityForAllMatches(tree, node => evaluateNodeFreeText(query, node));
+
+    const count = tree.list.length;
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i]!;
@@ -628,4 +649,16 @@ function evaluateNodeFreeText(
   }
 
   return false;
+}
+
+function enforceVisibilityForAllMatches(
+  tree: TraceTree,
+  predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
+): void {
+  TraceTree.ForEachChild(tree.root, node => {
+    if (predicate(node)) {
+      TraceTree.EnforceVisibility(tree, node);
+    }
+  });
+  tree.build();
 }
