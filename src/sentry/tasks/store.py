@@ -331,6 +331,17 @@ def do_process_event(
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
 
+    if start_time:
+        track_event(
+            step="start_process_event",
+            value=time() - start_time,
+            platform=data.get("platform") if data else None,
+            tags={
+                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
+            },
+            sample_rate=0.01,
+        )
+
     project_id = data["project"]
     set_current_event_project(project_id)
 
