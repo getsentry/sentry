@@ -425,10 +425,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
     const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
+    }
+
     const traceTimestamp = traceNode?.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
     const traceAge = defined(traceTimestamp)
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
+    const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
@@ -437,9 +443,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         props.organization,
         hasExceededPerformanceUsageLimit,
         source,
-        traceAge
+        traceAge,
+        issuesCount,
+        props.tree.eap_spans_count
       );
     }
+
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -539,6 +548,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         );
       });
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setRowAsFocused,
     traceDispatch,
@@ -548,10 +559,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
-    isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
-    props.meta?.data?.span_count,
     source,
+    isLoadingSubscriptionDetails,
     timestamp,
   ]);
 
@@ -645,7 +655,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
-    meta: props.meta,
   });
 
   // Sync part of the state with the URL
@@ -790,9 +799,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading />
+          <TraceWaterfallState.Loading trace={props.trace} />
         ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error />
+          <TraceWaterfallState.Error trace={props.trace} />
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}

@@ -200,6 +200,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             order_by=sort_by.db_order_by,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
+            count_hits=True,
         )
 
     @extend_schema(

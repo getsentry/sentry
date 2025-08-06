@@ -55,8 +55,11 @@ def trace_func(**span_kwargs):
                 )
             )
             # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
-            span_kwargs.setdefault("attributes", {}).setdefault("sample_rate", sample_rate)
-            with sentry_sdk.start_span(**span_kwargs):
+            span_kwargs.setdefault(
+                "custom_sampling_context",
+                {"sample_rate": sample_rate},
+            )
+            with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
 
         return inner

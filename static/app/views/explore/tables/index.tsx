@@ -13,7 +13,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreAggregateFields,
   useExploreFields,
-  useExploreMode,
   useSetExploreAggregateFields,
   useSetExploreFields,
   useSetExploreMode,
@@ -24,6 +23,7 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -48,7 +48,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   const aggregateFields = useExploreAggregateFields();
   const setAggregateFields = useSetExploreAggregateFields();
 
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const setMode = useSetExploreMode();
 
   const fields = useExploreFields();
