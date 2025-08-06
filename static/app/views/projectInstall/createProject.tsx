@@ -314,10 +314,23 @@ export function CreateProject() {
       } catch (error) {
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
-        // Only log this if the error is something other than:
-        // * The user not having access to create a project, or,
-        // * A project with that slug already exists
-        if (error.status !== 403 && error.status !== 409) {
+        if (error.status === 403) {
+          Sentry.withScope(scope => {
+            scope.setExtra('err', error);
+            scope.setContext('permission_context', {
+              org_slug: organization.slug,
+              team,
+              org_access: organization.access,
+              org_features: organization.features,
+              org_allow_member_project_creation: organization.allowMemberProjectCreation,
+              user_team_access: team
+                ? accessTeams.find(teamItem => teamItem.slug === team)
+                : null,
+              available_teams_count: accessTeams.length,
+            });
+            Sentry.captureMessage('Project creation permission denied');
+          });
+        } else if (error.status !== 409) {
           Sentry.withScope(scope => {
             scope.setExtra('err', error);
             Sentry.captureMessage('Project creation failed');
@@ -354,6 +367,7 @@ export function CreateProject() {
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
+      accessTeams,
     ]
   );
 
@@ -552,7 +566,14 @@ export function CreateProject() {
               </div>
             )}
             <div>
-              <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+              <Tooltip
+                title={
+                  canUserCreateProject
+                    ? submitTooltipText
+                    : t('You do not have permission to create projects')
+                }
+                disabled={formErrorCount === 0 && canUserCreateProject}
+              >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
