@@ -684,6 +684,7 @@ def post_process_group(
                     sample_rate=0.01,
                 )
 
+                metric_tags["step"] = "start_post_process"
                 metrics.timing(
                     "events.since_received",
                     start_post_process_at - received_at,
