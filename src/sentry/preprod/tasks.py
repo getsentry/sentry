@@ -142,6 +142,11 @@ def create_preprod_artifact(
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
 
+            if existing_file is None:
+                raise ValueError(
+                    f"No existing file found for checksum when trying to create preprod artifact. checksum={checksum}"
+                )
+
             build_config = None
             if build_configuration:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(

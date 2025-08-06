@@ -142,6 +142,13 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                                 "artifact_id": artifact_id,
                             }
                         )
+                    else:
+                        return Response(
+                            {
+                                "state": ChunkFileState.ERROR,
+                                "detail": "File not found when trying to create preprod artifact object.",
+                            }
+                        )
                 return Response({"state": state, "detail": detail, "missingChunks": []})
 
             # There is neither a known file nor a cached state, so we will
