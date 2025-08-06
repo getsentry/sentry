@@ -47,7 +47,7 @@ export function AutomationsTableActions({
 
   const {mutateAsync: deleteAutomations, isPending: isDeleting} =
     useDeleteAutomationsMutation();
-  const {mutate: updateAutomations, isPending: isUpdating} =
+  const {mutateAsync: updateAutomations, isPending: isUpdating} =
     useUpdateAutomationsMutation();
 
   const getConfirmMessage = useCallback(
@@ -85,8 +85,6 @@ export function AutomationsTableActions({
           } else {
             updateAutomations({enabled, ids: Array.from(selected)});
           }
-        },
-        onClose: () => {
           togglePageSelected(false);
         },
       });
@@ -113,8 +111,6 @@ export function AutomationsTableActions({
         } else {
           deleteAutomations({ids: Array.from(selected)});
         }
-      },
-      onClose: () => {
         togglePageSelected(false);
       },
     });
