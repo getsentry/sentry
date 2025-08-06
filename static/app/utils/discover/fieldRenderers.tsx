@@ -395,10 +395,10 @@ const RightAlignedContainer = styled('span')`
 `;
 
 /**
+ * use `LINKED_FIELDS` in `discover/linkedFieldRenderers` instead to add internally linked fields
+ *
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
- *
- * @deprecated add new SPECIAL_FIELDS in specialFieldRenderers instead
  */
 const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
@@ -1298,7 +1298,7 @@ const StyledTooltip = styled(Tooltip)`
  * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  *
- * @deprecated use `BaseFieldRenderer` or `getFieldRendererV2` instead
+ * @deprecated consider using `BaseFieldRenderer` instead
  */
 export function getFieldRenderer(
   field: string,

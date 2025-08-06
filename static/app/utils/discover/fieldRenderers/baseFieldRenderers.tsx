@@ -1,37 +1,17 @@
-import {type Theme, useTheme} from '@emotion/react';
-import type {Location, LocationDescriptor} from 'history';
+import {useTheme} from '@emotion/react';
+import type {LocationDescriptor} from 'history';
 
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {SPECIAL_FIELDS} from 'sentry/utils/discover/fieldRenderers/specialFieldRenderers';
+import {LINKED_FIELDS} from 'sentry/utils/discover/fieldRenderers/linkedFieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import CellAction from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-
-/**
- * Types, functions and definitions for rendering fields in discover results.
- */
-export type RenderFunctionBaggageV2 = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  theme: Theme;
-  /**
-   * If true, all fields that are not needed immediately will not be rendered lazily.
-   * This is useful for fields that require api calls or other side effects to render.
-   *
-   * eg. the code path field in logs requires a call to the stacktrace link api to render.
-   */
-  disableLazyLoad?: boolean;
-  unit?: string;
-};
 
 type BaseFieldRendererProps = {
   column: TableColumn<keyof TableDataRow>;
@@ -73,8 +53,8 @@ export function BaseFieldRenderer({
   let cell: React.ReactNode;
   let target: LocationDescriptor | undefined;
 
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    const result = SPECIAL_FIELDS[field]!.renderFunc(data, baggage);
+  if (LINKED_FIELDS.hasOwnProperty(field)) {
+    const result = LINKED_FIELDS[field]!.renderFunc(data, baggage);
     cell = result.node;
     target = result.target;
   } else {
