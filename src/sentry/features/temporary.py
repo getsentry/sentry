@@ -94,6 +94,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics enhanced performance for AM2+ customers as they transition from AM2 to AM3
     manager.add("organizations:dashboards-metrics-transition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable dashboard limits by plan type
+    manager.add("organizations:dashboards-plan-limits", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable starred dashboards with reordering
     manager.add("organizations:dashboards-starred-reordering", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dashboard widget builder redesign UI
