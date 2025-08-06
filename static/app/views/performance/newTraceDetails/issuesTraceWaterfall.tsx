@@ -383,9 +383,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         </IssuesTraceContainer>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading />
+          <TraceWaterfallState.Loading trace={props.trace} />
         ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error />
+          <TraceWaterfallState.Error trace={props.trace} />
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}

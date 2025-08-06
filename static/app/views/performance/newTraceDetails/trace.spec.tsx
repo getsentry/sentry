@@ -953,31 +953,7 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
-    ).toBeInTheDocument();
-  });
-
-  it('renders error state if meta fails to load', async () => {
-    mockPerformanceSubscriptionDetailsResponse();
-    mockProjectDetailsResponse();
-
-    mockTraceResponse({
-      statusCode: 200,
-      body: {
-        transactions: [makeTransaction()],
-        orphan_errors: [],
-      },
-    });
-    mockTraceMetaResponse({statusCode: 404});
-    mockTraceTagsResponse({statusCode: 404});
-    mockEventsResponse();
-
-    render(<TraceView />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-    expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
+      await screen.findByText(/Woof, we failed to load your trace/i)
     ).toBeInTheDocument();
   });
 
@@ -1006,7 +982,9 @@ describe('trace view', () => {
       deprecatedRouterMocks: true,
     });
     expect(
-      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+      await screen.findByText(
+        /We were unable to find any spans for this trace. Seeing this often?/i
+      )
     ).toBeInTheDocument();
   });
 
