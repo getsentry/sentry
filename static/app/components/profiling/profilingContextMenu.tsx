@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -30,8 +31,6 @@ export {Menu as ProfilingContextMenu};
 
 const MenuContentContainer = styled('div')`
   cursor: pointer;
-  display: flex;
-  align-items: center;
   font-weight: ${p => p.theme.fontWeight.normal};
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
@@ -46,8 +45,6 @@ const MenuContentContainer = styled('div')`
 `;
 
 const MenuItemCheckboxLabel = styled('label')`
-  display: flex;
-  align-items: center;
   font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
   cursor: pointer;
@@ -65,15 +62,27 @@ function MenuItemCheckbox({ref, ...props}: MenuItemCheckboxProps) {
 
   return (
     <MenuContentOuterContainer>
-      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-        <MenuItemCheckboxLabel>
-          <MenuLeadingItem>
-            <Input type="checkbox" checked={checked} onChange={() => void 0} />
-            <IconCheckmark />
-          </MenuLeadingItem>
-          <MenuContent>{children}</MenuContent>
-        </MenuItemCheckboxLabel>
-      </MenuContentContainer>
+      <Flex>
+        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+          <Flex align="center">
+            <MenuItemCheckboxLabel>
+              <Flex align="center">
+                <MenuLeadingItemWrapper>
+                  <Flex align="center" gap="sm">
+                    <Input type="checkbox" checked={checked} onChange={() => void 0} />
+                    <IconCheckmark />
+                  </Flex>
+                </MenuLeadingItemWrapper>
+                <MenuContentWrapper>
+                  <Flex gap="xs" justify="between">
+                    {children}
+                  </Flex>
+                </MenuContentWrapper>
+              </Flex>
+            </MenuItemCheckboxLabel>
+          </Flex>
+        </MenuContentContainer>
+      </Flex>
     </MenuContentOuterContainer>
   );
 }
@@ -95,12 +104,22 @@ function MenuItemButton({ref, ...props}: MenuItemButtonProps) {
   const {children, tooltip, ...rest} = props;
   return (
     <MenuContentOuterContainer>
-      <Tooltip title={tooltip}>
-        <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
-          {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-          {children}
-        </MenuButton>
-      </Tooltip>
+      <Flex>
+        <Tooltip title={tooltip}>
+          <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
+            <Flex align="center">
+              {props.icon ? (
+                <MenuLeadingItemWrapper>
+                  <Flex align="center" gap="sm">
+                    {props.icon}
+                  </Flex>
+                </MenuLeadingItemWrapper>
+              ) : null}
+              {children}
+            </Flex>
+          </MenuButton>
+        </Tooltip>
+      </Flex>
     </MenuContentOuterContainer>
   );
 }
@@ -109,9 +128,7 @@ export {MenuItemButton as ProfilingContextMenuItemButton};
 
 const MenuButton = styled('button')`
   border: none;
-  display: flex;
   flex: 1;
-  align-items: center;
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
@@ -130,22 +147,16 @@ const MenuButton = styled('button')`
   }
 `;
 
-const MenuLeadingItem = styled('div')`
-  display: flex;
-  align-items: center;
+const MenuLeadingItemWrapper = styled('div')`
   height: 1.4em;
   width: 1em;
-  gap: ${space(1)};
   padding: ${space(1)} 0;
   position: relative;
 `;
 
-const MenuContent = styled('div')`
+const MenuContentWrapper = styled('div')`
   position: relative;
   width: 100%;
-  display: flex;
-  gap: ${space(0.5)};
-  justify-content: space-between;
   padding: ${space(0.5)} 0;
   margin-left: ${space(0.5)};
   text-transform: capitalize;
@@ -189,9 +200,17 @@ const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
   const {children, ...rest} = props;
   return (
     <MenuContentOuterContainer>
-      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-        <MenuContent>{children}</MenuContent>
-      </MenuContentContainer>
+      <Flex>
+        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+          <Flex align="center">
+            <MenuContentWrapper>
+              <Flex gap="xs" justify="between">
+                {children}
+              </Flex>
+            </MenuContentWrapper>
+          </Flex>
+        </MenuContentContainer>
+      </Flex>
     </MenuContentOuterContainer>
   );
 })`
@@ -213,11 +232,6 @@ export {MenuItem as ProfilingContextMenuItem};
 
 const MenuContentOuterContainer = styled('div')`
   padding: 0 ${space(0.5)};
-  display: flex;
-
-  > span {
-    display: flex;
-  }
 
   > div,
   > span,

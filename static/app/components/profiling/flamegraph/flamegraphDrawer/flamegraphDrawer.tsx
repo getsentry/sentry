@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
@@ -184,12 +185,14 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <Separator />
         <ProfilingDetailsListItem>
           <FrameDrawerLabel>
-            <Checkbox
-              size="sm"
-              checked={recursion === 'collapsed'}
-              onChange={handleRecursionChange}
-            />
-            {t('Collapse recursion')}
+            <Flex align="center" gap="sm">
+              <Checkbox
+                size="sm"
+                checked={recursion === 'collapsed'}
+                onChange={handleRecursionChange}
+              />
+              {t('Collapse recursion')}
+            </Flex>
           </FrameDrawerLabel>
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
@@ -222,39 +225,41 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <Separator />
         <ProfilingDetailsListItem>
           <LayoutSelectionContainer>
-            <Tooltip title={t('Table left')} skipWrapper>
-              <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table left'}
-                onClick={onTableLeftClick}
-                title={t('Table left')}
-                aria-label={t('Table left')}
-                size="xs"
-                icon={<IconPanel direction="left" />}
-              />
-            </Tooltip>
-            <Tooltip title={t('Table bottom')} skipWrapper>
-              <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table bottom'}
-                onClick={onTableBottomClick}
-                title={t('Table bottom')}
-                aria-label={t('Table bottom')}
-                size="xs"
-                icon={<IconPanel direction="down" />}
-              />
-            </Tooltip>
-            <Tooltip title={t('Table right')} skipWrapper>
-              <StyledButton
-                priority={theme.isChonk ? 'transparent' : undefined}
-                active={flamegraphPreferences.layout === 'table right'}
-                onClick={onTableRightClick}
-                title={t('Table right')}
-                aria-label={t('Table right')}
-                size="xs"
-                icon={<IconPanel direction="right" />}
-              />
-            </Tooltip>
+            <Flex align="center" gap="xs">
+              <Tooltip title={t('Table left')} skipWrapper>
+                <StyledButton
+                  priority={theme.isChonk ? 'transparent' : undefined}
+                  active={flamegraphPreferences.layout === 'table left'}
+                  onClick={onTableLeftClick}
+                  title={t('Table left')}
+                  aria-label={t('Table left')}
+                  size="xs"
+                  icon={<IconPanel direction="left" />}
+                />
+              </Tooltip>
+              <Tooltip title={t('Table bottom')} skipWrapper>
+                <StyledButton
+                  priority={theme.isChonk ? 'transparent' : undefined}
+                  active={flamegraphPreferences.layout === 'table bottom'}
+                  onClick={onTableBottomClick}
+                  title={t('Table bottom')}
+                  aria-label={t('Table bottom')}
+                  size="xs"
+                  icon={<IconPanel direction="down" />}
+                />
+              </Tooltip>
+              <Tooltip title={t('Table right')} skipWrapper>
+                <StyledButton
+                  priority={theme.isChonk ? 'transparent' : undefined}
+                  active={flamegraphPreferences.layout === 'table right'}
+                  onClick={onTableRightClick}
+                  title={t('Table right')}
+                  aria-label={t('Table right')}
+                  size="xs"
+                  icon={<IconPanel direction="right" />}
+                />
+              </Tooltip>
+            </Flex>
           </LayoutSelectionContainer>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
@@ -316,13 +321,10 @@ const InvisibleHandler = styled('div')`
 `;
 
 const FrameDrawerLabel = styled('label')`
-  display: flex;
-  align-items: center;
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
   font-weight: ${p => p.theme.fontWeight.normal};
-  gap: ${space(0.5)};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
@@ -435,10 +437,7 @@ const StyledButton = withChonk(
 );
 
 const LayoutSelectionContainer = styled('div')`
-  display: flex;
-  align-items: center;
   height: 100%;
-  gap: ${space(0.25)};
 `;
 
 export {FlamegraphDrawer};

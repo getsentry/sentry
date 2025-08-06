@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -227,47 +228,49 @@ function SidebarContent() {
 
   return (
     <Fragment>
-      <Content>
-        <Heading>{t('Profile Code')}</Heading>
-        <div
-          onClick={e => {
-            // we need to stop bubbling the CompactSelect click event
-            // failing to do so will cause the sidebar panel to close
-            // the event.target will be unmounted by the time the panel listener
-            // receives the event and assume the click was outside the panel
-            e.stopPropagation();
-          }}
-        >
-          <CompactSelect
-            triggerLabel={
-              currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              )
-            }
-            value={currentProject?.id}
-            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{'aria-label': currentProject?.slug}}
-            options={projectSelectOptions}
-            position="bottom-end"
-          />
-        </div>
-        {currentProject && currentPlatform ? (
-          <ProfilingOnboardingContent
-            activeProductSelection={PROFILING_ONBOARDING_STEPS}
-            organization={organization}
-            platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
-          />
-        ) : null}
-      </Content>
+      <ContentWrapper>
+        <Flex direction="column" gap="sm">
+          <Heading>{t('Profile Code')}</Heading>
+          <div
+            onClick={e => {
+              // we need to stop bubbling the CompactSelect click event
+              // failing to do so will cause the sidebar panel to close
+              // the event.target will be unmounted by the time the panel listener
+              // receives the event and assume the click was outside the panel
+              e.stopPropagation();
+            }}
+          >
+            <CompactSelect
+              triggerLabel={
+                currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )
+              }
+              value={currentProject?.id}
+              onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
+              triggerProps={{'aria-label': currentProject?.slug}}
+              options={projectSelectOptions}
+              position="bottom-end"
+            />
+          </div>
+          {currentProject && currentPlatform ? (
+            <ProfilingOnboardingContent
+              activeProductSelection={PROFILING_ONBOARDING_STEPS}
+              organization={organization}
+              platform={currentPlatform}
+              projectId={currentProject.id}
+              projectSlug={currentProject.slug}
+            />
+          ) : null}
+        </Flex>
+      </ContentWrapper>
     </Fragment>
   );
 }
@@ -380,11 +383,11 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   return (
     <Wrapper>
       {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-      <Steps>
+      <Flex direction="column" gap="xl">
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
-      </Steps>
+      </Flex>
     </Wrapper>
   );
 }
@@ -393,27 +396,17 @@ const Wrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
 const Introduction = styled('div')`
   & > p:not(:last-child) {
     margin-bottom: ${space(2)};
   }
 `;
 
-const Content = styled('div')`
+const ContentWrapper = styled('div')`
   padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const Heading = styled('div')`
-  display: flex;
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;

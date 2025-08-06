@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -433,9 +434,11 @@ function ProfileEventDetails({
                     }) + `?project=${project.id}`
                   }
                 >
-                  <FlexRow>
-                    <ProjectAvatar project={project} size={12} /> {project.slug}
-                  </FlexRow>
+                  <FlexRowWrapper>
+                    <Flex align="center" gap="xs" inline>
+                      <ProjectAvatar project={project} size={12} /> {project.slug}
+                    </Flex>
+                  </FlexRowWrapper>
                 </Link>
               </DetailsRow>
             );
@@ -518,13 +521,8 @@ const ENVIRONMENT_DETAILS_KEY: Record<string, string> = {
 };
 
 // ProjectAvatar is contained in a div
-const FlexRow = styled('span')`
-  display: inline-flex;
-  align-items: center;
-
-  > div {
-    margin-right: ${space(0.5)};
-  }
+const FlexRowWrapper = styled('span')`
+  /* styling preserved for semantic wrapper */
 `;
 
 const DetailsRow = styled('div')`

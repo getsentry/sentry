@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,10 +34,12 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   const title = t('Export Profile');
 
   return props.size === 'zero' ? (
-    <DownloadButton href={href} download={download} {...props}>
-      {props.children}
-      <IconDownload size="xs" />
-    </DownloadButton>
+    <DownloadButtonWrapper href={href} download={download} {...props}>
+      <Flex align="center" justify="center">
+        {props.children}
+        <IconDownload size="xs" />
+      </Flex>
+    </DownloadButtonWrapper>
   ) : (
     <LinkButton
       icon={<IconDownload />}
@@ -51,13 +54,9 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   );
 }
 
-const DownloadButton = styled('a')`
+const DownloadButtonWrapper = styled('a')`
   padding: ${space(0.5)} ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   &:hover {
     border: none;

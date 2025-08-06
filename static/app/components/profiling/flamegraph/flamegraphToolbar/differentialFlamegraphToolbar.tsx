@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphNegationSwitch';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {t} from 'sentry/locale';
@@ -28,31 +29,29 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
 
   return (
     <DifferentialFlamegraphToolbarContainer>
-      <DifferentialFlamegraphNegationSwitch
-        onNegatedChange={props.onNegatedChange}
-        negated={props.negated}
-      />
-      <FlamegraphSearch
-        spans={EMPTY_SPANS}
-        flamegraphs={props.flamegraph}
-        canvasPoolManager={props.canvasPoolManager}
-      />
-      <Button size="xs" onClick={onResetZoom}>
-        {t('Reset Zoom')}
-      </Button>
-      <DifferentialFlamegraphSettingsButton
-        frameFilter={props.frameFilter}
-        onFrameFilterChange={props.onFrameFilterChange}
-      />
+      <Flex justify="between" align="center" gap="sm">
+        <DifferentialFlamegraphNegationSwitch
+          onNegatedChange={props.onNegatedChange}
+          negated={props.negated}
+        />
+        <FlamegraphSearch
+          spans={EMPTY_SPANS}
+          flamegraphs={props.flamegraph}
+          canvasPoolManager={props.canvasPoolManager}
+        />
+        <Button size="xs" onClick={onResetZoom}>
+          {t('Reset Zoom')}
+        </Button>
+        <DifferentialFlamegraphSettingsButton
+          frameFilter={props.frameFilter}
+          onFrameFilterChange={props.onFrameFilterChange}
+        />
+      </Flex>
     </DifferentialFlamegraphToolbarContainer>
   );
 }
 
 const DifferentialFlamegraphToolbarContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: ${space(1)};
-  gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;

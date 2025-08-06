@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
@@ -186,12 +187,14 @@ function ProfileReferenceRow(props: ProfileReferenceRowProps) {
   if (isTransactionProfileReference(props.reference)) {
     return (
       <ReferenceRowContainer>
-        <Link to={target}>{getShortEventId(props.reference.profile_id)}</Link>
-        {props.reference.start ? (
-          <DateTime date={props.reference.start * 1000} />
-        ) : (
-          '\u2013'
-        )}
+        <Flex justify="between">
+          <Link to={target}>{getShortEventId(props.reference.profile_id)}</Link>
+          {props.reference.start ? (
+            <DateTime date={props.reference.start * 1000} />
+          ) : (
+            '\u2013'
+          )}
+        </Flex>
       </ReferenceRowContainer>
     );
   }
@@ -199,16 +202,20 @@ function ProfileReferenceRow(props: ProfileReferenceRowProps) {
   if (isContinuousProfileReference(props.reference)) {
     return (
       <ReferenceRowContainer>
-        <Link to={target}>{getShortEventId(props.reference.profiler_id)}</Link>
-        <DateTime date={props.reference.start * 1000} />
+        <Flex justify="between">
+          <Link to={target}>{getShortEventId(props.reference.profiler_id)}</Link>
+          <DateTime date={props.reference.start * 1000} />
+        </Flex>
       </ReferenceRowContainer>
     );
   }
 
   return (
     <ReferenceRowContainer>
-      <Link to={target}>{getShortEventId(props.reference)}</Link>
-      {'\u2013'}
+      <Flex justify="between">
+        <Link to={target}>{getShortEventId(props.reference)}</Link>
+        {'\u2013'}
+      </Flex>
     </ReferenceRowContainer>
   );
 }
@@ -266,6 +273,5 @@ const DetailsContainer = styled('div')`
 `;
 
 const ReferenceRowContainer = styled(RowContainer)`
-  display: flex;
-  justify-content: space-between;
+  /* styling preserved for semantic wrapper */
 `;
