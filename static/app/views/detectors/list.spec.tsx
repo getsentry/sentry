@@ -103,6 +103,10 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('count()')).toBeInTheDocument();
     expect(within(row).getByText('event.type:error')).toBeInTheDocument();
     expect(within(row).getByText('>10% high')).toBeInTheDocument();
+
+    // Last issue
+    expect(within(row).getByText('RequestError')).toBeInTheDocument();
+    expect(within(row).getByText('Last seen')).toBeInTheDocument();
   });
 
   it('displays connected automations', async function () {
