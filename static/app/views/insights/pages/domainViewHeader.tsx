@@ -65,7 +65,7 @@ export function DomainViewHeader({
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
-  const isAgentMonitoring = view === 'agents';
+  const isAgentMonitoring = view === 'ai';
 
   const crumbs: Crumb[] = [
     {

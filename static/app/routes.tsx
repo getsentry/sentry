@@ -17,7 +17,6 @@ import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -1827,16 +1826,17 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  // Redirects for old LLM monitoring routes
   const llmMonitoringRedirects: SentryRouteObject = {
     children: [
       {
         path: '/llm-monitoring/',
-        redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+        redirectTo: `/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
         customerDomainOnlyRoute: true,
       },
       {
         path: '/organizations/:orgId/llm-monitoring/',
-        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
       },
     ],
   };
@@ -2041,26 +2041,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: `${MODULE_BASE_URLS[ModuleName.AI]}/`,
-      children: [
-        {
-          index: true,
-          component: make(
-            () =>
-              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
-          ),
-        },
-        {
-          path: 'pipeline-type/:groupId/',
-          component: make(
-            () =>
-              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
-          ),
-          deprecatedRouteProps: true,
-        },
-      ],
-    },
-    {
       path: `${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`,
       children: [
         {
@@ -2150,10 +2130,6 @@ function buildRoutes(): RouteObject[] {
         traceView,
         ...moduleRoutes,
       ],
-    },
-    {
-      path: `${AI_LANDING_SUB_PATH}/`,
-      children: [traceView, ...moduleRoutes],
     },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
