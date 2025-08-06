@@ -6,8 +6,6 @@ from typing import Any
 
 from google.cloud.exceptions import NotFound
 
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -184,7 +182,9 @@ def _delete_if_exists(filename: str) -> None:
         namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=300
     ),
 )
-def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: int = 100) -> None:
+def run_bulk_replay_delete_job(
+    replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False
+) -> None:
     """Replay bulk deletion task.
 
     We specify retry behavior in the task definition. However, if the task fails more than 5 times
@@ -219,13 +219,13 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
-            organization = Organization.objects.get_from_cache(id=job.organization_id)
-            delete_seer_replay_data(
-                organization,
-                job.project_id,
-                [row["replay_id"] for row in results["rows"]],
-                synchronous=False,
-            )
+            if has_seer_data:
+                delete_seer_replay_data(
+                    job.organization_id,
+                    job.project_id,
+                    [row["replay_id"] for row in results["rows"]],
+                    run_in_thread=False,
+                )
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
@@ -253,6 +253,7 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         return None
 
 
+# TODO: this task doesn't seem to be used anywhere in sentry or getsentry. Delete it?
 @instrumented_task(
     name="sentry.replays.tasks.delete_replay",
     queue="replays.delete_replay",
@@ -280,14 +281,4 @@ def delete_replay(
                 "retention_days": retention_days,
             }
         ],
-    )
-
-    # TODO: how and where is this task used? Can we pass org id?
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = project.organization
-    delete_seer_replay_data(
-        organization=organization,
-        project_id=project_id,
-        replay_ids=[replay_id],
-        synchronous=True,
     )

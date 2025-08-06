@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 import functools
+import logging
 import threading
 from datetime import datetime
 from typing import TypedDict
@@ -22,7 +23,6 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry import features
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
@@ -52,6 +52,8 @@ SNUBA_RETRY_EXCEPTIONS = (
     QueryExecutionError,
     UnexpectedResponseError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
@@ -189,31 +191,40 @@ def fetch_rows_matching_pattern(
 
 
 def delete_seer_replay_data(
-    organization: Organization,
+    organization_id: int,
     project_id: int,
     replay_ids: list[str],
-    synchronous: bool,
+    run_in_thread: bool,
     timeout: int | tuple[int, int] | None = None,
 ) -> bool:
-    """Makes feature flag query(s). If synchronous, this returns whether the request was successful."""
-    if not features.has("organizations:replay-ai-summaries", organization):
-        return True
+    """If synchronous, this returns whether the request was successful."""
 
-    def make_seer_request():
-        make_signed_seer_request_simple(
+    def run_delete():
+        response, status_code = make_signed_seer_request_simple(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/delete",
             {
-                "organization_id": organization.id,
+                "organization_id": organization_id,
                 "project_id": project_id,
                 "replay_ids": replay_ids,
             },
             timeout=timeout,
         )
-
-    if synchronous:
-        _, status_code = make_seer_request()
+        if status_code >= 400:
+            logger.error(
+                "Failed to delete replay data from Seer",
+                extra={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "replay_ids": replay_ids,
+                    "status_code": status_code,
+                    "response": response.content if response else None,
+                },
+            )
         return status_code < 400
 
-    thread = threading.Thread(target=make_seer_request)
-    thread.start()
-    return True
+    if run_in_thread:
+        thread = threading.Thread(target=run_delete)
+        thread.start()
+        return True
+
+    return run_delete()

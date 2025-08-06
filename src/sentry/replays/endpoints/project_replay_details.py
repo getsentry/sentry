@@ -98,10 +98,12 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         delete_recording_segments.delay(project_id=project.id, replay_id=replay_id)
-        delete_seer_replay_data(
-            organization=project.organization,
-            project_id=project.id,
-            replay_ids=[replay_id],
-            synchronous=False,
-        )
+
+        if features.has("organizations:replay-ai-summaries", project.organization):
+            delete_seer_replay_data(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                replay_ids=[replay_id],
+                run_in_thread=False,
+            )
         return Response(status=204)
