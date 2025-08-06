@@ -265,7 +265,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 502
+        assert response.status_code == 500
 
     @django_db_all
     @responses.activate
@@ -275,7 +275,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 502
+        assert response.status_code == 500
 
     @django_db_all
     @responses.activate
@@ -287,7 +287,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
-        assert response.status_code == 502
+        assert response.status_code == 500
 
     @django_db_all
     @responses.activate
@@ -298,4 +298,4 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             with self.feature(self.features):
                 response = self.get_error_response(self.org.slug)
 
-            assert response.status_code == 502
+            assert response.status_code == 500
