@@ -1148,6 +1148,7 @@ def _get_project_config(
                 extra={
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
+                    "sampling_rule_count": len(config["sampling"]["rules"]),
                     "dynamic_sampling_feature_flag": features.has(
                         "organizations:dynamic-sampling", project.organization
                     ),
