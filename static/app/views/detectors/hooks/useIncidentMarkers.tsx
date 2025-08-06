@@ -217,14 +217,14 @@ function IncidentBubbleSeries({
   };
 }
 
-interface UseIncidentBubblesProps {
+interface UseIncidentMarkersProps {
   incidents?: IncidentPeriod[];
   seriesId?: string;
   seriesName?: string;
   yAxisIndex?: number;
 }
 
-interface UseIncidentBubblesResult {
+interface UseIncidentMarkersResult {
   connectIncidentBubbleChartRef: (ref: ReactEchartsRef | null) => void;
   incidentBubbleGrid: GridComponentOption;
   incidentBubbleSeries: CustomSeriesOption | null;
@@ -238,12 +238,12 @@ interface UseIncidentBubblesResult {
 /**
  * Takes an array of incidents and returns a series that renders them as bubbles
  */
-export function useIncidentBubbles({
+export function useIncidentMarkers({
   incidents,
   yAxisIndex = 0,
   seriesName = t('Incidents'),
   seriesId = INCIDENT_BUBBLE_SERIES_ID,
-}: UseIncidentBubblesProps): UseIncidentBubblesResult {
+}: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef | null>(null);
 

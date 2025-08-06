@@ -16,7 +16,7 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {useIncidentBubbles} from 'sentry/views/detectors/hooks/useIncidentBubbles';
+import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
@@ -127,7 +127,7 @@ export function MetricDetectorChart({
   });
 
   // Create anomaly bubble rendering from pre-grouped anomaly periods
-  const anomalyBubbleResult = useIncidentBubbles({
+  const anomalyBubbleResult = useIncidentMarkers({
     incidents: anomalyPeriods,
     seriesName: t('Anomalies'),
     seriesId: '__anomaly_bubble__',

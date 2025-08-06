@@ -18,7 +18,7 @@ import {
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 
-import type {IncidentPeriod} from './useIncidentBubbles';
+import type {IncidentPeriod} from './useIncidentMarkers';
 import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
 interface UseMetricDetectorAnomalyPeriodsProps {
