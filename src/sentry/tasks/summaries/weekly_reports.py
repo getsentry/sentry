@@ -3,6 +3,7 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
+import zoneinfo
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -51,6 +52,8 @@ from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -379,8 +382,11 @@ class OrganizationReportBatch:
                 dupe_check.record_delivery()
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
+        # get user options timezone for this user, then format the timestamp according to the timezone
+        local_start, local_end = get_local_dates(self.ctx, user_id)
+
         message = MessageBuilder(
-            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
+            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(local_start)} - {date_format(local_end)}",
             template="sentry/emails/reports/body.txt",
             html_template="sentry/emails/reports/body.html",
             type="report.organization",
@@ -547,6 +553,19 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
+def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datetime, datetime]:
+    user_tz = get_option_from_list(
+        user_option_service.get_many(filter={"user_ids": [user_id], "keys": ["timezone"]}),
+        key="timezone",
+        default="UTC",
+    )
+    local_timezone = zoneinfo.ZoneInfo(user_tz)
+    local_start = ctx.start.astimezone(local_timezone)
+    local_end = ctx.end.astimezone(local_timezone)
+
+    return (local_start, local_end)
+
+
 def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
@@ -563,6 +582,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         return None
 
     notification_uuid = str(uuid.uuid4())
+    local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -793,8 +813,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
     return {
         "organization": ctx.organization,
-        "start": date_format(ctx.start),
-        "end": date_format(ctx.end),
+        "start": date_format(local_start),
+        "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
