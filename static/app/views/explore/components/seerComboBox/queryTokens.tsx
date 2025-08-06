@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
-interface QueryTokensProps {
+export interface QueryTokensProps {
   groupBys?: string[];
   query?: string;
   sort?: string;
@@ -91,14 +90,14 @@ export default QueryTokens;
 
 const TokenContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
 `;
 
 const Token = styled('span')`
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   overflow: hidden;
   flex-wrap: wrap;
   align-items: center;
@@ -116,7 +115,7 @@ const ExploreParamTitle = styled('span')`
 const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
   background: ${p => p.theme.background};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   height: 24px;
