@@ -174,7 +174,7 @@ function getAlertGridLayout(p: AlertProps) {
     }`;
   }
 
-  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''}`;
+  return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
 const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
