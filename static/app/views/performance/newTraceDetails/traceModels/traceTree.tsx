@@ -1728,14 +1728,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // When eap-transaction nodes are collapsed, they still render transactions as visible children.
       // Reparent the transactions from under the eap-spans in the expanded state, to under the closest eap-transaction
-      // in the collapsed state.
+      // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
           t =>
-            TraceTree.FindAll(t, n => isEAPTransactionNode(n) && n !== t) as Array<
-              TraceTreeNode<TraceTree.EAPSpan>
-            >,
+            TraceTree.FindAll(
+              t,
+              n =>
+                isEAPTransactionNode(n) &&
+                n !== t &&
+                TraceTree.ParentEAPTransaction(n) === node
+            ) as Array<TraceTreeNode<TraceTree.EAPSpan>>,
           t => TraceTree.ParentEAPTransaction(t)
         );
       }
