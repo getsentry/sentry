@@ -53,6 +53,10 @@ SNUBA_RETRY_EXCEPTIONS = (
     UnexpectedResponseError,
 )
 
+SEER_DELETE_SUMMARIES_URL = (
+    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/delete"
+)
+
 logger = logging.getLogger(__name__)
 
 

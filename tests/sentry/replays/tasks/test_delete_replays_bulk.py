@@ -4,12 +4,15 @@ import datetime
 import uuid
 from unittest.mock import MagicMock, patch
 
+import responses
+
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
-from sentry.replays.usecases.delete import fetch_rows_matching_pattern
+from sentry.replays.usecases.delete import SEER_DELETE_SUMMARIES_URL, fetch_rows_matching_pattern
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.utils import json
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -234,3 +237,46 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
+
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    @responses.activate
+    def test_run_bulk_replay_delete_job_seer_data(
+        self, _mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
+        mock_fetch_rows.return_value = {
+            "rows": [
+                {
+                    "retention_days": 90,
+                    "replay_id": "a",
+                    "max_segment_id": 1,
+                },
+                {
+                    "retention_days": 90,
+                    "replay_id": "b",
+                    "max_segment_id": 0,
+                },
+            ],
+            "has_more": False,
+        }
+
+        responses.add(
+            responses.POST,
+            SEER_DELETE_SUMMARIES_URL,
+            status=204,
+        )
+
+        run_bulk_replay_delete_job(self.job.id, offset=0, has_seer_data=True)
+
+        assert len(responses.calls) == 1
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_DELETE_SUMMARIES_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert seer_request.body == json.dumps(
+            {
+                "organization_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "replay_ids": ["a", "b"],
+            }
+        )
