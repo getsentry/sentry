@@ -13,7 +13,7 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +29,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
@@ -107,6 +107,7 @@ type State = {
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
+  showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -172,6 +173,7 @@ export class Results extends Component<Props, State> {
     tips: [],
     showForcedDatasetAlert: true,
     showQueryIncompatibleWithDataset: false,
+    showTransactionsDeprecationAlert: true,
   };
 
   componentDidMount() {
@@ -690,6 +692,47 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  renderTransactionsDatasetDeprecationBanner() {
+    const {savedQueryDataset} = this.state;
+    const {location, organization} = this.props;
+    const dataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQueryDataset
+    );
+    if (
+      this.state.showTransactionsDeprecationAlert &&
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      dataset === DiscoverDatasets.TRANSACTIONS
+    ) {
+      return (
+        <Alert.Container>
+          <Alert
+            type="warning"
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showTransactionsDeprecationAlert: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {tctCode(
+              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead.',
+              {
+                traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+    return null;
+  }
+
   renderTips() {
     const {tips} = this.state;
     if (tips) {
@@ -802,6 +845,7 @@ export class Results extends Component<Props, State> {
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
                 {this.renderQueryIncompatibleWithDatasetBanner()}
+                {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>

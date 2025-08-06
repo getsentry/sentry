@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,7 +13,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import {t, tct} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {Project} from 'sentry/types/project';
@@ -36,6 +38,8 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
@@ -66,6 +70,10 @@ export default function MetricDetailsBody({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
@@ -130,6 +138,18 @@ export default function MetricDetailsBody({
 
   const formattedAggregate = aggregate;
 
+  const ruleType =
+    rule &&
+    getAlertTypeFromAggregateDataset({
+      aggregate: rule.aggregate,
+      dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
+      organization,
+    });
+
+  const deprecateTransactionsAlertsWarning =
+    ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
+
   return (
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
@@ -156,6 +176,28 @@ export default function MetricDetailsBody({
                         forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
                       }
                     )}
+              </Alert>
+            </Alert.Container>
+          )}
+          {deprecateTransactionsAlertsWarning && showTransactionsDeprecationAlert && (
+            <Alert.Container>
+              <Alert
+                type="warning"
+                trailingItems={
+                  <StyledCloseButton
+                    icon={<IconClose size="sm" />}
+                    aria-label={t('Close')}
+                    onClick={() => {
+                      setShowTransactionsDeprecationAlert(false);
+                    }}
+                    size="zero"
+                    borderless
+                  />
+                }
+              >
+                {tctCode(
+                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+                )}
               </Alert>
             </Alert.Container>
           )}
@@ -296,4 +338,15 @@ const StyledSubHeader = styled('div')`
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-right: ${space(1)};
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;
