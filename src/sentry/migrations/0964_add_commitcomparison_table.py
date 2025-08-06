@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0962_json_fields_too_big"),
+        ("sentry", "0963_scheduleddeletion_json_field"),
     ]
 
     operations = [
