@@ -442,9 +442,11 @@ describe('AutomationsList', function () {
       await userEvent.click(masterCheckbox);
 
       // Should show alert with option to select all query results
-      expect(screen.getByText(/20 issues on this page selected/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/20 automations on this page selected/)
+      ).toBeInTheDocument();
       const selectAllForQuery = screen.getByText(
-        /Select all 50 issues that match this search query/
+        /Select all 50 automations that match this search query/
       );
       await userEvent.click(selectAllForQuery);
 

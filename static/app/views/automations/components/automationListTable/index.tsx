@@ -179,7 +179,7 @@ function AutomationListTable({
 }
 
 const AutomationsSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 0.25fr 1fr;
+  grid-template-columns: 1fr;
 
   margin-bottom: ${space(2)};
 
