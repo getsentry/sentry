@@ -71,7 +71,7 @@ def build_workflow_event_data_from_event(
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
-    # Fetch environment if provided
+    # Fetch environment from workflow
     workflow_env: Environment | None = (
         Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
     )
