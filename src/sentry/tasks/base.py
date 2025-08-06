@@ -253,11 +253,12 @@ def retry(
                 if timeouts:
                     with sentry_sdk.isolation_scope() as scope:
                         task_state = current_task()
-                        scope.fingerprint = [
-                            "task.processing_deadline_exceeded",
-                            task_state.namespace,
-                            task_state.taskname,
-                        ]
+                        if task_state:
+                            scope.fingerprint = [
+                                "task.processing_deadline_exceeded",
+                                task_state.namespace,
+                                task_state.taskname,
+                            ]
                         sentry_sdk.capture_exception(level="info")
                     retry_task()
                 else:
