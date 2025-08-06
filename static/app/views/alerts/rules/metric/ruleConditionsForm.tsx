@@ -33,7 +33,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -551,8 +551,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
+    const deprecateTransactionsAlertsWarning =
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
+
     return (
       <Fragment>
+        {deprecateTransactionsAlertsWarning && (
+          <Alert.Container>
+            <Alert type="warning">
+              {tctCode(
+                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>

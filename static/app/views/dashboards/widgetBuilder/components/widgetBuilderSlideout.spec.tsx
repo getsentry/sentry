@@ -551,7 +551,10 @@ describe('WidgetBuilderSlideout', () => {
 
   it('should show deprecation alert when flag enabled', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
     });
     jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
@@ -586,7 +589,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        /You may have limited functionality due to the ongoing migration of transactions to spans/i
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
       )
     ).toBeInTheDocument();
 
