@@ -3,7 +3,6 @@ from urllib.parse import parse_qs, urlparse
 from django.test import TestCase
 from django.urls import reverse
 
-from sentry.constants.mobile_auth import ALLOWED_MOBILE_SCHEMES
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils.auth import is_valid_redirect
 
@@ -162,7 +161,7 @@ class MobileAuthIntegrationTest(TestCase):
                 return False
             try:
                 parsed = urlparse(url)
-                return parsed.scheme in ALLOWED_MOBILE_SCHEMES
+                return parsed.scheme == "sentry-mobile-agent"
             except Exception:
                 return False
 
@@ -182,7 +181,7 @@ class MobileAuthIntegrationTest(TestCase):
                 return False
             try:
                 parsed = urlparse(url)
-                return parsed.scheme in ALLOWED_MOBILE_SCHEMES
+                return parsed.scheme == "sentry-mobile-agent"
             except Exception:
                 return False
 
