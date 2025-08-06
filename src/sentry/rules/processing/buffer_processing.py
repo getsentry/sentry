@@ -142,7 +142,6 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
 
 
 def process_buffer() -> None:
-    fetch_time = datetime.now(tz=timezone.utc)
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
@@ -152,6 +151,12 @@ def process_buffer() -> None:
             continue
 
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
+            # We need to use a very fresh timestamp here; project scores (timestamps) are
+            # updated with each relevant event, and some can be updated every few milliseconds.
+            # The staler this timestamp, the more likely it'll miss some recently updated projects,
+            # and the more likely we'll have frequently updated projects that are never actually
+            # retrieved and processed here.
+            fetch_time = datetime.now(tz=timezone.utc)
             project_ids = buffer.backend.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()
             )
