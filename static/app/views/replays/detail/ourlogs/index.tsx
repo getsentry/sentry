@@ -11,7 +11,10 @@ import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LogsPageParamsProvider,
+  useLogsLimitToTraceId,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   TraceItemAttributeProvider,
   useTraceItemAttributes,
@@ -94,6 +97,12 @@ function OurLogsContent() {
 
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {data: logItems = [], isPending} = infiniteLogsQueryResult;
+  const limitToTraceId = useLogsLimitToTraceId();
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
 
   const filterProps = useOurLogFilters({logItems});
   const {items: filteredLogItems, setSearchTerm} = filterProps;
@@ -101,7 +110,7 @@ function OurLogsContent() {
 
   return (
     <Flex direction="column" wrap="nowrap">
-      <OurLogFilters logItems={logItems} {...filterProps} />
+      <OurLogFilters logItems={logItems} traceIds={traceIds} {...filterProps} />
       <OurLogsReplayTableWrapper>
         {isPending ? (
           <Placeholder height="100%" />

@@ -1,16 +1,21 @@
+import styled from '@emotion/styled';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import {OpenInLogsButton} from 'sentry/views/replays/detail/ourlogs/openInLogsButton';
 import type useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
 type Props = {
   logItems: OurLogsResponseItem[];
+  traceIds?: string[];
 } & ReturnType<typeof useOurLogFilters>;
 
 export function OurLogFilters({
   logItems,
+  traceIds,
   getSeverityLevels,
   searchTerm,
   selectValues,
@@ -20,7 +25,7 @@ export function OurLogFilters({
   const severityLevels = getSeverityLevels();
 
   return (
-    <FiltersGrid>
+    <StyledFiltersGrid>
       <CompactSelect
         triggerProps={{prefix: t('Log Level')}}
         triggerLabel={selectValues.length === 0 ? t('Any') : null}
@@ -38,6 +43,11 @@ export function OurLogFilters({
         query={searchTerm}
         disabled={!logItems?.length}
       />
-    </FiltersGrid>
+      <OpenInLogsButton searchTerm={searchTerm} traceIds={traceIds} />
+    </StyledFiltersGrid>
   );
 }
+
+const StyledFiltersGrid = styled(FiltersGrid)`
+  grid-template-columns: repeat(1, max-content) 1fr min-content;
+`;
