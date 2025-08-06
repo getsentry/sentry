@@ -18,7 +18,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
@@ -72,15 +72,18 @@ export function searchInTraceTreeTokens(
     return searchInTraceTreeText(tree, postfix[0]!.value, previousNode, cb);
   }
 
+  const nodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
+  TraceTree.ForEachChild(tree.root, node => nodes.push(node));
+
   let i = 0;
   let matchCount = 0;
-  const count = tree.list.length;
+  const count = nodes.length;
   const resultsForSingleToken: TraceSearchResult[] = [];
 
   function searchSingleToken() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i]!;
+      const node = nodes[i]!;
       if (evaluateTokenForValue(postfix[0]!, resolveValueFromKey(node, postfix[0]!))) {
         resultsForSingleToken.push({index: i, value: node});
         resultLookup.set(node, matchCount);
@@ -180,7 +183,7 @@ export function searchInTraceTreeTokens(
 
     if (li < count && !(leftToken instanceof Map)) {
       while (li < count && performance.now() - ts < 12) {
-        const node = tree.list[li]!;
+        const node = nodes[li]!;
         if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
           left.set(node, li);
         }
@@ -189,7 +192,7 @@ export function searchInTraceTreeTokens(
       handle.id = requestAnimationFrame(search);
     } else if (ri < count && !(rightToken instanceof Map)) {
       while (ri < count && performance.now() - ts < 12) {
-        const node = tree.list[ri]!;
+        const node = nodes[ri]!;
         if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
           right.set(node, ri);
         }
@@ -271,12 +274,16 @@ export function searchInTraceTreeText(
 
   let i = 0;
   let matchCount = 0;
-  const count = tree.list.length;
+
+  const nodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
+  TraceTree.ForEachChild(tree.root, node => nodes.push(node));
+
+  const count = nodes.length;
 
   function search() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i]!;
+      const node = nodes[i]!;
 
       if (evaluateNodeFreeText(query, node)) {
         results.push({index: i, value: node});
