@@ -32,6 +32,7 @@ from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.event import track_event
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
 
 locks = LockManager(
     build_instance_from_options_of_type(
@@ -605,6 +607,15 @@ def post_process_group(
 
             event = fetch_retry_policy(get_event_raise_exception)
 
+        if event.data.get("received"):
+            track_event(
+                step="start_post_process",
+                value=start_post_process_at - event.data["received"],
+                platform=event.data["platform"],
+                tags={"step": "start_post_process"},
+                sample_rate=0.01,
+            )
+
         set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
@@ -676,22 +687,14 @@ def post_process_group(
                 )
 
                 metric_tags["step"] = "end_post_process"
-                metrics.timing(
-                    "events.since_received",
-                    post_processed_at - received_at,
-                    instance=event.data["platform"],
+                track_event(
+                    step="end_post_process",
+                    value=post_processed_at - received_at,
+                    platform=event.data["platform"],
                     tags=metric_tags,
                     sample_rate=0.01,
                 )
 
-                metric_tags["step"] = "start_post_process"
-                metrics.timing(
-                    "events.since_received",
-                    start_post_process_at - received_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                    sample_rate=0.01,
-                )
             else:
                 metrics.incr("events.missing_received", tags=metric_tags)
 

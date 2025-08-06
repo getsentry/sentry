@@ -35,6 +35,7 @@ from sentry.taskworker.namespaces import (
     issues_tasks,
 )
 from sentry.utils import metrics
+from sentry.utils.event import track_event
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
@@ -507,10 +508,14 @@ def _do_save_event(
     Saves an event to the database.
     """
     if start_time:
-        metrics.timing(
-            "events.since_received",
-            time() - start_time,
-            tags={"step": "start_save_event"},
+        track_event(
+            step="start_save_event",
+            value=time() - start_time,
+            platform=data.get("platform") if data else None,
+            tags={
+                "step": "start_save_event",
+                "reprocessing": "true" if reprocessing2.is_reprocessed_event(data) else "false",
+            },
             sample_rate=0.01,
         )
 
@@ -625,13 +630,13 @@ def _do_save_event(
                     },
                 )
 
-                metrics.timing(
-                    "events.since_received",
-                    time() - start_time,
-                    instance=data["platform"],
+                track_event(
+                    step="end_save_event",
+                    value=time() - start_time,
+                    platform=data["platform"],
                     tags={
                         "step": "end_save_event",
-                        "is_reprocessing2": (
+                        "reprocessing": (
                             "true" if reprocessing2.is_reprocessed_event(data) else "false"
                         ),
                     },

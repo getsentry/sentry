@@ -90,3 +90,16 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
         "sentry.javascript.svelte",
         "sentry.javascript.sveltekit",
     ]
+
+
+def track_event(step, event_type, platform, tags, sample_rate=0.01):
+    """
+    Helper function to track event timing metrics.
+
+    Args:
+        step: The processing step (e.g., "start_save_event", "end_save_event")
+        event_type: The type of event being processed
+        platform: The platform of the event
+        tags: Additional tags to include in the metric
+        sample_rate: Sampling rate for the metric (default: 0.01)
+    """
