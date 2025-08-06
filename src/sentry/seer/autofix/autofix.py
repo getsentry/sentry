@@ -545,8 +545,26 @@ def _get_profile_from_trace_tree(
                 "execution_tree": execution_tree,
             }
         )
+        if not output:
+            logger.info(
+                "[Autofix] Failed to convert profile to execution tree",
+                extra={
+                    "profile_id": profile_id,
+                    "project_slug": project.slug,
+                    "organization_slug": project.organization.slug,
+                },
+            )
         return output
     else:
+        logger.info(
+            "[Autofix] Failed to get profile from profiling service",
+            extra={
+                "response.status": response.status,
+                "profile_id": profile_id,
+                "project_slug": project.slug,
+                "organization_slug": project.organization.slug,
+            },
+        )
         return None
 
 
