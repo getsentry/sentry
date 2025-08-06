@@ -20,7 +20,7 @@ from sentry.buffer.redis import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_buffer
+from sentry.rules.processing.buffer_processing import clear_processed_project_ids, process_buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -398,11 +398,51 @@ class TestRedisBuffer:
             # before delete
             assert self.buf.get_sorted_set(KEY) == [(1, t1), (2, t1), (3, t2)]
 
-            self.buf.delete_key(KEY, max=t1)
+            assert self.buf.delete_key(KEY, max=t1) == 2
             assert self.buf.get_sorted_set(KEY) == [(3, t2)]
 
-            self.buf.delete_key(KEY, max=t2)
+            assert self.buf.delete_key(KEY, max=t2) == 1
             assert self.buf.get_sorted_set(KEY) == []
+
+    def test_clear_processed_project_ids(self) -> None:
+        KEY = "foo2"
+        with freeze_time() as coords:
+            t1 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[1, 2])
+            coords.move_to(t1 + 3)
+            t2 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[3])
+            processed = self.buf.get_sorted_set(KEY)
+            assert processed == [(1, t1), (2, t1), (3, t2)]
+            # Pretend we're processing it here.
+
+            # Schedule 1 and 4, but after our processing window.
+            coords.move_to(t2 + 3)
+            t3 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[1, 4])
+            clear_processed_project_ids(self.buf, "type", processed, KEY)
+            assert self.buf.get_sorted_set(KEY) == [(1, t3), (4, t3)]
+
+    def test_clear_processed_project_ids_new_project(self) -> None:
+        KEY = "foo2"
+        with freeze_time() as coords:
+            t1 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[1, 2])
+
+            coords.move_to(t1 + 3)
+            t2 = time.time()
+            self.buf.push_to_sorted_set(key=KEY, value=[3])
+            processed = self.buf.get_sorted_set(KEY)
+            assert processed == [(1, t1), (2, t1), (3, t2)]
+            # Pretend we're processing it here.
+
+            # Uh oh, a new one in our processing window.
+            self.buf.push_to_sorted_set(key=KEY, value=[4])
+
+            clear_processed_project_ids(self.buf, "type", processed, KEY)
+
+            # We choose to re-process 3 so we don't lose 4.
+            assert self.buf.get_sorted_set(KEY) == [(3, t2), (4, t2)]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

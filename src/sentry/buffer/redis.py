@@ -399,8 +399,10 @@ class RedisBuffer(Buffer):
         return decoded_set
 
     @override
-    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> int:
+        return self._execute_redis_operation(
+            key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max
+        )
 
     def delete_hash(
         self,

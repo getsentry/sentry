@@ -99,11 +99,12 @@ class Buffer(Service):
     ) -> None:
         return None
 
-    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> None:
+    def delete_key(self, key: str, min: float = -math.inf, max: float = math.inf) -> int:
         """
         Delete all members of a sorted set with scores between min and max.
+        Returns the number of members deleted.
         """
-        return None
+        return 0
 
     def incr(
         self,
