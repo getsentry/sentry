@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {decodeScalar} from 'sentry/utils/queryString';
 
-function defaultCursor(): string {
+export function defaultCursor(): string {
   return '';
 }
 
