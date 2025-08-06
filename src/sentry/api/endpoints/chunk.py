@@ -40,6 +40,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
     "proguard",  # Chunk-uploaded proguard mappings
     "preprod_artifacts",  # Preprod artifacts (mobile builds, etc.)
+    "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
 
