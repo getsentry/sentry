@@ -5,7 +5,7 @@ from sentry.analytics import Event, eventclass
 @eventclass("organization.removed")
 class OrganizationRemoved(Event):
     organization_id: int
-    organization_name: str
+    slug: str
     user_id: int | None = None
     deletion_datetime: str | None = None
 

@@ -729,7 +729,7 @@ def post_org_pending_deletion(
             analytics.record(
                 OrganizationRemoved(
                     organization_id=updated_organization.id,
-                    organization_name=updated_organization.name,
+                    slug=updated_organization.name,
                     user_id=request.user.id if request.user.is_authenticated else None,
                     deletion_datetime=entry.datetime.isoformat(),
                 )
