@@ -418,7 +418,7 @@ class RuleProcessor:
         metrics.timing(
             "rule_fire_history.latency",
             (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
-            tags={"delayed": False},
+            tags={"delayed": False, "group_type": self.group.type.slug},
         )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(

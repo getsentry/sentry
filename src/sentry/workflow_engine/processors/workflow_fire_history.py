@@ -51,11 +51,13 @@ def create_workflow_fire_histories(
     fire_latency_seconds = (
         datetime.now(timezone.utc) - ensure_aware(event_data.event.datetime)
     ).total_seconds()
+    group_type = event_data.group.type.slug
+
     for _ in workflow_ids:
         metrics.timing(
             "workflow_fire_history.latency",
             fire_latency_seconds,
-            tags={"delayed": is_delayed},
+            tags={"delayed": is_delayed, "group_type": group_type},
         )
 
     fire_histories = [
