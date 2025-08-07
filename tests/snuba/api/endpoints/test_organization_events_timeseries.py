@@ -85,7 +85,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     @pytest.mark.querybuilder
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.do_request(
             {
                 "start": self.start,
@@ -123,7 +123,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def test_simple_multiple_yaxis(self):
+    def test_simple_multiple_yaxis(self) -> None:
         response = self.do_request(
             data={
                 "start": self.start,
@@ -185,7 +185,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def test_simple_top_events(self):
+    def test_simple_top_events(self) -> None:
         response = self.do_request(
             data={
                 "start": self.start,

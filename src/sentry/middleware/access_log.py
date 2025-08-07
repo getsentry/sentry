@@ -57,7 +57,7 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
     rate_limit_type = "DNE"
     if rate_limit_metadata:
         rate_limit_type = str(getattr(rate_limit_metadata, "rate_limit_type", "DNE"))
-    elif snuba_rate_limit_metadata:
+    if snuba_rate_limit_metadata:
         rate_limit_type = "RateLimitType.SNUBA"
 
     rate_limit_stats = {
@@ -103,7 +103,7 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        auth_id = getattr(request_auth, "id", None)
+        entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
             method=str(request.method),
@@ -114,7 +114,7 @@ def _create_api_access_log(
             token_type=token_type,
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
-            auth_id=str(auth_id),
+            entity_id=str(entity_id),
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
@@ -133,7 +133,7 @@ def _create_api_access_log(
 
 
 def access_log_middleware(
-    get_response: Callable[[Request], Response]
+    get_response: Callable[[Request], Response],
 ) -> Callable[[Request], Response]:
     def middleware(request: Request) -> Response:
         # NOTE(Vlad): `request.auth|user` are not a simple member accesses,

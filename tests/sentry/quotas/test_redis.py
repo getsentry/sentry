@@ -114,13 +114,10 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         self.organization.update_option("project-abuse-quota.attachment-limit", 601)
         self.organization.update_option("project-abuse-quota.attachment-item-limit", 6010)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
-        self.organization.update_option("project-abuse-quota.span-limit", 605)
-        self.organization.update_option("project-abuse-quota.log-limit", 606)
 
         metric_abuse_limit_by_id = dict()
         for i, mabq in enumerate(build_metric_abuse_quotas()):
@@ -130,53 +127,29 @@ class RedisQuotaTest(TestCase):
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[1].id == "pati"
+        assert quotas[1].id == "paa"
         assert quotas[1].scope == QuotaScope.PROJECT
         assert quotas[1].scope_id is None
-        assert quotas[1].categories == {DataCategory.TRANSACTION_INDEXED}
-        assert quotas[1].limit == 6000
+        assert quotas[1].categories == {DataCategory.ATTACHMENT}
+        assert quotas[1].limit == 6010
         assert quotas[1].window == 10
         assert quotas[1].reason_code == "project_abuse_limit"
 
-        assert quotas[2].id == "paa"
+        assert quotas[2].id == "paai"
         assert quotas[2].scope == QuotaScope.PROJECT
         assert quotas[2].scope_id is None
-        assert quotas[2].categories == {DataCategory.ATTACHMENT}
-        assert quotas[2].limit == 6010
+        assert quotas[2].categories == {DataCategory.ATTACHMENT_ITEM}
+        assert quotas[2].limit == 60100
         assert quotas[2].window == 10
         assert quotas[2].reason_code == "project_abuse_limit"
 
-        assert quotas[3].id == "paai"
+        assert quotas[3].id == "pas"
         assert quotas[3].scope == QuotaScope.PROJECT
         assert quotas[3].scope_id is None
-        assert quotas[3].categories == {DataCategory.ATTACHMENT_ITEM}
-        assert quotas[3].limit == 60100
+        assert quotas[3].categories == {DataCategory.SESSION}
+        assert quotas[3].limit == 6020
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
-
-        assert quotas[4].id == "pas"
-        assert quotas[4].scope == QuotaScope.PROJECT
-        assert quotas[4].scope_id is None
-        assert quotas[4].categories == {DataCategory.SESSION}
-        assert quotas[4].limit == 6020
-        assert quotas[4].window == 10
-        assert quotas[4].reason_code == "project_abuse_limit"
-
-        assert quotas[5].id == "paspi"
-        assert quotas[5].scope == QuotaScope.PROJECT
-        assert quotas[5].scope_id is None
-        assert quotas[5].categories == {DataCategory.SPAN_INDEXED}
-        assert quotas[5].limit == 6050
-        assert quotas[5].window == 10
-        assert quotas[5].reason_code == "project_abuse_limit"
-
-        assert quotas[6].id == "pal"
-        assert quotas[6].scope == QuotaScope.PROJECT
-        assert quotas[6].scope_id is None
-        assert quotas[6].categories == {DataCategory.LOG_ITEM}
-        assert quotas[6].limit == 6060
-        assert quotas[6].window == 10
-        assert quotas[6].reason_code == "project_abuse_limit"
 
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
@@ -266,31 +239,6 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].limit == 40
         assert quotas[0].window == 20
         assert quotas[0].reason_code == "project_abuse_limit"
-
-    def test_legacy_transaction_quota(self) -> None:
-        # These legacy options need to be set, otherwise we'll run into
-        # AssertionError: reject-all quotas cannot be tracked
-        self.get_project_quota.return_value = (100, 10)
-        self.get_organization_quota.return_value = (1000, 10)
-        self.get_monitor_quota.return_value = (15, 60)
-
-        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
-        with self.feature({"organizations:transaction-metrics-extraction": False}):
-            quotas = self.quota.get_quotas(self.project)
-
-        assert quotas[0].id == "pati"
-        assert quotas[0].scope == QuotaScope.PROJECT
-        assert quotas[0].scope_id is None
-        assert quotas[0].categories == {DataCategory.TRANSACTION}
-        assert quotas[0].limit == 6000
-        assert quotas[0].window == 10
-        assert quotas[0].reason_code == "project_abuse_limit"
-
-        # These legacy options need to be set, otherwise we'll run into
-        # AssertionError: reject-all quotas cannot be tracked
-        self.get_project_quota.return_value = (100, 10)
-        self.get_organization_quota.return_value = (1000, 10)
-        self.get_monitor_quota.return_value = (15, 60)
 
     @pytest.fixture(autouse=True)
     def _patch_get_project_quota(self):

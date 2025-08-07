@@ -13,7 +13,7 @@ attrs==24.2.0
 avalara==20.9.0
 beautifulsoup4==4.7.1
 billiard==4.2.1
-black==24.10.0
+black==25.1.0
 boto3==1.34.128
 botocore==1.34.128
 brotli==1.1.0
@@ -169,7 +169,7 @@ redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
 reportlab==4.4.0
-requests==2.32.3
+requests==2.32.4
 requests-file==2.1.0
 requests-oauthlib==1.2.0
 responses==0.23.1

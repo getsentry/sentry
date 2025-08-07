@@ -17,7 +17,7 @@ from sentry.utils.hashlib import hash_values
 
 
 class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
-    def test_environment(self):
+    def test_environment(self) -> None:
         group = self.group
         organization_id = group.project.organization_id
 
@@ -56,7 +56,7 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
                 assert kwargs["environment_ids"] is None
 
     @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
-    def test_session_count(self):
+    def test_session_count(self) -> None:
         group = self.group
         organization_id = group.project.organization_id
 
@@ -254,7 +254,7 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
         # No sessions in project2
         assert result[1]["sessionCount"] is None
 
-    def test_skipped_date_timestamp_filters(self):
+    def test_skipped_date_timestamp_filters(self) -> None:
         group = self.create_group()
         serializer = StreamGroupSerializerSnuba(
             search_filters=[

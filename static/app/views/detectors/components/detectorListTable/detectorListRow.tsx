@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
@@ -15,8 +14,6 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({detector}: DetectorListRowProps) {
-  const issues: Group[] = [];
-
   return (
     <DetectorSimpleTableRow
       variant={detector.enabled ? 'default' : 'faded'}
@@ -29,7 +26,7 @@ export function DetectorListRow({detector}: DetectorListRowProps) {
         <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="last-issue">
-        <IssueCell group={issues.length > 0 ? issues[0] : undefined} />
+        <IssueCell group={detector.latestGroup} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="assignee">
         <DetectorAssigneeCell assignee={detector.owner} />

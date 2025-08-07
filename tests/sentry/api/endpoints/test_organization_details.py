@@ -1510,6 +1510,44 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
 
+    def test_enable_seer_enhanced_alerts_default_true(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enableSeerEnhancedAlerts"] is True
+
+    def test_enable_seer_enhanced_alerts_can_be_disabled(self) -> None:
+        data = {"enableSeerEnhancedAlerts": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is False
+
+    def test_enable_seer_enhanced_alerts_can_be_enabled(self) -> None:
+        # First disable it
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
+
+        data = {"enableSeerEnhancedAlerts": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is True
+
+    def test_enable_seer_coding_default_true(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["enableSeerCoding"] is True
+
+    def test_enable_seer_coding_can_be_disabled(self) -> None:
+        data = {"enableSeerCoding": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is False
+
+    def test_enable_seer_coding_can_be_enabled(self) -> None:
+        # First disable it
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"enableSeerCoding": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is True
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
@@ -1858,7 +1896,7 @@ invalid_payloads = [
 
 
 @pytest.mark.parametrize("invalid_data", invalid_payloads)
-def test_trusted_relay_serializer_validation(invalid_data):
+def test_trusted_relay_serializer_validation(invalid_data) -> None:
     """
     Tests that the public key is validated
     """

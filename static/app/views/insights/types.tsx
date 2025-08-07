@@ -12,7 +12,6 @@ export enum ModuleName {
   SCREEN_LOAD = 'screen_load',
   APP_START = 'app_start',
   RESOURCE = 'resource',
-  AI = 'ai',
   AGENTS = 'agents',
   MCP = 'mcp',
   MOBILE_UI = 'mobile-ui',
@@ -498,7 +497,7 @@ type SpanResponseRaw = {
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanFields as `count_if(${Property},${string})`]: number;
+    [Property in SpanFields as `count_if(${Property},${'equals' | 'notEquals' | 'lessOrEquals' | 'greaterOrEquals' | 'less' | 'greater'},${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;
