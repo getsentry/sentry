@@ -268,12 +268,12 @@ class TestProcessWorkflowActivity(TestCase):
 
         with (
             self.tasks(),
-            sentry_sdk.start_span(
+            sentry_sdk.start_transaction(
                 op="process_status_change_message",
                 name="issues.status_change_consumer",
-            ) as span,
+            ) as txn,
         ):
-            process_status_change_message(self.message, span)
+            process_status_change_message(self.message, txn)
 
             # Issue platform is forwarding the activity update
             mock_incr.assert_any_call(
