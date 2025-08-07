@@ -191,7 +191,7 @@ class CursorWebhookEndpoint(Endpoint):
             if agent_url:
                 updates["agent_url"] = agent_url
             if result:
-                updates["result"] = result.dict()
+                updates["result"] = orjson.dumps(result.dict()).decode("utf-8")
 
             # The payload structure for the new partial update endpoint
             update_data = {

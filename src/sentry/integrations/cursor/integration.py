@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from django import forms
@@ -7,12 +8,19 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.base import FeatureDescription, IntegrationFeatures, IntegrationMetadata
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+)
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 
 DESCRIPTION = """
@@ -84,7 +92,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     def get_pipeline_views(self):
         return [CursorPipelineView()]
 
-    def build_integration(self, state: dict[str, Any]) -> dict[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
         if not config:
             raise IntegrationError("Missing configuration data")
@@ -104,13 +112,11 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     def get_agent_key(self) -> str:
         return "cursor"
 
-    def get_installation(self, model, organization_id, **kwargs):
+    @classmethod
+    def get_installation(
+        cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any
+    ) -> CursorAgentIntegration:
         return CursorAgentIntegration(model, organization_id)
-
-    def post_install(self, integration, organization, extra=None):
-        """Post-installation setup."""
-        # No additional setup required for Cursor Agent
-        pass
 
 
 class CursorAgentIntegration(CodingAgentIntegration):

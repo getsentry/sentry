@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
@@ -13,6 +12,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+from sentry.seer.autofix.utils import CodingAgentState
+from sentry.utils.http import absolute_uri
 
 # Default metadata for coding agent integrations
 DEFAULT_CODING_AGENT_METADATA = IntegrationMetadata(
@@ -55,17 +56,15 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
 
     def get_webhook_url(self) -> str:
         """Generate webhook URL for this integration."""
-
         provider = self.model.provider
-        # return absolute_uri(f"/extensions/{provider}/webhook/")
 
-        return f"https://f843e82b06a2.ngrok-free.app/extensions/{provider}/webhook/"
+        return absolute_uri(f"/extensions/{provider}/webhook/")
 
-    def launch(self, request: CodingAgentLaunchRequest, **kwargs) -> dict[str, Any]:
+    def launch(self, request: CodingAgentLaunchRequest, **kwargs) -> CodingAgentState:
         """Launch coding agent with webhook callback URL."""
         webhook_url = self.get_webhook_url()
-
         client = self.get_client()
+
         return client.launch(request=request, webhook_url=webhook_url, **kwargs)
 
     @property

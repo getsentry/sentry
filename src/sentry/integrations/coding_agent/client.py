@@ -28,28 +28,6 @@ class CodingAgentClient(ApiClient, abc.ABC):
         """Return authentication headers for API requests."""
         pass
 
-    def request(self, method: str, path: str, **kwargs) -> Any:
-        """Make authenticated request to agent API."""
-        kwargs.setdefault("headers", {})
-        kwargs["headers"].update(self._get_auth_headers())
-        kwargs["headers"]["Content-Type"] = "application/json"
-
-        url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
-
-        try:
-            return self._request(method, url, **kwargs)
-        except Exception as e:
-            logger.exception(
-                "coding_agent.api_error",
-                extra={
-                    "error": str(e),
-                    "path": path,
-                    "method": method,
-                    "agent_type": self.__class__.__name__,
-                },
-            )
-            raise
-
     @abc.abstractmethod
     def launch(self, webhook_url: str, **kwargs) -> dict[str, Any]:
         """Launch coding agent with webhook callback."""

@@ -16,18 +16,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
-from sentry.integrations.coding_agent.models import (
-    CodingAgentLaunchRequest,
-    CodingAgentLaunchResponse,
-)
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.seer.autofix.utils import (
-    AutofixState,
-    CodingAgentState,
-    CodingAgentStatus,
-    get_autofix_state,
-)
+from sentry.seer.autofix.utils import AutofixState, CodingAgentState, get_autofix_state
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import metrics
 
@@ -342,12 +334,11 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
         autofix_state: AutofixState,
         run_id: int,
         organization,
-    ) -> dict:
+    ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
         repos = self._extract_repos_from_solution(autofix_state)
 
         results = []
-        store_success = True
 
         for repo_name in repos:
             try:
@@ -365,19 +356,7 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 )
 
                 # Launch the agent
-                result = installation.launch(launch_request)
-
-                # Parse and validate the response using Pydantic model
-                launch_response = CodingAgentLaunchResponse.validate(result)
-
-                coding_agent_state = CodingAgentState(
-                    id=launch_response.id,
-                    name=launch_response.name,
-                    status=CodingAgentStatus.PENDING,
-                    agent_url=launch_response.target.url,
-                    branch_name=launch_response.target.branchName,
-                    started_at=launch_response.createdAt,
-                )
+                coding_agent_state = installation.launch(launch_request)
 
                 # Store the coding agent state to Seer
                 repo_external_id = repo["external_id"]
@@ -388,7 +367,6 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 )
 
                 if not repo_store_success:
-                    store_success = False
                     logger.warning(
                         "coding_agent.seer_store_failed",
                         extra={
@@ -402,7 +380,6 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 results.append(
                     {
                         "repo_name": repo_name,
-                        "result": result,
                         "coding_agent_state": coding_agent_state,
                     }
                 )
@@ -420,7 +397,7 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 # Continue with other repos instead of failing entirely
                 continue
 
-        return results, store_success
+        return results
 
     def post(self, request: Request, organization) -> Response:
         """Launch a coding agent."""
@@ -448,7 +425,7 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
             )
 
             # Launch agents for all repos
-            results, store_success = self._launch_agents_for_repos(
+            results = self._launch_agents_for_repos(
                 installation, autofix_state, run_id, organization
             )
 
@@ -468,17 +445,9 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
 
             metrics.incr("coding_agent.launch", tags={"provider": integration.provider})
 
-            # Return the result from the first successful launch for backward compatibility
-            first_result = results[0]
             return Response(
                 {
-                    "status": "launched",
-                    "integration_id": str(integration.id),
-                    "provider": integration.provider,
-                    "webhook_url": installation.get_webhook_url(),
-                    "result": first_result["result"],
-                    "repos_processed": len(results),
-                    "store_success": store_success,
+                    "success": True,
                 }
             )
 
