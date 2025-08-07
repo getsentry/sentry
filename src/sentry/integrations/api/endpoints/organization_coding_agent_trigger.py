@@ -268,74 +268,89 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 {"error": "Failed to retrieve coding agent integrations"}, status=500
             )
 
-    def post(self, request: Request, organization) -> Response:
-        """Launch a coding agent."""
+    def _validate_and_get_integration(self, request: Request, organization):
+        """Validate request and get the coding agent integration."""
+        integration_id = request.data.get("integration_id")
+        if not integration_id:
+            return Response({"error": "integration_id is required"}, status=400)
+
+        # Get the integration
         try:
-            integration_id = request.data.get("integration_id")
-            if not integration_id:
-                return Response({"error": "integration_id is required"}, status=400)
+            org_integration = OrganizationIntegration.objects.select_related("integration").get(
+                organization_id=organization.id,
+                integration_id=integration_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            integration = org_integration.integration
+        except OrganizationIntegration.DoesNotExist:
+            return Response({"error": "Integration not found"}, status=404)
 
-            # Get the integration
-            try:
-                org_integration = OrganizationIntegration.objects.select_related("integration").get(
-                    organization_id=organization.id,
-                    integration_id=integration_id,
-                    status=ObjectStatus.ACTIVE,
-                )
-                integration = org_integration.integration
-            except OrganizationIntegration.DoesNotExist:
-                return Response({"error": "Integration not found"}, status=404)
+        # Verify it's a coding agent integration
+        if integration.provider not in get_coding_agent_providers():
+            return Response({"error": "Not a coding agent integration"}, status=400)
 
-            # Verify it's a coding agent integration
-            if integration.provider not in get_coding_agent_providers():
-                return Response({"error": "Not a coding agent integration"}, status=400)
+        # Get the installation
+        installation = integration.get_installation(organization.id)
+        if not isinstance(installation, CodingAgentIntegration):
+            return Response({"error": "Invalid coding agent integration"}, status=400)
 
-            # Get the installation
-            installation = integration.get_installation(organization.id)
-            if not isinstance(installation, CodingAgentIntegration):
-                return Response({"error": "Invalid coding agent integration"}, status=400)
+        return integration, installation
 
-            run_id_raw = request.data.get("run_id")
+    def _get_autofix_state(
+        self, request: Request, organization
+    ) -> tuple[int | None, AutofixState | None]:
+        """Extract and validate run_id and get autofix state."""
+        run_id_raw = request.data.get("run_id")
 
-            # Convert run_id to integer for autofix state lookup
-            try:
-                run_id = int(run_id_raw) if run_id_raw is not None else None
-            except (ValueError, TypeError):
-                return Response({"error": "Invalid run_id format"}, status=400)
+        # Convert run_id to integer for autofix state lookup
+        try:
+            run_id = int(run_id_raw) if run_id_raw is not None else None
+        except (ValueError, TypeError):
+            return None, None
 
-            logger.info(
-                "coding_agent.launch_request",
+        autofix_state = get_autofix_state(run_id=run_id)
+
+        if not autofix_state:
+            logger.warning(
+                "coding_agent.autofix_state_not_found",
                 extra={
                     "organization_id": organization.id,
-                    "integration_id": integration_id,
                     "run_id": run_id,
                 },
             )
+            return run_id, None
 
-            autofix_state = get_autofix_state(run_id=run_id)
+        return run_id, autofix_state
 
-            if not autofix_state:
-                logger.warning(
-                    "coding_agent.autofix_state_not_found",
-                    extra={
-                        "organization_id": organization.id,
-                        "run_id": run_id,
-                    },
-                )
-                return Response({"error": "Autofix state not found"}, status=400)
+    def _extract_repos_from_solution(self, autofix_state: AutofixState) -> set[str]:
+        """Extract repository names from autofix state solution."""
+        repos = set()
+        solution_step = next(step for step in autofix_state.steps if step["key"] == "solution")
 
-            repos = set()
+        for solution_item in solution_step["solution"]:
+            if (
+                solution_item["relevant_code_file"]
+                and solution_item["relevant_code_file"]["repo_name"]
+            ):
+                repos.add(solution_item["relevant_code_file"]["repo_name"])
 
-            solution_step = next(step for step in autofix_state.steps if step["key"] == "solution")
+        return repos
 
-            for solution_item in solution_step["solution"]:
-                if (
-                    solution_item["relevant_code_file"]
-                    and solution_item["relevant_code_file"]["repo_name"]
-                ):
-                    repos.add(solution_item["relevant_code_file"]["repo_name"])
+    def _launch_agents_for_repos(
+        self,
+        installation: CodingAgentIntegration,
+        autofix_state: AutofixState,
+        run_id: int,
+        organization,
+    ) -> dict:
+        """Launch coding agents for all repositories in the solution."""
+        repos = self._extract_repos_from_solution(autofix_state)
 
-            for repo_name in repos:
+        results = []
+        store_success = True
+
+        for repo_name in repos:
+            try:
                 repo = next(
                     repo
                     for repo in autofix_state.request["repos"]
@@ -366,41 +381,104 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
 
                 # Store the coding agent state to Seer
                 repo_external_id = repo["external_id"]
-                store_success = store_coding_agent_state_to_seer(
+                repo_store_success = store_coding_agent_state_to_seer(
                     run_id=run_id,
                     repo_external_id=repo_external_id,
                     coding_agent_state=coding_agent_state,
                 )
 
-            if not store_success:
-                logger.warning(
-                    "coding_agent.seer_store_failed",
+                if not repo_store_success:
+                    store_success = False
+                    logger.warning(
+                        "coding_agent.seer_store_failed",
+                        extra={
+                            "organization_id": organization.id,
+                            "run_id": run_id,
+                            "repo_external_id": repo_external_id,
+                            "repo_name": repo_name,
+                        },
+                    )
+
+                results.append(
+                    {
+                        "repo_name": repo_name,
+                        "result": result,
+                        "coding_agent_state": coding_agent_state,
+                    }
+                )
+
+            except Exception as e:
+                logger.exception(
+                    "coding_agent.repo_launch_error",
                     extra={
                         "organization_id": organization.id,
                         "run_id": run_id,
-                        "repo_external_id": repo_external_id,
+                        "repo_name": repo_name,
+                        "error": str(e),
                     },
                 )
+                # Continue with other repos instead of failing entirely
+                continue
+
+        return results, store_success
+
+    def post(self, request: Request, organization) -> Response:
+        """Launch a coding agent."""
+        try:
+            # Validate request and get integration
+            validation_result = self._validate_and_get_integration(request, organization)
+            if isinstance(validation_result, Response):
+                return validation_result
+            integration, installation = validation_result
+
+            # Get autofix state
+            run_id, autofix_state = self._get_autofix_state(request, organization)
+            if run_id is None:
+                return Response({"error": "Invalid run_id format"}, status=400)
+            if autofix_state is None:
+                return Response({"error": "Autofix state not found"}, status=400)
+
+            logger.info(
+                "coding_agent.launch_request",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                    "run_id": run_id,
+                },
+            )
+
+            # Launch agents for all repos
+            results, store_success = self._launch_agents_for_repos(
+                installation, autofix_state, run_id, organization
+            )
+
+            if not results:
+                return Response({"error": "No agents were successfully launched"}, status=500)
 
             logger.info(
                 "coding_agent.launch_success",
                 extra={
                     "organization_id": organization.id,
-                    "integration_id": integration_id,
+                    "integration_id": integration.id,
                     "provider": integration.provider,
                     "run_id": run_id,
+                    "repos_processed": len(results),
                 },
             )
 
             metrics.incr("coding_agent.launch", tags={"provider": integration.provider})
 
+            # Return the result from the first successful launch for backward compatibility
+            first_result = results[0]
             return Response(
                 {
                     "status": "launched",
                     "integration_id": str(integration.id),
                     "provider": integration.provider,
                     "webhook_url": installation.get_webhook_url(),
-                    "result": result,
+                    "result": first_result["result"],
+                    "repos_processed": len(results),
+                    "store_success": store_success,
                 }
             )
 
