@@ -46,7 +46,7 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "system.debug-files-renewal-age-threshold",
+    "system.debug-files-renewal-age-threshold-days",
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
