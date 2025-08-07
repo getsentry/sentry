@@ -19,6 +19,7 @@ const AM2_CHECKOUT_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
+  'logBytes',
 ] as DataCategory[];
 
 const AM2_ONDEMAND_CATEGORIES = [
@@ -43,6 +44,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
@@ -828,6 +830,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
@@ -913,6 +922,13 @@ const AM2_PLANS: Record<string, Plan> = {
         {
           events: 0,
           unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -1636,7 +1652,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
@@ -1722,6 +1744,13 @@ const AM2_PLANS: Record<string, Plan> = {
         {
           events: 0,
           unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -2410,6 +2439,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
   },
@@ -3092,6 +3128,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -3131,6 +3174,7 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 500, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
@@ -3170,6 +3214,7 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 10, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
@@ -3661,6 +3706,13 @@ const AM2_PLANS: Record<string, Plan> = {
         {
           events: 0,
           unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -4204,6 +4256,13 @@ const AM2_PLANS: Record<string, Plan> = {
         {
           events: 0,
           unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
@@ -4765,6 +4824,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
       ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -4853,6 +4919,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
@@ -4937,6 +5010,13 @@ const AM2_PLANS: Record<string, Plan> = {
         {
           events: 0,
           unitPrice: 0,
+          price: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
           price: 0,
         },
       ],
