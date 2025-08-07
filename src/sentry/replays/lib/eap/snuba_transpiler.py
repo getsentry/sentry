@@ -199,7 +199,7 @@ TRACE_ITEM_TYPES = TLiteral[
 
 class RequestMeta(TypedDict):
     """
-    Metadata for trace analysis and monitoring requests.
+    Metadata for EAP requests.
 
     This TypedDict contains essential metadata that accompanies requests for
     trace data analysis, debugging, and monitoring operations. All fields are
@@ -208,7 +208,9 @@ class RequestMeta(TypedDict):
     Attributes:
         cogs_category: Cost category identifier for billing and resource allocation.
 
-        debug: Flag indicating whether debug mode is enabled for this request.
+        debug: Flag indicating whether debug mode is enabled for this request. When used ensure
+            the "translate_response" function is not being called on the response. Currently, it
+            drops debug data. You'll need to interact with a raw EAP response.
 
         end_datetime: End timestamp for the time range being queried.
             Defines the upper bound of the window for data retrieval.
@@ -282,7 +284,9 @@ class RequestMeta(TypedDict):
 
 class Settings(TypedDict, total=False):
     """
-    Query settings which are not representable within a Snuba query.
+    Query settings are extra metadata items which are not representable within a Snuba query. They
+    are not sent to EAP in the form they are supplied. Instead they are used as helper metadata in
+    the construction of an EAP query.
 
     This type defines configuration parameters that extend beyond what the
     Snuba SDK can natively express. Every field is optional with the exception of the
