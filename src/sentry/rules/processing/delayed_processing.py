@@ -579,7 +579,7 @@ def fire_rules(
                         (
                             datetime.now(tz=timezone.utc) - ensure_aware(groupevent.datetime)
                         ).total_seconds(),
-                        tags={"delayed": True, "group_type": group.type.slug},
+                        tags={"delayed": True, "group_type": group.issue_type.slug},
                     )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
