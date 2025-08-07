@@ -221,6 +221,8 @@ describe('LogsTabContent', function () {
       'false'
     );
 
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
 
     expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
@@ -231,6 +233,8 @@ describe('LogsTabContent', function () {
       'aria-selected',
       'true'
     );
+
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Logs'}));
 
