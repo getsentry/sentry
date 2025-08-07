@@ -34,6 +34,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_basic_uptime_item_serialization(self):
         """Test basic serialization with all required fields."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-123"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-123"),
             "sentry.trace_id": ProtoAttributeValue(val_str="a" * 32),
@@ -78,6 +79,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_redirect_chain_serialization(self):
         """Test serialization of redirect chain with different URLs."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-789"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-789"),
             "sentry.trace_id": ProtoAttributeValue(val_str="b" * 32),
@@ -101,6 +103,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_null_and_missing_fields(self):
         """Test handling of null and missing optional fields."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-null"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-null"),
             "sentry.trace_id": ProtoAttributeValue(val_str="c" * 32),
@@ -514,6 +517,7 @@ class OrganizationEventsTraceEndpointTest(
             elif attr_value.HasField("bool_value"):
                 row_dict[attr_name] = ProtoAttributeValue(val_bool=attr_value.bool_value)
 
+        row_dict["sentry.item_id"] = ProtoAttributeValue(val_str=trace_item.item_id.hex())
         row_dict["sentry.project_id"] = ProtoAttributeValue(val_int=trace_item.project_id)
         row_dict["sentry.organization_id"] = ProtoAttributeValue(val_int=trace_item.organization_id)
         row_dict["sentry.trace_id"] = ProtoAttributeValue(val_str=trace_item.trace_id)
