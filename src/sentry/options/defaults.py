@@ -45,6 +45,11 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "system.debug-files-renewal-age-threshold-days",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
