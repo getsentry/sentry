@@ -129,8 +129,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                         org_id=project.organization_id,
                         project_id=project.id,
                         checksum=checksum,
-                        chunks=chunks,
-                        git_sha=data.get("git_sha"),
                         build_configuration=data.get("build_configuration"),
                     )
                     if artifact_id:
@@ -139,7 +137,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                                 "state": state,
                                 "detail": detail,
                                 "missingChunks": [],
-                                "artifact_id": artifact_id,
+                                "artifactId": artifact_id,
                             }
                         )
                     else:
