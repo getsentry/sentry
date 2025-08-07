@@ -31,7 +31,6 @@ import {
   useExploreFields,
   useExploreGroupBys,
   useExploreId,
-  useExploreMode,
   useExploreQuery,
   useExploreSortBys,
   useExploreVisualizes,
@@ -41,6 +40,7 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -57,7 +57,7 @@ export function ToolbarSaveAs() {
   const visualizes = useExploreVisualizes();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
     () =>

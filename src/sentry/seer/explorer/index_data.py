@@ -13,6 +13,7 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.eventstore import backend as eventstore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
+from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -216,7 +217,12 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
 
 
 def _fetch_profile_data(
-    profile_id: str, organization_id: int, project_id: int, is_continuous: bool = False
+    profile_id: str,
+    organization_id: int,
+    project_id: int,
+    start_ts: float | None = None,
+    end_ts: float | None = None,
+    is_continuous: bool = False,
 ) -> dict[str, Any] | None:
     """
     Fetch raw profile data from the profiling service.
@@ -225,17 +231,54 @@ def _fetch_profile_data(
         profile_id: The profile ID to fetch (profile_id for transaction profiles, profiler_id for continuous)
         organization_id: Organization ID
         project_id: Project ID
+        start_ts: Start timestamp from span
+        end_ts: End timestamp from span
         is_continuous: Whether this is a continuous profile (uses /chunk endpoint)
 
     Returns:
         Raw profile data or None if not found
     """
     if is_continuous:
-        # For continuous profiles (profiler_id), use the chunk endpoint
+        if start_ts is None or end_ts is None:
+            logger.info(
+                "Start and end timestamps not provided for fetching continuous profiles, skipping",
+                extra={
+                    "profile_id": profile_id,
+                    "is_continuous": is_continuous,
+                    "start_ts": start_ts,
+                    "end_ts": end_ts,
+                },
+            )
+            return None
+
+        span_start = datetime.fromtimestamp(start_ts, UTC)
+        span_end = max(
+            datetime.fromtimestamp(end_ts, UTC),
+            span_start + timedelta(milliseconds=10),
+        )  # Ensure span_end is at least 10ms ahead of span_start
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            logger.warning("Project not found for chunk_ids", extra={"project_id": project_id})
+            return None
+        span_snuba_params = SnubaParams(
+            start=span_start,
+            end=span_end,
+            projects=[project],
+            organization=project.organization,
+        )
+
+        chunk_ids = get_chunk_ids(span_snuba_params, profile_id, project_id)
+
         response = get_from_profiling_service(
-            "GET",
-            f"/organizations/{organization_id}/projects/{project_id}/chunks/{profile_id}",
-            params={"format": "sample"},
+            method="POST",
+            path=f"/organizations/{organization_id}/projects/{project_id}/chunks",
+            json_data={
+                "profiler_id": profile_id,
+                "chunk_ids": chunk_ids,
+                "start": str(int(start_ts * 1e9)),
+                "end": str(int(end_ts * 1e9)),
+            },
         )
     else:
         # For transaction profiles (profile_id), use the profile endpoint
@@ -306,6 +349,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
             "span.op",
             "is_transaction",
             "precise.start_ts",
+            "precise.finish_ts",
         ],
         orderby=["precise.start_ts"],
         offset=0,
@@ -315,22 +359,16 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         sampling_mode="NORMAL",
     )
 
-    # Step 2: Deduplicate by span_id (one profile per span/transaction)
-    seen_spans = set()
-    unique_profiles = []
-
-    logger.info(
-        "Span query for profiles completed",
-        extra={
-            "num_rows": len(profiles_result.get("data", [])),
-        },
-    )
+    # Step 2: Collect all profiles and merge those with same profile_id and is_continuous
+    all_profiles = []
 
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
         profile_id = row.get("profile.id")  # Transaction profiles
         profiler_id = row.get("profiler.id")  # Continuous profiles
         transaction_name = row.get("transaction")
+        start_ts = row.get("precise.start_ts")
+        end_ts = row.get("precise.finish_ts")
 
         logger.info(
             "Iterating over span to get profiles",
@@ -342,9 +380,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
             },
         )
 
-        if not span_id or span_id in seen_spans:
+        if not span_id:
             logger.info(
-                "Span already seen or doesn't have an id, skipping",
+                "Span doesn't have an id, skipping",
                 extra={"span_id": span_id},
             )
             continue
@@ -361,24 +399,53 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         # Determine if this is a continuous profile (profiler.id without profile.id)
         is_continuous = profile_id is None and profiler_id is not None
 
-        logger.info(
-            "Span is continuous and has profile",
-            extra={
-                "span_id": span_id,
-                "is_continuous": is_continuous,
-                "actual_profile_id": actual_profile_id,
-            },
-        )
-
-        seen_spans.add(span_id)
-        unique_profiles.append(
+        all_profiles.append(
             {
                 "span_id": span_id,
                 "profile_id": actual_profile_id,
                 "transaction_name": transaction_name,
                 "is_continuous": is_continuous,
+                "start_ts": start_ts,
+                "end_ts": end_ts,
             }
         )
+
+    # Merge profiles with same profile_id and is_continuous
+    # Use the earliest start_ts and latest end_ts for merged profiles
+    profile_groups = {}
+    for profile in all_profiles:
+        key = (profile["profile_id"], profile["is_continuous"])
+
+        if key not in profile_groups:
+            profile_groups[key] = {
+                "span_id": profile["span_id"],  # Keep the first span_id
+                "profile_id": profile["profile_id"],
+                "transaction_name": profile["transaction_name"],
+                "is_continuous": profile["is_continuous"],
+                "start_ts": profile["start_ts"],
+                "end_ts": profile["end_ts"],
+            }
+        else:
+            # Merge time ranges - use earliest start and latest end
+            existing = profile_groups[key]
+            if profile["start_ts"] and (
+                existing["start_ts"] is None or profile["start_ts"] < existing["start_ts"]
+            ):
+                existing["start_ts"] = profile["start_ts"]
+            if profile["end_ts"] and (
+                existing["end_ts"] is None or profile["end_ts"] > existing["end_ts"]
+            ):
+                existing["end_ts"] = profile["end_ts"]
+
+    unique_profiles = list(profile_groups.values())
+
+    logger.info(
+        "Merged profiles",
+        extra={
+            "original_count": len(all_profiles),
+            "merged_count": len(unique_profiles),
+        },
+    )
 
     if not unique_profiles:
         logger.info(
@@ -395,12 +462,16 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         span_id = profile_info["span_id"]
         transaction_name = profile_info["transaction_name"]
         is_continuous = profile_info["is_continuous"]
+        start_ts = profile_info["start_ts"]
+        end_ts = profile_info["end_ts"]
 
         # Fetch raw profile data
         raw_profile = _fetch_profile_data(
             profile_id=profile_id,
             organization_id=project.organization_id,
             project_id=project_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
             is_continuous=is_continuous,
         )
 
@@ -435,7 +506,6 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     "profile_id": profile_id,
                     "trace_id": trace_id,
                     "project_id": project_id,
-                    "raw_profile": raw_profile,
                 },
             )
 
@@ -532,7 +602,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
 
         issue_data_list.append(
             IssueDetails(
-                issue_id=group.id,
+                id=group.id,
                 title=group.title,
                 culprit=group.culprit,
                 transaction=full_event.transaction,

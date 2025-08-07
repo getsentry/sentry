@@ -1507,11 +1507,9 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   try {
     return grammar.parse(query, config);
   } catch (e) {
-    Sentry.withScope(scope => {
-      scope.setFingerprint(['search-syntax-parse-error']);
-      scope.setExtra('message', e.message?.slice(-100));
-      scope.setExtra('found', e.found);
-      Sentry.captureException(e);
+    Sentry.logger.error('Search syntax parse error', {
+      message: e.message?.slice(-100),
+      found: e.found,
     });
 
     return null;

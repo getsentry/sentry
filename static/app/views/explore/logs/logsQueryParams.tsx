@@ -21,16 +21,18 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
-import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
+  defaultGroupBys,
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
+import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
 import {isVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
+import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const LOGS_MODE_KEY = 'mode';
 
@@ -68,6 +70,15 @@ export function getReadableQueryParamsFromLocation(
   });
 }
 
+export function getTargetWithReadableQueryParams(
+  location: Location,
+  writableQueryParams: WritableQueryParams
+): Location {
+  const target: Location = {...location, query: {...location.query}};
+  updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
+  return target;
+}
+
 function defaultSortBys(fields: string[]) {
   if (fields.includes(OurLogKnownFieldKey.TIMESTAMP)) {
     return [
@@ -90,8 +101,8 @@ function defaultSortBys(fields: string[]) {
   return [];
 }
 
-function defaultGroupBys(): [GroupBy] {
-  return [{groupBy: ''}];
+export function defaultVisualizes() {
+  return [new Visualize('count(message)')];
 }
 
 function getVisualizesFromLocation(location: Location): [Visualize] {
@@ -113,7 +124,7 @@ function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[
   ];
 }
 
-function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
+export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
     if (isVisualize(aggregateField)) {
       return [
