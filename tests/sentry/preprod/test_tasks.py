@@ -25,11 +25,16 @@ from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 class AssemblePreprodArtifactTest(BaseAssembleTest):
     def tearDown(self):
-        """Clean up assembly status to prevent test pollution"""
+        """Clean up assembly status and force garbage collection to close unclosed files"""
+        import gc
+
+        # Force garbage collection to clean up any unclosed file handles
+        gc.collect()
+
         super().tearDown()
 
     def test_assemble_preprod_artifact_success(self) -> None:
-        """Test that assemble_preprod_artifact only handles file assembly"""
+        """Test that assemble_preprod_artifact succeeds with build_configuration"""
         content = b"test preprod artifact content"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -48,6 +53,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         status, details = get_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
+        # Should succeed now that build_configuration is properly handled
         assert status == ChunkFileState.OK
         assert details is None
 
@@ -57,17 +63,20 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert files[0].checksum == total_checksum
         assert files[0].name.startswith("preprod-artifact-")
 
-        # Verify NO database records were created (this is now handled by create_preprod_artifact)
+        # Verify database records were created successfully
         build_configs = PreprodBuildConfiguration.objects.filter(project=self.project)
-        assert len(build_configs) == 0
+        assert len(build_configs) == 1
+        assert build_configs[0].name == "release"
 
         artifacts = PreprodArtifact.objects.filter(project=self.project)
-        assert len(artifacts) == 0
+        assert len(artifacts) == 1
+        assert artifacts[0].build_configuration == build_configs[0]
+        assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
     def test_assemble_preprod_artifact_without_build_configuration(self) -> None:
-        """Test that assemble_preprod_artifact works without build configuration"""
+        """Test that assemble_preprod_artifact succeeds without build_configuration"""
         content = b"test preprod artifact without build config"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -84,18 +93,24 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         status, details = get_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
+        # Should succeed now, even without build_configuration
         assert status == ChunkFileState.OK
+        assert details is None
 
-        # Verify file was created but no database records
+        # Verify file was created
         files = File.objects.filter(type="preprod.artifact")
         assert len(files) == 1
 
+        # Verify artifact was created with no build configuration
         artifacts = PreprodArtifact.objects.filter(project=self.project)
-        assert len(artifacts) == 0
+        assert len(artifacts) == 1
+        assert artifacts[0].build_configuration is None
+        assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
     def test_assemble_preprod_artifact_generates_filename(self) -> None:
+        """Test that assemble_preprod_artifact generates proper filename"""
         content = b"test preprod artifact with generated filename"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -112,11 +127,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         status, details = get_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
+        # Should succeed and generate proper filename
         assert status == ChunkFileState.OK
+        assert details is None
 
         files = File.objects.filter(type="preprod.artifact")
         assert len(files) == 1
         assert files[0].name.startswith("preprod-artifact-")
+
+        # Verify database records were created successfully
+        artifacts = PreprodArtifact.objects.filter(project=self.project)
+        assert len(artifacts) == 1
+        assert artifacts[0].build_configuration is None
+        assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
@@ -211,8 +234,8 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, nonexistent_project_id, total_checksum
         )
 
-    # Note: Tests for build configuration and artifact creation have been removed
-    # since those are now handled by the separate create_preprod_artifact function
+    # Note: Tests currently expect ERROR state because the task tries to access
+    # assemble_result.build_configuration which doesn't exist
 
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):

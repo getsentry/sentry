@@ -84,6 +84,7 @@ def assemble_preprod_artifact(
         )
 
         if assemble_result is None:
+            # Shouldn't we treat this as an error?
             logger.warning(
                 "Assemble result is None, returning early",
                 extra={
@@ -94,10 +95,18 @@ def assemble_preprod_artifact(
             )
             return
 
+        create_preprod_artifact(
+            org_id=org_id,
+            project_id=project_id,
+            checksum=checksum,
+            file_id=assemble_result.bundle.id,
+            build_configuration=kwargs.get("build_configuration"),
+        )
+
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
-            "Failed to assemble preprod artifact",
+            "Failed to assemble and create preprod artifact",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
@@ -129,67 +138,30 @@ def create_preprod_artifact(
     org_id,
     project_id,
     checksum,
+    file_id,
     build_configuration=None,
-) -> str | None:
-    from sentry.models.files.file import File
+):
+    organization = Organization.objects.get_from_cache(pk=org_id)
+    project = Project.objects.get(id=project_id, organization=organization)
+    bind_organization_context(organization)
 
-    try:
-        organization = Organization.objects.get_from_cache(pk=org_id)
-        project = Project.objects.get(id=project_id, organization=organization)
-        bind_organization_context(organization)
-
-        with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
-
-            if existing_file is None:
-                raise ValueError(
-                    f"No existing file found for checksum when trying to create preprod artifact. checksum={checksum}"
-                )
-
-            build_config = None
-            if build_configuration:
-                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-                    project=project,
-                    name=build_configuration,
-                )
-
-            preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        build_config = None
+        if build_configuration:
+            build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
                 project=project,
-                file_id=existing_file.id,
-                build_configuration=build_config,
-                state=PreprodArtifact.ArtifactState.UPLOADED,
+                name=build_configuration,
             )
 
-            logger.info(
-                "Created preprod artifact",
-                extra={
-                    "preprod_artifact_id": preprod_artifact.id,
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                    "checksum": checksum,
-                },
-            )
-
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        logger.exception(
-            "Failed to create preprod artifact row",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
-        )
-        return None
-    else:
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=preprod_artifact.id,
+        preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
+            project=project,
+            file_id=file_id,
+            build_configuration=build_config,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
         logger.info(
-            "Finished preprod artifact row creation and kafka dispatch",
+            "Created preprod artifact",
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
                 "project_id": project_id,
@@ -197,9 +169,22 @@ def create_preprod_artifact(
                 "checksum": checksum,
             },
         )
-        # This will be a non-int display id in future so prepare for that
-        # by returning a string.
-        return str(preprod_artifact.id)
+
+    produce_preprod_artifact_to_kafka(
+        project_id=project_id,
+        organization_id=org_id,
+        artifact_id=preprod_artifact.id,
+    )
+
+    logger.info(
+        "Finished preprod artifact row creation and kafka dispatch",
+        extra={
+            "preprod_artifact_id": preprod_artifact.id,
+            "project_id": project_id,
+            "organization_id": org_id,
+            "checksum": checksum,
+        },
+    )
 
 
 def _assemble_preprod_artifact_file(
