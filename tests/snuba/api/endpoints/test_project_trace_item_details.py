@@ -468,7 +468,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             }
         ]
 
-    def test_sentry_internal_attributes_filtered_for_non_staff(self) -> None:
+    def test_sentry_internal_attributes(self) -> None:
         span_1 = self.create_span(
             {
                 "description": "test span",
@@ -480,7 +480,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             },
             start_ts=self.one_min_ago,
         )
-        # span_1["trace_id"] = self.trace_uuid
+        span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
         self.store_spans([span_1], is_eap=True)
@@ -493,26 +493,9 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         assert "__sentry_internal_span_buffer_outcome" not in attribute_names
         assert "__sentry_internal_test" not in attribute_names
 
-    def test_sentry_internal_attributes_visible_for_staff(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.create_member(user=staff_user, organization=self.organization)
         self.login_as(user=staff_user, staff=True)
-
-        span_1 = self.create_span(
-            {
-                "description": "test span",
-                "tags": {
-                    "normal_attr": "normal_value",
-                    "__sentry_internal_span_buffer_outcome": "different",
-                    "__sentry_internal_test": "internal_value",
-                },
-            },
-            start_ts=self.one_min_ago,
-        )
-        # span_1["trace_id"] = self.trace_uuid
-        item_id = span_1["span_id"]
-
-        self.store_spans([span_1], is_eap=True)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200
