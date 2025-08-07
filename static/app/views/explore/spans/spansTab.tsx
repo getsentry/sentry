@@ -167,19 +167,9 @@ function SpansSearchBar({
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
   const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
-
-  let initialSeerQuery = '';
-  const committedQuery = query.trim();
-  const inputValue = currentInputValue.trim();
-  if (inputValue && committedQuery && inputValue === committedQuery) {
-    initialSeerQuery = inputValue;
-  } else if (inputValue && committedQuery) {
-    initialSeerQuery = `${committedQuery} ${inputValue}`;
-  } else if (!inputValue && committedQuery) {
-    initialSeerQuery = committedQuery;
-  } else if (!committedQuery && inputValue) {
-    initialSeerQuery = inputValue;
-  }
+  const initialSeerQuery = currentInputValue.trim()
+    ? currentInputValue.trim()
+    : query.trim();
 
   return displayAskSeer ? (
     <SeerComboBox initialQuery={initialSeerQuery} />
