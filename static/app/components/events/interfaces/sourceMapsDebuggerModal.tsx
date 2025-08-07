@@ -273,7 +273,7 @@ function SentryWizardCallout({
   organization,
   project,
 }: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
-  project: Project;
+  project?: Project;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
@@ -624,7 +624,7 @@ export function SourceMapsDebuggerModal({
             <SentryWizardCallout
               analyticsParams={analyticsParams}
               organization={organization}
-              project={project!}
+              project={project}
             />
           )}
           <h6>{t('Troubleshooting Checklist')}</h6>
