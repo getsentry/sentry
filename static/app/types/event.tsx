@@ -66,8 +66,24 @@ function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
   return converted as EventGroupVariantType;
 }
 
-export function convertVariantFromBackend(variant: any): EventGroupVariant {
+function isEventGroupVariantType(value: string): value is EventGroupVariantType {
+  const eventGroupVariantTypes = new Set<string>([
+    'checksum',
+    'fallback',
+    'custom_fingerprint',
+    'built_in_fingerprint',
+    'component',
+    'salted_component',
+    'performance_problem',
+  ]);
+  return eventGroupVariantTypes.has(value);
+}
+
+export function convertVariantFromBackend(variant: any): EventGroupVariant | null {
   const convertedType = convertVariantTypeToUnderscore(variant.type);
+  if (!isEventGroupVariantType(convertedType)) {
+    return null;
+  }
 
   const convertedVariant = {
     ...variant,
