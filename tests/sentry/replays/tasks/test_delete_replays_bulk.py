@@ -240,60 +240,113 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_has_seer_data_true(
-        self, _mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
     ) -> None:
-        mock_fetch_rows.return_value = {
-            "rows": [
-                {
-                    "retention_days": 90,
-                    "replay_id": "a",
-                    "max_segment_id": 1,
-                },
-                {
-                    "retention_days": 90,
-                    "replay_id": "b",
-                    "max_segment_id": 0,
-                },
-            ],
-            "has_more": False,
-        }
+        def row_generator():
+            yield {
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "a",
+                        "max_segment_id": 1,
+                    },
+                    {
+                        "retention_days": 90,
+                        "replay_id": "b",
+                        "max_segment_id": 0,
+                    },
+                ],
+                "has_more": True,
+            }
+            yield {
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "c",
+                        "max_segment_id": 1,
+                    },
+                ],
+                "has_more": False,
+            }
 
+        mock_fetch_rows.side_effect = row_generator()
         mock_post.return_value = Mock(status_code=204)
-        run_bulk_replay_delete_job(self.job.id, offset=0, has_seer_data=True)
 
-        assert mock_post.call_count == 1
-        args, kwargs = mock_post.call_args
-        assert args[0] == SEER_DELETE_SUMMARIES_URL
-        assert kwargs["data"] == json.dumps(
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=2, has_seer_data=True)
+
+        # Runs were chained.
+        self.job.refresh_from_db()
+        assert self.job.status == "completed"
+        assert self.job.offset == 3
+
+        assert mock_post.call_count == 2
+        assert mock_post.call_args_list[0].args == (SEER_DELETE_SUMMARIES_URL,)
+        assert mock_post.call_args_list[0].kwargs["data"] == json.dumps(
             {
                 "organization_id": self.project.organization_id,
                 "project_id": self.project.id,
                 "replay_ids": ["a", "b"],
             }
         )
+        assert (
+            mock_post.call_args_list[0].kwargs["headers"]["content-type"]
+            == "application/json;charset=utf-8"
+        )
+        assert mock_post.call_args_list[1].args == (SEER_DELETE_SUMMARIES_URL,)
+        assert mock_post.call_args_list[1].kwargs["data"] == json.dumps(
+            {
+                "organization_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "replay_ids": ["c"],
+            }
+        )
+        assert (
+            mock_post.call_args_list[1].kwargs["headers"]["content-type"]
+            == "application/json;charset=utf-8"
+        )
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_has_seer_data_false(
-        self, _mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
     ) -> None:
-        mock_fetch_rows.return_value = {
-            "rows": [
-                {
-                    "retention_days": 90,
-                    "replay_id": "a",
-                    "max_segment_id": 1,
-                },
-                {
-                    "retention_days": 90,
-                    "replay_id": "b",
-                    "max_segment_id": 0,
-                },
-            ],
-            "has_more": False,
-        }
+        def row_generator():
+            yield {
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "a",
+                        "max_segment_id": 1,
+                    },
+                    {
+                        "retention_days": 90,
+                        "replay_id": "b",
+                        "max_segment_id": 0,
+                    },
+                ],
+                "has_more": True,
+            }
+            yield {
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "c",
+                        "max_segment_id": 1,
+                    },
+                ],
+                "has_more": False,
+            }
 
-        mock_post.return_value = Mock(status_code=404)
-        run_bulk_replay_delete_job(self.job.id, offset=0, has_seer_data=False)
+        mock_fetch_rows.side_effect = row_generator()
+
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=2, has_seer_data=False)
+
+        # Runs were chained.
+        self.job.refresh_from_db()
+        assert self.job.status == "completed"
+        assert self.job.offset == 3
+
         assert mock_post.call_count == 0

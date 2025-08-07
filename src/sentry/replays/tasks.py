@@ -242,7 +242,7 @@ def run_bulk_replay_delete_job(
         job.offset = next_offset
         job.save()
 
-        run_bulk_replay_delete_job.delay(job.id, next_offset)
+        run_bulk_replay_delete_job.delay(job.id, next_offset, has_seer_data=has_seer_data)
         return None
     else:
         # If we've finished deleting all the replays for the selection. We can move the status to
