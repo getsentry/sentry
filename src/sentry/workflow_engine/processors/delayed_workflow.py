@@ -8,7 +8,6 @@ from functools import cached_property
 from typing import Any, TypeAlias
 
 import sentry_sdk
-from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -21,17 +20,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
-from sentry.rules.processing.buffer_processing import (
-    BufferHashKeys,
-    DelayedProcessingBase,
-    FilterKeys,
-    delayed_processing_registry,
-)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import issues_tasks, workflow_engine_tasks
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -58,7 +51,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import track_batch_performance
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -794,31 +786,6 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 
 @instrumented_task(
-    name="sentry.workflow_engine.processors.process_delayed_workflows",
-    queue="delayed_rules",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=50,
-    time_limit=60,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=workflow_engine_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
-)
-@retry(timeouts=True)
-@log_context.root()
-def process_delayed_workflows_shim(
-    project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
-) -> None:
-    process_delayed_workflows(project_id, batch_key, *args, **kwargs)
-
-
-@instrumented_task(
     name="sentry.workflow_engine.processors.delayed_workflow",
     queue="delayed_rules",
     default_retry_delay=5,
@@ -951,19 +918,3 @@ def process_delayed_workflows(
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
     cleanup_redis_buffer(project_id, event_data.events.keys(), batch_key)
-
-
-@delayed_processing_registry.register("delayed_workflow")
-class DelayedWorkflow(DelayedProcessingBase):
-    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
-    option = "delayed_workflow.rollout"
-
-    @property
-    def hash_args(self) -> BufferHashKeys:
-        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
-
-    @property
-    def processing_task(self) -> Task:
-        if options.get("delayed_workflow.use_workflow_engine_pool"):
-            return process_delayed_workflows_shim
-        return process_delayed_workflows
