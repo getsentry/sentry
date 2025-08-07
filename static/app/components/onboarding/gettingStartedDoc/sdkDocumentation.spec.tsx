@@ -36,6 +36,11 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/sdks/`,
   });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/projects/`,
+    body: [project],
+  });
 }
 
 describe('Renders SDK Documentation corretly based on platform id and language', function () {
@@ -63,7 +68,6 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             link: 'https://docs.sentry.io/platforms/native/guides/qt/',
           }}
           projectSlug={project.slug}
-          projectId={project.id}
           organization={organization}
           activeProductSelection={[]}
         />
@@ -110,7 +114,6 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             link: 'https://docs.sentry.io/platforms/javascript/',
           }}
           projectSlug={project.slug}
-          projectId={project.id}
           organization={organization}
           activeProductSelection={[]}
         />

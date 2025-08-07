@@ -114,7 +114,6 @@ export function ProjectInstallPlatform({
           platform={currentPlatform}
           organization={organization}
           projectSlug={project.slug}
-          projectId={project.id}
           activeProductSelection={products}
         />
       )}

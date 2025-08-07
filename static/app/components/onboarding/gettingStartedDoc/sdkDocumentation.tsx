@@ -9,12 +9,12 @@ import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStarted
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
+import useProjects from 'sentry/utils/useProjects';
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
   projectSlug: Project['slug'];
   configType?: ConfigType;
   newOrg?: boolean;
@@ -26,7 +26,6 @@ export function SdkDocumentation({
   projectSlug,
   activeProductSelection,
   newOrg,
-  projectId,
   configType,
   organization,
 }: SdkDocumentationProps) {
@@ -36,7 +35,10 @@ export function SdkDocumentation({
     platform,
   });
 
-  if (isLoading) {
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects({slugs: [projectSlug]});
+  const project = projects[0];
+
+  if (isLoading || !projectsLoaded) {
     return <LoadingIndicator />;
   }
 
@@ -82,6 +84,16 @@ export function SdkDocumentation({
     );
   }
 
+  if (!project) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the project for this getting started documentation.'
+        )}
+      />
+    );
+  }
+
   return (
     <OnboardingLayout
       docsConfig={docs}
@@ -89,8 +101,7 @@ export function SdkDocumentation({
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}
-      projectId={projectId}
-      projectSlug={projectSlug}
+      project={project}
       configType={configType}
       projectKeyId={projectKeyId}
     />

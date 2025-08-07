@@ -51,7 +51,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                 platform={currentPlatform}
                 organization={organization}
                 projectSlug={project.slug}
-                projectId={project.id}
                 activeProductSelection={products}
                 newOrg
               />
