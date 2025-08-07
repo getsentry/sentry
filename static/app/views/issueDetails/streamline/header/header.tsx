@@ -202,7 +202,7 @@ export default function StreamlinedGroupHeader({
                 to={`${baseUrl}events/${location.search}`}
                 aria-label={t('View events')}
               >
-                {t('Events')}
+                {t('Events (total)')}
               </StatLink>
             )}
           </StatTitle>
