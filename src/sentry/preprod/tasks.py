@@ -82,7 +82,7 @@ def assemble_preprod_artifact(
 
         if assemble_result is None:
             raise RuntimeError(
-                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum})"
+                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum}, preprod_artifact_id={artifact_id})"
             )
 
         logger.info(
@@ -91,6 +91,7 @@ def assemble_preprod_artifact(
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
             },
         )
 
@@ -108,7 +109,7 @@ def assemble_preprod_artifact(
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
-            "Failed to assemble preprod artifact file",
+            "Failed to assemble and create preprod artifact",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
@@ -257,7 +258,7 @@ def _assemble_preprod_artifact_size_analysis(
         logger.exception(
             "PreprodArtifact not found during size analysis assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
