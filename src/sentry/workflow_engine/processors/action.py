@@ -121,6 +121,37 @@ def update_workflow_action_group_statuses(
     )
 
 
+def deduplicate_actions(
+    actions_queryset: BaseQuerySet[Action], action_to_workflow_ids: dict[int, int]
+) -> BaseQuerySet[Action]:
+    """
+    Deduplicates actions based on their handler's dedup_key method.
+    Returns a filtered and annotated queryset with duplicates removed.
+    When duplicates are found, keeps the action with the lowest ID.
+    """
+    # Sort actions by ID to ensure consistent ordering for deduplication
+    # We sort reverse since diwe rely on overwritting the dedup_key_to_action_id dict
+    sorted_actions = sorted(actions_queryset, key=lambda a: a.id, reverse=True)
+
+    dedup_key_to_action_id: dict[str, int] = defaultdict(int)
+
+    for action in sorted_actions:
+        handler = action.get_handler()
+        dedup_key = handler.get_dedup_key(action)
+
+        dedup_key_to_action_id[dedup_key] = action.id
+
+    # Create workflow_id annotation cases for final actions
+    workflow_id_cases = [
+        When(id=action_id, then=Value(action_to_workflow_ids[action_id]))
+        for action_id in dedup_key_to_action_id.values()
+    ]
+
+    return Action.objects.filter(id__in=dedup_key_to_action_id.values()).annotate(
+        workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
+    )
+
+
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
@@ -158,15 +189,9 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
-    # annotate actions with workflow_id they are firing for (deduped)
-    workflow_id_cases = [
-        When(id=action_id, then=Value(workflow_id))
-        for action_id, workflow_id in action_to_workflow_ids.items()
-    ]
-
-    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
-        workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
-    )
+    # Fetch actions and deduplicate in a single query
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+    return deduplicate_actions(actions_queryset, action_to_workflow_ids)
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:

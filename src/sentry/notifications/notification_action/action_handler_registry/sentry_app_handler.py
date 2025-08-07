@@ -45,3 +45,25 @@ class SentryAppActionHandler(ActionHandler):
         detector: Detector,
     ) -> None:
         execute_via_group_type_registry(job, action, detector)
+
+    @staticmethod
+    def get_dedup_key(action: Action) -> str:
+        """
+        Returns a deduplication key for Sentry App actions.
+        Sentry App actions are deduplicated by target_identifier and sentry_app_identifier.
+        """
+        key_parts = [action.type]
+
+        sentry_app_identifier = action.config.get("sentry_app_identifier")
+
+        # This is an invariant that we should have a sentry_app_identifier for all Sentry App actions
+        assert sentry_app_identifier is not None
+        key_parts.append(str(sentry_app_identifier))
+
+        target_identifier = action.config.get("target_identifier")
+
+        # This is an invariant that we should have a target_identifier for all Sentry App actions
+        assert target_identifier is not None
+        key_parts.append(str(target_identifier))
+
+        return ":".join(key_parts)

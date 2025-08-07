@@ -43,3 +43,29 @@ class EmailActionHandler(ActionHandler):
         detector: Detector,
     ) -> None:
         execute_via_group_type_registry(job, action, detector)
+
+    @staticmethod
+    def get_dedup_key(action: Action) -> str:
+        """
+        Returns a deduplication key for email actions.
+        Email actions are deduplicated by target_type and target_identifier.
+        """
+        key_parts = [action.type]
+
+        target_type = action.config.get("target_type")
+
+        # Target type is an invariant that we should have for all email actions
+        assert target_type is not None
+
+        target_identifier = action.config.get("target_identifier")
+
+        key_parts.append(str(target_type))
+
+        if target_identifier:
+            key_parts.append(str(target_identifier))
+
+        # Include the stringified data
+        if action.data:
+            key_parts.append(str(action.data))
+
+        return ":".join(key_parts)
