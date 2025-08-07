@@ -168,6 +168,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "checksum": checksum,
                     "chunks": chunks,
                     "artifact_id": artifact_id,
+                    "build_configuration": data.get("build_configuration"),
                     # VCS parameters
                     "head_sha": data.get("head_sha"),
                     "base_sha": data.get("base_sha"),

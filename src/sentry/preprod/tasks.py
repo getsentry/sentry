@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
