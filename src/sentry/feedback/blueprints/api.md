@@ -338,36 +338,40 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 
 ### Fetch Categories [GET]
 
-Retrieves a list of 3-4 categories, which comprise of a primary label, along with their associated labels, which are either directly interchangeable or children of the primary label (based on the feedbacks as context for what "interchangeable" means).
+Retrieves a list of categories, which comprise of a primary label, along with their associated labels, which are either directly interchangeable or children of the primary label (based on the feedbacks as context for what "interchangeable" means). Categories are returned in descending order with respect to the feedback count.
 
 **Attributes**
 
-| Column                                       | Type             | Description                                                                                                                                           |
-| -------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| categories                                   | optional[object] | Object with the primary labels as its keys. The values are the primary label's associated labels, and the number of feedbacks in each group of labels |
-| categories.{primary_label}.associated_labels | list[str]        | The list of associated labels for a given primary label                                                                                               |
-| categories.{primary_label}.feedback_count    | int              | Number of feedbacks that have either the primary label or any of the associated labels                                                                |
-| numFeedbacksContext                          | int              | Number of feedbacks given as context to the LLM                                                                                                       |
-| success                                      | boolean          | -                                                                                                                                                     |
+| Column                         | Type            | Description                                                                            |
+| ------------------------------ | --------------- | -------------------------------------------------------------------------------------- |
+| categories                     | optional[array] | Array with each item representing a category                                           |
+| categories[i].primaryLabel     | str             | The primary label of the category                                                      |
+| categories[i].associatedLabels | list[str]       | The list of associated labels for a given primary label                                |
+| categories[i].feedbackCount    | int             | Number of feedbacks that have either the primary label or any of the associated labels |
+| numFeedbacksContext            | int             | Number of feedbacks given as context to the LLM                                        |
+| success                        | boolean         | -                                                                                      |
 
 - Response 200
   ```json
   {
     "success": true,
-    "categories": {
-      "User Interface": {
+    "categories": [
+      {
+        "primary_label": "User Interface",
         "associated_labels": ["UI", "User Experience", "Look", "Display", "Navigation"],
         "feedback_count": 450
       },
-      "Integrations": {
+      {
+        "primary_label": "Integrations",
         "associated_labels": ["Jira", "GitHub", "Workflow", "Webhook", "GitLab"],
         "feedback_count": 300
       },
-      "Navigation": {
+      {
+        "primary_label": "Navigation",
         "associated_labels": ["Discoverability", "Sidebar", "Selection"],
         "feedback_count": 150
       }
-    },
+    ],
     "numFeedbacksContext": 400
   }
   ```
