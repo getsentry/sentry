@@ -14,7 +14,8 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, features, options, roles
+from sentry import analytics, audit_log, features, options, roles
+from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -722,6 +723,14 @@ def post_org_pending_deletion(
             event=audit_log.get_event_id("ORG_REMOVE"),
             data=updated_organization.get_audit_log_data(),
             transaction_id=org_delete_response.schedule_guid,
+        )
+        analytics.record(
+            OrganizationRemoved(
+                organization_id=updated_organization.id,
+                organization_name=updated_organization.name,
+                user_id=request.user.id if request.user.is_authenticated else None,
+                deletion_datetime=entry.datetime.isoformat(),
+            )
         )
 
         delete_confirmation_args: DeleteConfirmationArgs = {
