@@ -33,6 +33,6 @@ social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 
-uptime: 0001_squashed_0042_extra_uptime_indexes
+uptime: 0043_uptime_django_json_field
 
 workflow_engine: 0082_disconnect_error_detector_cron_workflows
