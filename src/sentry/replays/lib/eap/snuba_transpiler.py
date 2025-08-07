@@ -239,7 +239,7 @@ class RequestMeta(TypedDict):
             - "log": Application log entries
             - "uptime_check": Uptime monitoring check results
             - "uptime_result": Processed uptime monitoring outcomes
-            - "replay": Session replay events and data
+            - "replay": Session replay events
 
     Example:
         Performance monitoring request:
@@ -870,17 +870,5 @@ def type_infer(
         return settings["attribute_types"][expression.name]
     elif isinstance(expression, AliasedExpression):
         return settings["attribute_types"][expression.exp.name]
-
-    match expression.function:
-        case "count" | "countIf":
-            return float
-        case "max" | "maxIf":
-            return type_infer(expression.parameters[0], settings)
-        case "min" | "minIf":
-            return type_infer(expression.parameters[0], settings)
-        case "sum" | "sumIf":
-            return type_infer(expression.parameters[0], settings)
-        case "uniq" | "uniqIf":
-            return type_infer(expression.parameters[0], settings)
-        case _:
-            return float
+    else:
+        return float
