@@ -1128,6 +1128,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
             ),
+            f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
+            ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
