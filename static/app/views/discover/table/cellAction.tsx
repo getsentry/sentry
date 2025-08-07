@@ -241,7 +241,7 @@ function makeCellActions({
 
   if (to && to !== value) {
     const field = String(column.key);
-    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(field));
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
   }
 
   if (isUrl(value)) {
@@ -304,7 +304,7 @@ function makeCellActions({
  * Provides the correct text for the dropdown menu based on the field.
  * @param field column field name
  */
-function getCellActionText(field: string): string {
+function getInternalLinkActionLabel(field: string): string {
   switch (field) {
     case FieldKey.ID:
     case FieldKey.TRACE:
@@ -345,7 +345,8 @@ function CellAction({
 }: Props) {
   const organization = useOrganization();
   const {children, column} = props;
-  // Parsed out link from the cell to add to the dropdown
+  // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
+  // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
   const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
