@@ -1,16 +1,31 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
+import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 
 import RepoTokenTable, {DEFAULT_SORT} from './repoTokenTable';
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openTokenRegenerationConfirmationModal: jest.fn(),
-}));
-
+jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/confirm', () => {
-  return function MockConfirm({children}: {children: React.ReactNode}) {
-    return <div>{children}</div>;
+  return function MockConfirm({onConfirm, children}: any) {
+    return (
+      <div>
+        {children}
+        <button onClick={onConfirm}>Generate new token</button>
+      </div>
+    );
   };
 });
+
+const mockOpenTokenRegenerationConfirmationModal = jest.mocked(
+  openTokenRegenerationConfirmationModal
+);
 
 const mockData = [
   {
@@ -35,10 +50,29 @@ const defaultProps = {
 describe('RepoTokenTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
+  const renderWithContext = (props = defaultProps) => {
+    return render(
+      <CodecovQueryParamsProvider>
+        <RepoTokenTable {...props} />
+      </CodecovQueryParamsProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/codecov/tokens/',
+            query: {
+              integratedOrgId: 'integrated-123',
+            },
+          },
+        },
+      }
+    );
+  };
+
   it('renders table with repository tokens data', () => {
-    render(<RepoTokenTable {...defaultProps} />);
+    renderWithContext();
 
     expect(screen.getByLabelText('Repository Tokens Table')).toBeInTheDocument();
 
@@ -67,7 +101,7 @@ describe('RepoTokenTable', () => {
       },
     };
 
-    render(<RepoTokenTable {...emptyProps} />);
+    renderWithContext(emptyProps);
 
     expect(screen.getByLabelText('Repository Tokens Table')).toBeInTheDocument();
     expect(screen.getByText('Repository Name')).toBeInTheDocument();
@@ -78,35 +112,39 @@ describe('RepoTokenTable', () => {
     expect(screen.queryByText('sentry-backend')).not.toBeInTheDocument();
   });
 
-  it('renders table with single repository token', () => {
-    const singleDataProps = {
-      ...defaultProps,
-      response: {
-        data: [mockData[0]!],
-        isLoading: false,
-        error: null,
-      },
-    };
+  it('calls regenerate token hook and opens modal on successful token regeneration', async () => {
+    const mockToken = 'new-regenerated-token-12345';
+    const mockResponse = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prevent/owner/integrated-123/repository/sentry-frontend/token/regenerate/',
+      method: 'POST',
+      body: {token: mockToken},
+    });
 
-    render(<RepoTokenTable {...singleDataProps} />);
+    renderWithContext();
+    renderGlobalModal();
 
-    expect(screen.getByText('sentry-frontend')).toBeInTheDocument();
-    expect(screen.getByText('sk_test_token_12345abcdef')).toBeInTheDocument();
-    expect(screen.queryByText('sentry-backend')).not.toBeInTheDocument();
-
-    const regenerateButtons = screen.getAllByText('Regenerate token');
-    expect(regenerateButtons).toHaveLength(1);
-  });
-
-  it('renders regenerate buttons that can be interacted with', () => {
-    render(<RepoTokenTable {...defaultProps} />);
-
-    const regenerateButtons = screen.getAllByText('Regenerate token');
+    // Click the regenerate button for the first repository to open the confirmation
+    const regenerateButtons = screen.getAllByRole('button', {name: 'regenerate token'});
     expect(regenerateButtons).toHaveLength(2);
+    await userEvent.click(regenerateButtons[0]!);
 
-    // Check that buttons are clickable
-    regenerateButtons.forEach(button => {
-      expect(button.closest('button')).toBeEnabled();
+    // Click the confirm button from the mocked Confirm component
+    const confirmButtons = screen.getAllByRole('button', {name: 'Generate new token'});
+    await userEvent.click(confirmButtons[0]!);
+
+    // Wait for the API call to complete
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledWith(
+        '/organizations/org-slug/prevent/owner/integrated-123/repository/sentry-frontend/token/regenerate/',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+    });
+
+    // Verify that the modal is opened with the correct token
+    expect(mockOpenTokenRegenerationConfirmationModal).toHaveBeenCalledWith({
+      token: mockToken,
     });
   });
 });
