@@ -130,17 +130,20 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
             project, base_sample_rate, enabled_user_biases, combined_biases
         )
         if features.has("organizations:log-project-config", organization, actor=None):
-            logger.info(
-                "log-project-config - generate_rules: Generated %s rules for project %s in org %s.",
-                len(rules),
-                project.id,
-                organization.id,
-                extra={
-                    "enabled_user_biases": enabled_user_biases,
-                    "base_sample_rate": base_sample_rate,
-                    "num_rules": len(rules),
-                },
-            )
+            try:
+                logger.info(
+                    "log-project-config - generate_rules: Generated %s rules for project %s in org %s.",
+                    len(rules),
+                    project.id,
+                    organization.id,
+                    extra={
+                        "enabled_user_biases": enabled_user_biases,
+                        "base_sample_rate": base_sample_rate,
+                        "num_rules": len(rules),
+                    },
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
