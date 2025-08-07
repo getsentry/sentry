@@ -492,4 +492,6 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 },
             )
             metrics.incr("coding_agent.launch_error")
-            return Response({"error": f"Failed to launch coding agent: {str(e)}"}, status=500)
+            return Response(
+                {"error": "Failed to launch coding agent due to an internal error."}, status=500
+            )
