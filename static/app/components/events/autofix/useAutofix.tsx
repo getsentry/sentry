@@ -130,6 +130,15 @@ const isPolling = (
     return true;
   }
 
+  // Poll while coding agent state is pending
+  if (
+    Object.values(autofixData.codebases).some(
+      codebase => codebase.coding_agent_state?.status === 'pending'
+    )
+  ) {
+    return true;
+  }
+
   return (
     !autofixData ||
     ![

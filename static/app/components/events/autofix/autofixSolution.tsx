@@ -2,7 +2,11 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -11,6 +15,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {
@@ -25,13 +30,18 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconChat, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconChevron, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,6 +117,62 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the solution.'));
+    },
+  });
+}
+
+function useCodingAgentIntegrations() {
+  const organization = useOrganization();
+
+  return useApiQuery<{
+    integrations: Array<{
+      id: string;
+      metadata: {
+        has_api_key: boolean;
+        domain_name?: string;
+      };
+      name: string;
+      provider: string;
+      status: string;
+      webhook_url: string;
+    }>;
+  }>([`/organizations/${organization.slug}/coding-agent-trigger/`], {
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+function useLaunchCodingAgent(groupId: string, runId: string) {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {integration_id: string; context?: Record<string, any>}) => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/coding-agent-trigger/`,
+        {
+          method: 'POST',
+          data: {
+            integration_id: params.integration_id,
+            group_id: groupId,
+            context: params.context,
+            run_id: runId,
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      addSuccessMessage('Cursor agent launched successfully');
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(organization.slug, groupId, true),
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to launch Cursor agent'));
     },
   });
 }
@@ -338,6 +404,14 @@ function AutofixSolutionDisplay({
 
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
+    useCodingAgentIntegrations();
+  const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
+  const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
+    groupId,
+    runId
+  );
+  const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
     () => {
@@ -368,6 +442,41 @@ function AutofixSolutionDisplay({
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
   const codingDisabled =
     organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+
+  // Find Cursor integration specifically
+  const cursorIntegration = codingAgentIntegrations.find(
+    integration => integration.provider === 'cursor'
+  );
+
+  const handleLaunchCursorAgent = () => {
+    if (!cursorIntegration) {
+      return;
+    }
+
+    const solutionText = formatSolutionText(solutionItems, customSolution);
+
+    launchCodingAgent(
+      {
+        integration_id: cursorIntegration.id,
+        context: {
+          solution: solutionText,
+          issue_title: group?.title,
+          issue_permalink: group?.permalink,
+        },
+      },
+      {
+        onSuccess: () => {
+          setAgentLaunched(true);
+        },
+      }
+    );
+
+    trackAnalytics('autofix.cursor_agent.launch', {
+      organization,
+      group_id: groupId,
+      solution_length: solutionItems.length,
+    });
+  };
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -495,6 +604,11 @@ function AutofixSolutionDisplay({
           </HeaderText>
           <ButtonBar>
             <ButtonBar gap="0">
+              {!isEditing && (
+                <CopySolutionButton solution={solution} isEditing={isEditing} />
+              )}
+            </ButtonBar>
+            <ButtonBar gap="sm">
               <Tooltip
                 isHoverable
                 title={
@@ -541,6 +655,123 @@ function AutofixSolutionDisplay({
                   {t('Code It Up')}
                 </Button>
               </Tooltip>
+              {cursorIntegration ? (
+                <Tooltip
+                  isHoverable
+                  title={
+                    hasNoRepos
+                      ? tct(
+                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                          {
+                            link: (
+                              <Link
+                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                              />
+                            ),
+                          }
+                        )
+                      : cantReadRepos
+                        ? t(
+                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                          )
+                        : undefined
+                  }
+                >
+                  <ButtonBar merged gap="0">
+                    <Button
+                      size="sm"
+                      priority={
+                        !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                          ? 'primary'
+                          : 'default'
+                      }
+                      busy={isPending}
+                      disabled={hasNoRepos || cantReadRepos}
+                      onClick={() => {
+                        handleContinue({
+                          mode: 'fix',
+                          solution: solutionItems,
+                        });
+                      }}
+                      analyticsEventName="Autofix: Code It Up"
+                      analyticsEventKey="autofix.solution.code"
+                    >
+                      {t('Code It Up')}
+                    </Button>
+                    <DropdownMenu
+                      items={[
+                        {
+                          key: 'cursor-agent',
+                          label: t('Code with Cursor Agent'),
+                          onAction: handleLaunchCursorAgent,
+                          disabled: isLoadingAgents,
+                        },
+                      ]}
+                      trigger={(triggerProps: any, isOpen: boolean) => (
+                        <DropdownTrigger
+                          {...triggerProps}
+                          size="sm"
+                          priority={
+                            !solutionSelected ||
+                            !valueIsEqual(solutionItems, solution, true)
+                              ? 'primary'
+                              : 'default'
+                          }
+                          busy={isLaunchingAgent}
+                          disabled={hasNoRepos || cantReadRepos || isLoadingAgents}
+                          aria-label={t('More code options')}
+                          icon={
+                            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                          }
+                        />
+                      )}
+                    />
+                  </ButtonBar>
+                </Tooltip>
+              ) : (
+                <Tooltip
+                  isHoverable
+                  title={
+                    hasNoRepos
+                      ? tct(
+                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                          {
+                            link: (
+                              <Link
+                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                              />
+                            ),
+                          }
+                        )
+                      : cantReadRepos
+                        ? t(
+                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                          )
+                        : undefined
+                  }
+                >
+                  <Button
+                    size="sm"
+                    priority={
+                      !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                        ? 'primary'
+                        : 'default'
+                    }
+                    busy={isPending}
+                    disabled={hasNoRepos || cantReadRepos}
+                    onClick={() => {
+                      handleContinue({
+                        mode: 'fix',
+                        solution: solutionItems,
+                      });
+                    }}
+                    analyticsEventName="Autofix: Code It Up"
+                    analyticsEventKey="autofix.solution.code"
+                  >
+                    {t('Code It Up')}
+                  </Button>
+                </Tooltip>
+              )}
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
@@ -712,4 +943,10 @@ const AddInstructionWrapper = styled('div')`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
 `;

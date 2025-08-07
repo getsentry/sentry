@@ -120,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
+    CODING_AGENT = "coding-agent"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"

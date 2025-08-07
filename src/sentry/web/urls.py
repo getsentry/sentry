@@ -1303,6 +1303,10 @@ urlpatterns += [
                     r"^discord/",
                     include("sentry.integrations.discord.urls"),
                 ),
+                re_path(
+                    r"^cursor/",
+                    include("sentry.integrations.cursor.urls"),
+                ),
             ]
         ),
     ),
