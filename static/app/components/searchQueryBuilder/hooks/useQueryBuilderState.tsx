@@ -625,10 +625,14 @@ export function useQueryBuilderState({
   initialQuery,
   getFieldDefinition,
   disabled,
+  displayAskSeerFeedback,
+  setDisplayAskSeerFeedback,
 }: {
   disabled: boolean;
+  displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
+  setDisplayAskSeerFeedback: (value: boolean) => void;
 }) {
   const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
@@ -659,10 +663,7 @@ export function useQueryBuilderState({
           if (state.query === state.committedQuery) {
             return state;
           }
-          return {
-            ...state,
-            committedQuery: state.query,
-          };
+          return {...state, committedQuery: state.query};
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
@@ -677,16 +678,30 @@ export function useQueryBuilderState({
             ...state,
             focusOverride: null,
           };
-        case 'DELETE_TOKEN':
+        case 'DELETE_TOKEN': {
+          if (displayAskSeerFeedback) {
+            setDisplayAskSeerFeedback(false);
+          }
           return replaceTokensWithText(state, {
             tokens: [action.token],
             text: '',
             getFieldDefinition,
           });
-        case 'DELETE_TOKENS':
+        }
+        case 'DELETE_TOKENS': {
+          if (displayAskSeerFeedback) {
+            setDisplayAskSeerFeedback(false);
+          }
           return deleteQueryTokens(state, action);
-        case 'UPDATE_FREE_TEXT':
-          return updateFreeText(state, action);
+        }
+        case 'UPDATE_FREE_TEXT': {
+          const newState = updateFreeText(state, action);
+          // if the query has changed, we need to reset the displayAskSeerFeedback
+          if (newState.query !== state.query && displayAskSeerFeedback) {
+            setDisplayAskSeerFeedback(false);
+          }
+          return newState;
+        }
         case 'REPLACE_TOKENS_WITH_TEXT':
           return replaceTokensWithText(state, {
             tokens: action.tokens,
@@ -711,7 +726,13 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, getFieldDefinition, hasWildcardOperators]
+    [
+      disabled,
+      displayAskSeerFeedback,
+      getFieldDefinition,
+      hasWildcardOperators,
+      setDisplayAskSeerFeedback,
+    ]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
