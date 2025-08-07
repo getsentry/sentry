@@ -265,7 +265,12 @@ export function LogsTabContent({
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
     (tab: 'aggregates' | 'logs') => {
-      setMode(tab === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES);
+      if (tab === 'aggregates') {
+        setSidebarOpen(true);
+        setMode(Mode.AGGREGATE);
+      } else {
+        setMode(Mode.SAMPLES);
+      }
     },
     [setMode]
   );
