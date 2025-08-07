@@ -80,6 +80,6 @@ register_grouping_config(
     # feature should be defaulted to False in the base config, and then the `initial_context` in the
     # new config is where we'd flip it to True.
     initial_context={},
-    enhancements_base="newstyle:2023-01-11",
+    enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )
