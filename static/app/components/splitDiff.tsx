@@ -26,20 +26,44 @@ type Props = {
 function SplitDiff({className, type = 'lines', base, target}: Props) {
   const diffFn = diffFnMap[type];
 
-  const baseLines = base.split('\n');
-  const targetLines = target.split('\n');
-  const [largerArray] =
-    baseLines.length > targetLines.length
-      ? [baseLines, targetLines]
-      : [targetLines, baseLines];
-  const results = largerArray.map((_line, index) =>
-    diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
-  );
+  const results = diffFn(base, target, {newlineIsToken: true});
+
+  const processResults = (
+    currentLine: Change[] = [],
+    processedLines: Change[][] = []
+  ): Change[][] => {
+    for (const change of results) {
+      if (change.value.includes('\n')) {
+        // multiple lines if it should be
+        const lines = change.value.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const lineValue = lines[i];
+          if (lineValue !== undefined && lineValue !== '') {
+            currentLine.push({...change, value: lineValue});
+          }
+          if (i < lines.length - 1) {
+            processedLines.push(currentLine);
+            currentLine = [];
+          }
+        }
+      } else {
+        currentLine.push(change);
+      }
+    }
+    // Push remaining changes if any
+    if (currentLine.length > 0) {
+      processedLines.push(currentLine);
+    }
+    return processedLines;
+  };
+
+  // Call the function and store the result
+  const groupedChanges = processResults();
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
-        {results.map((line, j) => {
+        {groupedChanges.map((line, j) => {
           const highlightAdded = line.find(result => result.added);
           const highlightRemoved = line.find(result => result.removed);
 
