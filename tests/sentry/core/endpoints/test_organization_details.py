@@ -16,12 +16,12 @@ from rest_framework import status
 
 from sentry import audit_log
 from sentry import options as sentry_options
-from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -25,10 +28,10 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         )
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return f"/api/0/groups/{self.group.id}/user-feedback/"
 
-    def create_events_for_environment(self, environment, num_events):
+    def create_events_for_environment(self, environment: Any, num_events: int) -> list[Any]:
         return [
             self.store_event(
                 data={
@@ -41,7 +44,9 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             for __i in range(num_events)
         ]
 
-    def create_user_report_for_events(self, project, group, events, environment):
+    def create_user_report_for_events(
+        self, project: Any, group: Any, events: list[Any], environment: Any
+    ) -> list[UserReport]:
         reports = []
         for i, event in enumerate(events):
             reports.append(
@@ -57,9 +62,13 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             )
         return reports
 
-    def assert_same_userreports(self, response_data, userreports):
-        assert sorted(int(r.get("id")) for r in response_data) == sorted(r.id for r in userreports)
-        assert sorted(r.get("eventID") for r in response_data) == sorted(
+    def assert_same_userreports(
+        self, response_data: list[dict[str, Any]], userreports: list[UserReport]
+    ) -> None:
+        assert sorted(int(r.get("id", 0)) for r in response_data) == sorted(
+            r.id for r in userreports
+        )
+        assert sorted(r.get("eventID", "") for r in response_data) == sorted(
             r.event_id for r in userreports
         )
 
