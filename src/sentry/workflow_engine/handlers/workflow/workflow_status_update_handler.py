@@ -1,4 +1,3 @@
-from sentry import features
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -20,6 +19,9 @@ def workflow_status_update_handler(
     Since this handler is called in process for the activity, we want
     to queue a task to process workflows asynchronously.
     """
+
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update",
         tags={"activity_type": activity.type},
@@ -36,11 +38,8 @@ def workflow_status_update_handler(
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
         return
 
-    if features.has(
-        "organizations:workflow-engine-single-process-metric-issues", group.organization
-    ) or features.has(
-        "organizations:workflow-engine-process-metric-issue-workflows", group.organization
-    ):
+    # We should only fire actions for activity updates if we should be firing actions
+    if should_fire_workflow_actions(group.organization, group.type):
         process_workflow_activity.delay(
             activity_id=activity.id,
             group_id=group.id,
