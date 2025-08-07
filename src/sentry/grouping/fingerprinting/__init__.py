@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
@@ -256,7 +255,6 @@ class FingerprintingRules:
     def __init__(
         self,
         rules: Sequence[FingerprintRule],
-        changelog: Sequence[object] | None = None,
         version: int | None = None,
         bases: Sequence[str] | None = None,
     ) -> None:
@@ -264,7 +262,6 @@ class FingerprintingRules:
             version = VERSION
         self.version = version
         self.rules = rules
-        self.changelog = changelog
         self.bases = bases or []
 
     def iter_rules(self, include_builtin: bool = True) -> Generator[FingerprintRule]:
@@ -581,23 +578,8 @@ class FingerprintingVisitor(NodeVisitorBase):
     def visit_fingerprinting_rules(
         self, _: object, children: list[str | FingerprintRule | None]
     ) -> FingerprintingRules:
-        changelog = []
-        rules = []
-        in_header = True
-
-        for child in children:
-            if isinstance(child, str):
-                if in_header and child.startswith("##"):
-                    changelog.append(child[2:].rstrip())
-                else:
-                    in_header = False
-            elif child is not None:
-                rules.append(child)
-                in_header = False
-
         return FingerprintingRules(
-            rules=rules,
-            changelog=inspect.cleandoc("\n".join(changelog)).rstrip() or None,
+            rules=[child for child in children if not isinstance(child, str) and child is not None],
             bases=self.bases,
         )
 
