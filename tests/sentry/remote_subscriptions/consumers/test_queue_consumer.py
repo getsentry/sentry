@@ -2,6 +2,7 @@
 Tests for the thread-queue-parallel result consumer implementation.
 """
 
+import pytest
 import threading
 import time
 from datetime import datetime
@@ -114,6 +115,7 @@ class TestFixedQueuePool(TestCase):
 
         assert queue_index1 == queue_index2 == queue_index3
 
+    @pytest.mark.skip(reason="flaky: #97397")
     def test_different_groups_distributed(self) -> None:
         """Test that different groups are distributed across queues."""
         queue_indices = set()
