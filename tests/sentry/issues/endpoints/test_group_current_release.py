@@ -1,4 +1,9 @@
+from __future__ import annotations
+
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import MockClock
@@ -8,12 +13,14 @@ pytestmark = [requires_snuba]
 
 
 class GroupCurrentReleaseTest(APITestCase):
-    def _set_up_current_release(self, group_seen_on_latest_release):
+    def _set_up_current_release(
+        self, group_seen_on_latest_release: bool
+    ) -> tuple[Group, dict[str, GroupRelease]]:
         clock = MockClock()
 
         # Create several of everything, to exercise all filtering clauses.
 
-        def set_up_organization():
+        def set_up_organization() -> tuple[Group, dict[str, GroupRelease]]:
             organization = self.create_organization()
 
             team = self.create_team(organization=organization)
@@ -24,12 +31,12 @@ class GroupCurrentReleaseTest(APITestCase):
                 for env_name in ("production", "development")
             ]
 
-            def set_up_project():
+            def set_up_project() -> tuple[Group, dict[str, GroupRelease]]:
                 project = self.create_project(organization=organization, teams=[team])
                 for environment in environments:
                     environment.add_project(project)
 
-                def set_up_release():
+                def set_up_release() -> Release:
                     release = self.create_release(project=project)
                     for environment in environments:
                         ReleaseEnvironment.get_or_create(project, release, environment, clock())
@@ -41,10 +48,12 @@ class GroupCurrentReleaseTest(APITestCase):
                 early_release = set_up_release()
                 later_release = set_up_release()
 
-                def seen_on(group, release, environment):
+                def seen_on(
+                    group: Group, release: Release, environment: Environment
+                ) -> GroupRelease:
                     return GroupRelease.get_or_create(group, release, environment, clock())
 
-                def set_up_group_releases(environment):
+                def set_up_group_releases(environment: Environment) -> GroupRelease:
                     for release in (early_release, later_release):
                         for group in groups:
                             if group != target_group:
@@ -70,7 +79,9 @@ class GroupCurrentReleaseTest(APITestCase):
 
         return target_group, target_releases
 
-    def _test_current_release(self, group_seen_on_latest_release, environments_to_query):
+    def _test_current_release(
+        self, group_seen_on_latest_release: bool, environments_to_query: list[str]
+    ) -> tuple[dict[str, object] | None, dict[str, GroupRelease]]:
         target_group, target_releases = self._set_up_current_release(group_seen_on_latest_release)
 
         self.login_as(user=self.user)
