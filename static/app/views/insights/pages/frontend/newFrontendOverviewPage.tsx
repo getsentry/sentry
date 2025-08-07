@@ -25,8 +25,8 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {OverviewAssetsByTimeSpentWidget} from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
-import {OverviewTimeConsumingRequestsWidget} from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget';
+import OverviewAssetsByTimeSpentWidget from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
+import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';

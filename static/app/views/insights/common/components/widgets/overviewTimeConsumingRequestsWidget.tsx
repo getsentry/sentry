@@ -32,7 +32,9 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 import {SpanFields} from 'sentry/views/insights/types';
 import {WidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function OverviewTimeConsumingRequestsWidget(props: LoadableChartWidgetProps) {
+export default function OverviewTimeConsumingRequestsWidget(
+  props: LoadableChartWidgetProps
+) {
   const theme = useTheme();
   const {query} = useTransactionNameQuery();
   const releaseBubbleProps = useReleaseBubbleProps(props);
