@@ -41,7 +41,7 @@ function TokenRegenerationConfirmationModal({
               SENTRY_PREVENT_TOKEN
             </StyledTextCopyInput>
             <StyledTextCopyInput style={{minWidth: '310px'}} aria-label={t('Token')}>
-              {token || ''}
+              {token!}
             </StyledTextCopyInput>
           </TokenRow>
         </Wrapper>

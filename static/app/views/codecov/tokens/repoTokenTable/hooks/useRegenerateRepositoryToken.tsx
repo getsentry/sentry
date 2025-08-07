@@ -26,6 +26,7 @@ export function useRegenerateRepositoryToken() {
       addSuccessMessage('Token regenerated successfully.');
       openTokenRegenerationConfirmationModal({token: data.token});
 
+      // Invalidate the query responsible for fetching the repository tokens to update the table
       queryClient.invalidateQueries({
         queryKey: [
           `/organizations/${variables.orgSlug}/prevent/owner/${variables.integratedOrgId}/repositories/tokens/`,

@@ -32,7 +32,7 @@ function TableBodyCell({column, row}: TableBodyProps) {
           onConfirm={() => {
             regenerateToken({
               orgSlug: organization.slug,
-              integratedOrgId: integratedOrgId ?? '',
+              integratedOrgId: integratedOrgId!,
               repository: row.name,
             });
           }}
