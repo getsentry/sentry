@@ -168,7 +168,7 @@ def create_preprod_artifact(
                 },
             )
 
-            return preprod_artifact.id
+            return str(preprod_artifact.id)
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
