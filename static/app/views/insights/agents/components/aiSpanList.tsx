@@ -10,22 +10,14 @@ import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {getIsAiRunNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {getNodeId} from 'sentry/views/insights/agentMonitoring/utils/getNodeId';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {getIsAiRunNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import {
-  AI_AGENT_NAME_ATTRIBUTE,
-  AI_COST_ATTRIBUTE,
-  AI_MODEL_ID_ATTRIBUTE,
-  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-  AI_TOOL_NAME_ATTRIBUTE,
-  AI_TOTAL_TOKENS_ATTRIBUTE,
   getIsAiGenerationSpan,
-  getIsAiHandoffSpan,
   getIsAiRunSpan,
-  getIsAiToolCallSpan,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+} from 'sentry/views/insights/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -254,10 +246,10 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   nodeInfo.title = truncatedOp;
 
   if (getIsAiRunSpan({op})) {
-    const agentName = getNodeAttribute(AI_AGENT_NAME_ATTRIBUTE) || '';
+    const agentName = getNodeAttribute('gen_ai.agent.name') || '';
     const model =
-      getNodeAttribute(AI_MODEL_ID_ATTRIBUTE) ||
-      getNodeAttribute(AI_MODEL_NAME_FALLBACK_ATTRIBUTE) ||
+      getNodeAttribute('gen_ai.request.model') ||
+      getNodeAttribute('gen_ai.response.model') ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.subtitle = agentName;
@@ -272,8 +264,8 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     }
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan({op})) {
-    const tokens = getNodeAttribute(AI_TOTAL_TOKENS_ATTRIBUTE);
-    const cost = getNodeAttribute(AI_COST_ATTRIBUTE);
+    const tokens = getNodeAttribute('gen_ai.usage.total_tokens');
+    const cost = getNodeAttribute('gen_ai.usage.total_cost');
     nodeInfo.icon = <IconSpeechBubble size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
@@ -291,11 +283,11 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       );
     }
     nodeInfo.color = colors[2];
-  } else if (getIsAiToolCallSpan({op})) {
+  } else if (op === 'gen_ai.execute_tool') {
     nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.subtitle = getNodeAttribute(AI_TOOL_NAME_ATTRIBUTE) || '';
+    nodeInfo.subtitle = getNodeAttribute('gen_ai.tool.name') || '';
     nodeInfo.color = colors[5];
-  } else if (getIsAiHandoffSpan({op})) {
+  } else if (op === 'gen_ai.handoff') {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
     nodeInfo.subtitle = node.value.description || '';
     nodeInfo.color = colors[4];
