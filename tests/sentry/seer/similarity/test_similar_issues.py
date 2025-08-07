@@ -12,9 +12,9 @@ from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.similar_issues import (
+    _is_device_error,
     get_similarity_data_from_seer,
     seer_grouping_connection_pool,
-    _is_device_error,
 )
 from sentry.seer.similarity.types import (
     RawSeerSimilarIssueData,
@@ -511,10 +511,10 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "device not available for model",
             "RuntimeError('Invalid device: d/123456789012')",
         ]
-        
+
         for error_text in device_error_cases:
             assert _is_device_error(error_text), f"Should detect device error in: {error_text}"
-        
+
         # Test cases that should NOT be detected as device errors
         non_device_error_cases = [
             "Connection timeout",
@@ -524,48 +524,45 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "",
             None,
         ]
-        
+
         for error_text in non_device_error_cases:
-            assert not _is_device_error(error_text or ""), f"Should NOT detect device error in: {error_text}"
+            assert not _is_device_error(
+                error_text or ""
+            ), f"Should NOT detect device error in: {error_text}"
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_device_error_handling_in_response(
-        self, 
-        mock_seer_request: MagicMock, 
-        mock_logger: MagicMock,
-        mock_metrics_incr: MagicMock
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
     ) -> None:
         """Test that device errors in Seer responses trigger proper error handling."""
         # Mock a response that contains a device error
         device_error_response = HTTPResponse(
-            b'{"error": "RuntimeError: Invalid device: cuda:0"}',
-            status=500
+            b'{"error": "RuntimeError: Invalid device: cuda:0"}', status=500
         )
         mock_seer_request.return_value = device_error_response
 
-        with mock.patch("sentry.seer.similarity.similar_issues.CircuitBreaker") as mock_circuit_breaker:
+        with mock.patch(
+            "sentry.seer.similarity.similar_issues.CircuitBreaker"
+        ) as mock_circuit_breaker:
             mock_breaker_instance = mock_circuit_breaker.return_value
-            
+
             results = get_similarity_data_from_seer(self.request_params)
-            
+
             # Verify device error was detected and logged appropriately
             mock_logger.error.assert_any_call(
-                "Seer ML model device error - GPU device unavailable or invalid",
-                extra=ANY
+                "Seer ML model device error - GPU device unavailable or invalid", extra=ANY
             )
-            
+
             # Verify circuit breaker recorded the error
             mock_breaker_instance.record_error.assert_called()
-            
+
             # Verify metrics were recorded with device error tag
             mock_metrics_incr.assert_any_call(
-                "seer.similar_issues_request",
-                sample_rate=ANY,
-                tags=mock.ANY
+                "seer.similar_issues_request", sample_rate=ANY, tags=mock.ANY
             )
-            
+
             # Verify empty results returned (graceful fallback)
             assert results == []
 
@@ -573,39 +570,34 @@ class GetSimilarityDataFromSeerTest(TestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_device_error_handling_in_parsing(
-        self, 
-        mock_seer_request: MagicMock, 
-        mock_logger: MagicMock,
-        mock_metrics_incr: MagicMock
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
     ) -> None:
         """Test that device errors in response parsing trigger proper error handling."""
         # Mock a response that causes parsing issues but contains device error
         device_error_response = HTTPResponse(
-            b'Invalid JSON with device error: RuntimeError: Invalid device encountered',
-            status=200
+            b"Invalid JSON with device error: RuntimeError: Invalid device encountered", status=200
         )
         mock_seer_request.return_value = device_error_response
 
-        with mock.patch("sentry.seer.similarity.similar_issues.CircuitBreaker") as mock_circuit_breaker:
+        with mock.patch(
+            "sentry.seer.similarity.similar_issues.CircuitBreaker"
+        ) as mock_circuit_breaker:
             mock_breaker_instance = mock_circuit_breaker.return_value
-            
+
             results = get_similarity_data_from_seer(self.request_params)
-            
+
             # Verify device error was detected in parsing error handler
             mock_logger.error.assert_any_call(
-                "Seer ML model device error in response parsing",
-                extra=ANY
+                "Seer ML model device error in response parsing", extra=ANY
             )
-            
+
             # Verify circuit breaker recorded the error
             mock_breaker_instance.record_error.assert_called()
-            
+
             # Verify metrics were recorded with device error tag
             mock_metrics_incr.assert_any_call(
-                "seer.similar_issues_request",
-                sample_rate=ANY,
-                tags=mock.ANY
+                "seer.similar_issues_request", sample_rate=ANY, tags=mock.ANY
             )
-            
+
             # Verify empty results returned (graceful fallback)
             assert results == []
