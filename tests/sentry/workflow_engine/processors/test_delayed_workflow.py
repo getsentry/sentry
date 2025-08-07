@@ -330,7 +330,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         {"delayed_processing.batch_size": 1, "delayed_workflow.use_workflow_engine_pool": True}
     )
     @patch(
-        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows_shim.apply_async"
+        "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows_shim.apply_async"
     )
     def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
