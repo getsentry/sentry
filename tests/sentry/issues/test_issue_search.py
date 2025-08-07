@@ -9,7 +9,10 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
 )
-from sentry.api.issue_search import (
+from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
+from sentry.issues.issue_search import (
     convert_actor_or_none_value,
     convert_category_value,
     convert_device_class_value,
@@ -21,9 +24,6 @@ from sentry.api.issue_search import (
     parse_search_query,
     value_converters,
 )
-from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory
-from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from urllib.parse import urlencode
 
 from sentry.models.eventattachment import EventAttachment
@@ -9,7 +10,13 @@ pytestmark = [requires_snuba]
 
 
 class GroupEventAttachmentsTest(APITestCase):
-    def create_attachment(self, type=None, event_id=None, file_name="hello.png", group_id=None):
+    def create_attachment(
+        self,
+        type: str | None = None,
+        event_id: str | None = None,
+        file_name: str = "hello.png",
+        group_id: int | None = None,
+    ) -> EventAttachment:
         if type is None:
             type = "event.attachment"
 
@@ -24,13 +31,18 @@ class GroupEventAttachmentsTest(APITestCase):
 
         return self.attachment
 
-    def path(self, types=None, event_ids=None, screenshot=False):
+    def path(
+        self,
+        types: Sequence[str] | None = None,
+        event_ids: Sequence[str] | None = None,
+        screenshot: bool = False,
+    ) -> str:
         path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         query.extend([("event_id", id) for id in event_ids or ()])
         if screenshot:
-            query.append(("screenshot", 1))
+            query.append(("screenshot", "1"))
         if query:
             path += "?" + urlencode(query)
 
