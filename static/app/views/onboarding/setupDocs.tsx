@@ -50,7 +50,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
               <SdkDocumentation
                 platform={currentPlatform}
                 organization={organization}
-                projectSlug={project.slug}
+                project={project}
                 activeProductSelection={products}
                 newOrg
               />

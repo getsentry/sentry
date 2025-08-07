@@ -67,7 +67,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'native',
             link: 'https://docs.sentry.io/platforms/native/guides/qt/',
           }}
-          projectSlug={project.slug}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
@@ -113,7 +113,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'javascript',
             link: 'https://docs.sentry.io/platforms/javascript/',
           }}
-          projectSlug={project.slug}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
