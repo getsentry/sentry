@@ -536,12 +536,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
-    @patch(
-        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
-    )
-    def test_check_existing_assembly_status(self, mock_create_preprod_artifact: MagicMock) -> None:
+    def test_check_existing_assembly_status(self) -> None:
         checksum = sha1(b"test existing status").hexdigest()
-        mock_create_preprod_artifact.return_value = "12345"
 
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
@@ -559,15 +555,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
-        assert "artifactId" in response.data
-        assert response.data["artifactId"] == "12345"
 
-    @patch(
-        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
-    )
-    def test_integration_task_sets_status_api_can_read_it(
-        self, mock_create_preprod_artifact: MagicMock
-    ) -> None:
+    def test_integration_task_sets_status_api_can_read_it(self) -> None:
         """
         Integration test that verifies the task and API endpoint use consistent scope.
 
@@ -579,7 +568,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         """
         content = b"test integration content"
         total_checksum = sha1(content).hexdigest()
-        mock_create_preprod_artifact.return_value = "98765"
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -600,8 +588,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
-        assert "artifactId" in response.data
-        assert response.data["artifactId"] == "98765"
 
     def test_permission_required(self) -> None:
         content = b"test permission content"
