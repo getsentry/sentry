@@ -1,12 +1,8 @@
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  getIsAiRunSpan,
-  getIsAiSpan,
-  legacyAttributeKeys,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import {getIsAiRunSpan, getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -33,28 +29,6 @@ function ensureAttributeObject(
   return attributes;
 }
 
-/**
- * Get an attribute from the attribute object, checking both the current and legacy keys.
- * @param attributeObject - The attribute object.
- * @param key - The key to check.
- * @returns The attribute value, or undefined if the attribute is not found.
- */
-export function getAIAttribute(
-  attributeObject: Record<string, string | number | boolean>,
-  key: string
-) {
-  if (attributeObject[key]) {
-    return attributeObject[key];
-  }
-  const legacyKeys = legacyAttributeKeys.get(key) ?? [];
-  for (const legacyKey of legacyKeys) {
-    if (attributeObject[legacyKey]) {
-      return attributeObject[legacyKey];
-    }
-  }
-  return undefined;
-}
-
 export function getTraceNodeAttribute(
   name: string,
   node: TraceTreeNode<TraceTree.NodeValue>,
@@ -67,15 +41,15 @@ export function getTraceNodeAttribute(
 
   if (isEAPSpanNode(node) && attributes) {
     const attributeObject = ensureAttributeObject(attributes);
-    return getAIAttribute(attributeObject, name);
+    return attributeObject[name];
   }
 
   if (isTransactionNode(node) && event) {
-    return getAIAttribute(event.contexts.trace?.data || {}, name);
+    return event.contexts.trace?.data?.[name];
   }
 
   if (isSpanNode(node)) {
-    return getAIAttribute(node.value.data || {}, name);
+    return node.value.data?.[name];
   }
 
   return undefined;

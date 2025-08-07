@@ -6,7 +6,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {
   AGENTS_LANDING_SUB_PATH,
   getAISidebarLabel,

@@ -2,7 +2,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,

@@ -20,23 +20,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
-  ErrorCell,
-  NumberPlaceholder,
-} from 'sentry/views/insights/agentMonitoring/utils/cells';
-import {
-  AI_COST_ATTRIBUTE_SUM,
   AI_GENERATION_OPS,
-  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-  AI_TOOL_CALL_OPS,
   getAgentRunsFilter,
   getAITracesFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
@@ -87,7 +81,7 @@ const GENERATION_COUNTS = AI_GENERATION_OPS.map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
-const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS].map(
+const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, 'gen_ai.execute_tool'].map(
   op => `count_if(span.op,equals,${op})` as const
 );
 
@@ -118,8 +112,8 @@ export function TracesTable() {
         'trace',
         ...GENERATION_COUNTS,
         'count_if(span.op,equals,gen_ai.execute_tool)',
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-        AI_COST_ATTRIBUTE_SUM,
+        'sum(gen_ai.usage.total_tokens)',
+        'sum(gen_ai.usage.total_cost)',
       ],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -164,8 +158,8 @@ export function TracesTable() {
             0
           ),
           toolCalls: span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0,
-          totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
-          totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
+          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
+          totalCost: Number(span['sum(gen_ai.usage.total_cost)'] ?? 0),
           totalErrors: errors[span.trace] ?? 0,
         };
         return acc;

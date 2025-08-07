@@ -2,16 +2,9 @@ import {useEffect, useState} from 'react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {
-  AI_AGENT_NAME_ATTRIBUTE,
-  AI_COST_ATTRIBUTE,
-  AI_MODEL_ID_ATTRIBUTE,
-  AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-  AI_TOOL_NAME_ATTRIBUTE,
-  AI_TOTAL_TOKENS_ATTRIBUTE,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
@@ -45,12 +38,12 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
     traceSlug,
     timestamp: queryParams.timestamp,
     additionalAttributes: [
-      AI_AGENT_NAME_ATTRIBUTE,
-      AI_MODEL_ID_ATTRIBUTE,
-      AI_MODEL_NAME_FALLBACK_ATTRIBUTE,
-      AI_TOTAL_TOKENS_ATTRIBUTE,
-      AI_COST_ATTRIBUTE,
-      AI_TOOL_NAME_ATTRIBUTE,
+      SpanFields.GEN_AI_AGENT_NAME,
+      SpanFields.GEN_AI_REQUEST_MODEL,
+      SpanFields.GEN_AI_RESPONSE_MODEL,
+      'sum(gen_ai.usage.total_tokens)',
+      'sum(gen_ai.usage.total_cost)',
+      SpanFields.GEN_AI_TOOL_NAME,
       'span.status',
     ],
   });

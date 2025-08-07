@@ -13,16 +13,9 @@ import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {
-  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-  AI_MODEL_ID_ATTRIBUTE,
-  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
-  getAIGenerationsFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -38,10 +31,10 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const SERIES_NAME_MAP: Record<string, string> = {
-  [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'Input Tokens',
-  [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'Output Tokens',
-  [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'Reasoning Tokens',
-  [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'Cached Tokens',
+  'sum(gen_ai.usage.input_tokens)': 'Input Tokens',
+  'sum(gen_ai.usage.output_tokens)': 'Output Tokens',
+  'sum(gen_ai.usage.output_tokens.reasoning)': 'Reasoning Tokens',
+  'sum(gen_ai.usage.input_tokens.cached)': 'Cached Tokens',
 };
 
 export default function TokenTypesWidget() {
@@ -58,10 +51,10 @@ export default function TokenTypesWidget() {
       ...pageFilterChartParams,
       search: fullQuery,
       yAxis: [
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+        'sum(gen_ai.usage.input_tokens)',
+        'sum(gen_ai.usage.input_tokens.cached)',
+        'sum(gen_ai.usage.output_tokens)',
+        'sum(gen_ai.usage.output_tokens.reasoning)',
       ],
     },
     Referrer.TOKEN_TYPES_WIDGET
@@ -80,10 +73,10 @@ export default function TokenTypesWidget() {
       return acc;
     },
     {
-      [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 0,
-      [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 0,
-      [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 0,
-      [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 0,
+      'sum(gen_ai.usage.input_tokens)': 0,
+      'sum(gen_ai.usage.input_tokens.cached)': 0,
+      'sum(gen_ai.usage.output_tokens)': 0,
+      'sum(gen_ai.usage.output_tokens.reasoning)': 0,
     }
   );
 
@@ -95,7 +88,7 @@ export default function TokenTypesWidget() {
     }
 
     const adjustedSeries = Object.values(timeSeries).map(series => {
-      if (series.seriesName === AI_INPUT_TOKENS_ATTRIBUTE_SUM) {
+      if (series.seriesName === 'sum(gen_ai.usage.input_tokens)') {
         return {
           ...series,
           data: series.data.map((point, index) => ({
@@ -103,13 +96,14 @@ export default function TokenTypesWidget() {
             value:
               point.value -
               Number(
-                timeSeries[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]?.data[index]?.value || 0
+                timeSeries['sum(gen_ai.usage.input_tokens.cached)']?.data[index]?.value ||
+                  0
               ),
           })),
         };
       }
 
-      if (series.seriesName === AI_OUTPUT_TOKENS_ATTRIBUTE_SUM) {
+      if (series.seriesName === 'sum(gen_ai.usage.output_tokens)') {
         return {
           ...series,
           data: series.data.map((point, index) => ({
@@ -117,7 +111,7 @@ export default function TokenTypesWidget() {
             value:
               point.value -
               Number(
-                timeSeries[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]?.data[index]
+                timeSeries['sum(gen_ai.usage.output_tokens.reasoning)']?.data[index]
                   ?.value || 0
               ),
           })),
@@ -144,16 +138,16 @@ export default function TokenTypesWidget() {
         ...series.meta,
         fields: {
           ...series.meta?.fields,
-          [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'percentage',
-          [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'percentage',
-          [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
-          [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+          'sum(gen_ai.usage.output_tokens.reasoning)': 'percentage',
+          'sum(gen_ai.usage.input_tokens.cached)': 'percentage',
+          'sum(gen_ai.usage.input_tokens)': 'percentage',
+          'sum(gen_ai.usage.output_tokens)': 'percentage',
         },
         units: {
-          [AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]: 'percentage',
-          [AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]: 'percentage',
-          [AI_INPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
-          [AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]: 'percentage',
+          'sum(gen_ai.usage.output_tokens.reasoning)': 'percentage',
+          'sum(gen_ai.usage.input_tokens.cached)': 'percentage',
+          'sum(gen_ai.usage.input_tokens)': 'percentage',
+          'sum(gen_ai.usage.output_tokens)': 'percentage',
         },
       } as EventsMetaType,
       data: series.data.map((point, index) => ({
@@ -220,8 +214,8 @@ export default function TokenTypesWidget() {
       <FooterText>{t('Input Tokens (Cached)')}</FooterText>
       <span>
         <TokenTypeCount
-          value={Number(sums[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0)}
-          secondaryValue={Number(sums[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM] || 0)}
+          value={Number(sums['sum(gen_ai.usage.input_tokens)'] || 0)}
+          secondaryValue={Number(sums['sum(gen_ai.usage.input_tokens.cached)'] || 0)}
         />
       </span>
 
@@ -235,8 +229,8 @@ export default function TokenTypesWidget() {
       <FooterText>{t('Output Tokens (Reasoning)')}</FooterText>
       <span>
         <TokenTypeCount
-          value={Number(sums[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)}
-          secondaryValue={Number(sums[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM] || 0)}
+          value={Number(sums['sum(gen_ai.usage.output_tokens)'] || 0)}
+          secondaryValue={Number(sums['sum(gen_ai.usage.output_tokens.reasoning)'] || 0)}
         />
       </span>
     </WidgetFooterTable>
@@ -258,16 +252,16 @@ export default function TokenTypesWidget() {
                 {
                   chartType: ChartType.BAR,
                   yAxes: [
-                    AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-                    AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-                    AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-                    AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+                    'sum(gen_ai.usage.input_tokens)',
+                    'sum(gen_ai.usage.input_tokens.cached)',
+                    'sum(gen_ai.usage.output_tokens)',
+                    'sum(gen_ai.usage.output_tokens.reasoning)',
                   ],
                 },
               ],
-              groupBy: [AI_MODEL_ID_ATTRIBUTE],
+              groupBy: ['gen_ai.request.model'],
               query: fullQuery,
-              sort: `-${AI_INPUT_TOKENS_ATTRIBUTE_SUM}`,
+              sort: `-sum(gen_ai.usage.input_tokens)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

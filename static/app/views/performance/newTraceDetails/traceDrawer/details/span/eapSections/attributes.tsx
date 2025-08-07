@@ -20,7 +20,6 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {extendWithLegacyAttributeKeys} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -38,7 +37,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
-const JSON_ATTRIBUTES = extendWithLegacyAttributeKeys([
+const JSON_ATTRIBUTES = [
   'gen_ai.request.messages',
   'gen_ai.response.messages',
   'gen_ai.response.tool_calls',
@@ -46,7 +45,7 @@ const JSON_ATTRIBUTES = extendWithLegacyAttributeKeys([
   'gen_ai.prompt',
   'gen_ai.request.available_tools',
   'ai.prompt',
-]);
+];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text'];
 
 function tryParseJson(value: unknown) {

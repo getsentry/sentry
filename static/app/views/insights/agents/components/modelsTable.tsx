@@ -22,26 +22,18 @@ import {
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
-} from 'sentry/views/insights/agentMonitoring/components/common';
+} from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
   useTableSortParams,
-} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
-import {
-  AI_COST_ATTRIBUTE_SUM,
-  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-  AI_MODEL_ID_ATTRIBUTE,
-  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
-  getAIGenerationsFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+} from 'sentry/views/insights/agents/components/headSortCell';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
+import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
+import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
+import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -69,18 +61,26 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: AI_COST_ATTRIBUTE_SUM, name: t('Cost'), width: 100},
-  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens (Cached)'), width: 180},
-  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens (Reasoning)'), width: 180},
+  {key: 'sum(gen_ai.usage.total_cost)', name: t('Cost'), width: 100},
+  {
+    key: 'sum(gen_ai.usage.input_tokens)',
+    name: t('Input tokens (Cached)'),
+    width: 180,
+  },
+  {
+    key: 'sum(gen_ai.usage.output_tokens)',
+    name: t('Output tokens (Reasoning)'),
+    width: 180,
+  },
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
-  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-  AI_COST_ATTRIBUTE_SUM,
+  'sum(gen_ai.usage.input_tokens)',
+  'sum(gen_ai.usage.output_tokens)',
+  'sum(gen_ai.usage.output_tokens.reasoning)',
+  'sum(gen_ai.usage.input_tokens.cached)',
+  'sum(gen_ai.usage.total_cost)',
   'count_if(span.status,equals,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
@@ -114,12 +114,12 @@ export function ModelsTable() {
   const modelsRequest = useSpans(
     {
       fields: [
-        AI_MODEL_ID_ATTRIBUTE,
-        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-        AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
-        AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
-        AI_COST_ATTRIBUTE_SUM,
+        'gen_ai.request.model',
+        'sum(gen_ai.usage.input_tokens)',
+        'sum(gen_ai.usage.output_tokens)',
+        'sum(gen_ai.usage.output_tokens.reasoning)',
+        'sum(gen_ai.usage.input_tokens.cached)',
+        'sum(gen_ai.usage.total_cost)',
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -140,16 +140,16 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span[AI_MODEL_ID_ATTRIBUTE]}`,
+      model: `${span['gen_ai.request.model']}`,
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
-      cost: Number(span[AI_COST_ATTRIBUTE_SUM]),
+      cost: Number(span['sum(gen_ai.usage.total_cost)']),
       errors: span['count_if(span.status,equals,unknown)'] ?? 0,
-      inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
-      inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
-      outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
-      outputReasoningTokens: Number(span[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]),
+      inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
+      inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
+      outputTokens: Number(span['sum(gen_ai.usage.output_tokens)']),
+      outputReasoningTokens: Number(span['sum(gen_ai.usage.output_tokens.reasoning)']),
     }));
   }, [modelsRequest.data]);
 
@@ -237,7 +237,7 @@ const BodyCell = memo(function BodyCell({
         yAxes: ['avg(span.duration)'],
       },
     ],
-    query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,
+    query: `gen_ai.request.model:${dataRow.model}`,
   });
 
   switch (column.key) {
@@ -249,14 +249,14 @@ const BodyCell = memo(function BodyCell({
       );
     case 'count()':
       return <NumberCell value={dataRow.requests} />;
-    case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
+    case 'sum(gen_ai.usage.input_tokens)':
       return (
         <TokenTypeCell
           value={dataRow.inputTokens}
           secondaryValue={dataRow.inputCachedTokens}
         />
       );
-    case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
+    case 'sum(gen_ai.usage.output_tokens)':
       return (
         <TokenTypeCell
           value={dataRow.outputTokens}
@@ -267,7 +267,7 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case AI_COST_ATTRIBUTE_SUM:
+    case 'sum(gen_ai.usage.total_cost)':
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
     case 'count_if(span.status,equals,unknown)':
       return (
