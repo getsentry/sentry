@@ -1,95 +1,66 @@
 import type {ReactNode} from 'react';
-import {isValidElement} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
-import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   allowShowSnippet: boolean;
   description: ReactNode;
   frame: ReplayFrame | WebVitalFrame;
-  onClickViewHtml: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onInspectorExpanded: OnExpandCallback;
+  onShowSnippet: () => void;
   showSnippet: boolean;
-  className?: string;
-  expandPaths?: string[];
 }
 
 export function BreadcrumbDescription({
-  description,
   allowShowSnippet,
-  showSnippet,
+  description,
   frame,
-  expandPaths,
-  onInspectorExpanded,
-  onClickViewHtml,
+  onShowSnippet,
+  showSnippet,
 }: Props) {
-  if (
-    typeof description === 'string' ||
-    (description !== undefined && isValidElement(description))
-  ) {
-    return (
-      <DescriptionWrapper>
-        <Description title={description} showOnlyOnOverflow isHoverable>
-          {description}
-        </Description>
-
-        {allowShowSnippet &&
-          !showSnippet &&
-          frame.data?.nodeId !== undefined &&
-          !isSpanFrame(frame) && (
-            <ViewHtmlButton priority="link" onClick={onClickViewHtml} size="xs">
-              {t('View HTML')}
-            </ViewHtmlButton>
-          )}
-      </DescriptionWrapper>
-    );
-  }
+  const organization = useOrganization();
+  const handleViewHtml = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      onShowSnippet();
+      e.preventDefault();
+      e.stopPropagation();
+      trackAnalytics('replay.view-html', {
+        organization,
+        breadcrumb_type: 'category' in frame ? frame.category : 'unknown',
+      });
+    },
+    [onShowSnippet, organization, frame]
+  );
 
   return (
-    <Wrapper>
-      <StructuredEventData
-        initialExpandedPaths={expandPaths ?? []}
-        onToggleExpand={(expandedPaths, path) => {
-          onInspectorExpanded(
-            path,
-            Object.fromEntries(expandedPaths.map(item => [item, true]))
-          );
-        }}
-        data={description}
-        withAnnotatedText
-      />
-    </Wrapper>
+    <Flex gap="lg" justify="between" align="start">
+      <Tooltip title={description} showOnlyOnOverflow isHoverable skipWrapper>
+        <Text ellipsis size="xs" tabular variant="muted">
+          {description}
+        </Text>
+      </Tooltip>
+
+      {allowShowSnippet &&
+        !showSnippet &&
+        frame.data?.nodeId !== undefined &&
+        !isSpanFrame(frame) && (
+          <NoWrapButton priority="link" onClick={handleViewHtml} size="xs">
+            {t('View HTML')}
+          </NoWrapButton>
+        )}
+    </Flex>
   );
 }
 
-const Description = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis};
-  font-size: 0.7rem;
-  font-variant-numeric: tabular-nums;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.subText};
-`;
-
-const DescriptionWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
-
-const ViewHtmlButton = styled(Button)`
+const NoWrapButton = styled(Button)`
   white-space: nowrap;
-`;
-
-const Wrapper = styled('div')`
-  pre {
-    margin: 0;
-  }
 `;
