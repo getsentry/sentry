@@ -33,7 +33,7 @@ export enum OurLogKnownFieldKey {
 
   TEMPLATE = 'message.template',
   PARENT_SPAN_ID = 'trace.parent_span_id',
-  // SDK attributes https://github.com/getsentry/sentry-javascript/blob/735c1d8f143212f2e96fdc175c452f96ca2ca582/packages/core/src/logs/exports.ts#L139-L151
+  // SDK attributes https://develop.sentry.dev/sdk/telemetry/logs/#default-attributes
   RELEASE = 'release',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
