@@ -236,6 +236,7 @@ from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
 from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from sentry.issues.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
+from sentry.issues.endpoints.grouping_configs import GroupingConfigsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -510,7 +511,6 @@ from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
-from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
     InternalBeaconEndpoint,
