@@ -320,7 +320,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 raise ResourceDoesNotExist
 
             if features.has(
-                "organizations:workflow-engine-metric-detector-limits",
+                "organizations:workflow-engine-metric-detector-limit",
                 organization,
                 actor=request.user,
             ):

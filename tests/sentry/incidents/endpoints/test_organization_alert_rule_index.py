@@ -1642,7 +1642,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             assert resp.status_code == 201
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-metric-detector-limits")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
         # Set limit to 2 alert rules
@@ -1673,7 +1673,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == "You may not exceed 2 metric alerts on your current plan."
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-metric-detector-limits")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit_unlimited_plan(self, mock_get_limit: MagicMock) -> None:
         # Set limit to -1 (unlimited)

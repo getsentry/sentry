@@ -530,7 +530,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable single processing of metric issues
     manager.add("organizations:workflow-engine-single-process-metric-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable metric detector limits by plan type
-    manager.add("organizations:workflow-engine-metric-detector-limits", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
     manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use spans instead of transactions for dynamic sampling calculations. This will become the new default.

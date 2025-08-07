@@ -956,7 +956,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert "owner" in response.data
 
-    @with_feature("organizations:workflow-engine-metric-detector-limits")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_detector_limit(self, mock_get_limit: mock.MagicMock) -> None:
         # Set limit to 2 detectors
@@ -994,7 +994,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == "You may not exceed 2 metric detectors on your current plan."
 
-    @with_feature("organizations:workflow-engine-metric-detector-limits")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_detector_limit_unlimited_plan(self, mock_get_limit: mock.MagicMock) -> None:
         # Set limit to -1 (unlimited)
@@ -1020,7 +1020,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.name == "Test Detector"
 
-    @with_feature("organizations:workflow-engine-metric-detector-limits")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_detector_limit_only_applies_to_metric_detectors(
         self, mock_get_limit: mock.MagicMock
