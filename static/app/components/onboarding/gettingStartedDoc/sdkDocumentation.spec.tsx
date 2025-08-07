@@ -36,11 +36,6 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/sdks/`,
   });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/projects/`,
-    body: [project],
-  });
 }
 
 describe('Renders SDK Documentation corretly based on platform id and language', function () {

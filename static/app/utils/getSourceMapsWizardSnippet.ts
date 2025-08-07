@@ -1,13 +1,15 @@
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-
 /**
  * Generate a standardized sourcemaps wizard command with organization and project slugs
  */
 export function getSourceMapsWizardSnippet({
   isSelfHosted,
   organization,
-  project,
-}: Partial<Pick<DocsParams, 'isSelfHosted' | 'organization' | 'project'>>) {
+  projectSlug,
+}: {
+  isSelfHosted?: boolean;
+  organization?: {slug: string};
+  projectSlug?: string;
+}) {
   let command = 'npx @sentry/wizard@latest -i sourcemaps';
 
   if (!isSelfHosted) {
@@ -18,8 +20,8 @@ export function getSourceMapsWizardSnippet({
     command += ` --org ${organization.slug}`;
   }
 
-  if (project?.slug) {
-    command += ` --project ${project.slug}`;
+  if (projectSlug) {
+    command += ` --project ${projectSlug}`;
   }
 
   return command;
