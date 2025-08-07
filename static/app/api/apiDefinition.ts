@@ -1,3 +1,3 @@
-type KnownApiUrls = ['/projects/$orgSlug/$projectSlug/releases/$releaseVersion/'];
+import type {KnownApiUrls} from './knownUrls';
 
-export type MaybeApiPath = KnownApiUrls[number] | (string & {});
+export type ApiPath = KnownApiUrls | (string & {});

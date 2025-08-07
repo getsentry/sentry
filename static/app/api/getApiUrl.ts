@@ -1,10 +1,16 @@
-import type {MaybeApiPath} from './apiDefinition';
+import type {ApiPath} from './apiDefinition';
+
+type StripDollar<T extends string> = T extends `$${infer Name}` ? Name : T;
+
+type SplitColon<T extends string> = T extends `${infer A}:${infer B}`
+  ? StripDollar<A> | SplitColon<B>
+  : StripDollar<T>;
 
 export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
-    ? Param | ExtractPathParams<`/${Rest}`>
+    ? SplitColon<Param> | ExtractPathParams<`/${Rest}`>
     : TApiPath extends `${string}$${infer Param}`
-      ? Param
+      ? SplitColon<Param>
       : never;
 
 export type PathParamOptions<TApiPath extends string> =
@@ -21,7 +27,7 @@ const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 
-export function getApiUrl<TApiPath extends MaybeApiPath>(
+export function getApiUrl<TApiPath extends ApiPath>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
 ): ApiUrl {
