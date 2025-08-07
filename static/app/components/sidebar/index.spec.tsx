@@ -383,7 +383,7 @@ describe('Sidebar', function () {
         'Frontend',
         'Backend',
         'Mobile',
-        'AI Agents beta',
+        'AI Agents new',
         'Crons',
         'User Feedback',
         'Alerts',

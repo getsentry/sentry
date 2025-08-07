@@ -23,6 +23,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectorLinkProps = {
@@ -183,7 +184,8 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detector.createdBy}
+      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      disabled={!detector.enabled}
       details={
         <Fragment>
           {project && (

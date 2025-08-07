@@ -49,10 +49,8 @@ import {
   useLogsAggregateSortBys,
   useLogsFields,
   useLogsGroupBy,
-  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
-  useSetLogsMode,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -94,6 +92,10 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsMode,
+  useSetQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -110,9 +112,9 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
-  const mode = useLogsMode();
+  const mode = useQueryParamsMode();
   const sortBys = useLogsAggregateSortBys();
-  const setMode = useSetLogsMode();
+  const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -228,7 +230,12 @@ export function LogsTabContent({
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
     (tab: 'aggregates' | 'logs') => {
-      setMode(tab === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES);
+      if (tab === 'aggregates') {
+        setSidebarOpen(true);
+        setMode(Mode.AGGREGATE);
+      } else {
+        setMode(Mode.SAMPLES);
+      }
     },
     [setMode]
   );
@@ -330,10 +337,7 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle
-                    disabled={tableTab === 'aggregates'}
-                    averageLogsPerSecond={averageLogsPerSecond}
-                  />
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
