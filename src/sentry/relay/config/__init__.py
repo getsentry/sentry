@@ -45,6 +45,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
+from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils import metrics
@@ -142,8 +143,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
+    base_generic_filters: list[GenericFilter] = []
+
     error_messages: list[str] = []
-    log_messages: list[str] = []
 
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
@@ -153,12 +155,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
         if features.has("organizations:ourlogs-ingestion", project.organization):
-            log_messages += project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
+            log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
+            if log_messages:
+                log_messages_filter = get_log_messages_generic_filter(log_messages)
+                if log_messages_filter:
+                    base_generic_filters.append(log_messages_filter)
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
-
-    log_messages_filter = get_log_messages_generic_filter(log_messages) if log_messages else None
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
@@ -170,10 +174,6 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
-
-    base_generic_filters = []
-    if log_messages_filter:
-        base_generic_filters.append(log_messages_filter)
 
     try:
         # At the end we compute the generic inbound filters, which are inbound filters expressible with a

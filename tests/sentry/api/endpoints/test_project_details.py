@@ -632,7 +632,10 @@ class ProjectUpdateTest(APITestCase):
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
         }
-        with self.feature("projects:custom-inbound-filters"), outbox_runner():
+        with (
+            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            outbox_runner(),
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)

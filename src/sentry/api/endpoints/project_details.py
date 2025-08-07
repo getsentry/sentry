@@ -884,7 +884,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.LOG_MESSAGES}" in options:
-                if features.has("projects:custom-inbound-filters", project, actor=request.user):
+                if features.has(
+                    "projects:custom-inbound-filters", project, actor=request.user
+                ) and features.has(
+                    "organizations:ourlogs-ingestion", project.organization, actor=request.user
+                ):
                     project.update_option(
                         f"sentry:{FilterTypes.LOG_MESSAGES}",
                         clean_newline_inputs(
