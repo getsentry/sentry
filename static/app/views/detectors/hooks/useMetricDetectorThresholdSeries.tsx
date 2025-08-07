@@ -97,7 +97,7 @@ function extractThresholdsFromConditions(conditions: Array<Omit<DataCondition, '
 }
 
 interface UseMetricDetectorThresholdSeriesProps {
-  conditions: Array<Omit<DataCondition, 'id'>>;
+  conditions: Array<Omit<DataCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
 }
