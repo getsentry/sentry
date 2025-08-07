@@ -3,23 +3,16 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
+import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
-import {
-  AI_COST_ATTRIBUTE_SUM,
-  AI_MODEL_ID_ATTRIBUTE,
-  getAIGenerationsFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
@@ -35,60 +28,47 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ModelCostWidget() {
-  const theme = useTheme();
+export default function ToolCallsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
-  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
+  const theme = useTheme();
 
-  const tokensRequest = useSpans(
+  const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
+
+  const toolsRequest = useSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_COST_ATTRIBUTE_SUM],
-      sorts: [{field: AI_COST_ATTRIBUTE_SUM, kind: 'desc'}],
+      fields: ['gen_ai.tool.name', 'count()'],
+      sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.MODEL_COST_WIDGET
+    Referrer.TOOL_CALLS_WIDGET
   );
 
   const timeSeriesRequest = useTopNSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_COST_ATTRIBUTE_SUM],
-      yAxis: [AI_COST_ATTRIBUTE_SUM],
-      sort: {field: AI_COST_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: ['gen_ai.tool.name', 'count(span.duration)'],
+      yAxis: ['count(span.duration)'],
+      sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,
-      enabled: !!tokensRequest.data,
+      enabled: !!toolsRequest.data,
     },
-    Referrer.MODEL_COST_WIDGET
+    Referrer.TOOL_CALLS_WIDGET
   );
 
-  // We are setting the value type to currency for the time series so that the tooltip and y-axis formatting is correct
-  const timeSeries = (timeSeriesRequest.data || []).map(ts => ({
-    ...ts,
-    meta: {
-      ...ts.meta,
-      fields: Object.fromEntries(
-        Object.entries(ts.meta?.fields || {}).map(([key, value]) => [
-          key,
-          value === 'number' ? 'currency' : value,
-        ])
-      ),
-    } as EventsMetaType,
-  }));
+  const timeSeries = timeSeriesRequest.data;
 
-  const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
-  const error = timeSeriesRequest.error || tokensRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
+  const error = timeSeriesRequest.error || toolsRequest.error;
 
-  const tokens = tokensRequest.data as unknown as
-    | Array<Record<string, string | number>>
-    | undefined;
+  const tools = toolsRequest.data;
 
-  const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
+  const hasData = tools && tools.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
@@ -100,7 +80,7 @@ export default function ModelCostWidget() {
       emptyMessage={
         <GenericWidgetEmptyStateWarning
           message={tct(
-            'No model cost found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
+            'No tool calls found. Try updating your filters, or learn more about AI Agents Insights in our [link:documentation].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/agents/" />
@@ -127,53 +107,52 @@ export default function ModelCostWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tokens?.map((item, index) => {
-        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
-        return (
-          <Fragment key={modelId}>
-            <div>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
-            </div>
-            <ModelText>
-              <ModelName modelId={modelId} />
-            </ModelText>
-            <span>{formatLLMCosts(item[AI_COST_ATTRIBUTE_SUM] || 0)}</span>
-          </Fragment>
-        );
-      })}
+      {tools.map((item, index) => (
+        <Fragment key={item['gen_ai.tool.name']}>
+          <div>
+            <SeriesColorIndicator
+              style={{
+                backgroundColor: colorPalette[index],
+              }}
+            />
+          </div>
+          <div>
+            <ToolText>{item['gen_ai.tool.name']}</ToolText>
+          </div>
+          <span>
+            <Count value={item['count()'] ?? 0} />
+          </span>
+        </Fragment>
+      ))}
     </WidgetFooterTable>
   );
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Model Cost')} />}
+      Title={<Widget.WidgetTitle title={t('Tool Calls')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
-        timeSeries && (
+        hasData && (
           <Toolbar
             showCreateAlert
-            referrer={Referrer.MODEL_COST_WIDGET}
+            referrer={Referrer.TOOL_CALLS_WIDGET}
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: [AI_COST_ATTRIBUTE_SUM],
+                  yAxes: ['count(span.duration)'],
                 },
               ],
-              groupBy: [AI_MODEL_ID_ATTRIBUTE],
+              groupBy: ['gen_ai.tool.name'],
               query: fullQuery,
-              sort: `-${AI_COST_ATTRIBUTE_SUM}`,
+              sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Model Cost'),
+                title: t('Tool Calls'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -191,7 +170,8 @@ export default function ModelCostWidget() {
   );
 }
 
-const ModelText = styled('div')`
+const ToolText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
