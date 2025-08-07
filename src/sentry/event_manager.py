@@ -2167,7 +2167,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         try:
             with metrics.timer(op):
                 timeout = options.get(
-                    "issues.severity.seer-timout",
+                    "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
 
