@@ -467,7 +467,9 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
 
-    create_workflow_fire_histories(detector, actions, event_data, should_trigger_actions)
+    create_workflow_fire_histories(
+        detector, actions, event_data, should_trigger_actions, is_delayed=False
+    )
 
     for action in actions:
         task_params = build_trigger_action_task_params(action, detector, event_data)

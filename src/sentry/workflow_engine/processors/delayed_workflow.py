@@ -725,6 +725,7 @@ def fire_actions_for_groups(
                     filtered_actions,
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
+                    is_delayed=True,
                 )
 
                 event_id = (
