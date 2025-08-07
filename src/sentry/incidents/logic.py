@@ -533,7 +533,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
-    status: AlertRuleStatus | None = AlertRuleStatus.PENDING,
+    status: AlertRuleStatus = AlertRuleStatus.PENDING,
     **kwargs: Any,
 ) -> AlertRule:
     """
