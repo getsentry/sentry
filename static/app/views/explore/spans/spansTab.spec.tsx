@@ -2,7 +2,13 @@ import type {ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
@@ -302,7 +308,7 @@ describe('SpansTabContent', function () {
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
-      await userEvent.type(input, 'span.duration:>30s{enter}');
+      await userEvent.type(input, 'span.duration:>10ms{enter}');
       await userEvent.type(input, ' random');
 
       const askSeer = await screen.findByText(/Ask Seer/);
@@ -312,7 +318,9 @@ describe('SpansTabContent', function () {
         name: 'Ask Seer with Natural Language',
       });
 
-      expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+      });
     });
   });
 });
