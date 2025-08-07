@@ -4,11 +4,11 @@ from collections.abc import Mapping, MutableMapping
 from time import time
 from typing import TYPE_CHECKING, Any
 
-from sentry import reprocessing2
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
+    from sentry import reprocessing2
     from sentry.eventstore.models import Event
 
 
