@@ -20,15 +20,12 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useMutateApiToken from 'sentry/utils/useMutateApiToken';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
-
-type Props = {
-  params: {tokenId: string};
-};
 
 type FetchApiTokenParameters = {
   tokenId: string;
@@ -102,8 +99,8 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   );
 }
 
-function ApiTokenDetails({params}: Props) {
-  const {tokenId} = params;
+function ApiTokenDetails() {
+  const {tokenId} = useParams<{tokenId: string}>();
 
   const {
     isPending,
