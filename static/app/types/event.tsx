@@ -70,11 +70,11 @@ export function isEventGroupVariantType(value: string): value is EventGroupVaria
   const eventGroupVariantTypes = new Set<string>([
     'checksum',
     'fallback',
-    'custom_fingerprint',
-    'built_in_fingerprint',
+    'custom-fingerprint',
+    'built-in-fingerprint',
     'component',
-    'salted_component',
-    'performance_problem',
+    'salted-component',
+    'performance-problem',
   ]);
   return eventGroupVariantTypes.has(value);
 }
