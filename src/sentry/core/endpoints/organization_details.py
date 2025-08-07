@@ -19,7 +19,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -70,6 +69,7 @@ from sentry.constants import (
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
+from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (

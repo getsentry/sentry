@@ -62,7 +62,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
             mock_record,
             EventUserEndpointRequest(
                 project_id=self.project.id,
-                endpoint="sentry.api.endpoints.project_users.get",
+                endpoint="sentry.core.endpoints.project_users.get",
             ),
         )
 

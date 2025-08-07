@@ -89,6 +89,18 @@ from sentry.core.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.core.endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from sentry.core.endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from sentry.core.endpoints.organization_users import OrganizationUsersEndpoint
+from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
+from sentry.core.endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
+from sentry.core.endpoints.project_environments import ProjectEnvironmentsEndpoint
+from sentry.core.endpoints.project_index import ProjectIndexEndpoint
+from sentry.core.endpoints.project_key_details import ProjectKeyDetailsEndpoint
+from sentry.core.endpoints.project_key_stats import ProjectKeyStatsEndpoint
+from sentry.core.endpoints.project_keys import ProjectKeysEndpoint
+from sentry.core.endpoints.project_stats import ProjectStatsEndpoint
+from sentry.core.endpoints.project_team_details import ProjectTeamDetailsEndpoint
+from sentry.core.endpoints.project_teams import ProjectTeamsEndpoint
+from sentry.core.endpoints.project_transfer import ProjectTransferEndpoint
+from sentry.core.endpoints.project_users import ProjectUsersEndpoint
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
@@ -673,17 +685,10 @@ from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesE
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
-from .endpoints.project_details import ProjectDetailsEndpoint
-from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
-from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
-from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
-from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
-from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
-from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
@@ -718,22 +723,17 @@ from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndp
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
-from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
-from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
-from .endpoints.project_teams import ProjectTeamsEndpoint
 from .endpoints.project_trace_item_details import ProjectTraceItemDetailsEndpoint
 from .endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
-from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
-from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,

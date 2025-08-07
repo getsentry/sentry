@@ -44,7 +44,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         analytics.record(
             EventUserEndpointRequest(
                 project_id=project.id,
-                endpoint="sentry.api.endpoints.project_users.get",
+                endpoint="sentry.core.endpoints.project_users.get",
             )
         )
         field, identifier = None, None
