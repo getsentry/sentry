@@ -24,7 +24,7 @@ logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows"
 
 
 @instrumented_task(
-    name="sentry.workflow_engine.processors.process_delayed_workflows",
+    name="sentry.workflow_engine.tasks.delayed_workflows",
     queue="delayed_rules",
     default_retry_delay=5,
     max_retries=5,
