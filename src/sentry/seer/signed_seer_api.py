@@ -80,6 +80,8 @@ def make_signed_seer_request_simple(
 ) -> tuple[requests.Response | None, int]:
     """
     Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
+    Use this over make_signed_seer_api_request when it's unnecessary to open a connection pool or do retries.
+    For example, in an async task or short-lived process.
 
     The timeout argument is passed to requests.post. Defaults to settings.SEER_DEFAULT_TIMEOUT.
 
