@@ -559,8 +559,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
-        assert "artifact_id" in response.data
-        assert response.data["artifact_id"] == "12345"
+        assert "artifactId" in response.data
+        assert response.data["artifactId"] == "12345"
 
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
@@ -600,8 +600,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
-        assert "artifact_id" in response.data
-        assert response.data["artifact_id"] == "98765"
+        assert "artifactId" in response.data
+        assert response.data["artifactId"] == "98765"
 
     def test_permission_required(self) -> None:
         content = b"test permission content"
