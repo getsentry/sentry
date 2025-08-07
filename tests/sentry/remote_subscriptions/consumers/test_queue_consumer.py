@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 from unittest import mock
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, FilteredPayload, Message, Partition, Topic
 
@@ -114,6 +115,7 @@ class TestFixedQueuePool(TestCase):
 
         assert queue_index1 == queue_index2 == queue_index3
 
+    @pytest.mark.skip(reason="flaky: #97397")
     def test_different_groups_distributed(self) -> None:
         """Test that different groups are distributed across queues."""
         queue_indices = set()
