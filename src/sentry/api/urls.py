@@ -227,6 +227,7 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.issues.endpoints.group_integrations import GroupIntegrationsEndpoint
@@ -508,7 +509,6 @@ from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
-from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
