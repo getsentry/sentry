@@ -20,7 +20,7 @@ class OrganizationInviteRequestListTest(APITestCase):
     def org(self):
         return self.create_organization(owner=self.user)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.invite_request = self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -65,7 +65,7 @@ class OrganizationInviteRequestCreateTest(
     endpoint = "sentry-api-0-organization-invite-request-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
 
         # SlackActivityNotificationTest needs the manager as self.user to create the identity

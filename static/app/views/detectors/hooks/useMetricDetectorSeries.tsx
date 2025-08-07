@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -16,11 +16,14 @@ interface UseMetricDetectorSeriesProps {
   projectId: string;
   query: string;
   statsPeriod: TimePeriod;
+  comparisonDelta?: number;
+  options?: Partial<UseApiQueryOptions<any>>;
 }
 
 interface UseMetricDetectorSeriesResult {
+  comparisonSeries: Series[];
   isError: boolean;
-  isPending: boolean;
+  isLoading: boolean;
   series: Series[];
 }
 
@@ -35,6 +38,8 @@ export function useMetricDetectorSeries({
   environment,
   projectId,
   statsPeriod,
+  comparisonDelta,
+  options,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
@@ -47,19 +52,35 @@ export function useMetricDetectorSeries({
     projectId,
     dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
     statsPeriod,
+    comparisonDelta,
   });
 
-  const {data, isPending, isError} = useApiQuery<
+  const {data, isLoading, isError} = useApiQuery<
     Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
   >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 
-  const series = useMemo(() => {
+  const {series, comparisonSeries} = useMemo(() => {
     // TypeScript can't infer that each dataset config expects its own specific response type
-    return datasetConfig.transformSeriesQueryData(data as any, aggregate);
-  }, [datasetConfig, data, aggregate]);
+    const transformedSeries = datasetConfig.transformSeriesQueryData(
+      data as any,
+      aggregate
+    );
 
-  return {series, isPending, isError};
+    // Extract comparison series if comparisonDelta is provided and data contains comparisonCount
+    const transformedComparisonSeries =
+      comparisonDelta && datasetConfig.transformComparisonSeriesData
+        ? datasetConfig.transformComparisonSeriesData(data as any)
+        : [];
+
+    return {
+      series: transformedSeries,
+      comparisonSeries: transformedComparisonSeries,
+    };
+  }, [datasetConfig, data, aggregate, comparisonDelta]);
+
+  return {series, comparisonSeries, isLoading, isError};
 }

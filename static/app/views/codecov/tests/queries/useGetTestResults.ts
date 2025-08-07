@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
+import {ALL_BRANCHES} from 'sentry/components/codecov/branchSelector/branchSelector';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {
   fetchDataQuery,
@@ -50,6 +51,7 @@ type TestResultItem = {
 };
 
 interface TestResults {
+  defaultBranch: string;
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
@@ -73,10 +75,15 @@ export function useInfiniteTestResults({
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
+  const filterBranch = branch === ALL_BRANCHES ? null : branch;
+
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
+  const testSuites = searchParams.has('testSuites')
+    ? searchParams.getAll('testSuites')
+    : null;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -94,13 +101,14 @@ export function useInfiniteTestResults({
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
       {
         query: {
-          branch,
+          branch: filterBranch,
           codecovPeriod,
           signedSortBy,
           mappedFilterBy,
           term,
           cursor,
           navigation,
+          testSuites,
         },
       },
     ],
@@ -120,9 +128,10 @@ export function useInfiniteTestResults({
                   codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
                 ],
               sortBy: signedSortBy,
-              branch,
               term,
+              branch: filterBranch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+              ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
               ...(navigation ? {navigation} : {}),
             },
@@ -135,15 +144,16 @@ export function useInfiniteTestResults({
 
       return result as ApiResult<TestResults>;
     },
-    getNextPageParam: ([lastPage]) => {
-      return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    getNextPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasNextPage ? pageData.pageInfo.endCursor : undefined;
     },
-    getPreviousPageParam: ([firstPage]) => {
-      return firstPage.pageInfo?.hasPreviousPage
-        ? firstPage.pageInfo.startCursor
+    getPreviousPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasPreviousPage
+        ? pageData.pageInfo.startCursor
         : undefined;
     },
     initialPageParam: null,
+    enabled: !!(integratedOrgId && repository && branch && codecovPeriod),
   });
 
   const memoizedData = useMemo(
@@ -178,7 +188,10 @@ export function useInfiniteTestResults({
   );
 
   return {
-    data: memoizedData,
+    data: {
+      testResults: memoizedData,
+      defaultBranch: data?.pages?.[0]?.[0]?.defaultBranch,
+    },
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
     endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
@@ -186,3 +199,5 @@ export function useInfiniteTestResults({
     ...rest,
   };
 }
+
+export type UseInfiniteTestResultsResult = ReturnType<typeof useInfiniteTestResults>;

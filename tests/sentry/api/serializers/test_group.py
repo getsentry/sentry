@@ -1,9 +1,10 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import FeedbackGroup
@@ -132,7 +133,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age):
+    def test_auto_resolved(self, mock_is_over_resolve_age: MagicMock) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -143,7 +144,9 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"] == {"autoResolved": True}
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved_respects_enable_auto_resolve_flag(self, mock_is_over_resolve_age):
+    def test_auto_resolved_respects_enable_auto_resolve_flag(
+        self, mock_is_over_resolve_age: MagicMock
+    ) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -427,3 +430,29 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
+
+
+class SimpleGroupSerializerTest(TestCase):
+    def test_simple_group_serializer(self) -> None:
+        group = self.create_group()
+        serialized = serialize(group, self.user, SimpleGroupSerializer())
+        assert serialized["id"] == str(group.id)
+        assert serialized["title"] == group.title
+        assert serialized["culprit"] == group.culprit
+        assert serialized["level"] == "error"
+        assert serialized["project"] == {
+            "id": str(group.project.id),
+            "name": group.project.name,
+            "slug": group.project.slug,
+            "platform": group.project.platform,
+        }
+        assert serialized["shortId"] == group.qualified_short_id
+        assert serialized["status"] == "unresolved"
+        assert serialized["substatus"] == "new"
+        assert serialized["type"] == "default"
+        assert serialized["issueType"] == "error"
+        assert serialized["issueCategory"] == "error"
+        assert serialized["metadata"] == group.get_event_metadata()
+        assert serialized["numComments"] == group.num_comments
+        assert serialized["firstSeen"] == group.first_seen
+        assert serialized["lastSeen"] == group.last_seen

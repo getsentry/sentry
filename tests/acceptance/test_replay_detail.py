@@ -67,7 +67,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         slug = f"{self.project.slug}:{replay_id}"
         self.path = f"/organizations/{self.org.slug}/replays/{slug}/"
 
-    def test_not_found(self):
+    def test_not_found(self) -> None:
         with self.feature(FEATURE_NAME):
             slug = f"{self.project.slug}:abcdef"
             self.path = f"/organizations/{self.org.slug}/replays/{slug}/"
@@ -75,13 +75,13 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_console_tab(self):
+    def test_console_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -89,7 +89,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
 
-    def test_network_tab(self):
+    def test_network_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -97,7 +97,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-network-btn"]')
             self.browser.wait_until_test_id("replay-details-network-tab")
 
-    def test_memory_tab(self):
+    def test_memory_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -105,7 +105,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
 
-    def test_errors_tab(self):
+    def test_errors_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -113,7 +113,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-errors-btn"]')
             self.browser.wait_until_test_id("replay-details-errors-tab")
 
-    def test_trace_tab(self):
+    def test_trace_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')

@@ -10,7 +10,7 @@ from sentry.users.models.userip import UserIP
 class UserIPsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(id=1)
         self.login_as(self.user)

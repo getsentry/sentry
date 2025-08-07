@@ -24,7 +24,7 @@ from sentry.search.events.types import SnubaParams
 
 
 class SearchResolverQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
         )
@@ -234,7 +234,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
 
-def test_count_default_argument():
+def test_count_default_argument() -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )
@@ -263,7 +263,7 @@ def test_count_default_argument():
         ("min", Function.FUNCTION_MIN),
     ],
 )
-def test_monoid_functions(function_name, proto_function):
+def test_monoid_functions(function_name, proto_function) -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )

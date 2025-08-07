@@ -53,10 +53,8 @@ import {
   useLogsAggregateSortBys,
   useLogsFields,
   useLogsGroupBy,
-  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
-  useSetLogsMode,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -67,7 +65,11 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  HiddenColumnEditorLogFields,
+  HiddenLogSearchFields,
+} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -94,6 +96,10 @@ import {
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsMode,
+  useSetQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -112,9 +118,9 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
-  const mode = useLogsMode();
+  const mode = useQueryParamsMode();
   const sortBys = useLogsAggregateSortBys();
-  const setMode = useSetLogsMode();
+  const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -168,7 +174,7 @@ export function LogsTabContent({
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy?.length ? 5 : undefined,
+      topEvents: groupBy ? TOP_EVENTS_LIMIT : undefined,
       orderby,
     },
     'explore.ourlogs.main-chart',
@@ -184,12 +190,12 @@ export function LogsTabContent({
     attributes: stringAttributes,
     isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
-  } = useTraceItemAttributes('string');
+  } = useTraceItemAttributes('string', HiddenLogSearchFields);
   const {
     attributes: numberAttributes,
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
-  } = useTraceItemAttributes('number');
+  } = useTraceItemAttributes('number', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -361,10 +367,7 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle
-                    disabled={tableTab === 'aggregates'}
-                    averageLogsPerSecond={averageLogsPerSecond}
-                  />
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}

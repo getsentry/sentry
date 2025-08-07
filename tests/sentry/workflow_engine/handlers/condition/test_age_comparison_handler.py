@@ -19,7 +19,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.payload = {

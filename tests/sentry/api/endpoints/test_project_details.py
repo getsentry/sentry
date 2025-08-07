@@ -47,7 +47,7 @@ def first_symbol_source_id(sources_json):
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -267,7 +267,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
@@ -445,7 +445,7 @@ class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
@@ -615,6 +615,7 @@ class ProjectUpdateTest(APITestCase):
             "filters:blacklisted_ips": "127.0.0.1\n198.51.100.0",
             "filters:releases": "1.*\n2.1.*",
             "filters:error_messages": "TypeError*\n*: integer division by modulo or zero",
+            "filters:log_messages": "Updated*\n*.sentry.io",
             "mail:subject_prefix": "[Sentry]",
             "sentry:scrub_ip_address": False,
             "sentry:origins": "*",
@@ -631,7 +632,10 @@ class ProjectUpdateTest(APITestCase):
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
         }
-        with self.feature("projects:custom-inbound-filters"), outbox_runner():
+        with (
+            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            outbox_runner(),
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)
@@ -684,6 +688,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:error_messages") == [
             "TypeError*",
             "*: integer division by modulo or zero",
+        ]
+        assert project.get_option("sentry:log_messages") == [
+            "Updated*",
+            "*.sentry.io",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -885,7 +893,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightPreset"] == preset
 
         # Set to custom
-        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        highlight_tags = ["bears", "beets", "battlestar_galactica", "blue bugs"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -912,26 +920,36 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightContext"] == preset["context"]
         assert resp.data["highlightPreset"] == preset
 
-        # Set to custom
-        highlight_context_type = "bird-words"
-        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightContext=highlight_context,
-        )
-        option_result = self.project.get_option("sentry:highlight_context")
-        resp_result = resp.data["highlightContext"]
-        for highlight_context_key in highlight_context[highlight_context_type]:
-            assert highlight_context_key in option_result[highlight_context_type]
-            assert highlight_context_key in resp_result[highlight_context_type]
+        # Set to custom with different separators
+        highlight_context_types = ["birdwords", "bird-words", "bird words"]
+        for highlight_context_type in highlight_context_types:
+            highlight_context_value = [
+                "red",
+                "robin",
+                "blue",
+                "jay",
+                "red",
+                "blue",
+                "canadian goose",
+            ]
+            highlight_context = {highlight_context_type: highlight_context_value}
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+            )
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
 
-        # Filters duplicates
-        assert (
-            len(option_result[highlight_context_type])
-            == len(resp_result[highlight_context_type])
-            == 4
-        )
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 5
+            )
 
         # Set to empty
         resp = self.get_success_response(
@@ -962,6 +980,12 @@ class ProjectUpdateTest(APITestCase):
             highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
         )
         assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird \n words": ["empty", "context", "type"]},
+        )
+        assert "Key 'bird \n words' is invalid" in resp.data["highlightContext"][0]
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
@@ -1098,7 +1122,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1151,7 +1175,9 @@ class ProjectUpdateTest(APITestCase):
             )
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets_unknown_secret(
+        self, create_audit_entry: mock.MagicMock
+    ) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1302,7 +1328,7 @@ class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1482,7 +1508,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(project, teams=[team])
 
     @mock.patch("sentry.models.project.Project.copy_settings_from")
-    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+    def test_copy_project_settings_fails(self, mock_copy_settings_from: mock.MagicMock) -> None:
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
         resp = self.get_error_response(
@@ -1500,7 +1526,7 @@ class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1567,7 +1593,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
@@ -1588,7 +1614,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
@@ -1990,7 +2016,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 class TestTempestProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -2014,6 +2040,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchScreenshots"] is True
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_screenshots_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
     def test_put_tempest_fetch_screenshots_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
@@ -2021,6 +2057,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_screenshots_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_screenshots_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
@@ -2043,6 +2088,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchDumps"] is True
         assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_dumps_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+        assert response.data["tempestFetchDumps"] is True
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
     def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
@@ -2050,6 +2105,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_dumps_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" in response.data
+        assert response.data["tempestFetchDumps"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_dumps_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
@@ -2066,7 +2130,7 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 class TestSeerProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -2081,69 +2145,41 @@ class TestSeerProjectDetails(TestProjectDetailsBase):
         self.authorization = f"Bearer {token.token}"
 
     def test_autofix_automation_tuning(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, autofixAutomationTuning="off", status_code=400
+            self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["autofixAutomationTuning"][0]
-        )
+        assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
         assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
-            )
-            assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+        # Test with valid value - should succeed
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+        assert resp.data["autofixAutomationTuning"] == "medium"
 
-            # Test with feature flag and valid value - should succeed
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
-            assert resp.data["autofixAutomationTuning"] == "medium"
-
-            # Test setting back to off
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="off"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
-            assert resp.data["autofixAutomationTuning"] == "off"
+        # Test setting back to off
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+        assert resp.data["autofixAutomationTuning"] == "off"
 
     def test_seer_scanner_automation(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, seerScannerAutomation=False, status_code=400
+            self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["seerScannerAutomation"][0]
-        )
+        assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
         assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
-            )
-            assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
-            assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
-
-        # Test with feature flag and valid value - should succeed
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=False
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is False
-            assert resp.data["seerScannerAutomation"] is False
+        # Test with valid value - should succeed
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=False)
+        assert self.project.get_option("sentry:seer_scanner_automation") is False
+        assert resp.data["seerScannerAutomation"] is False
 
         # Test setting back to on
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=True
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is True
-            assert resp.data["seerScannerAutomation"] is True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=True)
+        assert self.project.get_option("sentry:seer_scanner_automation") is True
+        assert resp.data["seerScannerAutomation"] is True

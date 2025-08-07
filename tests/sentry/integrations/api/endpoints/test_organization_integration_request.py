@@ -7,7 +7,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-request"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.user
         self.member = self.create_user(email="member@example.com")
         self.create_member(user=self.member, organization=self.organization, role="member")

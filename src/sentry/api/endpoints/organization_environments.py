@@ -14,6 +14,7 @@ from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.organization import Organization
 
 
 @extend_schema(tags=["Environments"])
@@ -36,7 +37,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         },
         examples=EnvironmentExamples.GET_ORGANIZATION_ENVIRONMENTS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Lists an organization's environments.
         """

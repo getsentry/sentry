@@ -403,6 +403,34 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
+const IsFieldDescriptions: Record<IsFieldValues, string> = {
+  [IsFieldValues.RESOLVED]: t('Issues marked as fixed'),
+  [IsFieldValues.UNRESOLVED]: t('Issues still active and needing attention'),
+  [IsFieldValues.ARCHIVED]: t('Issues that have been archived'),
+  [IsFieldValues.ESCALATING]: t(
+    'Issues occurring significantly more often than they used to'
+  ),
+  [IsFieldValues.NEW]: t('Issues that first occurred in the last 7 days'),
+  [IsFieldValues.ONGOING]: t(
+    'Issues created more than 7 days ago or manually been marked as reviewed'
+  ),
+  [IsFieldValues.REGRESSED]: t('Issues resolved then occurred again'),
+  [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
+  [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
+  [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
+  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+};
+
+export function getIsFieldDescriptionFromValue(
+  isFieldValue: IsFieldValues
+): string | undefined {
+  if (isFieldValue in IsFieldDescriptions) {
+    return IsFieldDescriptions[isFieldValue];
+  }
+  return undefined;
+}
+
 type AggregateColumnParameter = {
   /**
    * The types of columns that are valid for this parameter.
@@ -443,7 +471,7 @@ export interface FieldDefinition {
   /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
-   * Note that the `disallowWilcard` setting will override this.
+   * Note that the `disallowWildcardOperators` setting will override this.
    */
   allowWildcard?: boolean;
   /**
@@ -458,6 +486,12 @@ export interface FieldDefinition {
    * Description of the field
    */
   desc?: string;
+  /**
+   * Disallow wildcard (contains, starts with, ends with) operators for this field
+   * This is only valid for string fields and will default to false.
+   * Setting this to true will override `allowWildcard`.
+   */
+  disallowWildcardOperators?: boolean;
   /**
    * Feature flag that indicates gating of the field from use
    */
@@ -583,7 +617,12 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'column',
         kind: 'column',
         columnTypes: validateAndDenyListColumns(
-          [FieldValueType.STRING, FieldValueType.NUMBER, FieldValueType.DURATION],
+          [
+            FieldValueType.STRING,
+            FieldValueType.NUMBER,
+            FieldValueType.DURATION,
+            FieldValueType.INTEGER,
+          ],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -1645,6 +1684,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     defaultValue: 'unresolved',
     allowWildcard: false,
+    values: Object.values(IsFieldValues),
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
@@ -1961,6 +2001,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    disallowWildcardOperators: true,
   },
 };
 

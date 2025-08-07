@@ -4,7 +4,7 @@ from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, 
 from sentry.testutils.helpers.datetime import freeze_time
 
 
-def test_task_context_expiration_time():
+def test_task_context_expiration_time() -> None:
     """
     Tests that the TaskContext properly initialises the expiration_time
     """
@@ -14,7 +14,7 @@ def test_task_context_expiration_time():
         assert context.expiration_time == time.monotonic() + 3
 
 
-def test_task_context_data():
+def test_task_context_data() -> None:
     """
     Tests that TaskContext properly handles function contexts
 
@@ -55,7 +55,7 @@ def test_task_context_data():
     )
 
 
-def test_timer_raw():
+def test_timer_raw() -> None:
     """
     Tests the direct functionality of Timer (i.e. not as a context manager)
     """
@@ -125,7 +125,7 @@ def test_timer_raw():
         assert t.current() == 2.0
 
 
-def test_named_timer_raw():
+def test_named_timer_raw() -> None:
     """
     Tests the direct functionality of Timer (i.e. not as a context manager)
     with named timers
@@ -227,7 +227,7 @@ def test_named_timer_raw():
         assert tc.current() == 5.0
 
 
-def test_timer_context_manager():
+def test_timer_context_manager() -> None:
     """
     Tests the context manager functionality of the timer
     """
@@ -246,7 +246,7 @@ def test_timer_context_manager():
         assert t.current("a") == 3
 
 
-def test_named_timer_context_manager():
+def test_named_timer_context_manager() -> None:
     """
     Tests the context manager functionality of the timer
     """
@@ -283,7 +283,7 @@ def test_named_timer_context_manager():
         assert t.current("global") == 3 * 7
 
 
-def test_task_context_serialisation():
+def test_task_context_serialisation() -> None:
     task = TaskContext("my-task", 100)
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         # a timer without state

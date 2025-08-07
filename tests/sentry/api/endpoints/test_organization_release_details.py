@@ -1,6 +1,6 @@
 import unittest
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -29,7 +29,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ReleaseDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user1 = self.create_user(is_staff=False, is_superuser=False)
 
@@ -679,7 +679,7 @@ class ReleaseDetailsTest(APITestCase):
 
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_simple(self, mock_fetch_commits):
+    def test_simple(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -766,7 +766,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert response.status_code == 404
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_deprecated_head_commits(self, mock_fetch_commits):
+    def test_deprecated_head_commits(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -1273,7 +1273,7 @@ class ReleaseDeleteTest(APITestCase):
 
 
 class ReleaseSerializerTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"

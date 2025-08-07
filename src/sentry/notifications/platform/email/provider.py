@@ -21,9 +21,9 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
     provider_key = NotificationProviderKey.EMAIL
 
     @classmethod
-    def render[
-        DataT: NotificationData
-    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> EmailRenderable:
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> EmailRenderable:
         return {}
 
 

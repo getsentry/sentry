@@ -53,7 +53,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         return True
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -86,8 +86,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         return True
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
@@ -120,6 +119,10 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         # Next.js error pages cause an N+1 API Call that isn't useful to anyone
         if "__nextjs_original-stack-frame" in url:
+            return False
+
+        # LaunchDarkly SDK calls are not useful
+        if "https://app.launchdarkly.com/sdk/" in url:
             return False
 
         if not url:
@@ -218,7 +221,9 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
         path_params_list: list[str] = list(
-            dict.fromkeys([f"{', '.join(param_group)}" for param_group in path_params]).keys()
+            dict.fromkeys(
+                [f"{', '.join(param_group)}" for param_group in path_params if param_group]
+            ).keys()
         )
         query_params_list: list[str] = list(
             dict.fromkeys(

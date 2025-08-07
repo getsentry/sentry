@@ -23,8 +23,8 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.snuba import ourlogs
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
@@ -58,9 +58,9 @@ def _get_logs_for_event(
         organization=project.organization,
     )
 
-    results: EventsResponse = ourlogs.run_table_query(
-        snuba_params,
-        f"trace:{trace_id}",
+    results: EventsResponse = OurLogs.run_table_query(
+        params=snuba_params,
+        query_string=f"trace:{trace_id}",
         selected_columns=[
             "project.id",
             "timestamp",
@@ -508,6 +508,21 @@ def _get_profile_from_trace_tree(
                 break
 
     if not matching_transaction or not matching_transaction.get("profile_id"):
+        logger.info(
+            "[Autofix] No matching transaction with profile_id found for event",
+            extra={
+                "trace_to_search_id": event.trace_id,
+                "matching_transaction": matching_transaction,
+                "project_slug": project.slug,
+                "organization_slug": project.organization.slug,
+                "profile_id": (
+                    matching_transaction.get("profile_id") if matching_transaction else None
+                ),
+                "profiler_id": (
+                    matching_transaction.get("profiler_id") if matching_transaction else None
+                ),
+            },
+        )
         return None
 
     profile_id = matching_transaction.get("profile_id")
@@ -530,8 +545,26 @@ def _get_profile_from_trace_tree(
                 "execution_tree": execution_tree,
             }
         )
+        if not output:
+            logger.info(
+                "[Autofix] Failed to convert profile to execution tree",
+                extra={
+                    "profile_id": profile_id,
+                    "project_slug": project.slug,
+                    "organization_slug": project.organization.slug,
+                },
+            )
         return output
     else:
+        logger.info(
+            "[Autofix] Failed to get profile from profiling service",
+            extra={
+                "response.status": response.status,
+                "profile_id": profile_id,
+                "project_slug": project.slug,
+                "organization_slug": project.organization.slug,
+            },
+        )
         return None
 
 
@@ -541,9 +574,15 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     including only items from the MainThread and app frames.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    profile = profile_data.get("profile")
+    profile = profile_data.get(
+        "profile"
+    )  # transaction profiles are formatted as {"profile": {"frames": [], "samples": [], "stacks": []}}
     if not profile:
-        return []
+        profile = profile_data.get("chunk", {}).get(
+            "profile"
+        )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
+        if not profile:
+            return []
 
     frames = profile.get("frames")
     stacks = profile.get("stacks")
@@ -561,17 +600,32 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     ):  # if there is only one thread, use that as the main thread
         main_thread_id = list(thread_metadata.keys())[0]
 
+    def _get_elapsed_since_start_ns(
+        sample: dict[str, Any], all_samples: list[dict[str, Any]]
+    ) -> int:
+        """
+        Get the elapsed time since start for a sample.
+        Handles both transaction and continuous profiles.
+        """
+        if "elapsed_since_start_ns" in sample:
+            return sample["elapsed_since_start_ns"]
+        elif "timestamp" in sample:
+            min_timestamp = min(s["timestamp"] for s in all_samples)
+            return int((sample["timestamp"] - min_timestamp) * 1e9)
+        else:
+            return 0
+
     # Sort samples chronologically
-    sorted_samples = sorted(samples, key=lambda x: x["elapsed_since_start_ns"])
+    sorted_samples = sorted(samples, key=lambda x: _get_elapsed_since_start_ns(x, samples))
 
     # Calculate average sampling interval
     if len(sorted_samples) >= 2:
         time_diffs = [
-            sorted_samples[i + 1]["elapsed_since_start_ns"]
-            - sorted_samples[i]["elapsed_since_start_ns"]
+            _get_elapsed_since_start_ns(sorted_samples[i + 1], sorted_samples)
+            - _get_elapsed_since_start_ns(sorted_samples[i], sorted_samples)
             for i in range(len(sorted_samples) - 1)
         ]
-        sample_interval_ns = sum(time_diffs) / len(time_diffs) if time_diffs else 10000000
+        sample_interval_ns = int(sum(time_diffs) / len(time_diffs)) if time_diffs else 10000000
     else:
         sample_interval_ns = 10000000  # default 10ms
 
@@ -637,7 +691,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         if str(sample["thread_id"]) != str(main_thread_id):
             continue
 
-        timestamp_ns = sample["elapsed_since_start_ns"]
+        timestamp_ns = _get_elapsed_since_start_ns(sample, sorted_samples)
         stack_frames = process_stack(sample["stack_id"])
         if not stack_frames:
             continue
@@ -824,6 +878,9 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
+                "disable_coding_step": not group.organization.get_option(
+                    "sentry:enable_seer_coding", default=True
+                ),
             },
         },
         option=orjson.OPT_NON_STR_KEYS,

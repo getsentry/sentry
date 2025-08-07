@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationEnvironmentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-environments"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     @cached_property

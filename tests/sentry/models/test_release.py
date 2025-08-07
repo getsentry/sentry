@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -39,15 +39,25 @@ from sentry.utils.strings import truncatechars
 @pytest.mark.parametrize(
     "release_version",
     [
-        "fake_package@1.0.0",
-        "fake_package@1.0.0-alpha",
-        "fake_package@1.0.0-alpha.1",
-        "fake_package@1.0.0-alpha.beta",
-        "fake_package@1.0.0-rc.1+43",
-        "org.example.FooApp@1.0+whatever",
+        "fake_package@1",  # Major version only
+        "fake_package@1.0",  # Major and minor version
+        "fake_package@1.0.0",  # Major, minor, and patch version
+        "fake_package@1.0.0-alpha",  # With prerelease
+        "fake_package@1.0.0-alpha.1",  # With prerelease and number
+        "fake_package@1.0.0-alpha.beta",  # With prerelease and text
+        "fake_package@1.0.0-rc.1+43",  # With prerelease and build
+        "fake_package@1-alpha+43",  # major only with prerelease and build
+        "org.example.FooApp@1.0+whatever",  # With build metadata
+        # Additional valid semver patterns
+        "fake_package@1.0.0.1",  # Four version components with revision (major.minor.patch.revision)
+        "fake_package@1.0.0-alpha.1.2",  # pre-release
+        "fake_package@1.0.0-beta+exp.sha.5114f85",  # pre-release and build
+        "fake_package@1.0.0+20130313144700",  # version and build
+        "fake_package@1.0.0-0.3.7",  # Prerelease starting with number
+        "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version):
+def test_version_is_semver_valid(release_version) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -58,9 +68,23 @@ def test_version_is_semver_valid(release_version):
         "alpha@helloworld",
         "alpha@helloworld-1.0",
         "org.example.FooApp@9223372036854775808.1.2.3-r1+12345",
+        # Additional invalid semver patterns
+        "package@1a",  # Invalid character in version
+        "package@1.0.0.0.0",  # Too many version components
+        "package@1.0.0+",  # Incomplete build
+        "package@1.0.0-+",  # Empty prerelease and build
+        "package@1.0.0-@",  # Invalid character in prerelease
+        "package@1.0.0+@",  # Invalid character in build
+        "package@1.0.0-alpha.01",  # Leading zero in prerelease
+        "package@1.0.0-alpha..1",  # Empty prerelease component
+        "package@1.0.0-alpha.1.",  # Trailing dot in prerelease
+        "package@1.0.0+.1",  # Invalid build
+        "package@1.0.0+1.",  # Trailing dot in build
+        "package@1.0.0-alpha.1+1.",  # Trailing dot in build
+        "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version):
+def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
@@ -394,7 +418,7 @@ class SetCommitsTestCase(TestCase):
     @patch("sentry.models.Commit.update")
     @freeze_time()
     @receivers_raise_on_send()
-    def test_multiple_releases_only_updates_once(self, mock_update):
+    def test_multiple_releases_only_updates_once(self, mock_update: MagicMock) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
@@ -492,7 +516,9 @@ class SetCommitsTestCase(TestCase):
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
-    def test_resolution_support_with_integration(self, mock_sync_status_outbound):
+    def test_resolution_support_with_integration(
+        self, mock_sync_status_outbound: MagicMock
+    ) -> None:
         org = self.create_organization(owner=Factories.create_user())
         integration = self.create_integration(
             organization=org,
@@ -581,14 +607,14 @@ class SetCommitsTestCase(TestCase):
 
 
 class SetRefsTest(SetRefsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.release = Release.objects.create(version="abcdabc", organization=self.org)
         self.release.add_project(self.project)
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_simple(self, mock_fetch_commit):
+    def test_simple(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -615,7 +641,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_invalid_repos(self, mock_fetch_commit):
+    def test_invalid_repos(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "unknown-repository-name",
@@ -637,7 +663,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_handle_commit_ranges(self, mock_fetch_commit):
+    def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -666,7 +692,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_fetch_false(self, mock_fetch_commit):
+    def test_fetch_false(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -749,7 +775,7 @@ class SetRefsTest(SetRefsTestCase):
 
 
 class SemverReleaseParseTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
     def test_parse_release_into_semver_cols(self) -> None:
@@ -1074,7 +1100,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.fake_package = "_fake_package_prj_"
 

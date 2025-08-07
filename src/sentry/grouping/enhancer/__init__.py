@@ -38,6 +38,7 @@ RUST_CACHE = RustCache(1_000)
 # comment is merged
 VERSIONS = [2, 3]
 DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
+DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
@@ -568,9 +569,9 @@ class Enhancements:
 
             # Split the string to get encoded data for each set of rules: unsplit rules (i.e., rules
             # the way they're stored in project config), classifier rules, and contributes rules.
-            # Older base64 strings - such as those stored in events created before rule-splitting was
-            # introduced - will only have one part and thus will end up unchanged. (The delimiter is
-            # chosen specifically to be a character which can't appear in base64.)
+            # Older base64 strings - such as those stored in events created before rule-splitting
+            # was introduced - will only have one part and thus will end up unchanged by the split.
+            # (The delimiter is chosen specifically to be a character which can't appear in base64.)
             bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
@@ -637,3 +638,10 @@ def _load_configs() -> dict[str, Enhancements]:
 
 ENHANCEMENT_BASES = _load_configs()
 del _load_configs
+
+# TODO: Shim to cover the time period before events which have the old default enhancements name
+# encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
+# that the new name is hard-coded, rather than a reference to `DEFAULT_ENHANCEMENTS_BASE`, because
+# if we make a new default in the meantime, the old name should still point to
+# `all-platforms:2023-01-11`.)
+ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]

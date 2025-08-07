@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -20,7 +20,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class TestUpdater(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.sentry_app = self.create_sentry_app(
@@ -37,7 +37,7 @@ class TestUpdater(TestCase):
         assert self.sentry_app.name == "A New Thing"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_update_scopes_internal_integration(self, mock_record):
+    def test_update_scopes_internal_integration(self, mock_record: MagicMock) -> None:
         self.create_project(organization=self.org)
         sentry_app = self.create_internal_integration(
             scopes=("project:read",), organization=self.org
@@ -214,7 +214,7 @@ class TestUpdater(TestCase):
         assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_service_hook_on_update(self, mock_record):
+    def test_create_service_hook_on_update(self, mock_record: MagicMock) -> None:
         self.create_project(organization=self.org)
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)

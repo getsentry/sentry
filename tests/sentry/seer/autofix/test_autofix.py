@@ -19,7 +19,7 @@ from sentry.seer.autofix.autofix import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -217,6 +217,78 @@ class TestConvertProfileToExecutionTree(TestCase):
         save_result = process_data["children"][0]
         assert save_result["function"] == "save_result"
         assert save_result["duration_ns"] == 10000000
+
+    def test_convert_profile_to_execution_tree_with_timestamp(self) -> None:
+        """Test that _convert_profile_to_execution_tree works with continuous profiles using timestamp"""
+        profile_data = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "helper",
+                        "module": "app.utils",
+                        "filename": "utils.py",
+                        "lineno": 20,
+                        "in_app": True,
+                    },
+                ],
+                "stacks": [
+                    [0],  # main only
+                    [1, 0],  # main → helper
+                ],
+                # Samples using timestamp instead of elapsed_since_start_ns
+                "samples": [
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.0,  # Base timestamp (Unix timestamp)
+                    },
+                    {
+                        "stack_id": 1,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.01,  # 10ms later
+                    },
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "timestamp": 1672567200.02,  # 20ms later
+                    },
+                ],
+                "thread_metadata": {"1": {"name": "MainThread"}},
+            }
+        }
+
+        execution_tree = _convert_profile_to_execution_tree(profile_data)
+
+        # Should have one root node (main)
+        assert len(execution_tree) == 1
+        root = execution_tree[0]
+        assert root["function"] == "main"
+        assert root["module"] == "app.main"
+        assert root["filename"] == "main.py"
+        assert root["lineno"] == 10
+
+        # Should have one child (helper)
+        assert len(root["children"]) == 1
+        child = root["children"][0]
+        assert child["function"] == "helper"
+        assert child["module"] == "app.utils"
+        assert child["filename"] == "utils.py"
+        assert child["lineno"] == 20
+        assert len(child["children"]) == 0
+
+        # Check durations are calculated correctly from timestamps
+        # Root should span from 0ns to 20ms (0.02s * 1e9 = 20000000ns) + interval
+        # Allow for small floating point precision differences
+        assert abs(root["duration_ns"] - 30000000) < 100  # 20ms + 10ms interval
+        # Helper should be active from 10ms to 10ms (10ms interval = 10000000ns)
+        assert abs(child["duration_ns"] - 10000000) < 100
 
 
 @requires_snuba
@@ -444,7 +516,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_empty_results(self, mock_get_events):
+    def test_get_trace_tree_empty_results(self, mock_get_events) -> None:
         """
         Expected trace structure:
 
@@ -468,7 +540,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_out_of_order_processing(self, mock_get_events):
+    def test_get_trace_tree_out_of_order_processing(self, mock_get_events) -> None:
         """
         Expected trace structure:
 
@@ -566,7 +638,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_with_only_errors(self, mock_get_events):
+    def test_get_trace_tree_with_only_errors(self, mock_get_events) -> None:
         """
         Tests that when results contain only error events (no transactions),
         the function still creates a valid trace tree.
@@ -708,7 +780,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_all_relationship_rules(self, mock_get_events):
+    def test_get_trace_tree_all_relationship_rules(self, mock_get_events) -> None:
         """
         Tests that all three relationship rules are correctly implemented:
         1. An event whose span_id is X is a parent of an event whose parent_span_id is X
@@ -862,7 +934,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service) -> None:
         """
         Test the _get_profile_from_trace_tree method which finds a transaction
         that contains the event's span_id or has a matching span_id.
@@ -944,7 +1016,9 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_matching_span_id(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_matching_span_id(
+        self, mock_get_from_profiling_service
+    ) -> None:
         """
         Test _get_profile_from_trace_tree with a transaction whose own span_id
         matches the event's span_id.
@@ -1023,7 +1097,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """
         Test the behavior when the profiling service API returns an error.
         """
@@ -1131,7 +1205,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         mock_get_from_profiling_service.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service) -> None:
         """
         Test the behavior when the event doesn't have a span_id.
         """
@@ -1166,10 +1240,10 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1270,10 +1344,10 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1310,10 +1384,10 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1349,7 +1423,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.autofix.requests.post")
     @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post):
+    def test_call_autofix(self, mock_sign, mock_post) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
         mock_sign.return_value = {"Authorization": "Bearer test"}
@@ -1419,6 +1493,7 @@ class TestCallAutofix(TestCase):
             body["options"]["comment_on_pr_with_url"]
             == "https://github.com/getsentry/sentry/pull/123"
         )
+        assert body["options"]["disable_coding_step"] is False
 
         # Verify headers
         headers = mock_post.call_args[1]["headers"]
@@ -1631,15 +1706,15 @@ class TestBuildSpansTree(TestCase):
 
 
 class TestGetLogsForEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.trace_id = "1234567890abcdef1234567890abcdef"
         self.now = before_now(minutes=0)
 
-    @patch("sentry.snuba.ourlogs.run_table_query")
-    def test_merging_consecutive_logs(self, mock_query):
+    @patch("sentry.snuba.ourlogs.OurLogs.run_table_query")
+    def test_merging_consecutive_logs(self, mock_query) -> None:
         # Simulate logs with identical message/severity in sequence
         dt = self.now
         logs = [

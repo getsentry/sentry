@@ -101,28 +101,6 @@ class ProjectMemberSerializer(serializers.Serializer):
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
 
-    def validate_autofixAutomationTuning(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
-    def validate_seerScannerAutomation(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
 
 @extend_schema_serializer(
     exclude_fields=[
@@ -900,6 +878,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
+                            case_insensitive=False,
+                        ),
+                    )
+                else:
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
+            if f"filters:{FilterTypes.LOG_MESSAGES}" in options:
+                if features.has(
+                    "projects:custom-inbound-filters", project, actor=request.user
+                ) and features.has(
+                    "organizations:ourlogs-ingestion", project.organization, actor=request.user
+                ):
+                    project.update_option(
+                        f"sentry:{FilterTypes.LOG_MESSAGES}",
+                        clean_newline_inputs(
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )

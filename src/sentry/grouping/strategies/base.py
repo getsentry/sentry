@@ -11,8 +11,9 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer import DEFAULT_ENHANCEMENTS_BASE, ENHANCEMENT_BASES, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -34,8 +35,6 @@ Risk = int  # TODO: make enum or union of literals
 ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
-DEFAULT_ENHANCEMENTS_BASE = "newstyle:2023-01-11"
-DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 # TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
 # probably turn `ReturnedVariants` into a Mapping (immutable), since in practice it's read-only.
@@ -81,29 +80,54 @@ def strategy(
         raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc[ConcreteInterface]) -> Strategy[ConcreteInterface]:
-        rv: Strategy[ConcreteInterface] | None = None
+        strategy_class: Strategy[ConcreteInterface] | None = None
 
         for id in ids:
-            STRATEGIES[id] = rv = Strategy(
+            STRATEGIES[id] = strategy_class = Strategy(
                 id=id, name=name, interface=interface.path, score=score, func=f
             )
 
-        assert rv is not None
-        return rv
+        assert strategy_class is not None
+        return strategy_class
 
     return decorator
 
 
 class GroupingContext:
+    """
+    A key-value store used for passing state between strategy functions and other helpers used
+    during grouping.
+
+    Has a dictionary-like interface, along with a context manager which allows values to be
+    temporarily overwritten:
+
+        context = GroupingContext()
+        context["some_key"] = "original_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+        value_at_some_key = context.get("some_key") # will be "original_value"
+
+        value_at_another_key = context["another_key"] # will raise a KeyError
+        value_at_another_key = context.get("another_key") # will be None
+        value_at_another_key = context.get("another_key", "some_default") # will be "some_default"
+
+        with context:
+            context["some_key"] = "some_other_value"
+            value_at_some_key = context["some_key"] # will be "some_other_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+    """
+
     def __init__(self, strategy_config: StrategyConfiguration, event: Event):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.event = event
-        self.push()
-        self["variant"] = None
+        self._push_context_layer()
+        self["variant_name"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
+        # Add the key-value pair to the context layer at the top of the stack
         self._stack[-1][key] = value
 
     def __getitem__(self, key: str) -> ContextValue:
@@ -113,26 +137,35 @@ class GroupingContext:
                 return d[key]
         raise KeyError(key)
 
+    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __enter__(self) -> Self:
-        self.push()
+        self._push_context_layer()
         return self
 
     def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
-        self.pop()
+        self._pop_context_layer()
 
-    def push(self) -> None:
+    def _push_context_layer(self) -> None:
         self._stack.append({})
 
-    def pop(self) -> None:
+    def _pop_context_layer(self) -> None:
         self._stack.pop()
 
     def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
-        """Invokes a delegate grouping strategy.  If no such delegate is
-        configured a fallback grouping component is returned.
         """
-        return self._get_strategy_dict(interface, event=event, **kwargs)
+        Called by a strategy to invoke delegates on its child interfaces.
+
+        For example, the chained exception strategy calls this on the exceptions in the chain, and
+        the exception strategy calls this on each exception's stacktrace.
+        """
+        return self._get_grouping_components_for_interface(interface, event=event, **kwargs)
 
     @overload
     def get_single_grouping_component(
@@ -152,28 +185,37 @@ class GroupingContext:
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
-        """Invokes a delegate grouping strategy.  If no such delegate is
-        configured a fallback grouping component is returned.
         """
-        rv = self._get_strategy_dict(interface, event=event, **kwargs)
+        Invoke the delegate grouping strategy corresponding to the given interface, returning the
+        grouping component for the variant set on the context.
+        """
+        components_by_variant = self._get_grouping_components_for_interface(
+            interface, event=event, **kwargs
+        )
 
-        assert len(rv) == 1
-        return rv[self["variant"]]
+        assert len(components_by_variant) == 1
+        return components_by_variant[self["variant_name"]]
 
-    def _get_strategy_dict(
+    def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
-        path = interface.path
-        strategy = self.config.delegates.get(path)
+        """
+        Apply a delegate strategy to the given interface to get a dictionary of grouping components
+        keyed by variant name.
+        """
+        interface_id = interface.path
+        strategy = self.config.delegates.get(interface_id)
+
         if strategy is None:
-            raise RuntimeError(f"failed to dispatch interface {path} to strategy")
+            raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
 
         kwargs["context"] = self
         kwargs["event"] = event
-        rv = strategy(interface, **kwargs)
-        assert isinstance(rv, dict)
 
-        return rv
+        components_by_variant = strategy(interface, **kwargs)
+        assert isinstance(components_by_variant, dict)
+
+        return components_by_variant
 
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
@@ -185,7 +227,7 @@ def lookup_strategy(strategy_id: str) -> Strategy[Any]:
 
 
 class Strategy(Generic[ConcreteInterface]):
-    """Baseclass for all strategies."""
+    """Base class for all strategies."""
 
     def __init__(
         self,
@@ -226,28 +268,22 @@ class Strategy(Generic[ConcreteInterface]):
         return func
 
     def get_grouping_component(
-        self, event: Event, context: GroupingContext, variant: str | None = None
+        self, event: Event, context: GroupingContext
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
-        """Given a specific variant this calculates the grouping component."""
+        """Create a grouping component using this strategy."""
         interface = event.interfaces.get(self.interface_name)
 
         if interface is None:
             return None
 
         with context:
-            # If a variant is passed put it into the context
-            if variant is not None:
-                context["variant"] = variant
-
             return self(interface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
-        """This returns a dictionary of all components by variant that this
-        strategy can produce.
         """
-
-        # strategy can decide on its own which variants to produce and which contribute
-        components_by_variant = self.get_grouping_component(event, variant=None, context=context)
+        Return a dictionary, keyed by variant name, of components produced by this strategy.
+        """
+        components_by_variant = self.get_grouping_component(event, context)
         if components_by_variant is None:
             return {}
 
@@ -347,7 +383,7 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration_class(
-    id: str | None,
+    id: str,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
     changelog: str | None = None,
@@ -452,13 +488,15 @@ def produces_variants(
         #
         # Return value is a dictionary of `{"!system": ..., "app": ...}`,
         # however function is still called with `"system"` as
-        # `context["variant"]`.
+        # `context["variant_name"]`.
         @produces_variants(["!system", "app"])
     """
 
-    def decorator(f: StrategyFunc[ConcreteInterface]) -> StrategyFunc[ConcreteInterface]:
+    def decorator(
+        strategy_func: StrategyFunc[ConcreteInterface],
+    ) -> StrategyFunc[ConcreteInterface]:
         def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
-            return call_with_variants(f, variants, *args, **kwargs)
+            return call_with_variants(strategy_func, variants, *args, **kwargs)
 
         return inner
 
@@ -466,33 +504,38 @@ def produces_variants(
 
 
 def call_with_variants(
-    f: Callable[..., ReturnedVariants],
+    strategy_func: Callable[..., ReturnedVariants],
     variants_to_produce: Sequence[str],
     *args: Any,
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    if context["variant"] is not None:
-        # For the case where the variant is already determined, we act as a
-        # delegate strategy.
-        #
-        # To ensure the function can deal with the particular value we assert
-        # the variant name is one of our own though.
-        assert (
-            context["variant"] in variants_to_produce
-            or "!" + context["variant"] in variants_to_produce
-        )
-        return f(*args, **kwargs)
+    incoming_variant_name = context["variant_name"]
 
-    rv = {}
+    if incoming_variant_name is not None:
+        # For the case where the variant is already determined, we act as a delegate strategy. To
+        # ensure the function can deal with the given value, we assert the variant name is one
+        # of our own.
+        #
+        # Note that this branch is not currently used by any strategies.
+        assert (
+            incoming_variant_name in variants_to_produce
+            or "!" + incoming_variant_name in variants_to_produce
+        )
+        return strategy_func(*args, **kwargs)
+
+    components_by_variant = {}
 
     for variant_name in variants_to_produce:
         with context:
-            context["variant"] = variant_name.lstrip("!")
-            rv_variants = f(*args, **kwargs)
-            assert len(rv_variants) == 1
-            component = rv_variants[variant_name.lstrip("!")]
+            stripped_variant_name = variant_name.lstrip("!")
+            context["variant_name"] = stripped_variant_name
 
-        rv[variant_name] = component
+            components_by_stripped_variant = strategy_func(*args, **kwargs)
+            assert len(components_by_stripped_variant) == 1
 
-    return rv
+            component = components_by_stripped_variant[stripped_variant_name]
+
+        components_by_variant[variant_name] = component
+
+    return components_by_variant

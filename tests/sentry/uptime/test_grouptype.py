@@ -260,7 +260,7 @@ class TestUptimeHandler(UptimeTestCase):
 
 
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.uptime_monitor = self.create_project_uptime_subscription()
 

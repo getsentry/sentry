@@ -98,7 +98,7 @@ function FavoriteButton({
           await updateDashboardFavorite(
             api,
             queryClient,
-            organization.slug,
+            organization,
             dashboardId,
             !favorited
           );

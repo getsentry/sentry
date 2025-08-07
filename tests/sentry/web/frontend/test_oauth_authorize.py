@@ -15,7 +15,7 @@ class OAuthAuthorizeCodeTest(TestCase):
     def path(self):
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -249,7 +249,7 @@ class OAuthAuthorizeTokenTest(TestCase):
     def path(self):
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -354,7 +354,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
     def path(self):
         return "/oauth/authorize/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="admin@test.com")
         self.create_member(user=self.owner, organization=self.organization, role="owner")
