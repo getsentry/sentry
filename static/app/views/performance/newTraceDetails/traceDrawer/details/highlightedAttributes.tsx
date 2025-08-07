@@ -95,7 +95,7 @@ function getAISpanAttributes(
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.usage.total_cost'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -123,7 +123,7 @@ function getAISpanAttributes(
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),

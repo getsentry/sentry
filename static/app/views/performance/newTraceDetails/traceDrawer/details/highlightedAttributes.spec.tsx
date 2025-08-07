@@ -23,11 +23,6 @@ jest.mock('sentry/views/insights/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
 }));
 
-// Mock the aiTraceNodes utility
-jest.mock('sentry/views/insights/agents/utils/aiTraceNodes', () => ({
-  getAIAttribute: jest.fn((attributes, key) => attributes[key]),
-}));
-
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
