@@ -52,7 +52,7 @@ const features = [
 ];
 
 describe('Performance > Landing > MetricsDataSwitcher', function () {
-  act(() => void TeamStore.loadInitialData([], false, null));
+  act(() => TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',

@@ -42,7 +42,7 @@ function initializeData(
       },
     },
   });
-  act(() => void OrganizationStore.onUpdate(initialData.organization, {replace: true}));
+  act(() => OrganizationStore.onUpdate(initialData.organization, {replace: true}));
   act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
@@ -82,7 +82,7 @@ function initializeTrendsData(
 
 describe('Performance > Content', function () {
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([], false, null));
+    act(() => TeamStore.loadInitialData([], false, null));
     jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({

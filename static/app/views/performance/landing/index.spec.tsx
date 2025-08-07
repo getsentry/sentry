@@ -64,7 +64,7 @@ describe('Performance > Landing > Index', function () {
   let eventsMock: jest.Mock;
   let wrapper: any;
 
-  act(() => void TeamStore.loadInitialData([], false, null));
+  act(() => TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',

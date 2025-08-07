@@ -32,7 +32,7 @@ function initializeData({query} = {query: {}}) {
     projects: [],
   });
 
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return {
     ...initialData,
     eventView: EventView.fromLocation(initialData.router.location),
