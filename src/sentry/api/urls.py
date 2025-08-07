@@ -107,6 +107,9 @@ from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQue
 from sentry.explore.endpoints.explore_saved_query_starred_order import (
     ExploreSavedQueryStarredOrderEndpoint,
 )
+from sentry.feedback.endpoints.organization_feedback_categories import (
+    OrganizationFeedbackCategoriesEndpoint,
+)
 from sentry.feedback.endpoints.organization_feedback_summary import (
     OrganizationFeedbackSummaryEndpoint,
 )
@@ -2136,6 +2139,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/feedback-summary/$",
         OrganizationFeedbackSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback-summary",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/feedback-categories/$",
+        OrganizationFeedbackCategoriesEndpoint.as_view(),
+        name="sentry-api-0-organization-user-feedback-categories",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/user-teams/$",
