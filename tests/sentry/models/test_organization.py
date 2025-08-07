@@ -6,14 +6,14 @@ from django.core import mail
 from django.db import models
 
 from sentry import audit_log
-from sentry.api.endpoints.organization_details import (
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.core.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
     old_value,
     update_tracked_data,
 )
-from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
