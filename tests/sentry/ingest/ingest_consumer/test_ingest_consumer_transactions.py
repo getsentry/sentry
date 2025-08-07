@@ -12,6 +12,7 @@ from sentry import eventstore
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
+from sentry.testutils import thread_leaks
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -71,6 +72,7 @@ def random_group_id():
 
 @django_db_all(transaction=True)
 @pytest.mark.parametrize("no_celery_mode", [True, False])
+@thread_leaks.allowlist(issue=97037, reason="ingest consumers")
 def test_ingest_consumer_reads_from_topic_and_saves_event(
     no_celery_mode,
     task_runner,
