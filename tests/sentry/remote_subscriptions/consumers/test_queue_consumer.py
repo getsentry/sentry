@@ -2,13 +2,13 @@
 Tests for the thread-queue-parallel result consumer implementation.
 """
 
-import pytest
 import threading
 import time
 from datetime import datetime
 from typing import Any
 from unittest import mock
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, FilteredPayload, Message, Partition, Topic
 
