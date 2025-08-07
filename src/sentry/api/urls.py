@@ -71,6 +71,7 @@ from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates im
 )
 from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
+from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
@@ -533,7 +534,6 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.avatar import OrganizationAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
