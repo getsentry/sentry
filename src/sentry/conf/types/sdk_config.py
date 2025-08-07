@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, NotRequired, TypedDict
 
-from sentry_sdk.types import Event, Hint, Log
+from sentry_sdk.types import Event, Hint
 
 
 class SdkConfig(TypedDict):
@@ -28,8 +28,6 @@ class SdkConfig(TypedDict):
     profile_lifecycle: NotRequired[Literal["manual", "trace"]]
     enable_db_query_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
-    enable_logs: NotRequired[bool]
-    before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
     _experiments: NotRequired[Any]  # TODO
 
 
