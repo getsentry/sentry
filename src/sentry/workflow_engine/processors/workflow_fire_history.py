@@ -27,7 +27,7 @@ def create_workflow_fire_histories(
     actions_to_fire: BaseQuerySet[Action],
     event_data: WorkflowEventData,
     is_single_processing: bool,
-    is_delayed: bool,
+    is_delayed: bool = False,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
