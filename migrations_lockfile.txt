@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0013_binary_uuid
+preprod: 0014_commitcomparisons_fk
 
 replays: 0006_add_bulk_delete_job
 
