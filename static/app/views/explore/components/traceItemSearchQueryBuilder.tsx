@@ -13,7 +13,7 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-type TraceItemSearchQueryBuilderProps = {
+export type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
