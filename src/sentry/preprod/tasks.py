@@ -84,7 +84,26 @@ def assemble_preprod_artifact(
             raise RuntimeError(
                 f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum})"
             )
-            return
+
+        logger.info(
+            "Finished preprod artifact assembly",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+            },
+        )
+
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            file_id=assemble_result.bundle.id,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+        )
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -101,26 +120,6 @@ def assemble_preprod_artifact(
             state=PreprodArtifact.ArtifactState.FAILED
         )
         return
-
-    logger.info(
-        "Finished preprod artifact assembly",
-        extra={
-            "project_id": project_id,
-            "organization_id": org_id,
-            "checksum": checksum,
-        },
-    )
-
-    PreprodArtifact.objects.filter(id=artifact_id).update(
-        file_id=assemble_result.bundle.id,
-        state=PreprodArtifact.ArtifactState.UPLOADED,
-    )
-
-    produce_preprod_artifact_to_kafka(
-        project_id=project_id,
-        organization_id=org_id,
-        artifact_id=artifact_id,
-    )
 
     logger.info(
         "Finished preprod artifact row creation and kafka dispatch",
