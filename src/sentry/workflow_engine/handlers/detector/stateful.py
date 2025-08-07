@@ -9,7 +9,6 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -21,7 +20,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorOccurrence,
     EventData,
 )
-from sentry.workflow_engine.models import DataCondition, DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -565,29 +564,8 @@ class StatefulDetectorHandler(
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
-        has_cached_condition_group = is_model_attr_cached(self.detector, "workflow_condition_group")
-        condition_result_levels: list[DataCondition] | None = None
-
-        if has_cached_condition_group:
-            has_cached_conditions = is_model_attr_cached(
-                self.detector.workflow_condition_group, "conditions"
-            )
-            if has_cached_conditions:
-                condition_result_levels = list(
-                    condition.condition_result
-                    for condition in self.detector.workflow_condition_group.conditions.all()
-                )
-
-        if condition_result_levels is None:
-            condition_result_levels = list(
-                DataCondition.objects.filter(
-                    condition_group__detector=self.detector,
-                    condition_result__in=priority_levels,
-                ).values_list("condition_result", flat=True)
-            )
-
-        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
+        conditions = self.detector.get_conditions()
+        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
 
     def _create_decorated_issue_occurrence(
         self,
