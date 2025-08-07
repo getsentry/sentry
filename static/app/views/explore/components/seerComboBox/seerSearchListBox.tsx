@@ -16,9 +16,16 @@ export function SeerSearchListBox(props: SeerSearchListBoxProps) {
 
   return (
     <StyledUl {...listBoxProps} ref={listBoxRef}>
-      {[...state.collection].map(item => (
-        <SeerSearchOption key={item.key} item={item} state={state} />
-      ))}
+      {[...state.collection].map(item => {
+        return (
+          <SeerSearchOption
+            key={item.key}
+            item={item}
+            state={state}
+            label={item['aria-label']}
+          />
+        );
+      })}
     </StyledUl>
   );
 }
@@ -26,14 +33,15 @@ export function SeerSearchListBox(props: SeerSearchListBoxProps) {
 interface SeerSearchOptionProps {
   item: Node<unknown>;
   state: ListState<unknown>;
+  label?: string;
 }
 
-function SeerSearchOption({item, state}: SeerSearchOptionProps) {
+function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {optionProps, isFocused} = useOption({key: item.key}, state, ref);
 
   return (
-    <StyledOption {...optionProps} ref={ref} isFocused={isFocused}>
+    <StyledOption {...optionProps} aria-label={label} ref={ref} isFocused={isFocused}>
       {item.rendered}
     </StyledOption>
   );

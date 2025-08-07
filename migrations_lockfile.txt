@@ -27,7 +27,7 @@ preprod: 0013_binary_uuid
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0962_json_fields_too_big
+sentry: 0964_add_commitcomparison_table
 
 social_auth: 0003_social_auth_json_field
 
