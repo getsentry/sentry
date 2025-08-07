@@ -213,7 +213,9 @@ def refresh_artifact_bundles_in_use():
     redis_client = get_redis_cluster_for_artifact_bundles()
 
     now = timezone.now()
-    threshold_date = now - timedelta(days=options.get("system.debug-files-renewal-age-threshold"))
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for _ in range(LOOP_TIMES):
         artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
@@ -234,7 +236,9 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=options.get("system.debug-files-renewal-age-threshold"))
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for artifact_bundle_id, date_added in used_artifact_bundles.items():
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
