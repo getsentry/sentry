@@ -4,6 +4,7 @@ import {
   type Event,
   type EventGroupVariant,
   EventGroupVariantType,
+  isEventGroupVariantType,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -71,7 +72,9 @@ export function useEventGroupingInfo({
       ? Object.fromEntries(
           Object.entries(data).map(([key, variant]) => [
             key,
-            convertVariantFromBackend(variant),
+            isEventGroupVariantType(variant.type)
+              ? convertVariantFromBackend(variant)
+              : variant,
           ])
         )
       : null;
