@@ -181,13 +181,19 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_2.update(date_updated=timezone.now() - timedelta(days=1, minutes=1))
 
-        workflows = Workflow.objects.all()
+        workflow_frequencies = {
+            w.id: timedelta(minutes=w.config.get("frequency", 0)) for w in Workflow.objects.all()
+        }
         action_to_statuses = {self.action.id: [status], action.id: [status_2]}
         action_to_workflows_ids = {self.action.id: {self.workflow.id}, action.id: {workflow.id}}
 
         action_to_workflow_ids, statuses_to_update, missing_statuses = (
             process_workflow_action_group_statuses(
-                action_to_workflows_ids, action_to_statuses, workflows, self.group, timezone.now()
+                action_to_workflows_ids,
+                action_to_statuses,
+                workflow_frequencies,
+                self.group,
+                timezone.now(),
             )
         )
 
