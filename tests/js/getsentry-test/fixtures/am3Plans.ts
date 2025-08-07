@@ -15,6 +15,7 @@ const AM3_CHECKOUT_CATEGORIES = [
   'monitorSeats',
   'spans',
   'uptime',
+  'logBytes',
 ] as DataCategory[];
 
 const AM3_ONDEMAND_CATEGORIES = [
@@ -61,6 +62,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
@@ -951,6 +953,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0004,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1449,6 +1459,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1545,6 +1563,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -1639,6 +1665,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0.0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -1745,6 +1779,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
@@ -1849,6 +1891,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
@@ -1945,6 +1995,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_DEVELOPER,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -2039,6 +2097,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2143,6 +2209,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
         },
       ],
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -2643,6 +2717,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -3141,6 +3223,14 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
+        },
+      ],
       ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
@@ -3227,6 +3317,14 @@ const AM3_PLANS: Record<string, Plan> = {
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
+        },
+      ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+          onDemandPrice: 0.5,
         },
       ],
     },
