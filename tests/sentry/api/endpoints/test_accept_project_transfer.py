@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.api.endpoints.project_transfer import SALT
+from sentry.core.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, PermissionTestCase
