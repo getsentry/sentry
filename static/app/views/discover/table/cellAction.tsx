@@ -351,10 +351,10 @@ function CellAction({
   const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  const filteredActions = allowActions;
+  let filteredActions = allowActions;
   if (!useCellActionsV2 && filteredActions) {
     // New dropdown menu options should not be allowed if the feature flag is not on
-    filteredActions.filter(
+    filteredActions = filteredActions.filter(
       action =>
         action !== Actions.OPEN_EXTERNAL_LINK && action !== Actions.OPEN_INTERNAL_LINK
     );
