@@ -344,7 +344,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
     def test_post_has_seer_data(self, mock_task: MagicMock) -> None:
-        """Test successful POST creates job and schedules task"""
+        """Test POST with summaries enabled schedules task with has_seer_data=True."""
         data = {
             "data": {
                 "rangeStart": "2023-01-01T00:00:00Z",
@@ -364,7 +364,6 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job.project_id == self.project.id
         assert job.status == "pending"
 
-        # Verify task was scheduled with has_seer_data=True
         mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=True)
 
 
