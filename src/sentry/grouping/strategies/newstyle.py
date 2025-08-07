@@ -470,7 +470,7 @@ def _single_stacktrace_variant(
         frame_components,
         raw_frames,
         event.platform,
-        exception_data=context["exception_data"],
+        exception_data=context.get("exception_data"),
     )
 
     # This context value is set by the grouping info endpoint, so that the frame order of the
