@@ -28,6 +28,7 @@ from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -414,6 +415,11 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
+        metrics.timing(
+            "rule_fire_history.latency",
+            (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
+            tags={"delayed": False, "group_type": self.group.issue_type.slug},
+        )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history
