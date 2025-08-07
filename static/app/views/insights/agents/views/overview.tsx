@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -144,12 +143,7 @@ function AgentsOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
-        headerTitle={
-          <Fragment>
-            {getAIModuleTitle(organization)}
-            <FeatureBadge type="beta" />
-          </Fragment>
-        }
+        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
         <Layout.Body>
