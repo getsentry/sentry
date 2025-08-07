@@ -10,7 +10,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
 describe('TokenRegenerationConfirmationModal', function () {
-  function renderComponent(token?: string) {
+  function renderComponent(token: string) {
     renderGlobalModal();
     act(() =>
       openModal(modalProps => (
@@ -20,13 +20,13 @@ describe('TokenRegenerationConfirmationModal', function () {
   }
 
   it('renders modal with correct header', function () {
-    renderComponent();
+    renderComponent('test-token-12345');
 
     expect(screen.getByRole('heading', {name: 'Token created'})).toBeInTheDocument();
   });
 
   it('displays warning alert with token safety message', function () {
-    renderComponent();
+    renderComponent('test-token-12345');
 
     expect(
       screen.getByText(
@@ -50,13 +50,13 @@ describe('TokenRegenerationConfirmationModal', function () {
   });
 
   it('renders Done button', function () {
-    renderComponent();
+    renderComponent('test-token-12345');
 
     expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
   });
 
   it('closes modal when Done button is clicked', async function () {
-    renderComponent();
+    renderComponent('test-token-12345');
 
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
 

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface TokenRegenerationConfirmationModalProps {
-  token?: string;
+  token: string;
 }
 
 type Props = ModalRenderProps & TokenRegenerationConfirmationModalProps;
@@ -41,7 +41,7 @@ function TokenRegenerationConfirmationModal({
               SENTRY_PREVENT_TOKEN
             </StyledTextCopyInput>
             <StyledTextCopyInput style={{minWidth: '310px'}} aria-label={t('Token')}>
-              {token!}
+              {token}
             </StyledTextCopyInput>
           </TokenRow>
         </Wrapper>
