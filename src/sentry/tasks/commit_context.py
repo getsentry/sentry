@@ -10,7 +10,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.analytics.events.integration_commit_context_all_frames import (
     IntegrationsFailedToFetchCommitContextAllFrames,
@@ -25,7 +25,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
@@ -183,17 +183,34 @@ def process_commit_context(
             author_to_user = get_users_for_authors(commit.organization_id, authors)
             user_dct: Mapping[str, Any] = author_to_user.get(str(commit.author_id), {})
 
-            group_owner, created = GroupOwner.objects.update_or_create(
-                group_id=group_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=user_dct.get("id"),
-                project=project,
-                organization_id=project.organization_id,
-                context={"commitId": commit.id},
-                defaults={
-                    "date_added": django_timezone.now()
-                },  # Updates date of an existing owner, since we just matched them with this new event
-            )
+            if options.get("issues.suspect-commit-strategy"):
+                group_owner, created = GroupOwner.objects.update_or_create_and_preserve_context(
+                    lookup_kwargs={
+                        "group_id": group_id,
+                        "type": GroupOwnerType.SUSPECT_COMMIT.value,
+                        "user_id": user_dct.get("id"),
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "context__contains": f'"commitId":{commit.id}',
+                    },
+                    defaults={
+                        "date_added": django_timezone.now(),
+                    },
+                    context_defaults={
+                        "commitId": commit.id,
+                        "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+                    },
+                )
+            else:
+                group_owner, created = GroupOwner.objects.update_or_create(
+                    group_id=group_id,
+                    type=GroupOwnerType.SUSPECT_COMMIT.value,
+                    user_id=user_dct.get("id"),
+                    project=project,
+                    organization_id=project.organization_id,
+                    context={"commitId": commit.id},
+                    defaults={"date_added": django_timezone.now()},
+                )
 
             if installation and isinstance(installation, CommitContextIntegration):
                 installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
