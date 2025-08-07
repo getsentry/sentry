@@ -5,11 +5,6 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
-import {
-  openAddTempestCredentialsModal,
-  openPrivateGamingSdkAccessModal,
-} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
@@ -20,14 +15,13 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconAdd, IconCode} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
+import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 type Params = DocsParams;
 
@@ -83,28 +77,7 @@ const onboardingRetail: OnboardingConfig = {
         },
         {
           type: 'custom',
-          content: (
-            <Button
-              priority="primary"
-              size="sm"
-              icon={<IconAdd isCircled />}
-              onClick={() => {
-                openAddTempestCredentialsModal({
-                  organization: params.organization,
-                  project: {
-                    id: params.project.id,
-                    slug: params.project.slug,
-                  } as any,
-                });
-                trackAnalytics('tempest.credentials.add_modal_opened', {
-                  organization: params.organization,
-                  project_slug: params.project.slug,
-                });
-              }}
-            >
-              {t('Add Credentials')}
-            </Button>
-          ),
+          content: <AddCredentialsButton projectSlug={params.projectSlug} />,
         },
         {
           type: 'text',
@@ -314,32 +287,10 @@ const onboarding: OnboardingConfig = {
         {
           type: 'custom',
           content: (
-            <Button
-              priority="default"
-              size="sm"
-              icon={<IconCode />}
-              onClick={() => {
-                openPrivateGamingSdkAccessModal({
-                  organization: params.organization,
-                  projectSlug: params.projectSlug,
-                  projectId: params.projectId,
-                  sdkName: 'PlayStation',
-                  gamingPlatform: 'playstation',
-                  onSubmit: () => {
-                    trackAnalytics('tempest.sdk_access_modal_submitted', {
-                      organization: params.organization,
-                      project_slug: params.projectSlug,
-                    });
-                  },
-                });
-                trackAnalytics('tempest.sdk_access_modal_opened', {
-                  organization: params.organization,
-                  project_slug: params.projectSlug,
-                });
-              }}
-            >
-              {t('Request SDK Access')}
-            </Button>
+            <RequestSdkAccessButton
+              organization={params.organization}
+              projectSlug={params.projectSlug}
+            />
           ),
         },
       ],
