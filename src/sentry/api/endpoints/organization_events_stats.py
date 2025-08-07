@@ -108,7 +108,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         query_source = self.get_request_source(request)
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+            span.set_attribute("organization", organization)
 
             top_events = 0
 
@@ -152,7 +152,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
-            if "agent_monitoring" in referrer:
+            if "agent-monitoring" in referrer:
                 try:
                     analytics.record(
                         AgentMonitoringQuery(
