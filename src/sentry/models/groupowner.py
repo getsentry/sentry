@@ -72,6 +72,8 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
         use lookup_kwargs to perform the .get()
         if found: update the object with defaults and the context with context_defaults
         if not found: create the object with the values in lookup_kwargs, defaults, and context_defaults
+
+        Note: lookup_kwargs is modified if the GroupOwner is created, do not reuse it for other purposes!
         """
         try:
             group_owner = GroupOwner.objects.get(**lookup_kwargs)
