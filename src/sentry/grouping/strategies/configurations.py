@@ -1,5 +1,4 @@
 from sentry.grouping.strategies.base import (
-    RISK_LEVEL_HIGH,
     StrategyConfiguration,
     create_strategy_configuration_class,
 )
@@ -65,7 +64,6 @@ register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
-    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
