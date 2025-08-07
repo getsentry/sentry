@@ -179,8 +179,8 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+    wsgi_path = sampling_context.get("url.path")
+    if wsgi_path is not None and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
@@ -189,14 +189,13 @@ def traces_sampler(sampling_context):
         return float(custom_sample_rate)
 
     # If there's already a sampling decision, just use that
-    if sampling_context["parent_sampled"] is not None:
+    parent_sampled = sampling_context.get("parent_sampled")
+    if parent_sampled is not None:
         return sampling_context["parent_sampled"]
 
-    if "celery_job" in sampling_context:
-        task_name = sampling_context["celery_job"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
+    task_name = sampling_context.get("celery.job.task")
+    if task_name is not None and task_name in SAMPLED_TASKS:
+        return SAMPLED_TASKS[task_name]
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
@@ -232,17 +231,19 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         return None
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    if isinstance(event["spans"], AnnotatedValue):
-        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
-        # complain. The TypeError should be unreachable.
-        if isinstance(event["spans"].value, Sized):
-            num_of_spans = len(event["spans"].value)
+    num_of_spans = 0
+    if "spans" in event:
+        if isinstance(event["spans"], AnnotatedValue):
+            # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
+            # complain. The TypeError should be unreachable.
+            if isinstance(event["spans"].value, Sized):
+                num_of_spans = len(event["spans"].value)
+            else:
+                raise TypeError("Expected a list of spans.")
         else:
-            raise TypeError("Expected a list of spans.")
-    else:
-        num_of_spans = len(event["spans"])
+            num_of_spans = len(event["spans"])
 
-    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
+    event.setdefault("tags", {})["spans_over_limit"] = str(num_of_spans >= 1000)
 
     # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
     # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
@@ -718,7 +719,7 @@ def get_trace_id():
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(

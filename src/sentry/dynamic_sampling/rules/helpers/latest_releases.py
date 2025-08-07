@@ -385,8 +385,8 @@ def record_latest_release(project: Project, release: Release, environment: str |
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        span.set_data("release", release.id)
-        span.set_data("environment", environment)
+        span.set_attribute("release", release.id)
+        span.set_attribute("environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,
