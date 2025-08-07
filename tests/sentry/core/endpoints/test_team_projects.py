@@ -437,7 +437,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert symbol_sources == ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"]
 
-    @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
+    @patch("sentry.core.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
         project_created.connect(signal_handler)
