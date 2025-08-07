@@ -11,7 +11,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardDetailsModelSerializer
@@ -24,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
+from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,

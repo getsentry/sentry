@@ -6,8 +6,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
+from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 
 
 @region_silo_endpoint
