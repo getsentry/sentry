@@ -90,16 +90,25 @@ interface LogsPageParams {
   readonly groupBy?: string;
 
   /**
+   * The id of the query, if a saved query.
+   */
+  readonly id?: string;
+  /**
    * If provided, add a 'trace:{trace id}' to all queries.
    * Used in embedded views like error page and trace page.
    * Can be an array of trace IDs on some pages (eg. replays)
    */
   readonly limitToTraceId?: string | string[];
+
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
   readonly projectIds?: number[];
+  /**
+   * The title of the query, if a saved query.
+   */
+  readonly title?: string;
 }
 
 type NullablePartial<T> = {
@@ -437,6 +446,16 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
+  );
+}
+
+export function useSetLogsQuery() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (id: string, title: string) => {
+      setPageParams({id, title});
+    },
+    [setPageParams]
   );
 }
 

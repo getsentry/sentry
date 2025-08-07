@@ -15,10 +15,9 @@ import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
-const TRACE_EXPLORER_DATASET = 'spans';
-
-export function useSaveQuery() {
+export function useSaveQuery(dataset: TraceItemDataset) {
   const {aggregateFields, sortBys, fields, query, mode, id, title} =
     useExplorePageParams();
   const {selection} = usePageFilters();
@@ -34,7 +33,7 @@ export function useSaveQuery() {
   const data = useMemo(() => {
     return {
       name: title,
-      dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
+      dataset,
       start,
       end,
       range: period,
@@ -75,6 +74,7 @@ export function useSaveQuery() {
     projects,
     environments,
     title,
+    dataset,
   ]);
 
   const saveQuery = useCallback(
@@ -145,4 +145,8 @@ export function useSaveQuery() {
   );
 
   return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
+}
+
+export function useLogsSaveQuery() {
+  return useSaveQuery(TraceItemDataset.LOGS);
 }

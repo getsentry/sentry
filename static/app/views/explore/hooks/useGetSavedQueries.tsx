@@ -5,6 +5,7 @@ import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type RawGroupBy = {
   groupBy: string;
@@ -86,6 +87,7 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 type ReadableSavedQuery = {
+  dataset: 'logs' | 'spans' | 'segment_spans'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -95,7 +97,6 @@ type ReadableSavedQuery = {
   position: number | null;
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
-  queryDataset: string;
   starred: boolean;
   createdBy?: User;
   end?: string;
@@ -115,7 +116,7 @@ export class SavedQuery {
   position: number | null;
   projects: number[];
   query: [Query, ...Query[]];
-  queryDataset: string;
+  dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
   createdBy?: User;
   end?: string;
@@ -137,7 +138,6 @@ export class SavedQuery {
       new Query(savedQuery.query[0]),
       ...savedQuery.query.slice(1).map(q => new Query(q)),
     ];
-    this.queryDataset = savedQuery.queryDataset;
     this.starred = savedQuery.starred;
     this.createdBy = savedQuery.createdBy;
     this.end = savedQuery.end;
@@ -145,6 +145,11 @@ export class SavedQuery {
     this.isPrebuilt = savedQuery.isPrebuilt;
     this.range = savedQuery.range;
     this.start = savedQuery.start;
+    this.dataset = savedQuery.dataset;
+  }
+
+  get traceItemDataset(): TraceItemDataset {
+    return DATASET_TO_TRACE_ITEM_DATASET_MAP[this.dataset];
   }
 }
 
@@ -225,4 +230,23 @@ export function useInvalidateSavedQuery(id?: string) {
       queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
     });
   }, [queryClient, organization.slug, id]);
+}
+
+const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
+  logs: 'Logs',
+  spans: 'Traces',
+  segment_spans: 'Traces',
+};
+
+const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
+  ReadableSavedQuery['dataset'],
+  TraceItemDataset
+> = {
+  logs: TraceItemDataset.LOGS,
+  spans: TraceItemDataset.SPANS,
+  segment_spans: TraceItemDataset.SPANS,
+};
+
+export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {
+  return DATASET_LABEL_MAP[dataset];
 }

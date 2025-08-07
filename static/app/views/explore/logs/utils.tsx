@@ -1,8 +1,10 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -17,6 +19,7 @@ import {
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -327,4 +330,41 @@ export function hasLogsOnReplays(organization: Organization): boolean {
     organization.features.includes('ourlogs-enabled') &&
     organization.features.includes('ourlogs-replay-ui')
   );
+}
+
+export function getLogsUrl({
+  organization,
+  selection,
+  query,
+}: {
+  organization: Organization;
+  query?: string;
+  selection?: PageFilters;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
+  const queryParams = {
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    query,
+    utc,
+  };
+
+  return (
+    makeLogsPathname({organization, path: '/'}) +
+    `?${qs.stringify(queryParams, {skipNull: true})}`
+  );
+}
+
+function makeLogsPathname({
+  organization,
+  path,
+}: {
+  organization: Organization;
+  path: string;
+}) {
+  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
 }

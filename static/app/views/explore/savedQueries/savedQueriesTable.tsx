@@ -22,6 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
+  getSavedQueryDatasetLabel,
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
@@ -29,6 +30,7 @@ import {
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getExploreUrlFromSavedQueryUrl,
@@ -56,6 +58,7 @@ export function SavedQueriesTable({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const hasLogsEnabled = organization.features.includes('ourlogs-enabled');
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
@@ -67,7 +70,14 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
-  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useSaveQuery();
+  const {
+    saveQueryFromSavedQuery: saveQueryFromSavedQuerySpans,
+    updateQueryFromSavedQuery: updateQueryFromSavedQuerySpans,
+  } = useSaveQuery(TraceItemDataset.SPANS);
+  const {
+    saveQueryFromSavedQuery: saveQueryFromSavedQueryLogs,
+    updateQueryFromSavedQuery: updateQueryFromSavedQueryLogs,
+  } = useSaveQuery(TraceItemDataset.LOGS);
 
   const [starredIds, setStarredIds] = useState<number[]>([]);
 
@@ -106,16 +116,29 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
       return (name: string) => {
-        return updateQueryFromSavedQuery({...savedQuery, name});
+        const fn =
+          savedQuery.traceItemDataset === TraceItemDataset.SPANS
+            ? updateQueryFromSavedQuerySpans
+            : updateQueryFromSavedQueryLogs;
+        return fn({
+          ...savedQuery,
+          name,
+          traceItemDataset: savedQuery.traceItemDataset,
+        });
       };
     },
-    [updateQueryFromSavedQuery]
+    [updateQueryFromSavedQueryLogs, updateQueryFromSavedQuerySpans]
   );
 
   const duplicateQuery = async (savedQuery: SavedQuery) => {
-    await saveQueryFromSavedQuery({
+    const fn =
+      savedQuery.traceItemDataset === TraceItemDataset.SPANS
+        ? saveQueryFromSavedQuerySpans
+        : saveQueryFromSavedQueryLogs;
+    await fn({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
+      traceItemDataset: savedQuery.traceItemDataset,
     });
   };
 
@@ -154,6 +177,7 @@ export function SavedQueriesTable({
     <Container>
       <TableHeading>{title}</TableHeading>
       <SavedEntityTableWithColumns
+        hasLogsEnabled={hasLogsEnabled}
         pageSize={perPage}
         isLoading={isLoading}
         header={
@@ -162,6 +186,11 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell data-column="name">
               {t('Name')}
             </SavedEntityTable.HeaderCell>
+            {hasLogsEnabled && (
+              <SavedEntityTable.HeaderCell data-column="dataset">
+                {t('Type')}
+              </SavedEntityTable.HeaderCell>
+            )}
             <SavedEntityTable.HeaderCell data-column="project">
               {t('Project')}
             </SavedEntityTable.HeaderCell>
@@ -203,6 +232,11 @@ export function SavedQueriesTable({
                 {query.name}
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
+            {hasLogsEnabled && (
+              <SavedEntityTable.Cell data-column="dataset">
+                {getSavedQueryDatasetLabel(query.dataset)}
+              </SavedEntityTable.Cell>
+            )}
             <SavedEntityTable.Cell data-column="project">
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
@@ -249,6 +283,7 @@ export function SavedQueriesTable({
                               saveQuery: getHandleUpdateFromSavedQuery(query),
                               name: query.name,
                               source: 'table',
+                              traceItemDataset: query.traceItemDataset,
                             });
                           },
                         },
@@ -304,15 +339,19 @@ const Container = styled('div')`
   container-type: inline-size;
 `;
 
-const SavedEntityTableWithColumns = styled(SavedEntityTable)`
+const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: boolean}>`
   grid-template-areas: 'star name project envs query created-by last-visited actions';
-  grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto 48px;
+  grid-template-columns: ${p =>
+    p.hasLogsEnabled
+      ? '40px 20% min-content minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'
+      : '40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'};
 
   @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-areas: 'star name project query created-by actions';
-    grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
+    grid-template-columns: ${p =>
+      p.hasLogsEnabled
+        ? '40px 20% min-content minmax(auto, 120px) minmax(0, 1fr) auto 48px'
+        : '40px 20%  minmax(auto, 120px) minmax(0, 1fr) auto 48px'};
 
     div[data-column='envs'],
     div[data-column='last-visited'],
@@ -331,7 +370,8 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     div[data-column='created'],
     div[data-column='stars'],
     div[data-column='created-by'],
-    div[data-column='project'] {
+    div[data-column='project'],
+    div[data-column='dataset'] {
       display: none;
     }
   }
