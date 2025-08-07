@@ -81,31 +81,24 @@ def assemble_preprod_artifact(
         )
 
         if assemble_result is None:
-            logger.warning(
-                "Assemble result is None, returning early",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                    "checksum": checksum,
-                },
+            raise RuntimeError(
+                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum})"
             )
             return
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
-
-        preprod_artifact = PreprodArtifact.objects.filter(id=artifact_id).update(
-            file_id=assemble_result.bundle.id,
-            state=PreprodArtifact.ArtifactState.FAILED,
-        )
         logger.exception(
             "Failed to assemble preprod artifact file",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
-                "preprod_artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": artifact_id,
             },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED
         )
         return
 
@@ -118,7 +111,7 @@ def assemble_preprod_artifact(
         },
     )
 
-    preprod_artifact = PreprodArtifact.objects.filter(id=artifact_id).update(
+    PreprodArtifact.objects.filter(id=artifact_id).update(
         file_id=assemble_result.bundle.id,
         state=PreprodArtifact.ArtifactState.UPLOADED,
     )
@@ -126,13 +119,13 @@ def assemble_preprod_artifact(
     produce_preprod_artifact_to_kafka(
         project_id=project_id,
         organization_id=org_id,
-        artifact_id=preprod_artifact.id,
+        artifact_id=artifact_id,
     )
 
     logger.info(
         "Finished preprod artifact row creation and kafka dispatch",
         extra={
-            "preprod_artifact_id": preprod_artifact.id,
+            "preprod_artifact_id": artifact_id,
             "project_id": project_id,
             "organization_id": org_id,
             "checksum": checksum,
@@ -174,6 +167,8 @@ def create_preprod_artifact(
                     "checksum": checksum,
                 },
             )
+
+            return preprod_artifact.id
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
