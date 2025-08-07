@@ -235,6 +235,9 @@ from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
 from sentry.issues.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from sentry.issues.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
+from sentry.issues.endpoints.organization_codeowners_associations import (
+    OrganizationCodeOwnersAssociationsEndpoint,
+)
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -532,9 +535,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_codeowners_associations import (
-    OrganizationCodeOwnersAssociationsEndpoint,
-)
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
