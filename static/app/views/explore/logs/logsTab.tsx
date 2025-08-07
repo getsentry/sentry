@@ -53,10 +53,8 @@ import {
   useLogsAggregateSortBys,
   useLogsFields,
   useLogsGroupBy,
-  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
-  useSetLogsMode,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -98,6 +96,10 @@ import {
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsMode,
+  useSetQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -116,9 +118,9 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
-  const mode = useLogsMode();
+  const mode = useQueryParamsMode();
   const sortBys = useLogsAggregateSortBys();
-  const setMode = useSetLogsMode();
+  const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -365,10 +367,7 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle
-                    disabled={tableTab === 'aggregates'}
-                    averageLogsPerSecond={averageLogsPerSecond}
-                  />
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
