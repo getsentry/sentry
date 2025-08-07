@@ -42,7 +42,7 @@ class GroupEventAttachmentsTest(APITestCase):
         query = [("types", t) for t in types or ()]
         query.extend([("event_id", id) for id in event_ids or ()])
         if screenshot:
-            query.append(("screenshot", 1))
+            query.append(("screenshot", "1"))
         if query:
             path += "?" + urlencode(query)
 
