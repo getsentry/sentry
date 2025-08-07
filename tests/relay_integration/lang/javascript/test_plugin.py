@@ -1281,8 +1281,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 6
-        print(frame_list[3].to_json())
-        print(frame_list[5].to_json())
 
         def assert_abs_path(abs_path):
             # This makes the test assertion forward compatible with percent-encoded URLs
