@@ -12,6 +12,7 @@ from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
@@ -724,14 +725,17 @@ def post_org_pending_deletion(
             data=updated_organization.get_audit_log_data(),
             transaction_id=org_delete_response.schedule_guid,
         )
-        analytics.record(
-            OrganizationRemoved(
-                organization_id=updated_organization.id,
-                organization_name=updated_organization.name,
-                user_id=request.user.id if request.user.is_authenticated else None,
-                deletion_datetime=entry.datetime.isoformat(),
+        try:
+            analytics.record(
+                OrganizationRemoved(
+                    organization_id=updated_organization.id,
+                    organization_name=updated_organization.name,
+                    user_id=request.user.id if request.user.is_authenticated else None,
+                    deletion_datetime=entry.datetime.isoformat(),
+                )
             )
-        )
+        except Exception as e:
+            capture_exception(e)
 
         delete_confirmation_args: DeleteConfirmationArgs = {
             "username": request.user.get_username(),
