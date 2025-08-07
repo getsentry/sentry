@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import random
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
@@ -71,20 +70,9 @@ class TaskSiloLimit(SiloLimit):
 def taskworker_override(
     celery_task_attr: Callable[P, R],
     taskworker_attr: Callable[P, R],
-    namespace: str,
-    task_name: str,
 ) -> Callable[P, R]:
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
-        rollout_rate = 0
-        option_flag = f"taskworker.{namespace}.rollout"
-        rollout_map = options.get(option_flag)
-        if rollout_map:
-            if task_name in rollout_map:
-                rollout_rate = rollout_map.get(task_name, 0)
-            elif "*" in rollout_map:
-                rollout_rate = rollout_map.get("*", 0)
-
-        if rollout_rate > random.random() or options.get("taskworker.enabled"):
+        if options.get("taskworker.enabled"):
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)
@@ -113,8 +101,6 @@ def override_task(
             limited_attr = taskworker_override(
                 celery_task_attr,
                 taskworker_attr,
-                taskworker_config.namespace.name,
-                task_name,
             )
             setattr(celery_task, attr_name, limited_attr)
 

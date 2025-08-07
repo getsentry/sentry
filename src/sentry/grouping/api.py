@@ -17,9 +17,13 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import Enhancements, get_enhancements_version
+from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
+    Enhancements,
+    get_enhancements_version,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.base import GroupingContext
 from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.utils import (
     expand_title_template,
