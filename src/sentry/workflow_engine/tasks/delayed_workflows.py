@@ -17,7 +17,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
 from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.utils import log_context
 
@@ -46,6 +45,8 @@ logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows"
 def process_delayed_workflows_shim(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
 ) -> None:
+    from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
+
     process_delayed_workflows(project_id, batch_key, *args, **kwargs)
 
 
@@ -60,6 +61,8 @@ class DelayedWorkflow(DelayedProcessingBase):
 
     @property
     def processing_task(self) -> Task:
+        from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
+
         if options.get("delayed_workflow.use_workflow_engine_pool"):
             return process_delayed_workflows_shim
         return process_delayed_workflows
