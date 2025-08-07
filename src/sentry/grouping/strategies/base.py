@@ -486,7 +486,7 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    incoming_variant_name = context["variant_name"]
+    incoming_variant_name = context.get("variant_name")
 
     if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a delegate strategy. To
