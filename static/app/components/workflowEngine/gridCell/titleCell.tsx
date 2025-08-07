@@ -27,7 +27,7 @@ export function TitleCell({
       <Name>
         <NameText>{name}</NameText>
         {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
-        {disabled && <span>&mdash; Disabled</span>}
+        {disabled && <DisabledText>&mdash; Disabled</DisabledText>}
       </Name>
       {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </TitleWrapper>
@@ -44,7 +44,11 @@ const Name = styled('div')`
 const NameText = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
-  width: auto;
+  width: fit-content;
+`;
+
+const DisabledText = styled('span')`
+  flex-shrink: 0;
 `;
 
 const CreatedBySentryIcon = styled(IconSentry)`
@@ -57,6 +61,7 @@ const TitleWrapper = styled(Link)`
   gap: ${space(0.5)};
   flex: 1;
   overflow: hidden;
+  min-height: 20px;
 
   &:hover {
     ${Name} {
