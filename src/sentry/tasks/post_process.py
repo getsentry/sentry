@@ -605,11 +605,10 @@ def post_process_group(
 
             event = fetch_retry_policy(get_event_raise_exception)
 
-        if event.data.get("received"):
-            track_event_since_received(
-                step="start_post_process",
-                event_data=event.data,
-            )
+        track_event_since_received(
+            step="start_post_process",
+            event_data=event.data,
+        )
 
         set_current_event_project(event.project_id)
 

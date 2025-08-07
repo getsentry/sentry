@@ -147,11 +147,10 @@ def _do_preprocess_event(
         error_logger.error("preprocess.failed.empty", extra={"cache_key": cache_key})
         return
 
-    if start_time:
-        track_event_since_received(
-            step="start_preprocess_event",
-            event_data=data,
-        )
+    track_event_since_received(
+        step="start_preprocess_event",
+        event_data=data,
+    )
 
     original_data = data
     project_id = data["project"]
@@ -518,10 +517,6 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
-    track_event_since_received(
-        step="start_save_event",
-        event_data=data,
-    )
 
     set_current_event_project(project_id)
 
@@ -539,6 +534,11 @@ def _do_save_event(
         data = processing_store.get(cache_key)
         if data is not None:
             event_type = data.get("type") or "none"
+
+    track_event_since_received(
+        step="start_save_event",
+        event_data=data,
+    )
 
     with metrics.global_tags(event_type=event_type):
         if event_id is None and data is not None:
@@ -634,10 +634,10 @@ def _do_save_event(
                     },
                 )
 
-                track_event_since_received(
-                    step="end_save_event",
-                    event_data=data,
-                )
+            track_event_since_received(
+                step="end_save_event",
+                event_data=data,
+            )
 
 
 @instrumented_task(

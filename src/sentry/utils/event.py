@@ -121,6 +121,7 @@ def track_event_since_received(
             **(tags if tags is not None else {}),
             "step": step,
             "reprocessing": "true" if reprocessing2.is_reprocessed_event(event_data) else "false",
+            "type": event_data.get("type"),
         },
         sample_rate=0.01,
     )
