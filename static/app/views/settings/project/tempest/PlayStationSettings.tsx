@@ -7,8 +7,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -21,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
@@ -103,38 +102,7 @@ export default function PlayStationSettings({organization, project}: Props) {
         </Alert.Container>
       )}
 
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-        initialData={{
-          tempestFetchScreenshots: project?.tempestFetchScreenshots,
-          tempestFetchDumps: project?.tempestFetchDumps,
-        }}
-        saveOnBlur
-        hideFooter
-      >
-        <JsonForm
-          forms={[
-            {
-              title: t('General Settings'),
-              fields: [
-                {
-                  name: 'tempestFetchScreenshots',
-                  type: 'boolean',
-                  label: t('Attach Screenshots'),
-                  help: t('Attach screenshots to issues.'),
-                },
-                {
-                  name: 'tempestFetchDumps',
-                  type: 'boolean',
-                  label: t('Attach Dumps'),
-                  help: t('Attach dumps to issues.'),
-                },
-              ],
-            },
-          ]}
-        />
-      </Form>
+      <ConfigForm organization={organization} project={project} />
 
       {!isLoading && isEmpty ? (
         <Panel>
