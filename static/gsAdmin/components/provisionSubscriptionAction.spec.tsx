@@ -1627,7 +1627,6 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
-    typeNumForField('Reserved Performance Units', '10000');
     typeNumForMatchingFields('Price for', '0', false);
     typeNumForField('Annual Contract Value', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.0001', false);

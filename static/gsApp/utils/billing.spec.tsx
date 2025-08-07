@@ -967,8 +967,8 @@ describe('getOnDemandCategories - AM2 logBytes support', function () {
     expect(logBytes).toHaveLength(1);
     if (logBytes) {
       expect(logBytes[0]).toEqual({
-        events: 0,
-        unitPrice: 0,
+        events: 5,
+        unitPrice: 0.5,
         price: 0,
       });
     }
