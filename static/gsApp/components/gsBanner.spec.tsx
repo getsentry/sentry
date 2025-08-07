@@ -2127,13 +2127,20 @@ describe('GSBanner Overage Alerts', function () {
       'profile_duration',
       'profile_duration_ui',
       'uptime',
+      'log_bytes',
       'seer_autofix',
       'seer_scanner',
     ]) {
       overagePrompts.push(`${category}_overage_alert`);
       warningPrompts.push(`${category}_warning_alert`);
       if (
-        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
+        [
+          'profile_duration',
+          'replays',
+          'spans',
+          'profile_duration_ui',
+          'log_bytes',
+        ].includes(category)
       ) {
         productTrialPrompts.push(`${category}_product_trial_alert`);
       }
