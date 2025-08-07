@@ -168,16 +168,18 @@ function SpansSearchBar({
 }) {
   const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
 
-  const initialSeerQuery = (() => {
-    const committedQuery = query.trim();
-    const inputValue = currentInputValue.trim();
-
-    if (!inputValue) return committedQuery;
-
-    if (!committedQuery) return inputValue;
-
-    return `${committedQuery} ${inputValue}`;
-  })();
+  let initialSeerQuery = '';
+  const committedQuery = query.trim();
+  const inputValue = currentInputValue.trim();
+  if (inputValue && committedQuery && inputValue === committedQuery) {
+    initialSeerQuery = inputValue;
+  } else if (inputValue && committedQuery) {
+    initialSeerQuery = `${committedQuery} ${inputValue}`;
+  } else if (!inputValue && committedQuery) {
+    initialSeerQuery = committedQuery;
+  } else if (!committedQuery && inputValue) {
+    initialSeerQuery = inputValue;
+  }
 
   return displayAskSeer ? (
     <SeerComboBox initialQuery={initialSeerQuery} />
