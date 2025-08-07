@@ -20,6 +20,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
@@ -164,6 +165,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding(),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

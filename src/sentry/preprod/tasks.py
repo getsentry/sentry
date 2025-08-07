@@ -46,16 +46,11 @@ def assemble_preprod_artifact(
     project_id,
     checksum,
     chunks,
-    git_sha=None,
-    build_configuration=None,
     **kwargs,
 ) -> None:
     """
     Creates a preprod artifact from uploaded chunks.
     """
-    from sentry.models.files.file import File
-    from sentry.preprod.models import PreprodBuildConfiguration
-
     logger.info(
         "Starting preprod artifact assembly",
         extra={
@@ -66,84 +61,34 @@ def assemble_preprod_artifact(
         },
     )
 
-    preprod_artifact = None
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            # First check if there's already a file with this checksum and type
-            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
+        )
 
-            existing_artifact = None
-            if existing_file:
-                existing_artifact = (
-                    PreprodArtifact.objects.select_for_update()
-                    .filter(project=project, file_id=existing_file.id)
-                    .first()
-                )
+        assemble_result = assemble_file(
+            task=AssembleTask.PREPROD_ARTIFACT,
+            org_or_project=project,
+            name=f"preprod-artifact-{uuid.uuid4().hex}",
+            checksum=checksum,
+            chunks=chunks,
+            file_type="preprod.artifact",
+        )
 
-            if existing_artifact:
-                logger.info(
-                    "PreprodArtifact already exists for this checksum, using existing artifact",
-                    extra={
-                        "preprod_artifact_id": existing_artifact.id,
-                        "project_id": project_id,
-                        "organization_id": org_id,
-                        "checksum": checksum,
-                    },
-                )
-                preprod_artifact = existing_artifact
-            else:
-                set_assemble_status(
-                    AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-                )
-
-                assemble_result = assemble_file(
-                    task=AssembleTask.PREPROD_ARTIFACT,
-                    org_or_project=project,
-                    name=f"preprod-artifact-{uuid.uuid4().hex}",
-                    checksum=checksum,
-                    chunks=chunks,
-                    file_type="preprod.artifact",
-                )
-
-                if assemble_result is None:
-                    logger.warning(
-                        "Assemble result is None, returning early",
-                        extra={
-                            "project_id": project_id,
-                            "organization_id": org_id,
-                            "checksum": checksum,
-                        },
-                    )
-                    return
-
-                build_config = None
-                if build_configuration:
-                    build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-                        project=project,
-                        name=build_configuration,
-                    )
-
-                # Create PreprodArtifact record
-                preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
-                    project=project,
-                    file_id=assemble_result.bundle.id,
-                    build_configuration=build_config,
-                    state=PreprodArtifact.ArtifactState.UPLOADED,
-                )
-
-                logger.info(
-                    "Created preprod artifact",
-                    extra={
-                        "preprod_artifact_id": preprod_artifact.id,
-                        "project_id": project_id,
-                        "organization_id": org_id,
-                        "checksum": checksum,
-                    },
-                )
+        if assemble_result is None:
+            logger.warning(
+                "Assemble result is None, returning early",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                },
+            )
+            return
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -166,6 +111,77 @@ def assemble_preprod_artifact(
 
     # Mark assembly as successful since the artifact was created successfully
     set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
+    logger.info(
+        "Finished preprod artifact assembly",
+        extra={
+            "project_id": project_id,
+            "organization_id": org_id,
+            "checksum": checksum,
+        },
+    )
+
+
+def create_preprod_artifact(
+    org_id,
+    project_id,
+    checksum,
+    # chunks,
+    git_sha=None,
+    build_configuration=None,
+    **kwargs,
+) -> str | None:
+    from sentry.models.files.file import File
+    from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+
+    preprod_artifact = None
+    try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        project = Project.objects.get(id=project_id, organization=organization)
+        bind_organization_context(organization)
+
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
+
+            if existing_file is None:
+                raise ValueError(
+                    f"No existing file found for checksum when trying to create preprod artifact. checksum={checksum}"
+                )
+
+            build_config = None
+            if build_configuration:
+                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                    project=project,
+                    name=build_configuration,
+                )
+
+            preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
+                project=project,
+                file_id=existing_file.id,
+                build_configuration=build_config,
+                state=PreprodArtifact.ArtifactState.UPLOADED,
+            )
+
+            logger.info(
+                "Created preprod artifact",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                },
+            )
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Failed to create preprod artifact row",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+            },
+        )
+        return None
 
     if preprod_artifact:
         produce_preprod_artifact_to_kafka(
@@ -175,7 +191,7 @@ def assemble_preprod_artifact(
         )
 
         logger.info(
-            "Finished preprod artifact assembly and Kafka dispatch",
+            "Finished preprod artifact row creation and kafka dispatch",
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
                 "project_id": project_id,
@@ -183,6 +199,9 @@ def assemble_preprod_artifact(
                 "checksum": checksum,
             },
         )
+    # This will be a non-int display id in future so prepare for that
+    # by returning a string.
+    return str(preprod_artifact.id)
 
 
 def _assemble_preprod_artifact_file(

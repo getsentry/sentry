@@ -183,6 +183,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "remote",
         "resources",
         "rollback",
+        "s4s",
+        "s4s1",
+        "s4s2",
+        "s4s3",
+        "s4s4",
+        "s4s5",
         "sa1",
         "sales",
         "security",
@@ -361,6 +367,7 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
     "application/x-portable-pdb": "portablepdb",
+    "application/x-dartsymbolmap+json": "dartsymbolmap",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

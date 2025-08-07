@@ -34,6 +34,7 @@ const HeaderLayout = styled('div')`
   background-color: ${p => p.theme.background};
   padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
   border-bottom: 1px solid ${p => p.theme.border};
+  min-height: 150px;
 `;
 
 const HeaderRow = styled('div')`

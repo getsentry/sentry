@@ -244,6 +244,7 @@ class ScheduleRunner:
                     "taskname": entry.taskname,
                     "namespace": entry.namespace,
                 },
+                sample_rate=1.0,
             )
         else:
             # We were not able to set a key, load last run from storage.
