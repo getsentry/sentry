@@ -105,7 +105,6 @@ def convert_rpc_attribute_to_json(
 def serialize_meta(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
-    include_internal: bool = False,
 ) -> dict:
     internal_name = ""
     attribute = {}
@@ -133,10 +132,8 @@ def serialize_meta(
         if field_key is None:
             continue
 
-        if not can_expose_attribute(
-            internal_name, trace_item_type, include_internal=include_internal
-        ):
-            continue
+        # TODO: This should probably also omit internal attributes. It's not
+        # clear why it doesn't, but this behavior seems important for logs.
 
         try:
             result = json.loads(attribute["value"]["valStr"])
@@ -317,9 +314,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 use_sentry_conventions,
                 include_internal=include_internal,
             ),
-            "meta": serialize_meta(
-                resp["attributes"], item_type, include_internal=include_internal
-            ),
+            "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
         }
 
