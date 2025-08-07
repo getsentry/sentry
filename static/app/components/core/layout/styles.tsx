@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import {
   css,
   type DO_NOT_USE_ChonkTheme,
@@ -223,34 +223,26 @@ export function useActiveBreakpoint(): Breakpoint {
     return queries;
   }, [theme.breakpoints]);
 
-  const [activeBreakpoint, setActiveBreakpoint] = useState(() => {
-    return findLargestBreakpoint(mediaQueries);
-  });
-
-  useEffect(() => {
-    if (!mediaQueries) {
-      return undefined;
-    }
-
-    function onMediaQueryChange() {
-      if (!mediaQueries) {
-        return;
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!mediaQueries.length) {
+        return () => {};
       }
-      setActiveBreakpoint(findLargestBreakpoint(mediaQueries));
-    }
 
-    for (const query of mediaQueries) {
-      query.query.addEventListener('change', onMediaQueryChange);
-    }
+      const controller = new AbortController();
 
-    return () => {
       for (const query of mediaQueries) {
-        query.query.removeEventListener('change', onMediaQueryChange);
+        query.query.addEventListener('change', onStoreChange, {
+          signal: controller.signal,
+        });
       }
-    };
-  }, [mediaQueries]);
 
-  return activeBreakpoint;
+      return () => controller.abort();
+    },
+    [mediaQueries]
+  );
+
+  return useSyncExternalStore(subscribe, () => findLargestBreakpoint(mediaQueries));
 }
 
 function findLargestBreakpoint(

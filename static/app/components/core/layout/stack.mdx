@@ -13,6 +13,8 @@ import APIReference from '!!type-loader!sentry/components/core/layout/stack';
 
 export const types = {Stack: APIReference.Stack};
 
+export const CustomComponent = props => <div {...props} />;
+
 The `Stack` component is a simplified layout component built on top of the `Flex` component. It provides a focused API for common stacking layouts with only the essential props: `direction`, `align`, `justify`, and `gap`. By default, Stack uses column direction making it perfect for vertical layouts.
 
 ## Basic Usage
@@ -52,7 +54,7 @@ The `Stack` implements composition via <a href="/stories/layout/composition">ren
     gap="md"
   >
     {props => (
-      <div {...props}>
+      <CustomComponent {...props}>
         <Container padding="sm" border="primary" radius="sm" background="surface">
           First Item
         </Container>
@@ -62,18 +64,18 @@ The `Stack` implements composition via <a href="/stories/layout/composition">ren
         <Container padding="sm" border="primary" radius="sm" background="surface">
           Third Item
         </Container>
-      </div>
+      </CustomComponent>
     )}
   </Stack>
 </Storybook.Demo>
 ```jsx
 <Stack width="80%" justify="between" gap="md">
   {props => (
-    <div {...props}>
+    <CustomComponent {...props}>
       <div>First Item</div>
       <div>Second Item</div>
       <div>Third Item</div>
-    </div>
+    </CustomComponent>
   )}
 </Stack>
 ```
@@ -218,7 +220,7 @@ The `Stack` component provides a `Stack.Separator` subcomponent that can be used
 This automatic orientation inheritance means separators adapt seamlessly to responsive direction changes without requiring manual orientation props. The separator uses the `border` prop (defaults to `'primary'`) and automatically applies the correct styling based on the inherited orientation.
 
 <Storybook.Demo>
-  <Stack gap="md" direction={{xs: 'column', sm: 'row', md: 'column', lg: 'row'}}>
+  <Stack gap="md" direction={{sm: 'column', md: 'row'}}>
     <Container padding="md" border="primary" radius="md" background="primary">
       First Item
     </Container>
@@ -233,7 +235,7 @@ This automatic orientation inheritance means separators adapt seamlessly to resp
   </Stack>
 </Storybook.Demo>
 ```jsx
-<Stack gap="md" direction={{xs: 'column', sm: 'row', md: 'column', lg: 'row'}}>
+<Stack gap="md" direction={{sm: 'column', md: 'row'}}>
   <div>First Item</div>
   <Stack.Separator border="primary" />
   <div>Second Item</div>
