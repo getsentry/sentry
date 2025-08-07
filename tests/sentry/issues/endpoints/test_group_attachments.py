@@ -9,7 +9,9 @@ pytestmark = [requires_snuba]
 
 
 class GroupEventAttachmentsTest(APITestCase):
-    def create_attachment(self, type=None, event_id=None, file_name="hello.png", group_id=None):
+    def create_attachment(
+        self, type=None, event_id=None, file_name="hello.png", group_id=None
+    ) -> None:
         if type is None:
             type = "event.attachment"
 
@@ -24,7 +26,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         return self.attachment
 
-    def path(self, types=None, event_ids=None, screenshot=False):
+    def path(self, types=None, event_ids=None, screenshot=False) -> str:
         path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
