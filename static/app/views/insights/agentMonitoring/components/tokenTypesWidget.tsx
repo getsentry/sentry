@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -162,6 +163,17 @@ export default function TokenTypesWidget() {
       })),
     }));
   }, [timeSeries, hasData]);
+
+  // DEBUG: Check for negative values
+  timeSeriesAdjusted.forEach(series => {
+    series.data.forEach((point, index) => {
+      if (point.value < 0) {
+        Sentry.captureMessage(
+          `Negative value found in ${series.seriesName} at index ${index}: ${point.value}`
+        );
+      }
+    });
+  });
 
   const colorPalette = theme.chart.getColorPalette(3);
 
