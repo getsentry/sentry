@@ -16,12 +16,13 @@ import {
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAnalyticsPageSource,
-  useLogsMode,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
@@ -34,7 +35,6 @@ type PreFlightDisableReason =
 
 interface AutorefreshToggleProps {
   averageLogsPerSecond?: number | null;
-  disabled?: boolean;
 }
 
 /**
@@ -47,17 +47,14 @@ interface AutorefreshToggleProps {
  * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
  * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
  */
-export function AutorefreshToggle({
-  disabled: externallyDisabled,
-  averageLogsPerSecond = 0,
-}: AutorefreshToggleProps) {
+export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const {autoRefresh} = useLogsAutoRefresh();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
-  const mode = useLogsMode();
+  const mode = useQueryParamsMode();
   const {selection} = usePageFilters();
   const selectionString = JSON.stringify(selection);
   const previousSelection = usePrevious(selectionString);
@@ -86,7 +83,7 @@ export function AutorefreshToggle({
     initialIsError: isError,
   });
 
-  const isToggleDisabled = !!preFlightDisableReason || externallyDisabled;
+  const isToggleDisabled = !!preFlightDisableReason;
   const tooltipReason =
     (autoRefresh !== 'idle' && autoRefresh !== 'enabled' ? autoRefresh : null) ||
     preFlightDisableReason;
@@ -95,8 +92,8 @@ export function AutorefreshToggle({
     <Fragment>
       <AutoRefreshLabel>
         <Tooltip
-          title={getTooltipMessage(tooltipReason, externallyDisabled)}
-          disabled={!tooltipReason && !externallyDisabled}
+          title={getTooltipMessage(tooltipReason)}
+          disabled={!tooltipReason}
           skipWrapper
         >
           <Switch
@@ -134,12 +131,12 @@ function getPreFlightDisableReason({
   initialIsError,
 }: {
   hasAbsoluteDates: boolean;
-  mode: string;
+  mode: Mode;
   sortBys: ReturnType<typeof useLogsSortBys>;
   averageLogsPerSecond?: number | null;
   initialIsError?: boolean;
 }): PreFlightDisableReason | null {
-  if (mode === 'aggregates') {
+  if (mode === Mode.AGGREGATE) {
     return 'aggregates';
   }
   if (!checkSortIsTimeBasedDescending(sortBys)) {
@@ -158,13 +155,8 @@ function getPreFlightDisableReason({
 }
 
 function getTooltipMessage(
-  reason: PreFlightDisableReason | AutoRefreshState | null,
-  externallyDisabled?: boolean
+  reason: PreFlightDisableReason | AutoRefreshState | null
 ): ReactNode {
-  if (externallyDisabled) {
-    return t('Auto-refresh is not available in the aggregates view.');
-  }
-
   switch (reason) {
     case 'rate_limit_initial':
       return tct(
