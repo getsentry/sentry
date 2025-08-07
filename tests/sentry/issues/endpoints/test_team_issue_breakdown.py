@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.utils import timezone
 
 from sentry.models.groupassignee import GroupAssignee
@@ -51,7 +49,7 @@ class TeamIssueBreakdownTest(APITestCase):
         )
 
         def compare_response(
-            statuses: list[str], data_for_day: dict[str, Any], **expected_status_counts: Any
+            statuses: list[str], data_for_day: dict[str, int], **expected_status_counts: int
         ) -> None:
             result = {status: 0 for status in statuses}
             result["total"] = 0
@@ -121,7 +119,7 @@ class TeamIssueBreakdownTest(APITestCase):
         )
 
         def compare_response(
-            statuses: list[str], data_for_day: dict[str, Any], **expected_status_counts: Any
+            statuses: list[str], data_for_day: dict[str, int], **expected_status_counts: int
         ) -> None:
             result = {status: 0 for status in statuses}
             result["total"] = 0
