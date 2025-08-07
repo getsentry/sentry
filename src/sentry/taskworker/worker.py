@@ -67,8 +67,7 @@ class TaskWorker:
             self.mp_context = multiprocessing.get_context("spawn")
         elif process_type == "forkserver":
             self.mp_context = multiprocessing.get_context("forkserver")
-            modules = ["sentry.taskworker.main"] + list(settings.TASKWORKER_IMPORTS)
-            self.mp_context.set_forkserver_preload(modules)
+            self.mp_context.set_forkserver_preload(["sentry.taskworker.main"])
         else:
             raise ValueError(f"Invalid process type: {process_type}")
         self._process_type = process_type
