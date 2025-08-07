@@ -248,7 +248,8 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             response.data["detail"]
             == "This member is managed by an active partnership and cannot be modified until the end of the partnership."
         )
-        
+
+
 @with_feature("organizations:new-organization-member-invite")
 class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "delete"
@@ -389,4 +390,3 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.login_as(superuser, superuser=True)
 
         self.get_success_response(self.organization.slug, self.approved_invite.id)
-        
