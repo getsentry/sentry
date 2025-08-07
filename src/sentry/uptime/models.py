@@ -18,7 +18,6 @@ from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    JSONField,
     region_silo_model,
 )
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
@@ -102,7 +101,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     )
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = JSONField(db_default=[])
+    headers = models.JSONField(db_default=[])
     # HTTP body to send when performing the check
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
