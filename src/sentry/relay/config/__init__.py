@@ -17,6 +17,9 @@ from sentry.constants import (
 )
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -1142,11 +1145,43 @@ def _get_project_config(
     if features.has("organizations:log-project-config", project.organization):
         try:
             logger.info(
-                "Logging project config for project %s in org %s.",
+                "Logging sampling feature flags for project %s in org %s.",
                 project.id,
                 project.organization.id,
                 extra={
-                    "project_config": config,
+                    "project_id": str(project.id),
+                    "org_id": str(project.organization.id),
+                    "sampling_rule_count": (
+                        len(config["sampling"]["rules"]) if "sampling" in config else None
+                    ),
+                    "dynamic_sampling_feature_flag": features.has(
+                        "organizations:dynamic-sampling", project.organization
+                    ),
+                    "dynamic_sampling_custom_feature_flag": features.has(
+                        "organizations:dynamic-sampling-custom", project.organization
+                    ),
+                    "dynamic_sampling_mode": project.organization.get_option(
+                        "sentry:sampling_mode", None
+                    ),
+                    "dynamic_sampling_org_target_rate": project.organization.get_option(
+                        "sentry:target_sample_rate", None
+                    ),
+                    "dynamic_sampling_biases": project.get_option(
+                        "sentry:dynamic_sampling_biases", None
+                    ),
+                    "low_volume_projects_sample_rate": get_boost_low_volume_projects_sample_rate(
+                        org_id=project.organization.id,
+                        project_id=project.id,
+                        error_sample_rate_fallback=None,
+                    ),
+                },
+            )
+            logger.info(
+                "Logging project sampling config for project %s in org %s.",
+                project.id,
+                project.organization.id,
+                extra={
+                    "project_sampling_config": config["sampling"] if "sampling" in config else None,
                     "project_id": str(project.id),
                     "org_id": str(project.organization.id),
                     "dynamic_sampling_feature_flag": features.has(
@@ -1156,7 +1191,7 @@ def _get_project_config(
                         "organizations:dynamic-sampling-custom", project.organization
                     ),
                     "dynamic_sampling_mode": project.organization.get_option(
-                        "sentry:dynamic_sampling_mode", None
+                        "sentry:sampling_mode", None
                     ),
                     "dynamic_sampling_org_target_rate": project.organization.get_option(
                         "sentry:target_sample_rate", None
