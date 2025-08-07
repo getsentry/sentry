@@ -201,13 +201,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {project} = this.state;
-    if (prevProps.project.id !== project.id) {
-      fetchOrganizationTags(this.api, this.props.organization.slug, [project.id]);
-    }
-  }
-
   componentWillUnmount() {
     window.clearTimeout(this.pollingTimeout);
   }
@@ -603,6 +596,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
+          fetchOrganizationTags(this.api, this.props.organization.slug, [
+            this.state.project.id,
+          ]);
         }
       );
     }
