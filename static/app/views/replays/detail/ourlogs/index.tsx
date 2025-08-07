@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
@@ -29,7 +29,6 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
-import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 export default function OurLogs() {
@@ -109,9 +108,9 @@ function OurLogsContent() {
   const clearSearchTerm = () => setSearchTerm('');
 
   return (
-    <Fragment>
+    <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} traceIds={traceIds} {...filterProps} />
-      <StyledTabItemContainer ref={scrollContainerRef}>
+      <TableScrollContainer ref={scrollContainerRef}>
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
@@ -125,7 +124,7 @@ function OurLogsContent() {
               filteredItems: filteredLogItems,
               filterText: filterProps.searchTerm,
             }}
-            embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: true}}
+            embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: false}}
             emptyRenderer={() => (
               <NoRowRenderer unfilteredItems={logItems} clearSearchTerm={clearSearchTerm}>
                 {t('No logs recorded')}
@@ -133,10 +132,17 @@ function OurLogsContent() {
             )}
           />
         )}
-      </StyledTabItemContainer>
-    </Fragment>
+      </TableScrollContainer>
+    </OurLogsContentWrapper>
   );
 }
+
+const OurLogsContentWrapper = styled('div')`
+  display: grid;
+  grid-template-rows: min-content 1fr;
+  height: 100%;
+  min-height: 0;
+`;
 
 const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.border};
@@ -148,7 +154,11 @@ const StatusGridBody = styled(GridBody)`
   height: unset;
 `;
 
-const StyledTabItemContainer = styled(TabItemContainer)`
+const TableScrollContainer = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
