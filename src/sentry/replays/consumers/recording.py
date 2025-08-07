@@ -86,14 +86,19 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
+        sentry_sdk.profiler.start_profiler()
         try:
             recording_event = parse_recording_event(message.payload.value)
             set_tag("org_id", recording_event["context"]["org_id"])
             set_tag("project_id", recording_event["context"]["project_id"])
-            return process_recording_event(recording_event)
+            res = process_recording_event(recording_event)
+            sentry_sdk.profiler.stop_profiler()
+            return res
         except DropSilently:
+            sentry_sdk.profiler.stop_profiler()
             return FilteredPayload()
         except Exception:
+            sentry_sdk.profiler.stop_profiler()
             logger.exception("Failed to process replay recording message.")
             return FilteredPayload()
 
@@ -182,14 +187,19 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
                 )
             },
         ):
+            sentry_sdk.profiler.start_profiler()
             try:
                 commit_recording_message(message.payload)
                 track_recording_metadata(message.payload)
+                sentry_sdk.profiler.stop_profiler()
                 return None
             except GCS_RETRYABLE_ERRORS:
+                sentry_sdk.profiler.stop_profiler()
                 raise
             except DropEvent:
+                sentry_sdk.profiler.stop_profiler()
                 return None
             except Exception:
+                sentry_sdk.profiler.stop_profiler()
                 logger.exception("Failed to commit replay recording message.")
                 return None
