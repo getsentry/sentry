@@ -2053,9 +2053,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          ),
+          component: make(() => import('sentry/views/insights/agents/views/overview')),
         },
       ],
     },

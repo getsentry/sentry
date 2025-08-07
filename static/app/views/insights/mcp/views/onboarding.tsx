@@ -43,7 +43,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 function useOnboardingProject() {
@@ -53,12 +53,12 @@ function useOnboardingProject() {
     pageFilters.selection.projects,
     projects
   );
-  const agentMonitoringProjects = selectedProject.filter(p =>
+  const mcpMonitoringProjects = selectedProject.filter(p =>
     agentMonitoringPlatforms.has(p.platform as PlatformKey)
   );
 
-  if (agentMonitoringProjects.length > 0) {
-    return agentMonitoringProjects[0];
+  if (mcpMonitoringProjects.length > 0) {
+    return mcpMonitoringProjects[0];
   }
   return selectedProject[0];
 }

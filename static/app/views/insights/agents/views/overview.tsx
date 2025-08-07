@@ -22,27 +22,24 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {IssuesWidget} from 'sentry/views/insights/agentMonitoring/components/issuesWidget';
-import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmCallsWidget';
-import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/modelCostWidget';
-import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
-import TokenTypesWidget from 'sentry/views/insights/agentMonitoring/components/tokenTypesWidget';
-import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
-import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolCallsWidget';
-import ToolErrorsWidget from 'sentry/views/insights/agentMonitoring/components/toolErrorsWidget';
-import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
-import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
+import {IssuesWidget} from 'sentry/views/insights/agents/components/issuesWidget';
+import LLMGenerationsWidget from 'sentry/views/insights/agents/components/llmCallsWidget';
+import TokenCostWidget from 'sentry/views/insights/agents/components/modelCostWidget';
+import {ModelsTable} from 'sentry/views/insights/agents/components/modelsTable';
+import TokenTypesWidget from 'sentry/views/insights/agents/components/tokenTypesWidget';
+import TokenUsageWidget from 'sentry/views/insights/agents/components/tokenUsageWidget';
+import ToolUsageWidget from 'sentry/views/insights/agents/components/toolCallsWidget';
+import ToolErrorsWidget from 'sentry/views/insights/agents/components/toolErrorsWidget';
+import {ToolsTable} from 'sentry/views/insights/agents/components/toolsTable';
+import {TracesTable} from 'sentry/views/insights/agents/components/tracesTable';
 import {
   TableType,
   useActiveTable,
-} from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
-import {
-  TwoColumnWidgetGrid,
-  WidgetGrid,
-} from 'sentry/views/insights/agentMonitoring/views/styles';
+} from 'sentry/views/insights/agents/hooks/useActiveTable';
+import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
+import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
@@ -68,7 +65,7 @@ function useShowOnboarding() {
   return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
 }
 
-function AgentsMonitoringPage() {
+function AgentsOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
@@ -277,7 +274,7 @@ function PageWithProviders() {
         analyticEventName="insight.page_loads.agents"
       >
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <AgentsMonitoringPage />
+          <AgentsOverviewPage />
         </TraceItemAttributeProvider>
       </ModulePageProviders>
     </AIInsightsFeature>

@@ -1,4 +1,4 @@
-import type {AITraceSpanNode} from 'sentry/views/insights/agentMonitoring/utils/types';
+import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {
   isEAPSpanNode,
   isSpanNode,

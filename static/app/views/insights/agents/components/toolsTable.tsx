@@ -20,19 +20,15 @@ import {
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
-} from 'sentry/views/insights/agentMonitoring/components/common';
+} from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
   useTableSortParams,
-} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
-import {
-  AI_TOOL_NAME_ATTRIBUTE,
-  getAIToolCallsFilter,
-} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+} from 'sentry/views/insights/agents/components/headSortCell';
+import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -70,7 +66,7 @@ export function ToolsTable() {
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
-  const fullQuery = useCombinedQuery(getAIToolCallsFilter());
+  const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -92,7 +88,7 @@ export function ToolsTable() {
   const toolsRequest = useSpans(
     {
       fields: [
-        AI_TOOL_NAME_ATTRIBUTE,
+        'gen_ai.tool.name',
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -114,7 +110,7 @@ export function ToolsTable() {
     }
 
     return toolsRequest.data.map(span => ({
-      tool: `${span[AI_TOOL_NAME_ATTRIBUTE]}`,
+      tool: `${span['gen_ai.tool.name']}`,
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),
@@ -206,7 +202,7 @@ const BodyCell = memo(function BodyCell({
         yAxes: ['avg(span.duration)'],
       },
     ],
-    query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,
+    query: `gen_ai.tool.name:${dataRow.tool}`,
   });
 
   switch (column.key) {
