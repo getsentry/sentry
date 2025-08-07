@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.utils.text import slugify
 
-from sentry.api.endpoints.organization_projects_experiment import (
+from sentry.core.endpoints.organization_projects_experiment import (
     DISABLED_FEATURE_ERROR_STRING,
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
@@ -287,7 +287,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     @patch(
-        "sentry.api.endpoints.organization_projects_experiment.OrganizationProjectsExperimentEndpoint.create_audit_entry"
+        "sentry.core.endpoints.organization_projects_experiment.OrganizationProjectsExperimentEndpoint.create_audit_entry"
     )
     def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
