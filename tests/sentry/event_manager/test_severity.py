@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
 from urllib3 import HTTPResponse
@@ -70,7 +71,7 @@ class TestGetEventSeverity(TestCase):
             "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
-            timeout=0.2,
+            timeout=settings.SEER_SEVERITY_TIMEOUT,
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -89,7 +90,7 @@ class TestGetEventSeverity(TestCase):
                     "content-type": "application/json;charset=utf-8",
                     "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
                 },
-                timeout=0.2,
+                timeout=settings.SEER_SEVERITY_TIMEOUT,
             )
 
     @patch(
@@ -122,7 +123,7 @@ class TestGetEventSeverity(TestCase):
                 "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
-                timeout=0.2,
+                timeout=settings.SEER_SEVERITY_TIMEOUT,
             )
             assert severity == 0.1231
             assert reason == "ml"
