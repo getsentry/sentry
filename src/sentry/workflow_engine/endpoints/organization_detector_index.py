@@ -320,7 +320,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 raise ResourceDoesNotExist
 
             if features.has(
-                "organizations:metric-detectors-plan-limits", organization, actor=request.user
+                "organizations:workflow-engine-metric-detector-limits",
+                organization,
+                actor=request.user,
             ):
                 alert_count = Detector.objects.filter(
                     project__organization=organization,
