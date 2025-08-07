@@ -78,7 +78,6 @@ export default function OverviewTimeConsumingRequestsWidget(
       search: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
       fields: [groupBy, yAxes],
       yAxis: [yAxes],
-      sort: {field: yAxes, kind: 'desc'},
       topN: 3,
       enabled: requestsListData?.length > 0,
     },

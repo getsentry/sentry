@@ -62,7 +62,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
         'time_spent_percentage()',
         totalTimeField,
       ],
-      sorts: [{field: 'time_spent_percentage()', kind: 'desc'}],
+      sorts: [{field: totalTimeField, kind: 'desc'}],
       search,
       limit: 3,
       noPagination: true,
