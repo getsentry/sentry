@@ -19,6 +19,8 @@ def get_scope():
     """Create configured Sentry scope for thread leak reporting."""
     from os import environ
 
+    sha: str | None
+    branch: str | None
     if environ.get("CI") == "true":
         sha = environ["GITHUB_SHA"]
         branch = environ.get("GITHUB_HEAD_REF")
