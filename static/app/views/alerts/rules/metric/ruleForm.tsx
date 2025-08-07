@@ -596,6 +596,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
+          fetchOrganizationTags(this.api, this.props.organization.slug, [
+            this.state.project.id,
+          ]);
         }
       );
     }
