@@ -4,11 +4,11 @@ from sentry import audit_log
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class OrganizationMemberReinviteTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-reinvite"
     method = "put"
