@@ -78,7 +78,7 @@ def _send_email(message: dict[str, Any]) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
-        processing_deadline_duration=30,
+        processing_deadline_duration=60,
         retry=Retry(
             times=2,
             delay=60 * 5,
