@@ -73,7 +73,7 @@ export function getUploadSourceMapsStep({
             {getSourceMapsWizardSnippet({
               isSelfHosted,
               organization,
-              projectSlug: project.slug,
+              project,
             })}
           </OnboardingCodeSnippet>
         ),
