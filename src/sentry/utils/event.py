@@ -8,7 +8,6 @@ from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry import reprocessing2
     from sentry.eventstore.models import Event
 
 
@@ -103,6 +102,8 @@ def track_event_since_received(
     """
     Helper function to track event timing metrics.
     """
+    from sentry import reprocessing2
+
     if not event_data:
         return
 
