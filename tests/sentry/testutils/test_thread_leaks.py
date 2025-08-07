@@ -17,13 +17,15 @@ def test_diff():
     expected_output = """\
   <Thread(Thread-1 (worker), started daemon 123)>@module.Worker
     File "test.py", line 10
-
+  # noqa
 - <Thread(Thread-3 (new), started daemon 789)>@module.NewWorker
 -   File "test.py", line 30
--
+- # noqa
 + <Thread(Thread-2 (commit), started daemon 456)>@module.Committer
 +   File "test.py", line 20
-+
-"""
++ # noqa
+""".replace(
+        "# noqa", ""
+    )
 
     assert "".join(result) == expected_output
