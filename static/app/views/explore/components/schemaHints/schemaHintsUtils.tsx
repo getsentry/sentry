@@ -31,6 +31,7 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.USER_ID,
   OurLogKnownFieldKey.USER_EMAIL,
   OurLogKnownFieldKey.USER_NAME,
+  OurLogKnownFieldKey.SERVER_ADDRESS,
 ];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [...new Set([...LOGS_HINT_KEYS])];

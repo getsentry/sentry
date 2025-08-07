@@ -41,6 +41,7 @@ export enum OurLogKnownFieldKey {
   USER_ID = 'user.id',
   USER_EMAIL = 'user.email',
   USER_NAME = 'user.name',
+  SERVER_ADDRESS = 'server.address',
 
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
