@@ -11,7 +11,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -52,7 +52,7 @@ const platformOptions = {
         value: InstallationMode.DEVKIT,
       },
     ],
-    defaultValue: InstallationMode.RETAIL,
+    defaultValue: InstallationMode.DEVKIT,
   },
 } satisfies BasePlatformOptions;
 
@@ -265,37 +265,6 @@ const onboardingDevkit: OnboardingConfig = {
 };
 
 const onboarding: OnboardingConfig = {
-  introduction: (params: Params) => (
-    <Flex gap="lg">
-      <FeedbackWidgetButton />
-      <Button
-        priority="default"
-        size="sm"
-        icon={<IconCode />}
-        onClick={() => {
-          openPrivateGamingSdkAccessModal({
-            organization: params.organization,
-            projectSlug: params.project.slug,
-            projectId: params.project.id,
-            sdkName: 'PlayStation',
-            gamingPlatform: 'playstation',
-            onSubmit: () => {
-              trackAnalytics('tempest.sdk_access_modal_submitted', {
-                organization: params.organization,
-                project_slug: params.project.slug,
-              });
-            },
-          });
-          trackAnalytics('tempest.sdk_access_modal_opened', {
-            organization: params.organization,
-            project_slug: params.project.slug,
-          });
-        }}
-      >
-        {t('Request SDK Access')}
-      </Button>
-    </Flex>
-  ),
   install: (params: Params) => {
     return isRetailMode(params)
       ? onboardingRetail.install(params)
@@ -306,11 +275,59 @@ const onboarding: OnboardingConfig = {
       ? onboardingRetail.configure(params)
       : onboardingDevkit.configure(params);
   },
-  verify: (params: Params) => {
-    return isRetailMode(params)
+  verify: (params: Params) => [
+    ...(isRetailMode(params)
       ? onboardingRetail.verify(params)
-      : onboardingDevkit.verify(params);
-  },
+      : onboardingDevkit.verify(params)),
+    {
+      title: t('PlayStation SDK (Optional)'),
+      collapsible: true,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below.',
+            {
+              sentryNativeRepoLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-native" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
+            <Button
+              priority="default"
+              size="sm"
+              icon={<IconCode />}
+              onClick={() => {
+                openPrivateGamingSdkAccessModal({
+                  organization: params.organization,
+                  projectSlug: params.projectSlug,
+                  projectId: params.projectId,
+                  sdkName: 'PlayStation',
+                  gamingPlatform: 'playstation',
+                  onSubmit: () => {
+                    trackAnalytics('tempest.sdk_access_modal_submitted', {
+                      organization: params.organization,
+                      project_slug: params.projectSlug,
+                    });
+                  },
+                });
+                trackAnalytics('tempest.sdk_access_modal_opened', {
+                  organization: params.organization,
+                  project_slug: params.projectSlug,
+                });
+              }}
+            >
+              {t('Request SDK Access')}
+            </Button>
+          ),
+        },
+      ],
+    },
+  ],
 };
 
 const docs: Docs = {
