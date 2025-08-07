@@ -196,13 +196,13 @@ class TestActionService(TestCase):
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                Action.objects.filter(id=integration_action.id).first().status
-                == ObjectStatus.DISABLED
-            )
-            assert (
-                Action.objects.filter(id=sentry_app_action.id).first().status == ObjectStatus.ACTIVE
-            )
+            action = Action.objects.filter(id=integration_action.id).first()
+            assert action is not None
+            assert action.status == ObjectStatus.DISABLED
+
+            action = Action.objects.filter(id=sentry_app_action.id).first()
+            assert action is not None
+            assert action.status == ObjectStatus.ACTIVE
 
     def test_enable_actions_for_organization_integration_mixed_types(self) -> None:
         condition_group = self.create_data_condition_group(organization=self.organization)
@@ -242,11 +242,10 @@ class TestActionService(TestCase):
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                Action.objects.filter(id=integration_action.id).first().status
-                == ObjectStatus.ACTIVE
-            )
-            assert (
-                Action.objects.filter(id=sentry_app_action.id).first().status
-                == ObjectStatus.DISABLED
-            )
+            action = Action.objects.filter(id=integration_action.id).first()
+            assert action is not None
+            assert action.status == ObjectStatus.ACTIVE
+
+            action = Action.objects.filter(id=sentry_app_action.id).first()
+            assert action is not None
+            assert action.status == ObjectStatus.DISABLED
