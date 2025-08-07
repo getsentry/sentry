@@ -9,7 +9,6 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
@@ -67,9 +66,7 @@ function getAISpanAttributes(
 ) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
+  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -77,11 +74,11 @@ function getAISpanAttributes(
     });
   }
 
-  const inputTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const cachedTokens = getAIAttribute(attributes, 'gen_ai.usage.cached_tokens');
-  const outputTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const reasoningTokens = getAIAttribute(attributes, 'gen_ai.usage.reasoning_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
