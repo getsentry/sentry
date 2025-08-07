@@ -47,7 +47,7 @@ export default function TempestSettings({organization, project}: Props) {
     return (
       ['playstation', 'devkit-crashes'].includes(queryTab || '')
         ? queryTab
-        : 'playstation'
+        : 'devkit-crashes'
     ) as Tab;
   };
 

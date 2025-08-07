@@ -1,10 +1,7 @@
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -13,9 +10,6 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
-
-const LEFT_AXIS_QUERY_KEY = 'left';
-const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
   field: LandingDisplayField;
@@ -32,7 +26,7 @@ export enum LandingDisplayField {
 
 // TODO Abdullah Khan: Remove code for Web Vitals tab in performance landing
 // page when new starfish web vitals module is mature.
-export const LANDING_DISPLAYS = [
+const LANDING_DISPLAYS = [
   {
     label: t('All Transactions'),
     field: LandingDisplayField.ALL,
@@ -77,7 +71,7 @@ export function getLandingDisplayFromParam(location: Location) {
   return display;
 }
 
-export function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
+function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
 
   const defaultDisplay = LANDING_DISPLAYS.find(
@@ -97,48 +91,6 @@ export function getCurrentLandingDisplay(
   }
 
   return getDefaultDisplayForPlatform(projects, eventView);
-}
-
-export function handleLandingDisplayChange(
-  field: LandingDisplayField,
-  location: Location,
-  projects: Project[],
-  organization: Organization,
-  eventView?: EventView
-) {
-  // Transaction op can affect the display and show no results if it is explicitly set.
-  const query = decodeScalar(location.query.query, '');
-  const searchConditions = new MutableSearch(query);
-  searchConditions.removeFilter('transaction.op');
-
-  const queryWithConditions: Record<string, string> & {query: string} = {
-    ...omit(location.query, ['landingDisplay', 'sort']),
-    query: searchConditions.formatString(),
-  };
-
-  delete queryWithConditions[LEFT_AXIS_QUERY_KEY];
-  delete queryWithConditions[RIGHT_AXIS_QUERY_KEY];
-
-  const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
-  const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
-
-  const newQuery: {query: string; landingDisplay?: LandingDisplayField} =
-    defaultDisplay === field
-      ? {...queryWithConditions}
-      : {...queryWithConditions, landingDisplay: field};
-
-  trackAnalytics('performance_views.landingv3.display_change', {
-    organization,
-    change_to_display: field,
-    default_display: defaultDisplay,
-    current_display: currentDisplay,
-    is_default: defaultDisplay === currentDisplay,
-  });
-
-  browserHistory.push({
-    pathname: location.pathname,
-    query: newQuery,
-  });
 }
 
 function getDefaultDisplayFieldForPlatform(projects: Project[], eventView?: EventView) {
