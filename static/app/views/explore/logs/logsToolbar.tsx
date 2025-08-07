@@ -90,7 +90,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   }
 
   return (
-    <Container>
+    <Container data-test-id="logs-toolbar">
       <ToolbarItem>
         <SectionHeader>
           <Label>{t('Visualize')}</Label>
