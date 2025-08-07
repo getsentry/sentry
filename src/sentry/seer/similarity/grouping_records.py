@@ -24,6 +24,27 @@ POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
 DELETE_HASH_METRIC = "grouping.similarity.delete_records_by_hash"
 
 
+def _is_device_error(response_data: str) -> bool:
+    """
+    Check if the response contains a device-related error from Seer.
+    
+    Seer may return errors when ML models fail to use unavailable GPU devices.
+    These errors should be handled gracefully and logged appropriately.
+    """
+    if not response_data:
+        return False
+    
+    error_indicators = [
+        "Invalid device",
+        "RuntimeError: Invalid device",
+        "device not available",
+        "CUDA device",
+        "GPU device",
+    ]
+    
+    return any(indicator.lower() in response_data.lower() for indicator in error_indicators)
+
+
 class CreateGroupingRecordData(TypedDict):
     group_id: int
     hash: str
@@ -80,9 +101,29 @@ def post_bulk_grouping_records(
         logger.info("seer.post_bulk_grouping_records.success", extra=extra)
         return json.loads(response.data.decode("utf-8"))
     else:
-        extra.update({"reason": response.reason})
-        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False, "reason": response.reason}
+        # Check if this is a device-related error
+        response_text = ""
+        try:
+            response_text = response.data.decode("utf-8") if response.data else ""
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        
+        if _is_device_error(response_text):
+            logger.error(
+                "Seer ML model device error during bulk grouping records creation",
+                extra={
+                    "response_status": response.status,
+                    "response_data": response_text[:500],  # Limit log size
+                    "project_id": extra.get("project_id"),
+                    "error_type": "device_error",
+                    **extra
+                }
+            )
+            return {"success": False, "reason": "DeviceError"}
+        else:
+            extra.update({"reason": response.reason})
+            logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+            return {"success": False, "reason": response.reason}
 
 
 def call_seer_to_delete_project_grouping_records(
@@ -115,14 +156,37 @@ def call_seer_to_delete_project_grouping_records(
         )
         return True
     else:
-        logger.error(
-            "seer.delete_grouping_records.project.failure",
-        )
-        metrics.incr(
-            "grouping.similarity.delete_records_by_project",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"success": False},
-        )
+        # Check if this is a device-related error
+        response_text = ""
+        try:
+            response_text = response.data.decode("utf-8") if response.data else ""
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        
+        if _is_device_error(response_text):
+            logger.error(
+                "Seer ML model device error during project grouping records deletion",
+                extra={
+                    "response_status": response.status,
+                    "response_data": response_text[:500],  # Limit log size
+                    "project_id": project_id,
+                    "error_type": "device_error"
+                }
+            )
+            metrics.incr(
+                "grouping.similarity.delete_records_by_project",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"success": False, "error_type": "device_error"},
+            )
+        else:
+            logger.error(
+                "seer.delete_grouping_records.project.failure",
+            )
+            metrics.incr(
+                "grouping.similarity.delete_records_by_project",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"success": False},
+            )
         return False
 
 
@@ -162,10 +226,33 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
         )
         return True
     else:
-        logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
-        metrics.incr(
-            DELETE_HASH_METRIC,
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"success": False},
-        )
+        # Check if this is a device-related error
+        response_text = ""
+        try:
+            response_text = response.data.decode("utf-8") if response.data else ""
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        
+        if _is_device_error(response_text):
+            logger.error(
+                "Seer ML model device error during hash grouping records deletion",
+                extra={
+                    "response_status": response.status,
+                    "response_data": response_text[:500],  # Limit log size
+                    "error_type": "device_error",
+                    **extra
+                }
+            )
+            metrics.incr(
+                DELETE_HASH_METRIC,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"success": False, "error_type": "device_error"},
+            )
+        else:
+            logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
+            metrics.incr(
+                DELETE_HASH_METRIC,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"success": False},
+            )
         return False

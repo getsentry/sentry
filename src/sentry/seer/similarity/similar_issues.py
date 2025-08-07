@@ -35,6 +35,28 @@ seer_grouping_connection_pool = connection_from_url(
 )
 
 
+def _is_device_error(response_data: str) -> bool:
+    """
+    Check if the response contains a device-related error from Seer.
+    
+    Seer may return errors when ML models fail to use unavailable GPU devices.
+    These errors should be treated as service errors to trigger circuit breaker
+    fallback behavior.
+    """
+    if not response_data:
+        return False
+    
+    error_indicators = [
+        "Invalid device",
+        "RuntimeError: Invalid device",
+        "device not available",
+        "CUDA device",
+        "GPU device",
+    ]
+    
+    return any(indicator.lower() in response_data.lower() for indicator in error_indicators)
+
+
 @sentry_sdk.tracing.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
@@ -95,10 +117,36 @@ def get_similarity_data_from_seer(
                 f"Encountered redirect when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}. Please update `SEER_SIMILAR_ISSUES_URL` in `sentry.conf.server` to be '{redirect}'."  # noqa
             )
         else:
-            logger.error(
-                f"Received {response.status} when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",  # noqa
-                extra={"response_data": response.data},
-            )
+            # Check if the error response contains device-related errors
+            response_text = ""
+            try:
+                response_text = response.data.decode("utf-8") if response.data else ""
+            except (UnicodeDecodeError, AttributeError):
+                pass
+            
+            if _is_device_error(response_text):
+                logger.error(
+                    "Seer ML model device error - GPU device unavailable or invalid",
+                    extra={
+                        "response_status": response.status,
+                        "response_data": response_text[:500],  # Limit log size
+                        "project_id": project_id,
+                        "event_id": event_id,
+                        "error_type": "device_error"
+                    }
+                )
+                # Record as circuit breaker error to trigger fallback behavior
+                circuit_breaker.record_error()
+                metrics.incr(
+                    "seer.similar_issues_request",
+                    sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                    tags={**metric_tags, "outcome": "error", "error": "DeviceError"},
+                )
+            else:
+                logger.error(
+                    f"Received {response.status} when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",  # noqa
+                    extra={"response_data": response.data},
+                )
 
         metrics.incr(
             "seer.similar_issues_request",
@@ -122,19 +170,44 @@ def get_similarity_data_from_seer(
         UnicodeError,
         JSONDecodeError,  # caused by Seer erroring out and sending back the error page HTML
     ) as e:
-        logger.exception(
-            "Failed to parse seer similar issues response",
-            extra={
-                "request_params": similar_issues_request,
-                "response_data": response.data,
-                "response_code": response.status,
-            },
-        )
-        metrics.incr(
-            "seer.similar_issues_request",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
-        )
+        # Check if this is a device error in the raw response
+        raw_response_text = ""
+        try:
+            raw_response_text = str(response.data) if response.data else ""
+        except Exception:
+            pass
+            
+        if _is_device_error(raw_response_text):
+            logger.error(
+                "Seer ML model device error in response parsing",
+                extra={
+                    "request_params": similar_issues_request,
+                    "response_data": raw_response_text[:500],  # Limit log size
+                    "response_code": response.status,
+                    "error_type": "device_error_in_parsing"
+                }
+            )
+            # Record as circuit breaker error
+            circuit_breaker.record_error()
+            metrics.incr(
+                "seer.similar_issues_request",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={**metric_tags, "outcome": "error", "error": "DeviceError"},
+            )
+        else:
+            logger.exception(
+                "Failed to parse seer similar issues response",
+                extra={
+                    "request_params": similar_issues_request,
+                    "response_data": response.data,
+                    "response_code": response.status,
+                },
+            )
+            metrics.incr(
+                "seer.similar_issues_request",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
+            )
         return []
 
     # TODO: Temporary log to prove things are working as they should. This should come in a pair
