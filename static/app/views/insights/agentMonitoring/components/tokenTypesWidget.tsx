@@ -99,11 +99,14 @@ export default function TokenTypesWidget() {
           ...series,
           data: series.data.map((point, index) => ({
             ...point,
-            value:
+            value: Math.max(
+              0,
               point.value -
-              Number(
-                timeSeries[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]?.data[index]?.value || 0
-              ),
+                Number(
+                  timeSeries[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]?.data[index]?.value ||
+                    0
+                )
+            ),
           })),
         };
       }
@@ -113,12 +116,14 @@ export default function TokenTypesWidget() {
           ...series,
           data: series.data.map((point, index) => ({
             ...point,
-            value:
+            value: Math.max(
+              0,
               point.value -
-              Number(
-                timeSeries[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]?.data[index]
-                  ?.value || 0
-              ),
+                Number(
+                  timeSeries[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]?.data[index]
+                    ?.value || 0
+                )
+            ),
           })),
         };
       }
