@@ -300,6 +300,7 @@ def frame(
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
+    variant_name = context["variant_name"]
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -371,7 +372,7 @@ def frame(
     if context["is_recursion"]:
         frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant_name"]: frame_component}
+    return {variant_name: frame_component}
 
 
 def get_contextline_component(

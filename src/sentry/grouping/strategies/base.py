@@ -182,12 +182,14 @@ class GroupingContext:
         Invoke the delegate grouping strategy corresponding to the given interface, returning the
         grouping component for the variant set on the context.
         """
+        variant_name = self["variant_name"]
+
         components_by_variant = self._get_grouping_components_for_interface(
             interface, event=event, **kwargs
         )
 
         assert len(components_by_variant) == 1
-        return components_by_variant[self["variant_name"]]
+        return components_by_variant[variant_name]
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
