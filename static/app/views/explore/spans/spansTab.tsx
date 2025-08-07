@@ -167,9 +167,7 @@ function SpansSearchBar({
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
   const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
-  let initialSeerQuery = currentInputValue.trim()
-    ? currentInputValue.trim()
-    : query.trim();
+  let initialSeerQuery = query.trim() ? query.trim() : currentInputValue.trim();
 
   // if the user has cleared out the input, but hasn't committed it, we shouldn't bring
   // it along, and clear the query input string.
