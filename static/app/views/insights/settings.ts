@@ -239,6 +239,11 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.SESSIONS,
 ]);
 
+/**
+ * Modules that are in beta, e.g. used to show a badge on the tab.
+ */
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
+
 export const INGESTION_DELAY = 90;
 
 // Base aliases used to map insights yAxis to human readable name

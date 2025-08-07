@@ -74,7 +74,7 @@ export function InsightsSecondaryNav() {
             <SecondaryNav.Item
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
-              trailingItems={<FeatureBadge type="beta" />}
+              trailingItems={<FeatureBadge type="new" />}
             >
               {getAISidebarLabel(organization)}
             </SecondaryNav.Item>
