@@ -21,7 +21,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils.audit import get_api_key_for_audit_log
 
-
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
 ERR_EDIT_WHEN_REINVITING = (
@@ -31,6 +30,7 @@ ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
 
 @region_silo_endpoint
 class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
