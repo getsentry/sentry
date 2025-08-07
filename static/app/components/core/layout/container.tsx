@@ -64,7 +64,8 @@ export type ContainerElement =
   | 'section'
   | 'span'
   | 'summary'
-  | 'ul';
+  | 'ul'
+  | 'hr';
 
 type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {

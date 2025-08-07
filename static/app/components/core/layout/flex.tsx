@@ -38,7 +38,8 @@ interface FlexLayoutProps {
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 }
 
-type FlexProps<T extends ContainerElement = 'div'> = ContainerProps<T> & FlexLayoutProps;
+export type FlexProps<T extends ContainerElement = 'div'> = ContainerProps<T> &
+  FlexLayoutProps;
 
 export const Flex = styled(Container, {
   shouldForwardProp: prop => {
