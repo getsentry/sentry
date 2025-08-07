@@ -301,6 +301,7 @@ def frame(
     frame = interface
     platform = frame.platform or event.platform
     variant_name = context["variant_name"]
+    assert variant_name is not None
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -426,6 +427,7 @@ def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
     variant_name = context["variant_name"]
+    assert variant_name is not None
 
     frames = stacktrace.frames
 

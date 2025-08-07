@@ -183,6 +183,7 @@ class GroupingContext:
         grouping component for the variant set on the context.
         """
         variant_name = self["variant_name"]
+        assert variant_name is not None
 
         components_by_variant = self._get_grouping_components_for_interface(
             interface, event=event, **kwargs
