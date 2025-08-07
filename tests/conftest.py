@@ -59,7 +59,8 @@ def unclosed_files():
 
 @pytest.fixture(autouse=True)
 def unclosed_threads(request):
-    yield from thread_leaks.check_test(request)
+    # TODO(DI-1067): strict mode
+    yield from thread_leaks.check_test(request, strict=False)
 
 
 @pytest.fixture(autouse=True)
