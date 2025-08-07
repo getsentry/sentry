@@ -80,6 +80,16 @@ export function SdkDocumentation({
     );
   }
 
+  if (!project) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the project for this getting started documentation.'
+        )}
+      />
+    );
+  }
+
   return (
     <OnboardingLayout
       docsConfig={docs}
