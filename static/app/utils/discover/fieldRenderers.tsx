@@ -335,7 +335,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      // In the future, external linking will be done through CellAction component instead of the default renderer
       if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
