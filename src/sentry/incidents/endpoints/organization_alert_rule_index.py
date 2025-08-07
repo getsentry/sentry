@@ -44,7 +44,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -771,12 +771,15 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
         """
         if features.has(
-            "organizations:metric-detectors-plan-limits", organization, actor=request.user
+            "organizations:workflow-engine-metric-detector-limits", organization, actor=request.user
         ):
-            alert_count = AlertRule.objects.filter(
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-            ).count()
+            alert_count = (
+                AlertRule.objects.filter(
+                    organization=organization,
+                )
+                .exclude(status=AlertRuleStatus.SNAPSHOT.value)
+                .count()
+            )
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
 
             if alert_limit >= 0 and alert_count >= alert_limit:

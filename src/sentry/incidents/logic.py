@@ -533,6 +533,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+    status: AlertRuleStatus | None = AlertRuleStatus.PENDING,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -630,6 +631,7 @@ def create_alert_rule(
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
+            status=status.value,
             **_owner_kwargs_from_actor(owner),
         )
 

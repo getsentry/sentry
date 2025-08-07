@@ -20,7 +20,6 @@ from sentry import audit_log
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
@@ -31,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -1641,54 +1641,50 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
 
-    @with_feature("organizations:metric-detectors-plan-limits")
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limits")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
         # Set limit to 2 alert rules
         mock_get_limit.return_value = 2
 
         # Create 2 existing metric alert rules (1 active, 1 to be deleted)
-        self.create_alert_rule(organization=self.organization, status=ObjectStatus.ACTIVE)
-        self.create_alert_rule(organization=self.organization, status=ObjectStatus.PENDING_DELETION)
+        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.PENDING)
+        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.SNAPSHOT)
 
         # Create another alert rule, it should succeed
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
-        ):
+        data = deepcopy(self.alert_rule_dict)
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
                 status_code=201,
-                **self.alert_rule_dict,
+                **data,
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert alert_rule.name == "JustAValidTestRule"
 
         # Create another alert rule, it should fail
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_error_response(
-                self.organization.slug,
-                status_code=400,
-                **self.alert_rule_dict,
-            )
+        data = deepcopy(self.alert_rule_dict)
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            **data,
+        )
         assert resp.data == "You may not exceed 2 metric alerts on your current plan."
-        mock_get_limit.assert_called_once_with(self.organization.id)
 
-    @with_feature("organizations:metric-detectors-plan-limits")
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limits")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit_unlimited_plan(self, mock_get_limit: MagicMock) -> None:
         # Set limit to -1 (unlimited)
         mock_get_limit.return_value = -1
 
         # Create many alert rules
-        for i in range(5):
-            self.create_alert_rule(organization=self.organization, status=ObjectStatus.ACTIVE)
+        for _ in range(5):
+            self.create_alert_rule(organization=self.organization)
 
         # Creating another alert rule, it should succeed
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
-        ):
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
                 status_code=201,
