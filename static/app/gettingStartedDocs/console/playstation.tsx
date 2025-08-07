@@ -76,11 +76,14 @@ const onboardingRetail: OnboardingConfig = {
           ),
         },
         {
-          type: 'alert',
-          alertType: 'info',
-          showIcon: true,
-          text: t('Once you have the credentials, save them to your project.'),
-          trailingItems: (
+          type: 'text',
+          text: t(
+            'Once you have the credentials, save them to your project. You can achieve that by clicking on the button below.'
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
             <Button
               priority="primary"
               size="sm"
@@ -101,6 +104,20 @@ const onboardingRetail: OnboardingConfig = {
             >
               {t('Add Credentials')}
             </Button>
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'After adding credentials, check their status in [projectSettingsLink:Project Settings > PlayStation] to ensure they are valid before proceeding with the instructions below.',
+            {
+              projectSettingsLink: (
+                <ExternalLink
+                  href={`/settings/projects/${params.projectSlug}/playstation/`}
+                  openInNewTab
+                />
+              ),
+            }
           ),
         },
       ],
