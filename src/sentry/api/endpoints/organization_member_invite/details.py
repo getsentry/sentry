@@ -1,11 +1,10 @@
 from typing import Any
 
-from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, roles
+from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -152,28 +151,9 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(invited_member, request.user), status=200)
 
-    def _remove_invite_from_db(
-        self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
-    ) -> None:
-        audit_data = invited_member.get_audit_log_data()
-        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
-
-        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            # also deletes the invite object via cascades
-            invited_member.organization_member.delete()
-
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=invited_member.id,
-                event=audit_log.get_event_id(event_name),
-                data=audit_data,
-            )
-
     def _handle_deletion_by_member(
         self,
         request: Request,
-        organization: Organization,
         invited_member: OrganizationMemberInvite,
         acting_member: OrganizationMember,
     ) -> Response:
@@ -181,14 +161,24 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         if invited_member.inviter_id != acting_member.user_id:
             return Response({"detail": ERR_MEMBER_INVITE}, status=400)
 
-        self._remove_invite_from_db(
-            request=request, organization=organization, invited_member=invited_member
+        api_key = get_api_key_for_audit_log(request)
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
+        invited_member.remove_invite_from_db(
+            request.user, event_name, api_key, request.META["REMOTE_ADDR"]
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def delete(
         self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
     ) -> Response:
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+        if not request.user.is_authenticated:
+            return Response(
+                status=403, data={"error": "Must be authenticated to use this endpoint."}
+            )
         if invited_member.idp_provisioned:
             return Response(
                 {"detail": "This invite is managed through your organization's identity provider."},
@@ -204,40 +194,40 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
-        if request.user.is_authenticated and not is_active_superuser(request):
+        if not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization, user_id=request.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
 
             has_member_admin_scope = request.access.has_scope("member:admin")
             can_invite_members = request.access.has_scope("member:invite")
 
             if not has_member_admin_scope:
                 if can_invite_members:
-                    return self._handle_deletion_by_member(
-                        request, organization, invited_member, acting_member
-                    )
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+                    return self._handle_deletion_by_member(request, invited_member, acting_member)
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
             else:
                 can_manage = roles.can_manage(acting_member.role, invited_member.role)
 
                 if not can_manage:
-                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
 
         # prevents superuser read from deleting an invite or invite request
         # superuser without member:admin scopes
         elif not request.access.has_scope("member:admin"):
-            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
 
+        api_key = get_api_key_for_audit_log(request)
         if invited_member.invite_approved:
-            self._remove_invite_from_db(
-                request=request, organization=organization, invited_member=invited_member
+            invited_member.remove_invite_from_db(
+                request.user, "INVITE_REMOVE", api_key, request.META["REMOTE_ADDR"]
             )
         else:
-            api_key = get_api_key_for_audit_log(request)
-            invited_member.reject_invite_request(request.user, api_key, request.META["REMOTE_ADDR"])
+            invited_member.remove_invite_from_db(
+                request.user, "INVITE_REQUEST_REMOVE", api_key, request.META["REMOTE_ADDR"]
+            )
         # TODO(mifu67): replace all the magic numbers with status codes in a separate PR
         return Response(status=status.HTTP_204_NO_CONTENT)

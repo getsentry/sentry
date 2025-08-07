@@ -379,7 +379,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
-        self.get_error_response(self.organization.slug, self.approved_invite.id, status_code=400)
+        self.get_error_response(self.organization.slug, self.approved_invite.id, status_code=403)
         assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
@@ -390,3 +390,10 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.login_as(superuser, superuser=True)
 
         self.get_success_response(self.organization.slug, self.approved_invite.id)
+
+    def test_non_member_user_cannot_hit_endpoint(self):
+        other_user = self.create_user(email="other@email.com")
+        self.login_as(other_user)
+
+        self.get_error_response(self.organization.slug, self.approved_invite.id, status_code=403)
+        assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()

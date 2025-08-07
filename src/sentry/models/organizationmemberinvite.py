@@ -200,9 +200,9 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             event=(audit_log.get_event_id("MEMBER_INVITE")),
         )
 
-    def reject_invite_request(self, approving_user, api_key=None, ip_address=None):
+    def remove_invite_from_db(self, acting_user, event_name, api_key=None, ip_address=None):
         """
-        Reject a member invite/join request and send an audit log entry
+        Remove a member invite obejct from the DB and send an audit log entry
         """
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
@@ -211,15 +211,15 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             # also deletes the invite object via cascades
             self.organization_member.delete()
 
-        create_audit_entry_from_user(
-            approving_user,
-            api_key,
-            ip_address,
-            organization_id=self.organization_id,
-            target_object=self.id,
-            data=self.get_audit_log_data(),
-            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
-        )
+            create_audit_entry_from_user(
+                acting_user,
+                api_key,
+                ip_address,
+                organization_id=self.organization_id,
+                target_object=self.id,
+                data=self.get_audit_log_data(),
+                event=audit_log.get_event_id(event_name),
+            )
 
     @property
     def invite_approved(self):
