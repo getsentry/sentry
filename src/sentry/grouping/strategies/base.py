@@ -4,7 +4,6 @@ import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
 
-from sentry import projectoptions
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ExceptionGroupingComponent,
@@ -368,10 +367,6 @@ class StrategyConfiguration:
             "changelog": cls.changelog,
             "delegates": sorted(x.id for x in cls.delegates.values()),
             "hidden": cls.hidden,
-            "latest": projectoptions.lookup_well_known_key("sentry:grouping_config").get_default(
-                epoch=projectoptions.LATEST_EPOCH
-            )
-            == cls.id,
         }
 
 
