@@ -16,7 +16,7 @@ This module does not consider aliasing. If you have a query which contains alias
 normalize it first.
 """
 
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
 from typing import Any
 from typing import Literal as TLiteral
@@ -305,7 +305,8 @@ class Settings(TypedDict, total=False):
         default_offset: Default number of records to skip when no explicit
             offset is specified in the query.
 
-        extrapolation_mode: Strategy for handling data extrapolation in queries.
+        extrapolation_modes: Strategy for handling data extrapolation in queries.
+            Maps names to extrapolation modes.
             - "weighted": Apply weighted extrapolation algorithms to estimate
               missing data points based on existing patterns
             - "none": Disable extrapolation, return only actual data points
@@ -322,7 +323,7 @@ class Settings(TypedDict, total=False):
         ...     },
         ...     "default_limit": 100,
         ...     "default_offset": 0,
-        ...     "extrapolation_mode": "weighted"
+        ...     "extrapolation_modes": {"sum(score)": "weighted"}
         ... }
 
         Minimal configuration (all fields but "attribute_types" are optional):
@@ -339,7 +340,7 @@ class Settings(TypedDict, total=False):
     attribute_types: Required[dict[str, type[bool | float | int | str]]]
     default_limit: int
     default_offset: int
-    extrapolation_mode: TLiteral["weighted", "none"]  # noqa
+    extrapolation_modes: MutableMapping[str, TLiteral["weighted", "none"]]  # noqa
 
 
 VirtualColumn = TypedDict(
@@ -611,7 +612,7 @@ def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> Agg
                     aggregation=AttributeAggregation(
                         aggregate=FUNCTION_MAP[expr.lhs.function],
                         key=key(expr.lhs.parameters[0], settings),
-                        extrapolation_mode=extrapolation_mode(settings),
+                        extrapolation_mode=extrapolation_mode(label(expr.lhs), settings),
                     ),
                 )
             )
@@ -624,7 +625,7 @@ def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> Agg
                     conditional_aggregation=AttributeConditionalAggregation(
                         aggregate=CONDITIONAL_FUNCTION_MAP[expr.lhs.function],
                         key=key(expr.lhs.parameters[0], settings),
-                        extrapolation_mode=extrapolation_mode(settings),
+                        extrapolation_mode=extrapolation_mode(label(expr.lhs), settings),
                         filter=condidtional_aggregation_filter(expr.lhs.parameters[1], settings),
                     ),
                 )
@@ -657,7 +658,7 @@ def agg_function_to_filter(expr: Any, settings: Settings) -> AggregationFilter:
                 aggregation=AttributeAggregation(
                     aggregate=FUNCTION_MAP[nested_fn.function],
                     key=key(nested_fn.parameters[0], settings),
-                    extrapolation_mode=extrapolation_mode(settings),
+                    extrapolation_mode=extrapolation_mode(label(expr), settings),
                 ),
             )
         )
@@ -686,7 +687,7 @@ def expression(
                 aggregation=AttributeAggregation(
                     aggregate=FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
-                    extrapolation_mode=extrapolation_mode(settings),
+                    extrapolation_mode=extrapolation_mode(label(expr), settings),
                     label=label(expr),
                 ),
                 label=label(expr),
@@ -696,7 +697,7 @@ def expression(
                 conditional_aggregation=AttributeConditionalAggregation(
                     aggregate=CONDITIONAL_FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
-                    extrapolation_mode=extrapolation_mode(settings),
+                    extrapolation_mode=extrapolation_mode(label(expr), settings),
                     filter=condidtional_aggregation_filter(expr.parameters[1], settings),
                     label=label(expr),
                 ),
@@ -794,8 +795,9 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
         return json.dumps(expr)
 
 
-def extrapolation_mode(settings: Settings):
-    return EXTRAPOLATION_MODE_MAP[settings.get("extrapolation_mode", "none")]
+def extrapolation_mode(label: str, settings: Settings):
+    modes = settings.get("extrapolation_modes", {})
+    return EXTRAPOLATION_MODE_MAP[modes.get(label, "none")]
 
 
 class QueryResultMetaDownsamplingMode(TypedDict):
