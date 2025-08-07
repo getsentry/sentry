@@ -17,6 +17,10 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
+// This is an example of a valid array filter with wildcards, and we want to exact-match the quotes around the labels, so we have one backslash to escape the quotes (this should go to the search API) but another backslash in JS to actually include the backslash in the string
+const exampleFilter =
+  '["*\\"Sentry\\"*","*\\"User Interface\\"*","*\\"Integrations\\"*"]';
+
 export default function FeedbackSummary() {
   const {
     isError: isSummaryError,
@@ -45,22 +49,50 @@ export default function FeedbackSummary() {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
-    // TODO: Replace with actual search terms logic
+    // Create search terms for primary label and all associated labels
+    const allLabels = [category.primaryLabel, ...category.associatedLabels, 'Jira'];
+
+    const labelFilters = allLabels.map(label => `*${JSON.stringify(label)}*`);
+
+    // console.log('label filters', labelFilters);
+
     const newSearchConditions = new MutableSearch(currentQuery);
 
-    // Check if this category is already selected
-    const isSelected = newSearchConditions
-      .getFilterValues('category')
-      .includes(category.primaryLabel);
+    // Check if this category is already selected (all labels must be present)
+    const isSelected = labelFilters.every(filter => {
+      // console.log(
+      //   'filter',
+      //   newSearchConditions.getFilterValues('ai_categorization.labels')[0]
+      // );
+      // console.log('this is the EXAMPLEFILTER', exampleFilter);
+      // console.log(
+      //   'is it equal to the filter?',
+      //   newSearchConditions.getFilterValues('ai_categorization.labels')[0] ===
+      //     exampleFilter
+      // );
+
+      return newSearchConditions
+        .getFilterValues('ai_categorization.labels')
+        .includes(filter);
+    });
 
     if (isSelected) {
-      // Remove the search terms if already selected
-      newSearchConditions.removeFilterValue('category', category.primaryLabel);
+      // Remove all search terms if already selected
+      labelFilters.forEach(filter => {
+        newSearchConditions.removeFilterValue('ai_categorization.labels', filter);
+      });
     } else {
-      // Remove any existing category filter first (only one category at a time)
-      newSearchConditions.removeFilter('category');
-      // Add the new category
-      newSearchConditions.addFilterValue('category', category.primaryLabel);
+      // Remove any existing ai_categorization.labels filters first
+      newSearchConditions.removeFilter('ai_categorization.labels');
+      // Create a single search term that matches any of the labels using regex-like OR syntax
+      // const combinedFilter = `*${allLabels.map(label => JSON.stringify(label)).join('|')}*`;
+
+      // we want literal backslashes in the string
+      const filter = exampleFilter;
+
+      // console.log('this is the test filter', filter);
+
+      newSearchConditions.addFilterValue('ai_categorization.labels', filter, false);
     }
 
     // Update URL with new search query
@@ -78,8 +110,14 @@ export default function FeedbackSummary() {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
-    // TODO: Replace with actual search terms logic
-    return searchConditions.getFilterValues('category').includes(category.primaryLabel);
+    // Create search terms for primary label and all associated labels
+    const allLabels = [category.primaryLabel, ...category.associatedLabels, 'Jira'];
+    // Create the same combined filter pattern we use when adding
+    const combinedFilter = `*${allLabels.map(label => JSON.stringify(label)).join('|')}*`;
+    const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
+
+    // Check if our combined filter pattern is in the current filters
+    return currentFilters.includes(combinedFilter);
   };
 
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
