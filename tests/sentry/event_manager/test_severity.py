@@ -11,6 +11,7 @@ from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
+from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
@@ -71,7 +72,7 @@ class TestGetEventSeverity(TestCase):
             "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
-            timeout=settings.SEER_SEVERITY_TIMEOUT,
+            timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -90,7 +91,7 @@ class TestGetEventSeverity(TestCase):
                     "content-type": "application/json;charset=utf-8",
                     "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
                 },
-                timeout=settings.SEER_SEVERITY_TIMEOUT,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
 
     @patch(
@@ -123,7 +124,7 @@ class TestGetEventSeverity(TestCase):
                 "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
-                timeout=settings.SEER_SEVERITY_TIMEOUT,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
             assert severity == 0.1231
             assert reason == "ml"
