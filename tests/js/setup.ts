@@ -191,7 +191,7 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
+window.TextEncoder = TextEncoder as typeof window.TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
