@@ -279,6 +279,8 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
+from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -521,7 +523,6 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.codeowners import ProjectCodeOwnersDetailsEndpoint, ProjectCodeOwnersEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
