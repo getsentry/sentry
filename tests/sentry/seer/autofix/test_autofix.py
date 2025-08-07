@@ -1140,6 +1140,128 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
             params={"format": "sample"},
         )
 
+    @patch("sentry.seer.explorer.utils.get_chunk_ids", return_value=["chunk1"])
+    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    def test_get_profile_from_trace_tree_continuous_e2e(
+        self, mock_get_from_profiling_service, mock_get_chunk_ids
+    ) -> None:
+        """
+        End-to-end: build a trace tree from span query results where the transaction has only
+        profiler.id (continuous profile). Then verify we fetch a continuous profile and return an execution tree.
+        """
+        # Base error event whose span_id should be found within the transaction's spans
+        trace_id = "1234567890abcdef1234567890abcdef"
+        error_span_id = "bbbbbbbbbbbbbbbb"  # 16-hex span id
+        tx_span_id = "aaaaaaaaaaaaaaaa"  # 16-hex transaction span id
+        data = load_data("python")
+        data.update({"contexts": {"trace": {"trace_id": trace_id, "span_id": error_span_id}}})
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        # Prepare Spans.run_table_query to return one transaction span (with profiler.id only)
+        # and one non-transaction span which matches the event's span_id
+        tx_start = (event.datetime - timedelta(seconds=30)).timestamp()
+        tx_end = (event.datetime - timedelta(seconds=10)).timestamp()
+
+        spans_result = {
+            "data": [
+                {
+                    "span_id": tx_span_id,
+                    "parent_span": None,
+                    "span.op": "http.server",
+                    "span.description": "Root",
+                    "precise.start_ts": tx_start,
+                    "precise.finish_ts": tx_end,
+                    "is_transaction": True,
+                    "transaction": "Root",
+                    "project.id": self.project.id,
+                    "platform": "python",
+                    "profile.id": None,
+                    "profiler.id": "prof-123",
+                },
+                {
+                    "span_id": error_span_id,
+                    "parent_span": tx_span_id,
+                    "span.op": "db",
+                    "span.description": "Child",
+                    "precise.start_ts": tx_start + 1,
+                    "precise.finish_ts": tx_end - 1,
+                    "is_transaction": False,
+                    "transaction": None,
+                    "project.id": self.project.id,
+                    "platform": "python",
+                    "profile.id": None,
+                    "profiler.id": None,
+                },
+            ]
+        }
+
+        # Mock the profiling service response for continuous profiles
+        continuous_profile = {
+            "chunk": {
+                "profile": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "app.main",
+                            "filename": "main.py",
+                            "lineno": 10,
+                            "in_app": True,
+                        }
+                    ],
+                    "stacks": [[0]],
+                    "samples": [
+                        {"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000}
+                    ],
+                    "thread_metadata": {"1": {"name": "MainThread"}},
+                }
+            }
+        }
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(continuous_profile)
+        mock_response.msg = "OK"
+        mock_get_from_profiling_service.return_value = mock_response
+
+        with (
+            patch("sentry.snuba.spans_rpc.Spans.run_table_query") as mock_run_table_query,
+            patch("sentry.eventstore.backend.get_events") as mock_get_events,
+        ):
+            mock_run_table_query.return_value = spans_result
+            mock_get_events.return_value = []
+
+            # Build the trace tree from spans
+            trace_tree = _get_trace_tree_for_event(event, self.project)
+
+        # Trace tree should exist and contain our transaction
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+
+        tx_node = next(e for e in trace_tree["events"] if e["is_transaction"])
+        assert tx_node["profile_id"] == "prof-123"
+        assert tx_node["is_continuous"] is True
+        assert tx_node["precise_start_ts"] == tx_start
+        assert tx_node["precise_finish_ts"] == tx_end
+
+        # Now fetch the profile from the trace tree; should follow the continuous path
+        profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
+        assert profile_result is not None
+        assert "execution_tree" in profile_result
+        assert len(profile_result["execution_tree"]) >= 1
+
+        # Verify we called the continuous profile endpoint
+        mock_get_from_profiling_service.assert_called_once()
+        _, kwargs = mock_get_from_profiling_service.call_args
+        assert kwargs["method"] == "POST"
+        assert (
+            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/chunks"
+            in kwargs["path"]
+        )
+        assert kwargs["json_data"]["profiler_id"] == "prof-123"
+        # Start/end should be nanoseconds derived from precise timestamps
+        assert kwargs["json_data"]["start"] == str(int(tx_start * 1e9))
+        assert kwargs["json_data"]["end"] == str(int(tx_end * 1e9))
+
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """
