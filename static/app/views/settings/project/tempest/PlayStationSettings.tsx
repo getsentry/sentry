@@ -132,7 +132,7 @@ export const getPlayStationHeaderAction = (
   <Fragment>
     <ButtonBar gap="lg">
       <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
+      <RequestSdkAccessButton organization={organization} projectSlug={project.slug} />
       <AddCredentialsButton project={project} />
     </ButtonBar>
   </Fragment>
