@@ -9,6 +9,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -49,11 +50,11 @@ def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
     group_id: int,
+    workflow_id: int | None = None,
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
     has_reappeared: bool = False,
     has_escalated: bool = False,
-    workflow_env_id: int | None = None,
 ) -> WorkflowEventData:
     """
     Build a WorkflowEventData object from individual parameters.
@@ -70,10 +71,12 @@ def build_workflow_event_data_from_event(
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
-    # Fetch environment if provided
-    workflow_env = None
-    if workflow_env_id:
-        workflow_env = Environment.objects.get(id=workflow_env_id)
+    # Fetch environment from workflow, if provided
+    workflow_env: Environment | None = None
+    if workflow_id:
+        workflow_env = (
+            Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
+        )
 
     return WorkflowEventData(
         event=group_event,

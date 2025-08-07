@@ -926,12 +926,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert first_call_kwargs["detector_id"] == self.detector.id
         assert first_call_kwargs["event_id"] == self.event1.event_id
         assert first_call_kwargs["group_id"] == self.group1.id
+        assert first_call_kwargs["workflow_id"] == self.workflow1.id
 
         # Second call should be for workflow2/group2
         second_call_kwargs = mock_trigger.call_args_list[1].kwargs["kwargs"]
         assert second_call_kwargs["detector_id"] == self.detector.id
         assert second_call_kwargs["event_id"] == self.event2.event_id
         assert second_call_kwargs["group_id"] == self.group2.id
+        assert second_call_kwargs["workflow_id"] == self.workflow2.id
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
