@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
 
@@ -327,7 +326,6 @@ class StrategyConfiguration:
     base: type[StrategyConfiguration] | None = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
-    changelog: str | None = None
     initial_context: ContextDict = {}
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
@@ -363,7 +361,6 @@ class StrategyConfiguration:
             "id": cls.id,
             "base": cls.base.id if cls.base else None,
             "strategies": sorted(cls.strategies),
-            "changelog": cls.changelog,
             "delegates": sorted(x.id for x in cls.delegates.values()),
         }
 
@@ -372,7 +369,6 @@ def create_strategy_configuration_class(
     id: str,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
-    changelog: str | None = None,
     base: type[StrategyConfiguration] | None = None,
     initial_context: ContextDict | None = None,
     enhancements_base: str | None = None,
@@ -434,7 +430,6 @@ def create_strategy_configuration_class(
     if fingerprinting_bases:
         NewStrategyConfiguration.fingerprinting_bases = fingerprinting_bases
 
-    NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
     return NewStrategyConfiguration
 

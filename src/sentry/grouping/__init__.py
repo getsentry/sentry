@@ -117,7 +117,6 @@ This for instance is how one of the configurations is defined::
         id="newstyle:SomeDate",
         base="newstyle:AnotherDate",
         delegates=["frame:v4"],
-        changelog="...",
     )
 
 The configuration ID (`newstyle:YYYY-MM-DD`) is defined in the project
