@@ -42,7 +42,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 function useOnboardingProject() {
