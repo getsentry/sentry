@@ -304,9 +304,9 @@ def load_data(
     return data
 
 
-def load_console_screenshot(platform):
-    expected_commonpath = os.path.realpath(os.path.join(STATIC_ROOT, "images", "consoles"))
-    image_path = os.path.join(expected_commonpath, f"{platform}-screenshot.png")
+def load_console_screenshot():
+    expected_commonpath = os.path.realpath(os.path.join(STATIC_ROOT, "images"))
+    image_path = os.path.join(expected_commonpath, "console-screenshot.png")
     image_real_path = os.path.realpath(image_path)
 
     if expected_commonpath != os.path.commonpath([expected_commonpath, image_real_path]):
@@ -322,7 +322,7 @@ def create_console_screenshot_attachment(event, project, platform):
     from sentry.attachments.base import CachedAttachment
     from sentry.models.eventattachment import EventAttachment
 
-    screenshot_path = load_console_screenshot(platform)
+    screenshot_path = load_console_screenshot()
 
     if not screenshot_path:
         return None
