@@ -675,6 +675,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    @patch("sentry.quotas.backend.get_dashboard_limit", return_value=100)
+    def test_dashboard_limit_serialized(self, _) -> None:
+        with self.feature("organizations:dashboards-plan-limits"):
+            response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert "dashboardLimit" in response.data
+        assert response.data["dashboardLimit"] == 100
+
 
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"

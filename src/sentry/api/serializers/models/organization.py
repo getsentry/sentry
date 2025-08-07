@@ -452,6 +452,10 @@ class OrganizationSerializer(Serializer):
             "hasAuthProvider": has_auth_provider,
         }
 
+        if features.has("organizations:dashboards-plan-limits", obj, actor=user):
+            dashboard_limit = quotas.backend.get_dashboard_limit(obj.id)
+            context["dashboardLimit"] = dashboard_limit
+
         if include_feature_flags:
             context["features"] = self.get_feature_set(obj, attrs, user)
             context["extraOptions"] = {
