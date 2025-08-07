@@ -270,9 +270,11 @@ def test_get_experimental_config_transaction_metrics_exception(
 def test_project_config_uses_filter_features(
     default_project, has_custom_filters, has_blacklisted_ips
 ):
+    log_messages = ["some log"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
     blacklisted_ips = ["112.69.248.54"]
+    default_project.update_option("sentry:log_messages", log_messages)
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
@@ -281,11 +283,17 @@ def test_project_config_uses_filter_features(
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
-    with Feature({"projects:custom-inbound-filters": has_custom_filters}):
+    with Feature(
+        {
+            "projects:custom-inbound-filters": has_custom_filters,
+            "organizations:ourlogs-ingestion": True,
+        }
+    ):
         project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters")
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
@@ -293,9 +301,19 @@ def test_project_config_uses_filter_features(
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
         assert {"releases": releases} == cfg_releases
+        assert {
+            "id": "gen_body",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "log.body",
+                "value": ["some log"],
+            },
+        } in cfg_generic
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
+        assert cfg_generic is None
 
     if has_blacklisted_ips:
         assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
