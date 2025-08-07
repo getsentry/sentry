@@ -628,7 +628,7 @@ const SummaryContainer = styled('div')`
   display: flex;
   gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
   flex-direction: column;
-  margin: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 

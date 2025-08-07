@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
+from datetime import timezone as tz
 from enum import StrEnum
 from typing import DefaultDict
 
@@ -124,13 +125,24 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
-    logger.debug(
-        "workflow_engine.workflows.enqueued",
-        extra={"project_to_workflow": project_to_workflow},
-    )
 
     buffer.backend.push_to_sorted_set(
         key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
+    )
+
+    buffer_project_ids = buffer.backend.get_sorted_set(
+        WORKFLOW_ENGINE_BUFFER_LIST_KEY, min=0, max=datetime.now(tz=tz.utc).timestamp()
+    )
+    log_str = ", ".join(
+        f"{project_id}: {timestamp}" for project_id, timestamp in buffer_project_ids
+    )
+
+    logger.debug(
+        "workflow_engine.workflows.enqueued",
+        extra={
+            "project_to_workflow": project_to_workflow,
+            "buffer_project_ids": log_str,
+        },
     )
 
 
@@ -455,7 +467,9 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
 
-    create_workflow_fire_histories(detector, actions, event_data, should_trigger_actions)
+    create_workflow_fire_histories(
+        detector, actions, event_data, should_trigger_actions, is_delayed=False
+    )
 
     for action in actions:
         task_params = build_trigger_action_task_params(action, detector, event_data)
