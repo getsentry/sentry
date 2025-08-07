@@ -58,10 +58,10 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
                     if self.use_subscription_lock and subscription:
                         lock = locks.get(
                             f"subscription:{subscription.type}:{subscription.subscription_id}",
-                            duration=2,
+                            duration=10,
                             name=f"subscription_{identifier}",
                         )
-                        with TimedRetryPolicy(1)(lock.acquire):
+                        with TimedRetryPolicy(10)(lock.acquire):
                             with metrics.timer(
                                 "remote_subscriptions.result_consumer.handle_result_timing",
                                 tags={"identifier": identifier},
