@@ -54,11 +54,27 @@ type VariantEvidence = {
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
-  CUSTOM_FINGERPRINT = 'custom-fingerprint',
-  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
+  CUSTOM_FINGERPRINT = 'custom_fingerprint',
+  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
-  SALTED_COMPONENT = 'salted-component',
-  PERFORMANCE_PROBLEM = 'performance-problem',
+  SALTED_COMPONENT = 'salted_component',
+  PERFORMANCE_PROBLEM = 'performance_problem',
+}
+
+export function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
+  const converted = type.replace(/-/g, '_');
+  return converted as EventGroupVariantType;
+}
+
+export function convertVariantFromBackend(variant: any): EventGroupVariant {
+  const convertedType = convertVariantTypeToUnderscore(variant.type);
+
+  const convertedVariant = {
+    ...variant,
+    type: convertedType,
+  };
+
+  return convertedVariant as EventGroupVariant;
 }
 
 interface BaseVariant {
