@@ -328,7 +328,6 @@ class StrategyConfiguration:
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
     changelog: str | None = None
-    hidden = False
     initial_context: ContextDict = {}
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
@@ -366,7 +365,6 @@ class StrategyConfiguration:
             "strategies": sorted(cls.strategies),
             "changelog": cls.changelog,
             "delegates": sorted(x.id for x in cls.delegates.values()),
-            "hidden": cls.hidden,
         }
 
 
@@ -375,7 +373,6 @@ def create_strategy_configuration_class(
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
     changelog: str | None = None,
-    hidden: bool = False,
     base: type[StrategyConfiguration] | None = None,
     initial_context: ContextDict | None = None,
     enhancements_base: str | None = None,
@@ -404,8 +401,6 @@ def create_strategy_configuration_class(
         NewStrategyConfiguration.fingerprinting_bases = list(base.fingerprinting_bases)
     else:
         NewStrategyConfiguration.fingerprinting_bases = None
-
-    NewStrategyConfiguration.hidden = hidden
 
     by_class: dict[str, list[str]] = {}
     for strategy in NewStrategyConfiguration.strategies.values():
