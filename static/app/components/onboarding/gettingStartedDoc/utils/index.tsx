@@ -15,22 +15,21 @@ export function getUploadSourceMapsStep({
   guideLink,
   organization,
   platformKey,
-  projectId,
+  project,
   newOrg,
   isSelfHosted,
   description,
-  projectSlug,
 }: DocsParams & {
   description?: React.ReactNode;
   guideLink?: string;
 }): OnboardingStep {
   function trackEvent(eventName: string) {
-    if (!organization || !projectId || !platformKey) {
+    if (!organization || !project?.id || !platformKey) {
       return;
     }
 
     trackAnalytics(eventName, {
-      project_id: projectId,
+      project_id: project.id,
       platform: platformKey,
       organization,
     });
@@ -74,7 +73,7 @@ export function getUploadSourceMapsStep({
             {getSourceMapsWizardSnippet({
               isSelfHosted,
               organization,
-              projectSlug,
+              projectSlug: project.slug,
             })}
           </OnboardingCodeSnippet>
         ),
