@@ -65,8 +65,10 @@ class GroupUserReport(APITestCase, SnubaTestCase):
     def assert_same_userreports(
         self, response_data: list[dict[str, Any]], userreports: list[UserReport]
     ) -> None:
-        assert sorted(int(r.get("id")) for r in response_data) == sorted(r.id for r in userreports)
-        assert sorted(r.get("eventID") for r in response_data) == sorted(
+        assert sorted(int(r.get("id", 0)) for r in response_data) == sorted(
+            r.id for r in userreports
+        )
+        assert sorted(r.get("eventID", "") for r in response_data) == sorted(
             r.event_id for r in userreports
         )
 
