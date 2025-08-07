@@ -133,8 +133,8 @@ def test_request_simple_success(mock_post: MagicMock, mock_sign: MagicMock, data
         URL, data if data_type == "dict" else json.dumps(data), timeout=67
     )
     assert status == 200
-    assert response.json() == {"foo": "bar"}
-    assert response.status_code == 200
+    assert response and response.json() == {"foo": "bar"}
+    assert response and response.status_code == 200
 
     str_data = json.dumps(data)
     mock_sign.assert_called_once_with(str_data.encode())
