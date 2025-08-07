@@ -246,13 +246,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 /src/sentry/api/bases/organization_events.py                                @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_dashboards.py                         @getsentry/dashboards
-/src/sentry/api/endpoints/organization_dashboard_details.py                  @getsentry/dashboards
-/src/sentry/api/endpoints/organization_dashboard_widget_details.py           @getsentry/dashboards
-
-tests/sentry/api/endpoints/test_organization_dashboards.py                   @getsentry/dashboards
-tests/sentry/api/endpoints/test_organization_dashboard_details.py            @getsentry/dashboards
-tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @getsentry/dashboards
+/src/sentry/dashboards/                                                     @getsentry/dashboards
+/tests/sentry/dashboards/                                                   @getsentry/dashboards
 
 /src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
 /src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/visibility
