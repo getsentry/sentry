@@ -291,7 +291,6 @@ function SearchQueryBuilderInputInternal({
   if (trimmedTokenValue !== prevValue) {
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
-    setCurrentInputValue(trimmedTokenValue);
   }
 
   const onKeyDown = useCallback(
