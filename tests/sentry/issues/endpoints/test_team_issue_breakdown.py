@@ -48,7 +48,7 @@ class TeamIssueBreakdownTest(APITestCase):
             self.team.organization.slug, self.team.slug, statsPeriod="7d", statuses=statuses
         )
 
-        def compare_response(statuses, data_for_day, **expected_status_counts):
+        def compare_response(statuses, data_for_day, **expected_status_counts) -> None:
             result = {status: 0 for status in statuses}
             result["total"] = 0
             result.update(expected_status_counts)
@@ -116,7 +116,7 @@ class TeamIssueBreakdownTest(APITestCase):
             environment="prod",
         )
 
-        def compare_response(statuses, data_for_day, **expected_status_counts):
+        def compare_response(statuses, data_for_day, **expected_status_counts) -> None:
             result = {status: 0 for status in statuses}
             result["total"] = 0
             result.update(expected_status_counts)
