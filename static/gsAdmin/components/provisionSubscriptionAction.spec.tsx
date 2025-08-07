@@ -729,7 +729,6 @@ describe('provisionSubscriptionAction', function () {
     typeNumForField('Reserved Issue Scans', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     typeNumForMatchingFields('Price for', '0', false);
-    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -882,7 +881,6 @@ describe('provisionSubscriptionAction', function () {
     typeNumForField('Reserved Issue Scans', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     typeNumForMatchingFields('Price for', '0', false);
-    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -1020,7 +1018,6 @@ describe('provisionSubscriptionAction', function () {
     typeNumForMatchingFields('Price for', '0', false);
     typeNumForField('Price for Errors', '3000');
     typeNumForField('Price for Uptime Monitors', '1000');
-    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '4000');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -1631,7 +1628,6 @@ describe('provisionSubscriptionAction', function () {
 
     await clickCheckbox('Apply Changes To Current Subscription');
     typeNumForField('Reserved Performance Units', '10000');
-    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForMatchingFields('Price for', '0', false);
     typeNumForField('Annual Contract Value', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.0001', false);
