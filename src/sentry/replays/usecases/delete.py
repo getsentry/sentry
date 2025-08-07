@@ -205,7 +205,7 @@ def delete_seer_replay_data(
 
     def run_delete():
         response, status_code = make_signed_seer_request_simple(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/delete",
+            SEER_DELETE_SUMMARIES_URL,
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
