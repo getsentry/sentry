@@ -32,7 +32,7 @@ from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
-from sentry.objectstore.metrics import measure_storage_put
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -1343,7 +1343,10 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                 with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                     storage = get_profiles_storage()
                     compressed_profile = prof.compress()
-                    storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
+                    with measure_storage_operation(
+                        "put", "profiling", len(json_profile), len(compressed_profile), "lz4"
+                    ):
+                        storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
                 # we only run find_occurrences for sampled profiles, unsampled profiles
                 # are skipped
                 with sentry_sdk.start_span(op="processing", name="find occurrences"):
@@ -1397,19 +1400,15 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                     len(json_profile),
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
-                metrics.distribution(
-                    "storage.put.size",
-                    len(json_profile),
-                    tags={"usecase": "profiling", "compression": "none"},
-                    unit="byte",
-                )
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
-                with measure_storage_put(len(compressed_chunk), "profiling", "lz4"):
+                with measure_storage_operation(
+                    "put", "profiling", len(json_profile), len(compressed_chunk), "lz4"
+                ):
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
