@@ -348,26 +348,27 @@ def child_process(
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
 
-        transaction = sentry_sdk.continue_trace(
-            environ_or_headers=headers,
-            op="queue.task.taskworker",
-            name=activation.taskname,
-            origin="taskworker",
-        )
-        sampling_context = {
+        attributes = {
             "taskworker": {
                 "task": activation.taskname,
-            }
+            },
         }
+
         with (
+            sentry_sdk.isolation_scope(),
+            sentry_sdk.continue_trace(headers),
             track_memory_usage(
                 "taskworker.worker.memory_change",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
-            sentry_sdk.isolation_scope(),
-            sentry_sdk.start_transaction(transaction, custom_sampling_context=sampling_context),
+            sentry_sdk.start_span(
+                op="queue.task.taskworker",
+                name=activation.taskname,
+                origin="taskworker",
+                attributes=attributes,
+            ) as root_span,
         ):
-            transaction.set_data(
+            root_span.set_attribute(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
             )
             task_added_time = activation.received_at.ToDatetime().timestamp()
@@ -379,27 +380,27 @@ def child_process(
                 name=activation.taskname,
                 origin="taskworker",
             ) as span:
-                span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-                span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-                span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
-                span.set_data(
+                span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+                span.set_attribute(
                     SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
                 )
-                span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+                span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
-                # TODO(taskworker) remove this when doing cleanup
-                # The `__start_time` parameter is spliced into task parameters by
-                # sentry.celery.SentryTask._add_metadata and needs to be removed
-                # from kwargs like sentry.tasks.base.instrumented_task does.
-                if "__start_time" in kwargs:
-                    kwargs.pop("__start_time")
+            # TODO(taskworker) remove this when doing cleanup
+            # The `__start_time` parameter is spliced into task parameters by
+            # sentry.celery.SentryTask._add_metadata and needs to be removed
+            # from kwargs like sentry.tasks.base.instrumented_task does.
+            if "__start_time" in kwargs:
+                kwargs.pop("__start_time")
 
-                try:
-                    task_func(*args, **kwargs)
-                    transaction.set_status(SPANSTATUS.OK)
-                except Exception:
-                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
-                    raise
+            try:
+                task_func(*args, **kwargs)
+                root_span.set_status(SPANSTATUS.OK)
+            except Exception:
+                root_span.set_status(SPANSTATUS.INTERNAL_ERROR)
+                raise
 
     def record_task_execution(
         activation: TaskActivation,
