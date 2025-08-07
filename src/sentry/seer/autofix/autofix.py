@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import orjson
@@ -362,7 +363,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     for tx_span in transaction_spans:
         event_id = tx_span.get("span_id")
         project_id = tx_span.get("project.id")
-        span_id = tx_span.get("span_id")
+        tx_span_id: str | None = tx_span.get("span_id")
         parent_span_id = tx_span.get("parent_span")
         transaction_name = tx_span.get("transaction")
         start_ts = tx_span.get("precise.start_ts")
@@ -372,33 +373,33 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
         profile_id = tx_span.get("profile.id")
         profiler_id = tx_span.get("profiler.id")
 
+        if not tx_span_id:
+            continue
+
         # Get nested spans for this transaction
-        nested_spans = spans_by_transaction.get(span_id, [])
+        nested_spans = spans_by_transaction.get(tx_span_id, [])
 
         # Create a transaction-like event object
-        class MockTransaction:
-            def __init__(self):
-                self.event_id = event_id
-                self.project_id = project_id
-                self.platform = platform_name
-                self.title = transaction_name
-
-                # Find project by id to get project object
-                self.project = next((p for p in projects if p.id == project_id), None)
-
-                self.data = {
+        transactions.append(
+            SimpleNamespace(
+                event_id=event_id,
+                project_id=project_id,
+                platform=platform_name,
+                title=transaction_name,
+                project=next((p for p in projects if p.id == project_id), None),
+                data={
                     "start_timestamp": start_ts,
                     "precise_start_ts": start_ts,
                     "precise_finish_ts": finish_ts,
                     "contexts": {
                         "trace": {
-                            "span_id": span_id,
+                            "span_id": tx_span_id,
                             "parent_span_id": parent_span_id,
                             "op": span_op,
                         },
                         "profile": {
                             "profile_id": profile_id or profiler_id,
-                            "is_continuous": profiler_id and not profile_id,
+                            "is_continuous": bool(profiler_id and not profile_id),
                         },
                     },
                     "spans": nested_spans,
@@ -406,15 +407,17 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                         "span_ops": {
                             "total.time": {
                                 "value": (
-                                    (finish_ts - start_ts) * 1000 if finish_ts and start_ts else 0
+                                    ((finish_ts - start_ts) * 1000)
+                                    if (finish_ts and start_ts)
+                                    else 0
                                 ),
                                 "unit": "millisecond",
                             }
                         }
                     },
-                }
-
-        transactions.append(MockTransaction())
+                },
+            )
+        )
 
     # 5) Process transaction and error events as before to get expected output
     results = transactions + errors
@@ -429,22 +432,23 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     all_events: list[dict] = []  # Track all events for orphan detection
 
     # First pass: collect all events and their metadata
-    for event in results:
-        event_data = event.data
+    for trace_event in results:
+        event_data = trace_event.data
+        # Determine type based on presence of spans in event data
         is_transaction = event_data.get("spans") is not None
         is_error = not is_transaction
 
         event_node = {
-            "event_id": event.event_id,
+            "event_id": trace_event.event_id,
             "datetime": event_data.get("start_timestamp", float("inf")),
             "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
             "is_error": is_error,
-            "is_current_project": event.project_id == project.id,
-            "project_slug": event.project.slug,
-            "project_id": event.project_id,
-            "platform": event.platform,
+            "is_current_project": trace_event.project_id == project.id,
+            "project_slug": trace_event.project.slug if trace_event.project else "",
+            "project_id": trace_event.project_id,
+            "platform": trace_event.platform,
             "children": [],
         }
 
@@ -453,7 +457,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
         if is_transaction:
             op = event_data.get("contexts", {}).get("trace", {}).get("op")
-            transaction_title = event.title
+            transaction_title = trace_event.title
             duration_obj = (
                 event_data.get("breakdowns", {}).get("span_ops", {}).get("total.time", {})
             )
@@ -493,9 +497,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 if span_id:
                     span_to_transaction[span_id] = event_node
         else:
-            title = event.title
-            message = event.message if event.message != event.title else None
-            transaction_name = event.transaction
+            title = trace_event.title
+            message = trace_event.message if trace_event.message != trace_event.title else None
+            transaction_name = trace_event.transaction
 
             error_title = message or ""
             if title:
