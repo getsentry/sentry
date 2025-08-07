@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -28,17 +28,24 @@ function WidgetBuilderGroupBySelector({
 
   const organization = useOrganization();
 
-  let tags: TagCollection = useTags();
+  const tags: TagCollection = useTags();
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
-  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
-    tags = {...numericSpanTags, ...stringSpanTags};
-  }
 
-  const datasetConfig = getDatasetConfig(state.dataset);
-  const groupByOptions = datasetConfig.getGroupByFieldOptions
-    ? datasetConfig.getGroupByFieldOptions(organization, tags)
-    : {};
+  const groupByOptions = useMemo(() => {
+    const datasetConfig = getDatasetConfig(state.dataset);
+    if (!datasetConfig.getGroupByFieldOptions) {
+      return {};
+    }
+
+    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+      return datasetConfig.getGroupByFieldOptions(organization, {
+        ...numericSpanTags,
+        ...stringSpanTags,
+      });
+    }
+    return datasetConfig.getGroupByFieldOptions(organization, tags);
+  }, [numericSpanTags, organization, state.dataset, stringSpanTags, tags]);
 
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
