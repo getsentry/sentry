@@ -615,6 +615,7 @@ class ProjectUpdateTest(APITestCase):
             "filters:blacklisted_ips": "127.0.0.1\n198.51.100.0",
             "filters:releases": "1.*\n2.1.*",
             "filters:error_messages": "TypeError*\n*: integer division by modulo or zero",
+            "filters:log_messages": "Updated*\n*.sentry.io",
             "mail:subject_prefix": "[Sentry]",
             "sentry:scrub_ip_address": False,
             "sentry:origins": "*",
@@ -631,7 +632,10 @@ class ProjectUpdateTest(APITestCase):
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
         }
-        with self.feature("projects:custom-inbound-filters"), outbox_runner():
+        with (
+            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            outbox_runner(),
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)
@@ -684,6 +688,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:error_messages") == [
             "TypeError*",
             "*: integer division by modulo or zero",
+        ]
+        assert project.get_option("sentry:log_messages") == [
+            "Updated*",
+            "*.sentry.io",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         with assume_test_silo_mode(SiloMode.CONTROL):

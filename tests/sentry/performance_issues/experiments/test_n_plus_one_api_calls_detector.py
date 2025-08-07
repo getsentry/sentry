@@ -300,6 +300,18 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
+    def test_does_not_include_empty_path_params_in_evidence(self) -> None:
+        """Test that empty path_params lists are properly filtered out."""
+        # Create URLs that have no path parameters (only query parameters)
+        # This would result in path_params being a list of empty lists [[], [], []]
+        event = self.create_event(lambda i: f"GET /api/users?user_id={i}")
+        [problem] = self.find_problems(event)
+
+        assert problem.evidence_data is not None
+        # If `path_params` is a list of empty lists, we shouldn't return any path parameters
+        path_params = problem.evidence_data.get("path_parameters", [])
+        assert path_params == []
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",
