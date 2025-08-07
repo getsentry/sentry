@@ -54,7 +54,7 @@ describe('ProjectInstallPlatform', function () {
   it('should render getting started docs for correct platform', async function () {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps, router} = initializeOrg({
+    const {routerProps} = initializeOrg({
       router: {
         params: {
           projectId: project.slug,
@@ -67,9 +67,7 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([project]);
 
-    render(<PlatformOrIntegration {...routerProps} />, {
-      router,
-    });
+    render(<PlatformOrIntegration {...routerProps} />);
 
     expect(
       await screen.findByRole('heading', {

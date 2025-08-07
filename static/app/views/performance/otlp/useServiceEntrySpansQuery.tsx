@@ -1,25 +1,24 @@
-import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 type Options = {
   p95: number;
   query: string;
-  selected: DropdownOption;
   sort: Sort;
   transactionName: string;
+  limit?: number;
 };
 
-const LIMIT = 5;
+const DEFAULT_LIMIT = 5;
 
-const FIELDS: EAPSpanProperty[] = [
+const FIELDS: SpanProperty[] = [
   'span_id',
   'user.id',
   'user.email',
@@ -41,15 +40,14 @@ export function useServiceEntrySpansQuery({
   transactionName,
   sort,
   p95,
-  selected,
+  limit = DEFAULT_LIMIT,
 }: Options) {
   const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+  const selectedOption = decodeScalar(location.query?.showTransactions);
 
   const isSingleQueryEnabled =
-    selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam;
+    selectedOption === TransactionFilterOptions.RECENT || !spanCategoryUrlParam;
 
   const {
     data: singleQueryData,
@@ -61,12 +59,12 @@ export function useServiceEntrySpansQuery({
     query,
     sort,
     p95,
-    selected,
     enabled: isSingleQueryEnabled,
+    limit,
   });
 
   const isMultipleQueriesEnabled = Boolean(
-    spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT
+    spanCategoryUrlParam && selectedOption !== TransactionFilterOptions.RECENT
   );
 
   const {
@@ -79,8 +77,8 @@ export function useServiceEntrySpansQuery({
     transactionName,
     sort,
     p95,
-    selected,
     enabled: isMultipleQueriesEnabled,
+    limit,
   });
 
   if (isSingleQueryEnabled) {
@@ -103,9 +101,9 @@ export function useServiceEntrySpansQuery({
 }
 
 type UseSingleQueryOptions = {
+  limit: number;
   p95: number;
   query: string;
-  selected: DropdownOption;
   sort: Sort;
   enabled?: boolean;
 };
@@ -114,24 +112,25 @@ type UseSingleQueryOptions = {
 function useSingleQuery(options: UseSingleQueryOptions) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
+  const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
-  const {query, sort, p95, selected, enabled} = options;
+  const {query, sort, p95, enabled, limit} = options;
   const newQuery = new MutableSearch(query);
 
-  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+  if (selectedOption === TransactionFilterOptions.SLOW && p95) {
     newQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
 
-  if (selected.value === TransactionFilterOptions.RECENT) {
+  if (selectedOption === TransactionFilterOptions.RECENT) {
     newQuery.removeFilter('span.category');
   }
 
-  const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
+  const {data, isLoading, pageLinks, meta, error} = useSpans(
     {
       search: newQuery,
       fields: FIELDS,
       sorts: [sort],
-      limit: LIMIT,
+      limit,
       cursor,
       pageFilters: selection,
       enabled,
@@ -149,28 +148,27 @@ function useSingleQuery(options: UseSingleQueryOptions) {
 }
 
 type UseMultipleQueriesOptions = {
+  limit: number;
   p95: number;
-  selected: DropdownOption;
   sort: Sort;
   transactionName: string;
   enabled?: boolean;
 };
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
-  const {transactionName, sort, p95, selected, enabled} = options;
+  const {transactionName, sort, p95, enabled, limit} = options;
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
+  const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
+  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
   );
 
   // The slow (p95) option is the only one that requires an explicit duration filter
-  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+  if (selectedOption === TransactionFilterOptions.SLOW && p95) {
     categorizedSpansQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
 
@@ -178,7 +176,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
     data: categorizedSpanIds,
     isLoading: isCategorizedSpanIdsLoading,
     error: categorizedSpanIdsError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       search: categorizedSpansQuery,
       fields: ['transaction.span_id', 'sum(span.self_time)'],
@@ -188,7 +186,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
           kind: sort.kind,
         },
       ],
-      limit: LIMIT,
+      limit,
       cursor,
       pageFilters: selection,
       enabled,
@@ -211,13 +209,13 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
     pageLinks: categorizedSpansPageLinks,
     meta: categorizedSpansMeta,
     error: categorizedSpansError,
-  } = useEAPSpans(
+  } = useSpans(
     {
       search: specificSpansQuery,
       fields: FIELDS,
       cursor,
       sorts: [sort],
-      limit: LIMIT,
+      limit,
       enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
     },
     'api.performance.service-entry-spans-table-with-category'

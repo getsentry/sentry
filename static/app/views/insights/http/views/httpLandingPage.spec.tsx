@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -7,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
@@ -25,23 +27,20 @@ describe('HTTPLandingPage', function () {
 
   let spanListRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
-
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   const useLocationMock = jest.mocked(useLocation);
 
@@ -133,7 +132,6 @@ describe('HTTPLandingPage', function () {
             'project.id': 1,
             'sum(span.self_time)': 815833579.659315,
             'epm()': 40767.0,
-            'time_spent_percentage()': 0.33634048399458855,
             'http_response_rate(3)': 0.00035567983908553485,
             'http_response_rate(4)': 0.3931893443226139,
             'http_response_rate(5)': 0.0037624385736829626,
@@ -145,7 +143,6 @@ describe('HTTPLandingPage', function () {
             'project.id': 2,
             'sum(span.self_time)': 473552338.9970339,
             'epm()': 29912.133333333335,
-            'time_spent_percentage()': 0.19522955032268177,
             'http_response_rate(3)': 0.0,
             'http_response_rate(4)': 0.0012324987407562593,
             'http_response_rate(5)': 0.004054096219594279,
@@ -159,7 +156,6 @@ describe('HTTPLandingPage', function () {
             'sum(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
             'epm()': 'rate',
-            'time_spent_percentage()': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
             'avg(span.self_time)': 'duration',
@@ -272,7 +268,8 @@ describe('HTTPLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -281,7 +278,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client',
+          query: 'span.op:http.client',
           referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -296,7 +293,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['user.geo.subregion', 'count()'],
           per_page: 50,
@@ -304,6 +301,7 @@ describe('HTTPLandingPage', function () {
           query: 'has:user.geo.subregion',
           sort: '-count()',
           referrer: 'api.insights.user-geo-subregion-selector',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -316,7 +314,8 @@ describe('HTTPLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -325,7 +324,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client',
+          query: 'span.op:http.client',
           referrer: 'api.performance.http.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -342,7 +341,8 @@ describe('HTTPLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -351,7 +351,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client',
+          query: 'span.op:http.client',
           referrer: 'api.performance.http.landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -370,7 +370,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project',
@@ -382,14 +382,14 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(5)',
             'avg(span.self_time)',
             'sum(span.self_time)',
-            'time_spent_percentage()',
           ],
           per_page: 10,
           project: [],
-          query: 'span.module:http span.op:http.client span.domain:*git*',
+          query: 'span.op:http.client span.domain:*git*',
           referrer: 'api.performance.http.landing-domains-list',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '10d',
+          sampling: SAMPLING_MODE.NORMAL,
         },
       })
     );
@@ -462,7 +462,7 @@ describe('HTTPLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project',
@@ -474,14 +474,14 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(5)',
             'avg(span.self_time)',
             'sum(span.self_time)',
-            'time_spent_percentage()',
           ],
           per_page: 10,
           project: [],
-          query: 'span.module:http span.op:http.client span.domain:*git*',
+          query: 'span.op:http.client span.domain:*git*',
           referrer: 'api.performance.http.landing-domains-list',
           sort: '-avg(span.self_time)',
           statsPeriod: '10d',
+          sampling: SAMPLING_MODE.NORMAL,
         },
       })
     );

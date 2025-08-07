@@ -19,11 +19,6 @@ describe('rq onboarding docs', function () {
       screen.getByRole('heading', {name: 'Settings for worker'})
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Main Python Script'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[rq\]'/))
-    ).toBeInTheDocument();
   });
 
   it('renders without tracing', function () {

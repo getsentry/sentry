@@ -9,6 +9,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     _get_redis_key,
     _record_sample,
     clear_samples,
+    get_active_project_ids,
     get_active_projects,
     get_redis_client,
     get_transaction_names,
@@ -35,7 +36,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def test_multi_fanout():
+def test_multi_fanout() -> None:
     clusterer = TreeClusterer(merge_threshold=3)
     transaction_names = [
         "/a/b0/c/d0/e",
@@ -53,7 +54,7 @@ def test_multi_fanout():
     assert clusterer.get_rules() == ["/a/*/c/*/**", "/a/*/**"]
 
 
-def test_single_leaf():
+def test_single_leaf() -> None:
     clusterer = TreeClusterer(merge_threshold=2)
     transaction_names = [
         "/a/b1/c/",
@@ -63,7 +64,7 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
-def test_deep_tree():
+def test_deep_tree() -> None:
     clusterer = TreeClusterer(merge_threshold=1)
     transaction_names = [
         1001 * "/.",
@@ -74,7 +75,7 @@ def test_deep_tree():
     clusterer.get_rules()
 
 
-def test_clusterer_doesnt_generate_invalid_rules():
+def test_clusterer_doesnt_generate_invalid_rules() -> None:
     clusterer = TreeClusterer(merge_threshold=1)
     all_stars = ["/a/b", "/b/c", "/c/d"]
     clusterer.add_input(all_stars)
@@ -87,7 +88,7 @@ def test_clusterer_doesnt_generate_invalid_rules():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
-def test_collection():
+def test_collection() -> None:
     org = Organization(pk=666)
     project1 = Project(id=101, name="p1", organization=org)
     project2 = Project(id=102, name="project2", organization=org)
@@ -110,7 +111,7 @@ def test_collection():
     assert set() == set(get_transaction_names(project3))
 
 
-def test_clear_redis():
+def test_clear_redis() -> None:
     project = Project(id=101, name="p1", organization=Organization(pk=66))
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "foo")
     assert set(get_transaction_names(project)) == {"foo"}
@@ -122,7 +123,7 @@ def test_clear_redis():
     clear_samples(ClustererNamespace.TRANSACTIONS, project2)
 
 
-def test_clear_redis_projects():
+def test_clear_redis_projects() -> None:
     project1 = Project(id=101, name="p1", organization=Organization(pk=66))
     project2 = Project(id=102, name="p2", organization=Organization(pk=66))
     client = get_redis_client()
@@ -158,7 +159,7 @@ def test_clear_redis_projects():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
-def test_distribution():
+def test_distribution() -> None:
     """Make sure that the redis set prefers newer entries"""
     project = Project(id=103, name="", organization=Organization(pk=66))
     for i in range(1000):
@@ -184,7 +185,9 @@ def test_distribution():
         (None, "foo", [], 0),
     ],
 )
-def test_record_transactions(mocked_record, default_organization, source, txname, tags, expected):
+def test_record_transactions(
+    mocked_record, default_organization, source, txname, tags, expected
+) -> None:
     project = Project(id=111, name="project", organization_id=default_organization.id)
     record_transaction_name(
         project,
@@ -197,7 +200,7 @@ def test_record_transactions(mocked_record, default_organization, source, txname
     assert len(mocked_record.mock_calls) == expected
 
 
-def test_sort_rules():
+def test_sort_rules() -> None:
     rules = {
         ReplacementRule("/a/*/**"): 1,
         ReplacementRule("/a/**"): 2,
@@ -212,7 +215,7 @@ def test_sort_rules():
 
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @django_db_all
-def test_max_rule_threshold_merge_composite_store(default_project):
+def test_max_rule_threshold_merge_composite_store(default_project: mock.MagicMock) -> None:
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 
     with freeze_time("2000-01-01 01:00:00"):
@@ -237,7 +240,7 @@ def test_max_rule_threshold_merge_composite_store(default_project):
 
 
 @django_db_all
-def test_save_rules(default_project):
+def test_save_rules(default_project) -> None:
     project = default_project
 
     project_rules = get_rules(ClustererNamespace.TRANSACTIONS, project)
@@ -271,14 +274,14 @@ def test_save_rules(default_project):
 )
 @django_db_all
 @freeze_time("2000-01-01 01:00:00")
-def test_run_clusterer_task(cluster_projects_delay, default_organization):
+def test_run_clusterer_task(cluster_projects_delay, default_organization) -> None:
     def _add_mock_data(proj, number):
         for i in range(0, number):
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
 
-    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
         _add_mock_data(project, 4)
@@ -345,16 +348,40 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     )
 
 
+# From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay")
+@django_db_all
+@freeze_time("2000-01-01 01:00:00")
+def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_organization) -> None:
+    def _add_mock_data(proj, number):
+        for i in range(0, number):
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
+
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
+    for project in (project1, project2):
+        project.save()
+        _add_mock_data(project, 4)
+
+    spawn_clusterers()
+
+    assert cluster_projects_delay.call_count == 1
+    cluster_projects_delay.assert_called_once_with(project_ids=[project1.id, project2.id])
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @django_db_all
-def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project):
+def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project) -> None:
     project = default_project
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
-    cluster_projects([project])
+    cluster_projects(project_ids=[project.id])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
     assert mock_update_rules.call_args == mock.call(ClustererNamespace.TRANSACTIONS, project, [])
@@ -363,22 +390,38 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/2")
-    cluster_projects([project])
+    cluster_projects(project_ids=[project.id])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(
         ClustererNamespace.TRANSACTIONS, project, ["/transaction/number/*/**"]
     )
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @django_db_all
-def test_get_deleted_project():
+def test_clusterer_skips_deleted_projects(mock_update_rules, default_project) -> None:
+    project = default_project
+    assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
+
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
+    # The 6666 record doesn't exist, the task should not fail
+    cluster_projects(project_ids=[project.id, 6666])
+    assert mock_update_rules.call_count == 1
+    mock_update_rules.assert_called_once_with(ClustererNamespace.TRANSACTIONS, project, [])
+
+
+@django_db_all
+def test_get_deleted_project() -> None:
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _record_sample(ClustererNamespace.TRANSACTIONS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
+    assert list(get_active_project_ids(ClustererNamespace.TRANSACTIONS)) == [666]
 
 
 @django_db_all
-def test_transaction_clusterer_generates_rules(default_project):
+def test_transaction_clusterer_generates_rules(default_project) -> None:
     def _get_projconfig_tx_rules(project: Project):
         return get_project_config(project).to_dict()["config"].get("txNameRules")
 
@@ -416,7 +459,7 @@ def test_transaction_clusterer_generates_rules(default_project):
     wraps=cluster_projects,  # call immediately
 )
 @django_db_all
-def test_transaction_clusterer_bumps_rules(_, default_organization):
+def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
     project1 = Project(id=123, name="project1", organization_id=default_organization.id)
     project1.save()
 
@@ -466,7 +509,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
     wraps=cluster_projects,  # call immediately
 )
 @django_db_all
-def test_dont_store_inexisting_rules(_, default_organization):
+def test_dont_store_inexisting_rules(_, default_organization) -> None:
     rogue_transaction = {
         "transaction": "/transaction/for/rogue/*/rule",
         "transaction_info": {"source": "sanitized"},
@@ -503,7 +546,7 @@ def test_dont_store_inexisting_rules(_, default_organization):
 
 
 @django_db_all
-def test_stale_rules_arent_saved(default_project):
+def test_stale_rules_arent_saved(default_project) -> None:
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 
     with freeze_time("2000-01-01 01:00:00"):
@@ -526,7 +569,7 @@ def test_stale_rules_arent_saved(default_project):
     ]
 
 
-def test_bump_last_used():
+def test_bump_last_used() -> None:
     """Redis update works and does not delete other keys in the set."""
     project1 = Project(id=123, name="project1")
     RedisRuleStore(namespace=ClustererNamespace.TRANSACTIONS).write(
@@ -542,7 +585,7 @@ def test_bump_last_used():
 
 
 @django_db_all
-def test_stored_invalid_rules_dropped_on_update(default_project):
+def test_stored_invalid_rules_dropped_on_update(default_project) -> None:
     """
     Validate that invalid rules are removed from storage even if they already
     exist there. Updates before and after the removal don't impact the outcome.

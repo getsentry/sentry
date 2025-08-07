@@ -1,10 +1,20 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
 
 from sentry import onboarding_tasks
+from sentry.analytics import record
+from sentry.analytics.events.first_event_sent import (
+    FirstEventSentEvent,
+    FirstEventSentForProjectEvent,
+)
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
+from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -24,10 +34,15 @@ from sentry.signals import (
     member_invited,
     member_joined,
     project_created,
+    project_transferred,
     transaction_processed,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -41,14 +56,14 @@ pytestmark = [requires_snuba]
 
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_integration(self, provider, external_id=9999):
+    def _create_integration(self, provider: str, external_id: int = 9999):
         return self.create_provider_integration(
             provider=provider,
             name="test",
             external_id=external_id,
         )
 
-    def test_existing_complete_task(self):
+    def test_existing_complete_task(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         task = OrganizationOnboardingTask.objects.create(
@@ -58,14 +73,14 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         event = self.store_event(data={}, project_id=project.id)
-        first_event_received.send(project=project, event=event, sender=type(project))
+        first_event_received.send(project=project, event=event, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert not task.project_id
 
     # Tests on the receivers
-    def test_event_processed(self):
+    def test_event_processed(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(
@@ -98,7 +113,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
         )
 
-        event_processed.send(project=project, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -114,10 +129,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created(self):
+    def test_project_created(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -126,7 +141,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
         second_project = self.create_project(first_event=now)
-        project_created.send(project=second_project, user=self.user, sender=type(project))
+        project_created.send(project=second_project, user=self.user, sender=None)
 
         second_project.delete()
         task = OrganizationOnboardingTask.objects.get(
@@ -136,28 +151,28 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created__default_rule(self):
+    def test_project_created__default_rule(self) -> None:
         project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
 
         assert Rule.objects.filter(project=project).exists()
         assert not Workflow.objects.filter(organization=project.organization).exists()
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_project_created__default_workflow(self):
+    def test_project_created__default_workflow(self) -> None:
         project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
 
         assert Rule.objects.filter(project=project).exists()
         assert Workflow.objects.filter(
             organization=project.organization, name=DEFAULT_RULE_LABEL
         ).exists()
 
-    @patch("sentry.analytics.record")
-    def test_project_created_with_origin(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:
         project = self.create_project()
         project_created.send(
-            project=project, user=self.user, default_rules=False, sender=type(project), origin="ui"
+            project=project, user=self.user, default_rules=False, sender=None, origin="ui"
         )
 
         task = OrganizationOnboardingTask.objects.get(
@@ -175,22 +190,21 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization_id=self.organization.id,
             project_id=project.id,
             platform=project.platform,
-            updated_empty_state=False,
             origin="ui",
         )
 
-    @patch("sentry.analytics.record")
-    def test_first_event_received(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_first_event_received(self, record_analytics: MagicMock) -> None:
         now = timezone.now()
 
         # Create first project and send event
         project = self.create_project(first_event=now, platform="javascript")
-        project_created.send_robust(project=project, user=self.user, sender=type(project))
+        project_created.send_robust(project=project, user=self.user, sender=None)
         event = self.store_event(
             data={"platform": "javascript", "message": "javascript error message"},
             project_id=project.id,
         )
-        first_event_received.send_robust(project=project, event=event, sender=type(project))
+        first_event_received.send_robust(project=project, event=event, sender=None)
 
         # Assert first event onboarding task is created and completed
         task = OrganizationOnboardingTask.objects.get(
@@ -203,31 +217,33 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure analytics events are called in the right order
         assert len(record_analytics.call_args_list) >= 2  # Ensure at least two calls
-
-        record_analytics.call_args_list[-2].assert_called_with(
-            "first_event_for_project.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
-            has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=None,
+        assert_any_analytics_event(
+            record_analytics,
+            FirstEventSentForProjectEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+                has_minified_stack_trace=has_event_minified_stack_trace(event),
+                sdk_name=None,
+            ),
         )
 
-        record_analytics.call_args_list[-1].assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
+        assert_any_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+            ),
         )
-
         # Create second project and send event
         second_project = self.create_project(first_event=now, platform="python")
-        project_created.send(project=second_project, user=self.user, sender=type(second_project))
+        project_created.send(project=second_project, user=self.user, sender=None)
 
         # Assert second platform onboarding task is completed
         second_task = OrganizationOnboardingTask.objects.get(
@@ -238,9 +254,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert second_task is not None
 
         # An event is sent for the second project
-        first_event_received.send_robust(
-            project=second_project, event=event, sender=type(second_project)
-        )
+        first_event_received.send_robust(project=second_project, event=event, sender=None)
 
         # Ensure first project's onboarding task remains unchanged
         task = OrganizationOnboardingTask.objects.get(
@@ -252,24 +266,26 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Ensure "first_event_for_project.sent" was called again for second project
         record_analytics.call_args_list[-1].assert_called_with(
-            "first_event_for_project.sent",
-            user_id=self.user.id,
-            organization_id=second_project.organization_id,
-            project_id=second_project.id,
-            platform=event.platform,
-            project_platform=second_project.platform,
-            url=dict(event.tags).get("url", None),
-            has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=None,
+            FirstEventSentForProjectEvent(
+                user_id=self.user.id,
+                organization_id=second_project.organization_id,
+                project_id=second_project.id,
+                platform=event.platform,
+                project_platform=second_project.platform,
+                url=dict(event.tags).get("url", None),
+                has_minified_stack_trace=has_event_minified_stack_trace(event),
+                sdk_name=None,
+            )
         )
-
         # Ensure "first_event.sent" was called exactly once
         first_event_sent_calls = [
-            call for call in record_analytics.call_args_list if call[0][0] == "first_event.sent"
+            call
+            for call in record_analytics.call_args_list
+            if type(call[0][0]) is FirstEventSentEvent
         ]
         assert len(first_event_sent_calls) == 1
 
-    def test_first_transaction_received(self):
+    def test_first_transaction_received(self) -> None:
         project = self.create_project()
 
         event_data = load_data("transaction")
@@ -278,8 +294,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         event = self.store_event(data=event_data, project_id=project.id)
 
-        first_event_received.send(project=project, event=event, sender=type(project))
-        first_transaction_received.send(project=project, event=event, sender=type(project))
+        first_event_received.send(project=project, event=event, sender=None)
+        first_transaction_received.send(project=project, event=event, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -289,14 +305,12 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert task is not None
 
-        assert project.flags.has_transactions
-
-    def test_member_invited(self):
+    def test_member_invited(self) -> None:
         user = self.create_user(email="test@example.org")
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
         )
-        member_invited.send(member=member, user=user, sender=type(member))
+        member_invited.send(member=member, user=user, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -305,13 +319,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_alert_added(self):
+    def test_alert_added(self) -> None:
         alert_rule_created.send(
             rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="issue",
-            sender=type(Rule),
+            sender=None,
             is_api_token=False,
         )
         task = OrganizationOnboardingTask.objects.get(
@@ -321,9 +335,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_integration_added(self):
+    def test_integration_added(self) -> None:
         integration_added.send(
-            integration_id=self.create_integration("slack", 1234).id,
+            integration_id=self._create_integration("slack", 1234).id,
             organization_id=self.organization.id,
             user_id=self.user.id,
             sender=None,
@@ -337,7 +351,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Adding a second integration
         integration_added.send(
-            integration_id=self.create_integration("github", 4567).id,
+            integration_id=self._create_integration("github", 4567).id,
             organization_id=self.organization.id,
             user_id=self.user.id,
             sender=None,
@@ -349,15 +363,17 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    @patch("sentry.analytics.record")
-    def test_first_event_without_minified_stack_trace_received(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_first_event_without_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         there no event with minified stack trace is received
         """
         now = timezone.now()
         project = self.create_project(first_event=now)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         data = load_data("javascript")
         self.store_event(
             data=data,
@@ -374,15 +390,17 @@ class OrganizationOnboardingTaskTest(TestCase):
                 url="http://localhost:3000",
             )
 
-    @patch("sentry.analytics.record")
-    def test_first_event_with_minified_stack_trace_received(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_first_event_with_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is recorded when
         a first event with minified stack trace is received
         """
         now = timezone.now()
         project = self.create_project(first_event=now, platform="VueJS")
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         event = load_data("javascript")
         event["tags"] = [("url", url)]
@@ -428,7 +446,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             url=url,
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_minified_stack_trace_received(
         self, record_analytics
     ):
@@ -438,7 +456,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         """
         now = timezone.now()
         project = self.create_project(first_event=now)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         event = load_data("javascript")
         event["tags"] = [("url", url)]
@@ -488,8 +506,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 1
 
-    @patch("sentry.analytics.record")
-    def test_old_project_sending_minified_stack_trace_event(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_old_project_sending_minified_stack_trace_event(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ).
@@ -498,7 +518,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         """
         old_date = datetime(2022, 12, 10, tzinfo=UTC)
         project = self.create_project(first_event=old_date, date_added=old_date)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         event = load_data("javascript")
         event["tags"] = [("url", url)]
@@ -552,15 +572,15 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
-    def test_first_event_without_sourcemaps_received(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_first_event_without_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         no event with sourcemaps is received
         """
         now = timezone.now()
         project = self.create_project(first_event=now)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         data = load_data("javascript")
         data["exception"] = {
             "values": [
@@ -575,7 +595,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data=data,
         )
 
-        event_processed.send(project=project, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=None)
 
         count = 0
         for call_arg in record_analytics.call_args_list:
@@ -584,15 +604,15 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
-    def test_first_event_with_sourcemaps_received(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_first_event_with_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is recorded when
         a first event with sourcemaps is received
         """
         now = timezone.now()
         project = self.create_project(first_event=now, platform="VueJS")
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         data = load_data("javascript")
         data["tags"] = [("url", url)]
@@ -617,7 +637,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
             data=data,
         )
-        event_processed.send(project=project, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=None)
 
         record_analytics.assert_called_with(
             "first_sourcemaps_for_project.sent",
@@ -629,7 +649,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             url=url,
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
         self, record_analytics
     ):
@@ -639,7 +659,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         """
         now = timezone.now()
         project = self.create_project(first_event=now)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         data = load_data("javascript")
         data["tags"] = [("url", url)]
@@ -665,14 +685,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
             data=data,
         )
-        event_processed.send(project=project, event=event_1, sender=type(project))
+        event_processed.send(project=project, event=event_1, sender=None)
 
         # Store second event
         event_2 = self.store_event(
             project_id=project.id,
             data=data,
         )
-        event_processed.send(project=project, event=event_2, sender=type(project))
+        event_processed.send(project=project, event=event_2, sender=None)
 
         count = 0
         for call_arg in record_analytics.call_args_list:
@@ -681,8 +701,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 1
 
-    @patch("sentry.analytics.record")
-    def test_old_project_sending_sourcemap_event(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_old_project_sending_sourcemap_event(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_SOURCEMAPS_PER_PROJ).
@@ -691,7 +711,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         """
         old_date = datetime(2022, 12, 10, tzinfo=UTC)
         project = self.create_project(first_event=old_date, date_added=old_date)
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
         url = "http://localhost:3000"
         data = load_data("javascript")
         data["tags"] = [("url", url)]
@@ -718,7 +738,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert not _project_has_sourcemaps(project)
 
         event = self.store_event(project_id=project.id, data=data)
-        event_processed.send(project=project, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=None)
 
         project.refresh_from_db()
 
@@ -732,9 +752,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
-    def test_real_time_notifications_added(self, record_analytics):
-        integration_id = self.create_integration("slack", 123).id
+    @patch("sentry.analytics.record", wraps=record)
+    def test_real_time_notifications_added(self, record_analytics: MagicMock) -> None:
+        integration_id = self._create_integration("slack", 123).id
         integration_added.send(
             integration_id=integration_id,
             organization_id=self.organization.id,
@@ -748,18 +768,20 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="slack",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            ),
         )
 
-    @patch("sentry.analytics.record")
-    def test_source_code_management_added(self, record_analytics):
-        integration_id = self.create_integration("github", 123).id
+    @patch("sentry.analytics.record", wraps=record)
+    def test_source_code_management_added(self, record_analytics: MagicMock) -> None:
+        integration_id = self._create_integration("github", 123).id
         integration_added.send(
             integration_id=integration_id,
             organization_id=self.organization.id,
@@ -773,22 +795,24 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            id=integration_id,
-            provider="github",
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            ),
         )
 
-    def test_second_platform_complete(self):
+    def test_second_platform_complete(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
 
-        project_created.send(project=project, user=self.user, sender=type(project))
-        project_created.send(project=second_project, user=self.user, sender=type(second_project))
+        project_created.send(project=project, user=self.user, sender=None)
+        project_created.send(project=second_project, user=self.user, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -797,14 +821,14 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_release_received_through_transaction_event(self):
+    def test_release_received_through_transaction_event(self) -> None:
         project = self.create_project()
 
         event_data = load_data("transaction")
         event_data.update({"release": "my-first-release", "tags": []})
 
         event = self.store_event(data=event_data, project_id=project.id)
-        event_processed.send(project=project, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -813,13 +837,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_issue_alert_received_through_project_creation(self):
+    def test_issue_alert_received_through_project_creation(self) -> None:
         now = timezone.now()
 
         first_organization = self.create_organization(owner=self.user, slug="first-org")
         first_project = self.create_project(first_event=now, organization=first_organization)
         # By default, the project creation will create a default rule
-        project_created.send(project=first_project, user=self.user, sender=type(first_project))
+        project_created.send(project=first_project, user=self.user, sender=None)
         assert OrganizationOnboardingTask.objects.filter(
             organization=first_project.organization,
             task=OnboardingTask.ALERT_RULE,
@@ -832,7 +856,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
         assert not OrganizationOnboardingTask.objects.filter(
@@ -841,17 +865,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         ).exists()
 
-    # New quick start
-    @patch("sentry.analytics.record")
-    def test_new_onboarding_complete(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_new_onboarding_complete(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (without source maps)
         """
         # Create first project
         project = self.create_project(platform="python")
-        project_created.send(
-            project=project, user=self.user, default_rules=False, sender=type(project)
-        )
+        project_created.send(project=project, user=self.user, default_rules=False, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -867,7 +888,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization_id=self.organization.id,
             project_id=project.id,
             platform=project.platform,
-            updated_empty_state=False,
             origin=None,
         )
 
@@ -875,7 +895,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         transaction_event = load_data("transaction")
         transaction_event.update({"user": None})
         event = self.store_event(data=transaction_event, project_id=project.id)
-        transaction_processed.send(project=project, event=event, sender=type(project))
+        transaction_processed.send(project=project, event=event, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -884,14 +904,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_transaction.sent",
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstTransactionSentEvent(
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
         )
-
         #  Capture first error
         error_event = self.store_event(
             data={
@@ -902,7 +923,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             },
             project_id=project.id,
         )
-        event_processed.send(project=project, event=error_event, sender=type(project))
+        event_processed.send(project=project, event=error_event, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -911,13 +932,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_event.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=error_event.platform,
-            project_platform=project.platform,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstEventSentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=error_event.platform,
+                project_platform=project.platform,
+            ),
         )
 
         # Configure an issue alert
@@ -926,7 +949,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=project,
             user=self.user,
             rule_type="issue",
-            sender=type(Rule),
+            sender=None,
             is_api_token=False,
         )
         assert (
@@ -958,7 +981,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         transaction_event = load_data("transaction")
         transaction_event.update({"release": "my-first-release", "tags": []})
         event = self.store_event(data=transaction_event, project_id=project.id)
-        transaction_processed.send(project=project, event=event, sender=type(project))
+        transaction_processed.send(project=project, event=event, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -977,7 +1000,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Link Sentry to source code
-        github_integration = self.create_integration("github", 1234)
+        github_integration = self._create_integration("github", 1234)
         integration_added.send(
             integration_id=github_integration.id,
             organization_id=self.organization.id,
@@ -992,13 +1015,15 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=github_integration.provider,
-            id=github_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=github_integration.provider,
+                id=github_integration.id,
+            ),
         )
 
         # Invite your team
@@ -1006,7 +1031,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
         )
-        member_invited.send(member=member, user=user, sender=type(member))
+        member_invited.send(member=member, user=user, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -1015,12 +1040,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "member.invited",
-            invited_member_id=member.id,
-            inviter_user_id=user.id,
-            organization_id=self.organization.id,
-            referrer=None,
+        assert_last_analytics_event(
+            record_analytics,
+            MemberInvitedEvent(
+                invited_member_id=member.id,
+                inviter_user_id=user.id,
+                organization_id=self.organization.id,
+                referrer=None,
+            ),
         )
 
         # Manually update the completionSeen column of existing tasks
@@ -1038,7 +1065,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Set up session replay
-        first_replay_received.send(project=project, sender=type(project))
+        first_replay_received.send(project=project, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -1047,16 +1074,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "first_replay.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
-        )
-
-        # Get real time notifications
-        slack_integration = self.create_integration("slack", 4321)
+        assert_last_analytics_event(
+            record_analytics,
+            FirstReplaySentEvent(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
+        )  # Get real time notifications
+        slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
             organization_id=self.organization.id,
@@ -1071,15 +1098,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.assert_called_with(
-            "integration.added",
-            user_id=self.user.id,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            provider=slack_integration.provider,
-            id=slack_integration.id,
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=slack_integration.provider,
+                id=slack_integration.id,
+            ),
         )
-
         # Add Sentry to other parts app
         second_project = self.create_project(
             first_event=timezone.now(), organization=self.organization
@@ -1087,7 +1115,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
         assert (
@@ -1127,20 +1155,20 @@ class OrganizationOnboardingTaskTest(TestCase):
             referrer="onboarding_tasks",
         )
 
-    @patch("sentry.analytics.record")
-    def test_source_maps_as_required_task(self, record_analytics):
+    @patch("sentry.analytics.record", wraps=record)
+    def test_source_maps_as_required_task(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (with source maps)
         """
         # Create a project that can have source maps + create an issue alert
         project = self.create_project(platform="javascript")
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send(project=project, user=self.user, sender=None)
 
         # Capture first transaction + release
         transaction_event = load_data("transaction")
         transaction_event.update({"release": "my-first-release", "tags": []})
         event = self.store_event(data=transaction_event, project_id=project.id)
-        transaction_processed.send(project=project, event=event, sender=type(project))
+        transaction_processed.send(project=project, event=event, sender=None)
 
         #  Capture first error
         error_event = self.store_event(
@@ -1153,25 +1181,25 @@ class OrganizationOnboardingTaskTest(TestCase):
             },
             project_id=project.id,
         )
-        event_processed.send(project=project, event=error_event, sender=type(project))
+        event_processed.send(project=project, event=error_event, sender=None)
 
         # Invite your team
         user = self.create_user(email="test@example.org")
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
         )
-        member_invited.send(member=member, user=user, sender=type(member))
+        member_invited.send(member=member, user=user, sender=None)
 
         # Member accepted the invite
         member_joined.send(
             organization_member_id=member.id,
             organization_id=self.organization.id,
-            user_id=member.user_id,
+            user_id=user.id,
             sender=None,
         )
 
         # Link Sentry to source code
-        github_integration = self.create_integration("github", 1234)
+        github_integration = self._create_integration("github", 1234)
         integration_added.send(
             integration_id=github_integration.id,
             organization_id=self.organization.id,
@@ -1180,10 +1208,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         # Set up session replay
-        first_replay_received.send(project=project, sender=type(project))
+        first_replay_received.send(project=project, sender=None)
 
         # Get real time notifications
-        slack_integration = self.create_integration("slack", 4321)
+        slack_integration = self._create_integration("slack", 4321)
         integration_added.send(
             integration_id=slack_integration.id,
             organization_id=self.organization.id,
@@ -1198,7 +1226,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
 
@@ -1240,7 +1268,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
             data=data,
         )
-        event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
+        event_processed.send(project=project, event=event_with_sourcemap, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -1283,3 +1311,100 @@ class OrganizationOnboardingTaskTest(TestCase):
             ).count()
             == 1
         )
+
+    @patch("sentry.analytics.record", wraps=record)
+    def test_tasks_are_transferred_when_project_is_transferred(
+        self, record_analytics: MagicMock
+    ) -> None:
+        """
+        Test that onboarding tasks are transferred when a project is transferred
+        """
+
+        project = self.create_project(platform="python")
+        project_created.send(project=project, user=self.user, default_rules=True, sender=None)
+
+        transaction_event = load_data("transaction")
+        transaction_event.update({"user": None, "release": "my-first-release", "tags": []})
+        event = self.store_event(data=transaction_event, project_id=project.id)
+        transaction_processed.send(project=project, event=event, sender=None)
+
+        data = load_data("javascript")
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        event_with_sourcemap = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_with_sourcemap, sender=None)
+
+        error_event = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "this is bad.",
+                "timestamp": timezone.now().isoformat(),
+                "type": "error",
+            },
+            project_id=project.id,
+        )
+        event_processed.send(project=project, event=error_event, sender=None)
+
+        first_replay_received.send(project=project, sender=None)
+
+        new_organization = self.create_organization(slug="new-org")
+
+        project.organization = new_organization
+        project_transferred.send(
+            old_org_id=self.organization.id,
+            project=project,
+            sender=None,
+        )
+
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            ),
+        )
+        project2 = self.create_project(platform="javascript-react")
+        project_created.send(project=project2, user=self.user, default_rules=False, sender=None)
+        project2.organization = new_organization
+        project_transferred.send(
+            old_org_id=self.organization.id,
+            project=project2,
+            sender=None,
+        )
+
+        assert_last_analytics_event(
+            record_analytics,
+            ProjectTransferredEvent(
+                old_organization_id=self.organization.id,
+                new_organization_id=new_organization.id,
+                project_id=project2.id,
+                platform=project2.platform,
+            ),
+        )
+
+        transferred_tasks = OrganizationOnboardingTask.objects.filter(
+            organization_id=new_organization.id,
+            task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+        )
+
+        self.assertEqual(len(transferred_tasks), len(OrganizationOnboardingTask.TRANSFERABLE_TASKS))

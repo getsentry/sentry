@@ -1,80 +1,54 @@
 import {Fragment} from 'react';
 
-import {Toast} from 'sentry/components/core/toast';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import {Toast, type ToastProps} from 'sentry/components/core/toast';
+import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/toast';
 
-export default storyBook('Toast', (story, APIReference) => {
+function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastProps {
+  return {
+    indicator: {
+      type,
+      message: 'Successful operation',
+      options: {},
+      id: 'success-toast',
+    },
+    onDismiss: () => {
+      // eslint-disable-next-line no-alert
+      alert('Dismissed!');
+    },
+  };
+}
+export default Storybook.story('Toast', (story, APIReference) => {
   APIReference(types.Toast);
 
   story('Toast types', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Toast" /> component comes in different types. To display a
-          toast, use the <JSXNode name="addSuccessMessage" /> or
-          <JSXNode name="addErrorMessage" /> functions from{' '}
+          The <Storybook.JSXNode name="Toast" /> component comes in different types. To
+          display a toast, use the <Storybook.JSXNode name="addSuccessMessage" /> or
+          <Storybook.JSXNode name="addErrorMessage" /> functions from{' '}
           <code>static/app/actionCreators/indicator.tsx</code>.
         </p>
-        <SideBySide>
-          <Toast
-            indicator={{
-              type: 'success' as const,
-              message: 'Successful operation',
-              options: {},
-              id: 'success-toast',
-            }}
-            onDismiss={() => {
+        <Storybook.SideBySide>
+          {(['success', 'error', 'loading', 'undo'] as const).map(type => (
+            <Toast key={type} {...makeToastProps(type)} />
+          ))}
+        </Storybook.SideBySide>
+
+        <p>Toast support undoable actions.</p>
+        <Storybook.SideBySide>
+          {(['success', 'error', 'loading', 'undo'] as const).map(type => {
+            const props = makeToastProps(type);
+            props.indicator.options.undo = () => {
               // eslint-disable-next-line no-alert
-              alert('Dismissed!');
-            }}
-          />
-          <Toast
-            indicator={{
-              type: 'error' as const,
-              message: 'Error operation',
-              options: {},
-              id: 'error-toast',
-            }}
-            onDismiss={() => {
-              // eslint-disable-next-line no-alert
-              alert('Dismissed!');
-            }}
-          />
-          <Toast
-            indicator={{
-              type: 'loading' as const,
-              message: 'Loading operation',
-              options: {},
-              id: 'loading-toast',
-            }}
-            onDismiss={() => {
-              // eslint-disable-next-line no-alert
-              alert('Dismissed!');
-            }}
-          />
-          <Toast
-            indicator={{
-              type: 'undo' as const,
-              message: 'Undo operation',
-              options: {
-                undo: () => {
-                  // eslint-disable-next-line no-alert
-                  alert('Undo!');
-                },
-              },
-              id: 'undo-toast',
-            }}
-            onDismiss={() => {
-              // eslint-disable-next-line no-alert
-              alert('Dismissed!');
-            }}
-          />
-        </SideBySide>
+              alert('Undone!');
+            };
+
+            return <Toast key={type} {...props} />;
+          })}
+        </Storybook.SideBySide>
       </Fragment>
     );
   });

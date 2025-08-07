@@ -6,8 +6,6 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
-import Well from 'sentry/components/well';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -17,9 +15,8 @@ import PageHeader from 'admin/components/pageHeader';
 
 const FILE_MAX_SIZE = 200e6; // 200 MB limit for file upload
 
-const PROMO_CODE_ERROR_MSG = t(
-  'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
-);
+const PROMO_CODE_ERROR_MSG =
+  'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.';
 
 function RelocationForm() {
   // Use our own api client to initialize, since we need to be careful with the headers when using multipart/form-data
@@ -44,7 +41,7 @@ function RelocationForm() {
     try {
       // Verify that the promo code exists, has remaining claims, etc.
       const promoCode = formData.get('promo_code');
-      if (promoCode) {
+      if (typeof promoCode === 'string' && promoCode) {
         await promoCodeApi
           .requestPromise(`/promocodes-external/${promoCode}`, {
             method: 'GET',
@@ -129,7 +126,7 @@ function RelocationForm() {
             setRegion(reg);
           }}
         />
-        <UploadWell centered>
+        <UploadWell>
           <UploadInput
             name="file"
             type="file"
@@ -172,8 +169,14 @@ function RelocationForm() {
   );
 }
 
-const UploadWell = styled(Well)`
+const UploadWell = styled('div')`
   margin-top: ${space(2)};
+  margin-bottom: ${space(3)};
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  padding: ${space(2)} ${space(3)};
+  border-radius: 3px;
+  text-align: center;
 `;
 
 const UploadInput = styled('input')`

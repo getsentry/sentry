@@ -9,9 +9,9 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('KeyValueData', story => {
+export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
       import KeyValueData from 'sentry/components/keyValueData';
@@ -277,11 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'null-subject-node',
         subject: 'null-subject-node',
         subjectNode: null,
-        value: (
-          <Alert type="warning" showIcon>
-            Custom value can also span full length
-          </Alert>
-        ),
+        value: <Alert type="warning">Custom value can also span full length</Alert>,
       },
     },
     {

@@ -71,10 +71,12 @@ export const getTabCrumbs = ({
   traceSlug,
   view,
   vitalName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
   organization: Organization;
   eventSlug?: string;
+  shouldUseOTelFriendlyUI?: boolean;
   spanSlug?: SpanSlug;
   traceSlug?: string;
   transaction?: {
@@ -113,9 +115,7 @@ export const getTabCrumbs = ({
     view,
   };
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
-
-  isEAP
+  shouldUseOTelFriendlyUI
     ? crumbs.push({
         to: transactionSummaryRouteWithQuery(routeQuery),
         label: t('Service Entry Span Summary'),

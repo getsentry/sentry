@@ -75,6 +75,7 @@ describe('Incident Rules Create', function () {
             statsPeriod: '9998m',
             yAxis: 'count()',
             referrer: 'api.organization-event-stats',
+            dataset: 'errors',
           },
         })
       )

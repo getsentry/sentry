@@ -3,11 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DataCategory} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import {MAX_ADMIN_CATEGORY_GIFTS} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 
 describe('Gift', function () {
   const mockOrg = OrganizationFixture();
@@ -20,6 +20,7 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.ERRORS}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR]}
             {...deps}
           />
         ),
@@ -38,7 +39,8 @@ describe('Gift', function () {
     }
 
     it('has valid event volume', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.ERRORS] / 1000;
+      const maxValue =
+        BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR].maxAdminGift / 1000;
       triggerGiftModal();
 
       renderGlobalModal();
@@ -81,6 +83,7 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.ATTACHMENTS}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT]}
             {...deps}
           />
         ),
@@ -99,7 +102,8 @@ describe('Gift', function () {
     }
 
     it('has valid event volume', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.ATTACHMENTS];
+      const maxValue =
+        BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].maxAdminGift;
       triggerGiftModal();
       renderGlobalModal();
 
@@ -141,6 +145,9 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.PROFILE_DURATION}
+            billedCategoryInfo={
+              BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION]
+            }
             {...deps}
           />
         ),
@@ -159,7 +166,8 @@ describe('Gift', function () {
     }
 
     it('has valid profile duration input', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.PROFILE_DURATION];
+      const maxValue =
+        BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION].maxAdminGift;
       triggerGiftModal();
       renderGlobalModal();
 
@@ -201,6 +209,7 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.REPLAYS}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY]}
             {...deps}
           />
         ),
@@ -219,7 +228,7 @@ describe('Gift', function () {
     }
 
     it('has valid replay input', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.REPLAYS];
+      const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY].maxAdminGift;
       triggerGiftModal();
 
       renderGlobalModal();
@@ -262,6 +271,7 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.MONITOR_SEATS}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT]}
             {...deps}
           />
         ),
@@ -280,7 +290,8 @@ describe('Gift', function () {
     }
 
     it('has valid monitor input', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.MONITOR_SEATS];
+      const maxValue =
+        BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT].maxAdminGift;
       triggerGiftModal();
 
       renderGlobalModal();
@@ -316,6 +327,67 @@ describe('Gift', function () {
     });
   });
 
+  describe('Log Bytes', function () {
+    const triggerGiftModal = () => {
+      openAdminConfirmModal({
+        renderModalSpecificContent: deps => (
+          <AddGiftEventsAction
+            subscription={mockSub}
+            dataCategory={DataCategory.LOG_BYTE}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE]}
+            {...deps}
+          />
+        ),
+      });
+    };
+
+    function getLogBytesInput() {
+      return screen.getByRole('textbox', {
+        name: 'How many logs in GB?',
+      });
+    }
+
+    async function setNumLogBytes(numLogBytes: string) {
+      await userEvent.clear(getLogBytesInput());
+      await userEvent.type(getLogBytesInput(), numLogBytes);
+    }
+
+    it('has valid log bytes input', async function () {
+      const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.LOG_BYTE].maxAdminGift;
+      triggerGiftModal();
+      renderGlobalModal();
+
+      const logBytesInput = getLogBytesInput();
+
+      await setNumLogBytes('1');
+      expect(logBytesInput).toHaveValue('1');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 1 GB');
+
+      await setNumLogBytes('-50');
+      expect(logBytesInput).toHaveValue('50');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 50 GB');
+
+      await setNumLogBytes(`${maxValue + 5}`);
+      expect(logBytesInput).toHaveValue('10000');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10,000 GB');
+
+      await setNumLogBytes('10,');
+      expect(logBytesInput).toHaveValue('10');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 10 GB');
+
+      await setNumLogBytes('5.');
+      expect(logBytesInput).toHaveValue('5');
+      expect(logBytesInput).toHaveAccessibleDescription('Total: 5 GB');
+    });
+
+    it('disables confirm button when no number is entered', function () {
+      triggerGiftModal();
+
+      renderGlobalModal();
+      expect(screen.getByTestId('confirm-button')).toBeDisabled();
+    });
+  });
+
   describe('Uptime Monitors', function () {
     const triggerGiftModal = () => {
       openAdminConfirmModal({
@@ -323,6 +395,7 @@ describe('Gift', function () {
           <AddGiftEventsAction
             subscription={mockSub}
             dataCategory={DataCategory.UPTIME}
+            billedCategoryInfo={BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME]}
             {...deps}
           />
         ),
@@ -341,7 +414,7 @@ describe('Gift', function () {
     }
 
     it('has valid monitor input', async function () {
-      const maxValue = MAX_ADMIN_CATEGORY_GIFTS[DataCategory.UPTIME];
+      const maxValue = BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME].maxAdminGift;
       triggerGiftModal();
 
       renderGlobalModal();

@@ -63,7 +63,6 @@ const renderModal = async (props?: Partial<SourceMapsDebuggerModalProps>) => {
             analyticsParams={defaultAnalyticsParams}
             sourceResolutionResults={defaultSourceResolutionResults}
             projectId="1"
-            orgSlug="org-slug"
             {...props}
             {...modalProps}
           />
@@ -98,32 +97,65 @@ describe('SourceMapsDebuggerModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('does not render "Debug IDs" tab if the SDK does not support it', async function () {
+  it('hides all tabs - when full Debug ID support and no scraping data', async function () {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
-        sdkDebugIdSupport: 'not-supported',
+        sdkDebugIdSupport: 'full',
+        hasScrapingData: false,
       },
     });
 
-    expect(screen.queryByRole('tab', {name: /debug ids/i})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
 
     // Close modal
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
-  it('if SDK fully supports Debug IDs, renders "Debug IDs" tab as active', async function () {
+  it('hides all tabs - when unsupported Debug ID and no scraping data', async function () {
+    await renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'not-supported',
+        hasScrapingData: false,
+      },
+    });
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('display tabs - except releases', async function () {
     await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
         sdkDebugIdSupport: 'full',
+        hasScrapingData: true,
       },
     });
 
-    expect(screen.getByRole('tab', {name: /debug ids/i})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(screen.getByRole('tab', {name: /debug ids/i})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: /releases/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /hosting publicly/i})).toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('display tabs - except debug ids', async function () {
+    await renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'not-supported',
+        hasScrapingData: true,
+      },
+    });
+
+    expect(screen.queryByRole('tab', {name: /debug ids/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /releases/i})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /hosting publicly/i})).toBeInTheDocument();
 
     // Close modal
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));

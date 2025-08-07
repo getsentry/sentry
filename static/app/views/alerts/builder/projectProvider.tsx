@@ -14,9 +14,9 @@ import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = RouteComponentProps<RouteParams> & {
+  children: React.ReactNode;
   hasMetricAlerts: boolean;
   organization: Organization;
-  children?: React.ReactNode;
 };
 
 type RouteParams = {
@@ -70,7 +70,7 @@ function AlertBuilderProjectProvider(props: Props) {
   if (!project || fetchError) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           {t('The project you were looking for was not found.')}
         </Alert>
       </Alert.Container>

@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
 
 
 def get_homepage_query(organization, user):
@@ -29,7 +30,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.EXPLORE
 
     permission_classes = (
         SentryIsAuthenticated,
@@ -41,7 +42,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -52,7 +53,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         return Response(serialize(query), status=status.HTTP_200_OK)
 
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -77,14 +78,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             raise ParseError(serializer.errors)
 
         data = serializer.validated_data
-        user_selected_dataset = (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            )
-            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
-        )
+        user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
         if previous_homepage:
             previous_homepage.update(
                 organization=organization,

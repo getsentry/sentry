@@ -12,10 +12,10 @@ from sentry.types.activity import ActivityType
 
 
 class ClearExpiredResolutionsTest(TestCase):
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert clear_expired_resolutions.name == "sentry.tasks.clear_expired_resolutions"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
 
         old_release = Release.objects.create(organization_id=project.organization_id, version="a")

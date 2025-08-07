@@ -4,9 +4,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+from django.db.models import prefetch_related_objects
+
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -97,12 +98,7 @@ class DashboardWidgetSerializer(Serializer):
         )
 
         if (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                obj.dashboard.organization,
-                actor=user,
-            )
-            and obj.widget_type == DashboardWidgetTypes.DISCOVER
+            obj.widget_type == DashboardWidgetTypes.DISCOVER
             and obj.discover_widget_split is not None
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
@@ -192,10 +188,14 @@ class DashboardListResponse(TypedDict):
     title: str
     dateCreated: str
     createdBy: UserSerializerResponse
+    environment: list[str]
+    filters: DashboardFilters
+    lastVisited: str | None
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    projects: list[int]
 
 
 class _WidgetPreview(TypedDict):
@@ -209,11 +209,65 @@ class _Widget(TypedDict):
     created_by: dict[str, Any] | None
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
+    projects: list[int]
+    environment: list[str]
+    filters: DashboardFilters
+    last_visited: str | None
 
 
-class DashboardListSerializer(Serializer):
+class PageFiltersOptional(TypedDict, total=False):
+    period: str
+    utc: str
+    expired: bool
+    start: datetime
+    end: datetime
+
+
+class PageFilters(PageFiltersOptional):
+    projects: list[int]
+    environment: list[str]
+
+
+class DashboardFiltersMixin:
+    def get_filters(self, obj: Dashboard) -> tuple[PageFilters, DashboardFilters]:
+        from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+
+        dashboard_filters = obj.get_filters()
+        page_filters: PageFilters = {
+            "projects": dashboard_filters.get("projects", []),
+            "environment": dashboard_filters.get("environment", []),
+            "expired": dashboard_filters.get("expired", False),
+        }
+        start, end, period = (
+            dashboard_filters.get("start"),
+            dashboard_filters.get("end"),
+            dashboard_filters.get("period"),
+        )
+        if start and end:
+            start_parsed, end_parsed = parse_timestamp(start), parse_timestamp(end)
+            page_filters["expired"], page_filters["start"] = outside_retention_with_modified_start(
+                start_parsed, end_parsed, obj.organization
+            )
+            page_filters["end"] = end_parsed
+        elif period:
+            page_filters["period"] = period
+
+        if dashboard_filters.get("utc") is not None:
+            page_filters["utc"] = dashboard_filters["utc"]
+
+        tag_filters: DashboardFilters = {}
+        for filter_key in ("release", "releaseId"):
+            if dashboard_filters.get(camel_to_snake_case(filter_key)):
+                tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
+
+        return page_filters, tag_filters
+
+
+class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
+        organization = kwargs.get("context", {}).get("organization")
         item_dict = {i.id: i for i in item_list}
+        prefetch_related_objects(item_list, "projects", "dashboardlastvisited_set__member")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
             "order"
@@ -228,7 +282,17 @@ class DashboardListSerializer(Serializer):
         permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
 
         result: dict[int, _Widget]
-        result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
+        result = defaultdict(
+            lambda: {
+                "widget_display": [],
+                "widget_preview": [],
+                "created_by": {},
+                "projects": [],
+                "environment": [],
+                "filters": {},
+                "last_visited": None,
+            }
+        )
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
             display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
@@ -265,8 +329,25 @@ class DashboardListSerializer(Serializer):
             result[dashboard]["permissions"] = serialize(permission)
 
         for dashboard in item_dict.values():
+            if features.has(
+                "organizations:dashboards-starred-reordering",
+                organization,
+                actor=user,
+            ):
+                visit = dashboard.dashboardlastvisited_set.filter(
+                    dashboard=dashboard,
+                    member__user_id=user.id,
+                    member__organization=organization,
+                ).first()
+                result[dashboard]["last_visited"] = visit.last_visited if visit else None
+
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
+
+            page_filters, tag_filters = self.get_filters(dashboard)
+            result[dashboard]["projects"] = page_filters.get("projects", [])
+            result[dashboard]["environment"] = page_filters.get("environment", [])
+            result[dashboard]["filters"] = tag_filters
 
         return result
 
@@ -280,6 +361,10 @@ class DashboardListSerializer(Serializer):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
+            "projects": attrs.get("projects", []),
+            "environment": attrs.get("environment", []),
+            "filters": attrs.get("filters", {}),
+            "lastVisited": attrs.get("last_visited", None),
         }
 
 
@@ -294,7 +379,7 @@ class DashboardDetailsResponseOptional(TypedDict, total=False):
     utc: str
     expired: bool
     start: datetime
-    end: str
+    end: datetime
 
 
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):
@@ -310,7 +395,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
 
 
 @register(Dashboard)
-class DashboardDetailsModelSerializer(Serializer):
+class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
@@ -330,38 +415,19 @@ class DashboardDetailsModelSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
-        from sentry.api.serializers.rest_framework.base import camel_to_snake_case
-
+        page_filters, tag_filters = self.get_filters(obj)
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
             "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
             "widgets": attrs["widgets"],
-            "projects": [project.id for project in obj.projects.all()],
-            "filters": {},
+            "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
+            "projects": page_filters.get("projects", []),
+            "environment": page_filters.get("environment", []),
+            **page_filters,
         }
-
-        if obj.filters is not None:
-            if obj.filters.get("all_projects"):
-                data["projects"] = list(ALL_ACCESS_PROJECTS)
-
-            for tl_key in ("environment", "period", "utc"):
-                if obj.filters.get(tl_key) is not None:
-                    data[tl_key] = obj.filters[tl_key]
-
-            for filter_key in ("release", "releaseId"):
-                if obj.filters.get(camel_to_snake_case(filter_key)):
-                    data["filters"][filter_key] = obj.filters[camel_to_snake_case(filter_key)]
-
-            start, end = obj.filters.get("start"), obj.filters.get("end")
-            if start and end:
-                start, end = parse_timestamp(start), parse_timestamp(end)
-                data["expired"], data["start"] = outside_retention_with_modified_start(
-                    start, end, obj.organization
-                )
-                data["end"] = end
 
         return data

@@ -13,9 +13,10 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import clamp_date_range, handle_query_errors
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 
 
 @region_silo_endpoint
@@ -23,9 +24,9 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
@@ -83,6 +84,6 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     format_grouped_length(len(results), [1, 10, 50, 100]),
                 )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
-                set_measurement("custom_tags.count", len(results))
+                set_span_attribute("custom_tags.count", len(results))
 
         return Response(serialize(results, request.user))

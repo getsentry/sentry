@@ -4,24 +4,25 @@ import sortBy from 'lodash/sortBy';
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
+import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}>;
-
-function OrganizationCrumb({params, routes, route, ...props}: Props) {
+function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
+  const params = useParams();
 
   const handleSelect = (item: {value: Organization}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
@@ -52,7 +53,7 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
     const resolvedUrl = resolveRoute(path, organization, itemOrg);
     // If we have a shift in domains, we can't use history
     if (resolvedUrl.startsWith('http')) {
-      window.location.assign(resolvedUrl);
+      testableWindowLocation.assign(resolvedUrl);
     } else {
       navigate(resolvedUrl);
     }
@@ -80,6 +81,7 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
       items={sortBy(organizations, ['name']).map((org, index) => ({
         index,
         value: org,
+        searchKey: org.name,
         label: (
           <MenuItem>
             <IdBadge organization={org} />

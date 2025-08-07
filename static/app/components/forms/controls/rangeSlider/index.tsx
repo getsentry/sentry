@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
 import {Slider} from 'sentry/components/core/slider';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -127,18 +127,17 @@ function RangeSlider({
     setSliderValue(value);
   }
 
-  function getActualValue(newSliderValue: SliderProps['value']): SliderProps['value'] {
+  function getActualValue(newSliderValue: number): number {
     if (!allowedValues) {
       return newSliderValue;
     }
 
     // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    return allowedValues[newSliderValue];
+    return allowedValues[newSliderValue]!;
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseFloat(e.target.value);
+    const newSliderValue = e.currentTarget.valueAsNumber;
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
@@ -196,13 +195,13 @@ function RangeSlider({
             max={max}
             step={step}
             disabled={disabled}
-            onChange={handleInput}
-            onInput={handleInput}
+            onChange={(_, e) => handleInput(e)}
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
+            formatLabel={showLabel ? undefined : () => null}
           />
           {showCustomInput && (
             <StyledInput
@@ -230,5 +229,3 @@ const StyledInput = styled(Input)<{hasLabel: boolean}>`
 `;
 
 export default RangeSlider;
-
-export type {SliderProps};

@@ -157,7 +157,7 @@ interface IssueAlertSentryAppIntegrationConfig extends IssueAlertConfigBase {
 /**
  * The actions that an organization has enabled and can be used to create an issue alert.
  */
-export type IssueAlertConfigurationAction =
+type IssueAlertConfigurationAction =
   | IssueAlertGenericActionConfig
   | IssueAlertTicketIntegrationConfig
   | IssueAlertSentryAppIntegrationConfig
@@ -206,6 +206,12 @@ export type IssueAlertRuleCondition = Omit<
 > & {
   dynamic_form_fields?: IssueConfigField[];
 } & Record<string, number | string>;
+
+export interface TicketActionData {
+  [key: string]: any;
+  integration: string;
+  dynamic_form_fields?: IssueConfigField[];
+}
 
 interface SlackAction {
   channel: string | undefined;

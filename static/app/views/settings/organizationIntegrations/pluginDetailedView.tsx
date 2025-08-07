@@ -2,8 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -25,6 +27,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 import {
   INSTALLED,
@@ -57,6 +60,8 @@ function PluginDetailedView() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
+
+  const {projects} = useProjects();
 
   const {data: plugins, isPending} = useApiQuery<PluginWithProjectList[]>(
     makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
@@ -236,6 +241,18 @@ function PluginDetailedView() {
     },
     [handleAddToProject, integrationName, integrationSlug, integrationType]
   );
+  const renderDeprecatedButton = useCallback(() => {
+    return (
+      <Tooltip
+        title={t(
+          'This Plugin is deprecated and not available to install on new projects.'
+        )}
+        isHoverable
+      >
+        <Button disabled>Add to Project</Button>
+      </Tooltip>
+    );
+  }, []);
 
   const renderConfigurations = useCallback(() => {
     if (plugin?.projectList.length) {
@@ -248,6 +265,10 @@ function PluginDetailedView() {
                 key={projectItem.projectId}
                 organization={organization}
                 plugin={plugin}
+                hasAccess={hasEveryAccess(['project:write'], {
+                  organization,
+                  project: projects.find(p => p.id === projectItem.projectId.toString()),
+                })}
                 projectItem={projectItem}
                 onResetConfiguration={handleResetConfiguration}
                 onPluginEnableStatusChange={handlePluginEnableStatus}
@@ -266,20 +287,8 @@ function PluginDetailedView() {
         </Fragment>
       );
     }
-    return (
-      <IntegrationLayout.EmptyConfigurations
-        action={
-          <IntegrationLayout.AddInstallButton
-            featureData={featureData}
-            hideButtonIfDisabled
-            renderTopButton={renderTopButton}
-            requiresAccess
-          />
-        }
-      />
-    );
+    return null;
   }, [
-    featureData,
     handlePluginEnableStatus,
     handleResetConfiguration,
     installationStatus,
@@ -287,7 +296,7 @@ function PluginDetailedView() {
     integrationType,
     organization,
     plugin,
-    renderTopButton,
+    projects,
   ]);
 
   if (isPending) {
@@ -313,7 +322,10 @@ function PluginDetailedView() {
               featureData={featureData}
               hideButtonIfDisabled={false}
               requiresAccess={false}
-              renderTopButton={renderTopButton}
+              renderTopButton={
+                // TODO @sentaur-athena: remove this once we have a solution to deprecate the heroku plugin
+                plugin.id === 'heroku' ? renderTopButton : renderDeprecatedButton
+              }
             />
           }
           additionalCTA={null}

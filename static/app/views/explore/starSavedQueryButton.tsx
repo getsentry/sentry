@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
@@ -6,17 +6,26 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons/iconStar';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 
 export function StarSavedQueryButton() {
+  const organization = useOrganization();
   const location = useLocation();
   const locationId = getIdFromLocation(location);
   const {starQuery} = useStarQuery();
-  const {data, isLoading} = useGetSavedQuery(locationId);
+  const {data, isLoading, isFetched} = useGetSavedQuery(locationId);
   const [isStarred, setIsStarred] = useState(data?.starred);
+
+  useEffect(() => {
+    if (isFetched) {
+      setIsStarred(data?.starred);
+    }
+  }, [data, isFetched]);
 
   const debouncedOnClick = useMemo(() => {
     return debounce(
@@ -25,6 +34,11 @@ export function StarSavedQueryButton() {
           return;
         }
         try {
+          trackAnalytics('trace_explorer.star_query', {
+            save_type: starred ? 'star_query' : 'unstar_query',
+            ui_source: 'explorer',
+            organization,
+          });
           starQuery(parseInt(id, 10), starred);
           setIsStarred(starred);
         } catch (error) {
@@ -36,7 +50,7 @@ export function StarSavedQueryButton() {
       1000,
       {leading: true}
     );
-  }, [starQuery]);
+  }, [starQuery, organization]);
 
   if (isLoading || !locationId) {
     return null;

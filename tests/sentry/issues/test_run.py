@@ -9,7 +9,6 @@ from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 from django.db import close_old_connections
 
-from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.occurrence_consumer import _process_message, process_occurrence_group
 from sentry.issues.producer import (
@@ -21,7 +20,7 @@ from sentry.issues.run import OccurrenceStrategyFactory
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
@@ -112,7 +111,7 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         assert mock_save_issue_occurrence.call_count == 2
         occurrence_data = occurrence.to_dict()
         # need to modify some fields because they get mutated
-        occurrence_data["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data["priority"] = PriorityLevel.LOW
         occurrence_data["fingerprint"] = ["cdfb5fbc0959e8e2f27a6e6027c6335b"]
         mock_save_issue_occurrence.assert_called_with(occurrence_data, mock.ANY)
 
@@ -289,11 +288,11 @@ class TestBatchedOccurrenceConsumer(
         occurrence_data2 = occurrence2.to_dict()
         occurrence_data3 = occurrence3.to_dict()
         # need to modify some fields because they get mutated
-        occurrence_data1["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data1["priority"] = PriorityLevel.LOW
         occurrence_data1["fingerprint"] = ["28c8edde3d61a0411511d3b1866f0636"]
-        occurrence_data2["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data2["priority"] = PriorityLevel.LOW
         occurrence_data2["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
-        occurrence_data3["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data3["priority"] = PriorityLevel.LOW
         occurrence_data3["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
         assert any(
             call.args[0] == occurrence_data1 for call in mock_save_issue_occurrence.mock_calls
@@ -420,9 +419,9 @@ class TestBatchedOccurrenceConsumer(
         occurrence_data2 = occurrence2.to_dict()
 
         # need to modify some fields because they get mutated
-        occurrence_data1["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data1["priority"] = PriorityLevel.LOW
         occurrence_data1["fingerprint"] = ["28c8edde3d61a0411511d3b1866f0636"]
-        occurrence_data2["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data2["priority"] = PriorityLevel.LOW
         occurrence_data2["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
 
         assert any(
@@ -518,46 +517,20 @@ class TestBatchedOccurrenceConsumer(
         item_list = mock_process_occurrence_group.mock_calls[0].args[0]
         assert len(item_list) == 6
 
-        # this behavior depends on the feature flag
-        if features.has("organizations:occurence-consumer-prune-status-changes", self.organization):
-            # two status change messages should be pruned
-            assert len(mock__process_message.mock_calls) == 4
-            # there should be only one status change message, and it should be the last message
-            assert (
-                mock__process_message.mock_calls[-1].args[0]["payload_type"]
-                == PayloadType.STATUS_CHANGE.value
+        # two status change messages should be pruned
+        assert len(mock__process_message.mock_calls) == 4
+        # there should be only one status change message, and it should be the last message
+        assert (
+            mock__process_message.mock_calls[-1].args[0]["payload_type"]
+            == PayloadType.STATUS_CHANGE.value
+        )
+        assert (
+            len(
+                [
+                    call
+                    for call in mock__process_message.mock_calls
+                    if call.args[0]["payload_type"] == PayloadType.STATUS_CHANGE.value
+                ]
             )
-            assert (
-                len(
-                    [
-                        call
-                        for call in mock__process_message.mock_calls
-                        if call.args[0]["payload_type"] == PayloadType.STATUS_CHANGE.value
-                    ]
-                )
-                == 1
-            )
-        else:
-            assert len(mock__process_message.mock_calls) == 6
-            assert (
-                len(
-                    [
-                        call
-                        for call in mock__process_message.mock_calls
-                        if call.args[0]["payload_type"] == PayloadType.STATUS_CHANGE.value
-                    ]
-                )
-                == 3
-            )
-
-
-#
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class TestOccurrenceConsumerWithFlags(TestOccurrenceConsumer):
-    pass
-
-
-# @override_options({"issues.occurrence_consumer.use_orjson": True})
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class TestBatchedOccurrenceConsumerWithFlags(TestBatchedOccurrenceConsumer):
-    pass
+            == 1
+        )

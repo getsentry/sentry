@@ -66,15 +66,17 @@ class SiloRouter:
     """
 
     historical_silo_assignments = {
-        "sentry_actor": SiloMode.REGION,
-        "sentry_teamavatar": SiloMode.REGION,
-        "sentry_projectavatar": SiloMode.REGION,
-        "sentry_pagerdutyservice": SiloMode.REGION,
-        "sentry_notificationsetting": SiloMode.CONTROL,
-        "authprovider_duplicate": SiloMode.CONTROL,
         "authidentity_duplicate": SiloMode.CONTROL,
+        "authprovider_duplicate": SiloMode.CONTROL,
+        "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
         "sentry_monitorlocation": SiloMode.REGION,
+        "sentry_notificationsetting": SiloMode.CONTROL,
+        "sentry_pagerdutyservice": SiloMode.REGION,
+        "sentry_projectavatar": SiloMode.REGION,
+        "sentry_scheduledjob": SiloMode.CONTROL,
+        "sentry_teamavatar": SiloMode.REGION,
+        "workflow_engine_workflowaction": SiloMode.REGION,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments
@@ -197,7 +199,7 @@ class SiloRouter:
         if model:
             return self._db_for_table(model._meta.db_table, app_label) == db
 
-        # We use this hint in our RunSql/RunPython migrations to help resolve databases.
+        # We use this hint in our SafeRunSql/RunPython migrations to help resolve databases.
         if "tables" in hints:
             dbs = {self._db_for_table(table, app_label) for table in hints["tables"]}
             if len(dbs) > 1:

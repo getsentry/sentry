@@ -20,7 +20,7 @@ import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components
 import HttpDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDurationChartWidget';
 import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
 import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -78,7 +78,7 @@ export function HTTPLandingPage() {
     });
   };
 
-  const domainsListResponse = useSpanMetrics(
+  const domainsListResponse = useSpans(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
       fields: [
@@ -91,7 +91,6 @@ export function HTTPLandingPage() {
         'http_response_rate(5)',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: DOMAIN_TABLE_ROW_COUNT,
@@ -157,7 +156,7 @@ export function HTTPLandingPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

@@ -9,7 +9,7 @@ export enum ProblemSpan {
   CAUSE = 'cause',
 }
 
-export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
+const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 
 type AddSpanOpts = {
   endTimestamp: number;

@@ -70,6 +70,7 @@ class GSBillingNavigationConfig extends Component<Props> {
     ];
 
     return {
+      id: 'settings-usage-billing',
       name: t('Usage & Billing'),
       items,
     };

@@ -152,7 +152,7 @@ export type DashboardsEventParameters = {
   };
 } & DashboardsEventParametersWidgetBuilder;
 
-export type DashboardsEventKey = keyof DashboardsEventParameters;
+type DashboardsEventKey = keyof DashboardsEventParameters;
 
 export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.create.cancel': 'Dashboards2: Create cancel',

@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -77,14 +78,14 @@ function RecoveryOptionsModal({
         {displaySmsPrompt ? (
           // set up backup phone number
           <Alert.Container>
-            <Alert type="warning">
+            <Alert type="warning" showIcon={false}>
               {t('We recommend adding a phone number as a backup 2FA method.')}
             </Alert>
           </Alert.Container>
         ) : (
           // get recovery codes
           <Alert.Container>
-            <Alert type="warning">
+            <Alert type="warning" showIcon={false}>
               {t(
                 `Recovery codes are the only way to access your account if you lose
                   your device and cannot receive two-factor authentication codes.`
@@ -104,7 +105,6 @@ function RecoveryOptionsModal({
             priority="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
-            name="addPhone"
             css={css`
               margin-left: ${space(1)};
             `}
@@ -124,7 +124,6 @@ function RecoveryOptionsModal({
                 ? `/settings/account/security/mfa/${recovery.authId}/`
                 : '/settings/account/security/'
             }
-            name="getCodes"
             autoFocus
           >
             {t('Get Recovery Codes')}

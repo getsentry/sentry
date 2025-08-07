@@ -83,7 +83,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'string'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
           );
         },
       ],
@@ -109,16 +109,19 @@ describe('useTraceItemAttributeKeys', () => {
         key: 'test.attribute1',
         name: 'Test Attribute 1',
         kind: FieldKind.TAG,
+        secondaryAliases: [],
       },
       'test.attribute2': {
         key: 'test.attribute2',
         name: 'Test Attribute 2',
         kind: FieldKind.TAG,
+        secondaryAliases: [],
       },
       'test.attribute3': {
         key: 'test.attribute3',
         name: 'Test Attribute 3',
         kind: FieldKind.TAG,
+        secondaryAliases: [],
       },
     };
 
@@ -146,7 +149,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'number'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'number'
           );
         },
       ],
@@ -171,16 +174,19 @@ describe('useTraceItemAttributeKeys', () => {
         key: 'measurement.duration',
         name: 'Duration',
         kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
       },
       'measurement.size': {
         key: 'measurement.size',
         name: 'Size',
         kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
       },
     };
 
     expect(result.current.attributes).toEqual(expectedAttributes);
   });
+
   it('test escape characters on the query', async () => {
     const attributesWithInvalidChars = [
       {
@@ -189,13 +195,18 @@ describe('useTraceItemAttributeKeys', () => {
         kind: FieldKind.TAG,
       },
       {
-        key: 'invalid-attribute',
-        name: 'Invalid Attribute',
+        key: 'valid-attribute-with-dash',
+        name: 'Valid Attribute With Dash',
         kind: FieldKind.TAG,
       },
       {
         key: 'another_valid.attribute',
         name: 'Another Valid Attribute',
+        kind: FieldKind.TAG,
+      },
+      {
+        key: 'invalid attribute',
+        name: 'Invalid Attribute',
         kind: FieldKind.TAG,
       },
     ];
@@ -224,11 +235,81 @@ describe('useTraceItemAttributeKeys', () => {
         key: 'valid.attribute',
         name: 'Valid Attribute',
         kind: FieldKind.TAG,
+        secondaryAliases: [],
+      },
+      'valid-attribute-with-dash': {
+        key: 'valid-attribute-with-dash',
+        name: 'Valid Attribute With Dash',
+        kind: FieldKind.TAG,
+        secondaryAliases: [],
       },
       'another_valid.attribute': {
         key: 'another_valid.attribute',
         name: 'Another Valid Attribute',
         kind: FieldKind.TAG,
+        secondaryAliases: [],
+      },
+    };
+
+    expect(result.current.attributes).toEqual(expectedAttributes);
+  });
+
+  it('should return secondary aliases for attributes', async () => {
+    const testAttributeKeys = [
+      {
+        key: 'test.attribute1',
+        name: 'Test Attribute 1',
+        kind: FieldKind.TAG,
+        secondaryAliases: ['test.attribute1.alias'],
+      },
+      {
+        key: 'test.attribute2',
+        name: 'Test Attribute 2',
+        kind: FieldKind.TAG,
+        secondaryAliases: ['test.attribute2.alias'],
+      },
+    ];
+
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/trace-items/attributes/`,
+      body: testAttributeKeys,
+      match: [
+        (_url: string, options: {query?: Record<string, any>}) => {
+          const query = options?.query || {};
+          return (
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
+          );
+        },
+      ],
+    });
+
+    const {result} = renderHook(
+      () =>
+        useTraceItemAttributeKeys({
+          traceItemType: TraceItemDataset.LOGS,
+          type: 'string',
+        }),
+      {
+        wrapper: createWrapper(organization),
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockResponse).toHaveBeenCalled();
+
+    // Verify expected attributes (excluding sentry. prefixed ones)
+    const expectedAttributes = {
+      'test.attribute1': {
+        key: 'test.attribute1',
+        name: 'Test Attribute 1',
+        kind: FieldKind.TAG,
+        secondaryAliases: ['test.attribute1.alias'],
+      },
+      'test.attribute2': {
+        key: 'test.attribute2',
+        name: 'Test Attribute 2',
+        kind: FieldKind.TAG,
+        secondaryAliases: ['test.attribute2.alias'],
       },
     };
 

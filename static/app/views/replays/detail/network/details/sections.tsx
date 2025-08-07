@@ -2,12 +2,11 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   NetworkMetaWarning,
@@ -120,7 +119,7 @@ export function RequestHeadersSection({item}: SectionProps) {
       return {
         key,
         value: warn ? (
-          <Flex align="center" gap={space(0.5)}>
+          <Flex align="center" gap="xs">
             {value}
             <QuestionTooltip
               size="xs"
@@ -156,7 +155,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
       return {
         key,
         value: warn ? (
-          <Flex align="center" gap={space(0.5)}>
+          <Flex align="center" gap="xs">
             {value}
             <QuestionTooltip
               size="xs"

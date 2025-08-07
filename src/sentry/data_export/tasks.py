@@ -16,10 +16,11 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.retry import NoRetriesRemainingError, retry_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import export_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import capture_exception
 
 from .base import (
@@ -45,6 +46,14 @@ logger = logging.getLogger(__name__)
     max_retries=3,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+        processing_deadline_duration=120,
+    ),
 )
 def assemble_download(
     data_export_id,
@@ -289,6 +298,9 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
     queue="data_export",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+    ),
 )
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):
@@ -363,7 +375,6 @@ def merge_export_blobs(data_export_id, **kwargs):
             )
             capture_exception(error)
             if isinstance(error, IntegrityError):
-                incr_rollback_metrics(name="data_export_merge_export_blobs")
                 message = "Failed to save the assembled file."
             else:
                 message = "Internal processing failure."
@@ -371,7 +382,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
 
 def _set_data_on_scope(data_export):
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)
         scope.set_user(user)

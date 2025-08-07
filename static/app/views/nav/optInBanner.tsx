@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
@@ -31,10 +30,7 @@ export function OptInBanner({collapsed, organization}: Props) {
 
   return (
     <TranslucentBackgroundPanel isDarkMode={isDarkMode}>
-      <Title>
-        {t('New Navigation')}
-        <FeatureBadge type="beta" />
-      </Title>
+      <Title>{t('New Navigation')}</Title>
       <Description>
         {t('Say hello to your improved sidebar — less clutter, clearer workflows.')}
       </Description>
@@ -65,14 +61,14 @@ const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
   background: rgba(245, 243, 247, ${p => (p.isDarkMode ? 0.05 : 0.1)});
   border: 1px solid rgba(245, 243, 247, ${p => (p.isDarkMode ? 0.1 : 0.15)});
   padding: ${space(1)};
-  color: ${p => (p.isDarkMode ? p.theme.textColor : '#ebe6ef')};
+  color: ${p => (p.theme.isChonk || p.isDarkMode ? p.theme.textColor : '#ebe6ef')};
 
   margin-bottom: ${space(1)};
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
 
   display: flex;
@@ -80,7 +76,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: ${space(0.5)} 0;
 `;
 

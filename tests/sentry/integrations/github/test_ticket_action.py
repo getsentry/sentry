@@ -5,7 +5,7 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
@@ -26,7 +26,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     labels = ["bug", "invalid"]
     issue_num = 1
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -65,13 +65,13 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: Event):
+    def get_key(self, event: GroupEvent):
         return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
             "key", flat=True
         )[0]
 
     @responses.activate()
-    def test_ticket_rules(self):
+    def test_ticket_rules(self) -> None:
         title = "sample title"
         sample_description = "sample bug report"
         html_url = f"https://github.com/foo/bar/issues/{self.issue_num}"
@@ -132,7 +132,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # Get the rule from DB
         rule_object = Rule.objects.get(id=response.data["id"])
-        event = self.get_event()
+        event = self.get_group_event()
 
         # Trigger its `after`
         self.trigger(event, rule_object)
@@ -156,7 +156,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert ExternalIssue.objects.count() == external_issue_count
 
     @responses.activate()
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """

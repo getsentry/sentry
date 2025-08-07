@@ -7,7 +7,8 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.grouptype import MetricIssuePOC, PerformanceSlowDBQueryGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -318,7 +319,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
         group.save()
 
         GroupOpenPeriod.objects.all().delete()
@@ -348,7 +349,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
         group.save()
 
         alert_rule = self.create_alert_rule(
@@ -911,7 +912,7 @@ class GroupDeleteTest(APITestCase):
             )
 
     def test_delete_performance_issue(self) -> None:
-        """Test that a performance issue cannot be deleted"""
+        """Test that a performance issue can be deleted"""
         self.login_as(user=self.user)
 
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
@@ -919,12 +920,12 @@ class GroupDeleteTest(APITestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.delete(url, format="json")
-        assert response.status_code == 400, response.content
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202, response.content
 
-        # Ensure it's still there
-        assert Group.objects.filter(id=group.id).exists()
-        assert GroupHash.objects.filter(group_id=group.id).exists()
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:

@@ -1,15 +1,17 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  agentMonitoringOnboarding,
   AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -69,8 +71,6 @@ def _(app, request, e):
         data = UserError('Custom message', f'{event_id}{e}')
         return app.make_response(request, data)`;
 
-const getInstallSnippet = () => `pip install 'sentry-sdk'`;
-
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
@@ -79,13 +79,10 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t('Install the Sentry Python SDK package:'),
-      configurations: [
-        {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -133,6 +130,7 @@ const docs: Docs = {
   onboarding,
   profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

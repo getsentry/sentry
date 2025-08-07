@@ -6,7 +6,7 @@ import TeamBundleArt from 'getsentry-images/bundles/team-bundle-art-plain.svg';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -28,12 +28,12 @@ function PlanImage({subscription}: {subscription: Subscription}) {
   }
 
   let tierImage: any | null = null;
-  if (isEnterprise(subscription)) {
-    tierImage = BusinessBundleArt;
+  if (isEnterprise(subscription.plan)) {
+    tierImage = CustomBundleArt;
   } else if (isTeamPlan(subscription.plan)) {
     tierImage = TeamBundleArt;
   } else {
-    tierImage = CustomBundleArt;
+    tierImage = BusinessBundleArt;
   }
 
   return (
@@ -156,7 +156,7 @@ const PlanHeaderCardWrapper = styled('div')`
 
 const PaymentDetails = styled('div')`
   line-height: 1.5;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   font-weight: 500;
 `;

@@ -43,10 +43,24 @@ class TestHookService(TestCase):
 
     def test_expands_resource_events_to_specific_events(self) -> None:
         service_hook = self.call_create_hook(events=["issue"])
-        assert set(service_hook.events) == set(EVENT_EXPANSION["issue"])
+        assert service_hook.events == EVENT_EXPANSION["issue"]
 
     def test_expand_events(self) -> None:
-        assert expand_events(["issue"]) == set(EVENT_EXPANSION["issue"])
+        assert expand_events(["issue"]) == EVENT_EXPANSION["issue"]
+
+    def test_expand_events_multiple(self) -> None:
+        ret = expand_events(["unrelated", "issue", "comment", "unrelated"])
+        assert ret == [
+            "comment.created",
+            "comment.deleted",
+            "comment.updated",
+            "issue.assigned",
+            "issue.created",
+            "issue.ignored",
+            "issue.resolved",
+            "issue.unresolved",
+            "unrelated",
+        ]
 
     def test_consolidate_events(self) -> None:
         assert consolidate_events(["issue.created"]) == {"issue"}

@@ -1,26 +1,27 @@
+import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
+import partition from 'lodash/partition';
 
-import {logout} from 'sentry/actionCreators/account';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 function createOrganizationMenuItem(): MenuItemProps {
   const configFeatures = ConfigStore.get('features');
@@ -47,13 +48,19 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-export function OrgDropdown({className}: {className?: string}) {
-  const api = useApi();
+export function OrgDropdown({
+  className,
+  onClick,
+  hideOrgLinks,
+}: {
+  className?: string;
+  hideOrgLinks?: boolean;
+  onClick?: () => void;
+}) {
   const theme = useTheme();
 
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
-  const user = useUser();
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
@@ -63,15 +70,33 @@ export function OrgDropdown({className}: {className?: string}) {
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const {organizations} = useLegacyStore(OrganizationsStore);
+  const [activeOrgs, inactiveOrgs] = partition(
+    organizations.filter(org => org.slug !== organization.slug),
+    org => org.status.id === 'active'
+  );
+
+  const makeOrganizationMenuItem = useCallback(
+    (org: Organization): MenuItemProps => ({
+      key: org.id,
+      label: <OrganizationBadge organization={org} />,
+      textValue: org.name,
+      to: resolveRoute(`/organizations/${org.slug}/issues/`, organization, org),
+    }),
+    [organization]
+  );
+
+  const makeInactiveOrganizationMenuItem = useCallback(
+    (org: Organization): MenuItemProps => ({
+      ...makeOrganizationMenuItem(org),
+      trailingItems: <QuestionTooltip size="sm" title={org.status.name} />,
+    }),
+    [makeOrganizationMenuItem]
+  );
 
   const {projects} = useProjects();
 
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
-
-  function handleLogout() {
-    logout(api);
-  }
 
   return (
     <DropdownMenu
@@ -79,9 +104,14 @@ export function OrgDropdown({className}: {className?: string}) {
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
+          size={theme.isChonk ? 'xs' : undefined}
           width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
+          onClick={e => {
+            props.onClick?.(e);
+            onClick?.();
+          }}
         >
           <StyledOrganizationAvatar
             size={isMobile ? 24 : 36}
@@ -90,6 +120,7 @@ export function OrgDropdown({className}: {className?: string}) {
           />
         </OrgDropdownTrigger>
       )}
+      position="right-start"
       minMenuWidth={200}
       items={[
         {
@@ -107,78 +138,55 @@ export function OrgDropdown({className}: {className?: string}) {
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/organizations/${organization.slug}/settings/`,
-              hidden: !hasOrgRead,
+              to: `/settings/${organization.slug}/`,
+              hidden: !hasOrgRead || hideOrgLinks,
+            },
+            {
+              key: 'projects',
+              label: t('Projects'),
+              to: makeProjectsPathname({path: '/', organization}),
+              hidden: hideOrgLinks,
             },
             {
               key: 'members',
               label: t('Members'),
-              to: `/organizations/${organization.slug}/settings/members/`,
-              hidden: !hasMemberRead,
+              to: `/settings/${organization.slug}/members/`,
+              hidden: !hasMemberRead || hideOrgLinks,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/organizations/${organization.slug}/settings/teams/`,
-              hidden: !hasTeamRead,
+              to: `/settings/${organization.slug}/teams/`,
+              hidden: !hasTeamRead || hideOrgLinks,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/organizations/${organization.slug}/settings/billing/`,
-              hidden: !hasBillingAccess,
+              to: `/settings/${organization.slug}/billing/`,
+              hidden: !hasBillingAccess || hideOrgLinks,
             },
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
-              disabled: !organizations?.length,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
-                  key: switchOrg.id,
-                  label: <OrganizationBadge organization={switchOrg} />,
-                  textValue: switchOrg.name,
-                  to: resolveRoute(
-                    `/organizations/${switchOrg.slug}/issues/`,
-                    organization,
-                    switchOrg
-                  ),
-                })),
+                {
+                  key: 'active-orgs',
+                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
+                },
+                ...(inactiveOrgs.length === 0
+                  ? []
+                  : [
+                      {
+                        key: 'inactive-ogs',
+                        children: orderBy(inactiveOrgs, ['name']).map(
+                          makeInactiveOrganizationMenuItem
+                        ),
+                      },
+                    ]),
                 createOrganizationMenuItem(),
               ],
-            },
-          ],
-        },
-        {
-          key: 'user',
-          label: (
-            <SectionTitleWrapper>
-              <UserBadge user={user} avatarSize={32} />
-            </SectionTitleWrapper>
-          ),
-          textValue: t('User Summary'),
-          children: [
-            {
-              key: 'user-settings',
-              label: t('User Settings'),
-              to: '/settings/account/',
-            },
-            {
-              key: 'user-auth-tokens',
-              label: t('User Auth Tokens'),
-              to: '/settings/account/api/',
-            },
-            {
-              key: 'admin',
-              label: t('Admin'),
-              to: '/manage/',
-              hidden: !user?.isSuperuser,
-            },
-            {
-              key: 'signout',
-              label: t('Sign Out'),
-              onAction: handleLogout,
             },
           ],
         },
@@ -190,6 +198,8 @@ export function OrgDropdown({className}: {className?: string}) {
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
+  min-height: ${p => (p.theme.isChonk ? `${p.width}px` : undefined)};
+  padding: 0; /* Without this the icon will be cutoff due to overflow */
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`
@@ -198,7 +208,7 @@ const StyledOrganizationAvatar = styled(OrganizationAvatar)`
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;

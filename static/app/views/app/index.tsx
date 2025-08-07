@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -10,11 +10,11 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
@@ -27,26 +27,25 @@ import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
-import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}>;
 
-const InstallWizard = lazy(
-  () => import('sentry/views/admin/installWizard')
-  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
-) as unknown as React.ComponentType<InstallWizardProps>;
+const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
@@ -63,19 +62,31 @@ function App({children, params}: Props) {
   const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
-  const commandPaletteHotkeys = useMemo(() => {
-    if (isModalOpen) {
-      return [];
-    }
-    return [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: () => openCommandPalette(),
-      },
-    ];
-  }, [isModalOpen]);
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => openCommandPalette(),
+          },
+        ]
+  );
 
-  useHotkeys(commandPaletteHotkeys);
+  // Seer explorer panel hook and hotkeys
+  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
+
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+/', 'ctrl+/'],
+            callback: () => toggleExplorerPanel(),
+            includeInputs: true,
+          },
+        ]
+  );
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -123,7 +134,7 @@ function App({children, params}: Props) {
     }
 
     if (!isOrgSlugValid) {
-      window.location.replace(sentryUrl);
+      testableWindowLocation.replace(sentryUrl);
       return;
     }
   }, [orgId, sentryUrl, isOrgSlugValid]);
@@ -253,25 +264,26 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <LastKnownRouteContextProvider>
-        <RouteAnalyticsContextProvider>
-          {renderOrganizationContextProvider(
-            <AsyncSDKIntegrationContextProvider>
-              <GlobalFeedbackForm>
-                <GlobalDrawer>
+      <UserTimezoneProvider>
+        <LastKnownRouteContextProvider>
+          <RouteAnalyticsContextProvider>
+            {renderOrganizationContextProvider(
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
                       <GlobalModal onClose={handleModalClose} />
+                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </DemoToursProvider>
                   </MainContainer>
-                </GlobalDrawer>
-              </GlobalFeedbackForm>
-            </AsyncSDKIntegrationContextProvider>
-          )}
-        </RouteAnalyticsContextProvider>
-      </LastKnownRouteContextProvider>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            )}
+          </RouteAnalyticsContextProvider>
+        </LastKnownRouteContextProvider>
+      </UserTimezoneProvider>
     </Profiler>
   );
 }

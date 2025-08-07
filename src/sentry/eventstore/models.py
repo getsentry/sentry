@@ -110,6 +110,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def datetime(self) -> datetime:
+        # If we have millisecond precision timestamps, use them
+        column = self._get_column_name(Columns.TIMESTAMP_MS)
+        if column in self._snuba_data and self._snuba_data[column]:
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
+
+        # Otherwise, use the second precision timestamp
         column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
@@ -478,16 +484,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
+        subject_template = self.project.get_option("mail:subject_template")
+        if subject_template:
+            template = EventSubjectTemplate(subject_template)
         elif self.group.issue_category == GroupCategory.PERFORMANCE:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
     def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
@@ -598,7 +602,7 @@ class Event(BaseEvent):
         state.pop("_groups_cache", None)
         return state
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
             id(self), self.event_id
         )
@@ -754,7 +758,7 @@ class GroupEvent(BaseEvent):
         return self._occurrence
 
     @occurrence.setter
-    def occurrence(self, value: IssueOccurrence) -> None:
+    def occurrence(self, value: IssueOccurrence | None) -> None:
         self._occurrence = value
 
     @property

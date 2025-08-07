@@ -44,7 +44,7 @@ export type IncidentStats = {
   uniqueUsers: number;
 };
 
-export type ActivityTypeDraft = {
+type ActivityTypeDraft = {
   comment: null | string;
   dateCreated: string;
   id: string;
@@ -116,7 +116,7 @@ export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert | CronRule;
 
 export type Anomaly = {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
-  timestamp: string | number;
+  timestamp: number;
   value: number;
 };
 

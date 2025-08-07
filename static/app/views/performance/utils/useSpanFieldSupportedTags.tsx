@@ -3,23 +3,14 @@ import {useMemo} from 'react';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const DATASET_TO_FIELDS = {
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
-  [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
-};
-
-function useSpanFieldBaseTags(
-  excludedTags: string[],
-  dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
-) {
+function useSpanFieldBaseTags(excludedTags: string[]) {
   const builtinTags = useMemo(() => {
-    const fields = DATASET_TO_FIELDS[dataset];
+    const fields = SpanFields;
 
     const tags: TagCollection = Object.fromEntries(
       Object.values(fields)
@@ -30,7 +21,7 @@ function useSpanFieldBaseTags(
     tags.has = getHasTag(tags);
 
     return tags;
-  }, [excludedTags, dataset]);
+  }, [excludedTags]);
 
   return builtinTags;
 }
@@ -39,7 +30,7 @@ interface SpanFieldEntry {
   key: string;
   name: string;
 }
-export type SpanFieldsResponse = SpanFieldEntry[];
+type SpanFieldsResponse = SpanFieldEntry[];
 
 const getDynamicSpanFieldsEndpoint = (
   orgSlug: string,
@@ -55,16 +46,6 @@ const getDynamicSpanFieldsEndpoint = (
     },
   },
 ];
-
-export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: string[]}) {
-  const {excludedTags = []} = options || {};
-
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  return useSpanFieldBaseTags(
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
-    DiscoverDatasets.SPANS_METRICS
-  );
-}
 
 export function useSpanFieldCustomTags(options?: {
   enabled?: boolean;
@@ -99,21 +80,15 @@ export function useSpanFieldCustomTags(options?: {
   return {...rest, data: tags};
 }
 
-export function useSpanFieldStaticTags(options?: {
-  dataset?: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS;
-  excludedTags?: string[];
-}) {
-  const {excludedTags = [], dataset = DiscoverDatasets.SPANS_INDEXED} = options || {};
+function useSpanFieldStaticTags(options?: {excludedTags?: string[]}) {
+  const {excludedTags = []} = options || {};
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags: TagCollection = useSpanFieldBaseTags(
-    [
-      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_GROUP,
-      ...excludedTags,
-    ],
-    dataset
-  );
+  const staticTags: TagCollection = useSpanFieldBaseTags([
+    SpanFields.SPAN_AI_PIPELINE_GROUP,
+    SpanFields.SPAN_CATEGORY,
+    SpanFields.SPAN_GROUP,
+    ...excludedTags,
+  ]);
 
   return staticTags;
 }
@@ -126,7 +101,6 @@ export function useSpanFieldSupportedTags(options?: {
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
   const staticTags: TagCollection = useSpanFieldStaticTags({
     excludedTags,
-    dataset: DiscoverDatasets.SPANS_INDEXED,
   });
 
   const {data: customTags, ...rest} = useSpanFieldCustomTags({projects});

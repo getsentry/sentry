@@ -9,11 +9,13 @@ from django.utils import translation
 class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request: HttpRequest) -> None:
         with sentry_sdk.start_span(op="middleware.locale", name="process_request"):
-            # No locale for static media
+            # No locale for static media, or RPC requests
             # This avoids touching user session, which means we avoid
             # setting `Vary: Cookie` as a response header which will
             # break HTTP caching entirely.
-            self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
+            self.__skip_caching = request.path_info.startswith(
+                settings.ANONYMOUS_STATIC_PREFIXES
+            ) or request.path_info.startswith("/api/0/internal/rpc/")
             if self.__skip_caching:
                 return
 

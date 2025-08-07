@@ -83,8 +83,12 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
-            # Sort must be optional string.
-            sort = filter_params.get("sort")
+            # Sort is optionally specified.
+            sort = (
+                filter_params.get("orderBy")
+                or filter_params.get("sortBy")
+                or filter_params.get("sort")
+            )
             if not isinstance(sort, str):
                 sort = None
 

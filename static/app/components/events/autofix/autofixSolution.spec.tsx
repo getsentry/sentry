@@ -21,6 +21,7 @@ describe('AutofixSolution', () => {
       relevant_code_file: {
         file_path: 'src/file.js',
         repo_name: 'owner/repo',
+        url: 'https://github.com/owner/repo/blob/main/src/file.js',
       },
     },
   ];
@@ -30,18 +31,28 @@ describe('AutofixSolution', () => {
     groupId: '123',
     runId: 'run-123',
     solutionSelected: false,
-  };
+  } satisfies React.ComponentProps<typeof AutofixSolution>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
     jest.mocked(useAutofixRepos).mockReset();
     jest.mocked(useAutofixRepos).mockReturnValue({
       repos: [],
       codebases: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/',
+      method: 'GET',
+      body: {
+        project: {
+          slug: 'project-slug',
+        },
+      },
     });
   });
 
@@ -221,7 +232,7 @@ describe('AutofixSolution', () => {
   it('passes the solution array when Code It Up button is clicked', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -253,7 +264,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -275,7 +286,7 @@ describe('AutofixSolution', () => {
   it('allows toggling solution items active/inactive', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -301,12 +312,9 @@ describe('AutofixSolution', () => {
     const timelineItem = screen.getByTestId('autofix-solution-timeline-item-0');
     expect(timelineItem).toBeInTheDocument();
 
-    // Hover over the timeline item to reveal buttons
-    await userEvent.hover(timelineItem);
-
     // Find and click the toggle button for deselecting the item
     const toggleButton = within(timelineItem).getByRole('button', {
-      name: 'Deselect item',
+      name: 'Remove from plan',
     });
     expect(toggleButton).toBeInTheDocument();
     await userEvent.click(toggleButton);
@@ -321,7 +329,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -343,7 +351,7 @@ describe('AutofixSolution', () => {
   it('allows adding custom instructions', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -389,7 +397,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -478,11 +486,10 @@ describe('AutofixSolution', () => {
     ) as HTMLElement;
     expect(timelineItem).not.toBeNull();
 
-    // Hover over the timeline item
-    await userEvent.hover(timelineItem);
-
-    // Find the delete button - there should be only one button within the hovered item
-    const deleteButton = within(timelineItem).getByRole('button');
+    // Find the delete button using the updated aria-label
+    const deleteButton = within(timelineItem).getByRole('button', {
+      name: 'Remove from plan',
+    });
     expect(deleteButton).toBeInTheDocument();
 
     // Click the delete button
@@ -514,7 +521,7 @@ describe('AutofixSolution', () => {
 
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -545,7 +552,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',

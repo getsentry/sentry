@@ -1,5 +1,6 @@
 import type {Layout} from 'react-grid-layout';
 
+import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
@@ -12,6 +13,8 @@ import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/t
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+
+export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 export enum DisplayType {
   AREA = 'area',
@@ -30,12 +33,13 @@ export enum WidgetType {
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
+  LOGS = 'logs',
 }
 
 // These only pertain to on-demand warnings at this point in time
 // Since they are the only soft-validation we do.
-export type WidgetWarning = Record<string, OnDemandExtractionState>;
-export type WidgetQueryWarning = null | OnDemandExtractionState;
+type WidgetWarning = Record<string, OnDemandExtractionState>;
+type WidgetQueryWarning = null | OnDemandExtractionState;
 
 export interface ValidateWidgetResponse {
   warnings: {
@@ -65,6 +69,10 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+/**
+ * A widget query is one or more aggregates and a single filter string (conditions.)
+ * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
+ */
 export type WidgetQuery = {
   aggregates: string[];
   columns: string[];
@@ -97,6 +105,8 @@ export type Widget = {
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
+  // Used for table widget column widths, currently is not saved
+  tableWidths?: number[];
   tempId?: string;
   thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
@@ -121,13 +131,17 @@ export type DashboardPermissions = {
  * The response shape from dashboard list endpoint
  */
 export type DashboardListItem = {
+  environment: string[];
+  filters: DashboardFilters;
   id: string;
+  projects: number[];
   title: string;
   widgetDisplay: DisplayType[];
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
   isFavorited?: boolean;
+  lastVisited?: string;
   permissions?: DashboardPermissions;
 };
 
@@ -175,4 +189,5 @@ export enum DashboardWidgetSource {
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
+  LOGS = 'logs',
 }

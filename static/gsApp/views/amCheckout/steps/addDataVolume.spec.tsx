@@ -64,7 +64,7 @@ function assertSliders(sliderInfo: SliderInfo[]) {
 
 describe('AddDataVolume for legacy plans', function () {
   const api = new MockApiClient();
-  const {organization, router, routerProps} = initializeOrg();
+  const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
@@ -123,10 +123,7 @@ describe('AddDataVolume for legacy plans', function () {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     const heading = await screen.findByText('Reserved Volumes');
@@ -145,10 +142,7 @@ describe('AddDataVolume for legacy plans', function () {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     // Open section by clicking on heading.
@@ -309,10 +303,7 @@ describe('AddDataVolume for legacy plans', function () {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
     const panel = await screen.findByTestId('step-add-data-volume');
     const heading = within(panel).getByText('Reserved Volumes');
@@ -433,7 +424,7 @@ describe('AddDataVolume for legacy plans', function () {
 
 describe('AddDataVolume for modern plans', function () {
   const api = new MockApiClient();
-  const {organization, router, routerProps} = initializeOrg();
+  const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
@@ -491,10 +482,7 @@ describe('AddDataVolume for modern plans', function () {
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     const heading = await screen.findByText('Set Reserved Volumes (optional)');
@@ -513,10 +501,7 @@ describe('AddDataVolume for modern plans', function () {
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     // Open section by clicking on heading.
@@ -675,10 +660,7 @@ describe('AddDataVolume for modern plans', function () {
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {
-        router,
-      }
+      />
     );
     const panel = await screen.findByTestId('step-add-data-volume');
     const heading = within(panel).getByText('Set Reserved Volumes (optional)');

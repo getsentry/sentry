@@ -1,4 +1,4 @@
-import {User} from 'sentry/types/user';
+import type {User} from 'sentry/types/user';
 
 export function UserDetailsFixture(params: Partial<User> = {}): User {
   return {
@@ -35,14 +35,12 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
       prefersNextjsInsightsOverview: false,
       prefersStackedNavigation: false,
       prefersChonkUI: false,
-      quickStartDisplay: {},
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     lastLogin: '2018-01-25T19:57:46.973Z',
     permissions: new Set(),
     email: 'billyfirefox@test.com',
     canReset2fa: false,
-    experiments: [],
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: false,
     ...params,

@@ -59,7 +59,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={jsProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
@@ -148,7 +152,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={mobileProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
@@ -196,7 +204,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={projectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
@@ -250,7 +262,10 @@ describe('GroupHeader', () => {
           })}
           project={ProjectFixture()}
           event={null}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('Priority')).toBeInTheDocument();
@@ -271,7 +286,10 @@ describe('GroupHeader', () => {
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           event={null}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));

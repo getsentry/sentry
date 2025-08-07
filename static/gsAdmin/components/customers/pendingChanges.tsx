@@ -9,7 +9,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
-import type {DataCategories, Plan, PlanMigration, Subscription} from 'getsentry/types';
+import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -117,16 +117,13 @@ function getRegularChanges(subscription: Subscription) {
     changes.push(`Billing period — ${old} → ${change}`);
   }
 
-  if (
-    pendingChanges.reservedEvents !== subscription.reservedEvents ||
-    pendingChanges.reserved.errors !== subscription.categories.errors?.reserved
-  ) {
+  if (pendingChanges.reserved.errors !== subscription.categories.errors?.reserved) {
     const old = formatReservedWithUnits(
-      subscription.reservedEvents || (subscription.categories.errors?.reserved ?? null),
+      subscription.categories.errors?.reserved ?? null,
       DataCategory.ERRORS
     );
     const change = formatReservedWithUnits(
-      pendingChanges.reservedEvents || (pendingChanges.reserved?.errors ?? null),
+      pendingChanges.reserved?.errors ?? null,
       DataCategory.ERRORS
     );
     changes.push(
@@ -147,7 +144,7 @@ function getRegularChanges(subscription: Subscription) {
       ...subscription.planDetails.categories,
       ...Object.keys(pendingChanges.reserved ?? {}),
     ]),
-  ] as DataCategories[];
+  ] as DataCategory[];
   categories.forEach(category => {
     if (category !== 'errors') {
       // Errors and Events handled above
@@ -155,7 +152,7 @@ function getRegularChanges(subscription: Subscription) {
         (pendingChanges.reserved?.[category] ?? 0) !==
         (subscription.categories?.[category]?.reserved ?? 0)
       ) {
-        const categoryEnum = category as DataCategory;
+        const categoryEnum = category;
         const oldReserved = subscription.categories?.[category]?.reserved ?? null;
         const pendingReserved = pendingChanges.reserved?.[category] ?? null;
         const old =
@@ -197,7 +194,7 @@ function getRegularChanges(subscription: Subscription) {
       const change = getStringForPrice(pendingChanges.customPrices?.[category]);
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Custom price for',
           oldValue: old,
           pendingValue: change,
@@ -236,7 +233,7 @@ function getRegularChanges(subscription: Subscription) {
       );
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Reserved cost-per-event for',
           oldValue: old,
           pendingValue: change,
@@ -251,8 +248,8 @@ function getRegularChanges(subscription: Subscription) {
   const newBudgetsChanges: string[] = [];
   oldBudgets?.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      reservedBudget: budget,
       plan: subscription.planDetails,
-      categories: Object.keys(budget.categories),
       hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
@@ -261,8 +258,8 @@ function getRegularChanges(subscription: Subscription) {
   });
   pendingChanges.reservedBudgets.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      pendingReservedBudget: budget,
       plan: pendingChanges.planDetails,
-      categories: Object.keys(budget.categories),
       hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
@@ -271,11 +268,11 @@ function getRegularChanges(subscription: Subscription) {
   });
 
   if (oldBudgetsChanges.length > 0 || newBudgetsChanges.length > 0) {
-    changes.push(
-      `Reserved budgets — ${
-        oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None'
-      } → ${newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None'}`
-    );
+    const before = oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None';
+    const after = newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None';
+    if (before !== after) {
+      changes.push(`Reserved budgets — ${before} → ${after}`);
+    }
   }
 
   return changes;
@@ -388,9 +385,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info" showIcon>
-          This account has pending changes to the subscription
-        </Alert>
+        <Alert type="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>

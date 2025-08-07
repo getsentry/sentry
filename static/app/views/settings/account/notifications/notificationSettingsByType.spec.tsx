@@ -323,6 +323,7 @@ describe('NotificationSettingsByType', function () {
         'spend-visibility-notifications',
         'am3-tier',
         'continuous-profiling-billing',
+        'seer-billing',
       ],
     });
     renderComponent({
@@ -341,6 +342,7 @@ describe('NotificationSettingsByType', function () {
       screen.getByText('Continuous Profile Hours', {exact: true})
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -378,6 +380,7 @@ describe('NotificationSettingsByType', function () {
         'spend-visibility-notifications',
         'am3-tier',
         'continuous-profiling-billing',
+        'seer-billing',
       ],
     });
     const otherOrganization = OrganizationFixture();
@@ -398,13 +401,18 @@ describe('NotificationSettingsByType', function () {
       screen.getByText('Continuous Profile Hours', {exact: true})
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am1 org only', async function () {
-    const organization = OrganizationFixture();
-    organization.features.push('spend-visibility-notifications');
-    organization.features.push('am1-tier');
-    organization.features.push('continuous-profiling-billing');
+    const organization = OrganizationFixture({
+      features: [
+        'spend-visibility-notifications',
+        'am1-tier',
+        'continuous-profiling-billing',
+        'seer-billing',
+      ],
+    });
     const otherOrganization = OrganizationFixture();
     renderComponent({
       notificationType: 'quota',
@@ -423,11 +431,12 @@ describe('NotificationSettingsByType', function () {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async function () {
     const organization = OrganizationFixture({
-      features: ['am3-tier', 'continuous-profiling-billing'],
+      features: ['am3-tier', 'continuous-profiling-billing', 'seer-billing'],
     });
     renderComponent({
       notificationType: 'quota',
@@ -447,6 +456,7 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: `/users/me/notification-options/`,
@@ -477,12 +487,13 @@ describe('NotificationSettingsByType', function () {
     );
   });
 
-  it('should not show Profile Hours when continuous-profiling-billing is not enabled', async function () {
+  it('should not show categories without related features', async function () {
     const organization = OrganizationFixture({
       features: [
         'spend-visibility-notifications',
         'am3-tier',
         // No continuous-profiling-billing feature
+        // No seer-billing feature
       ],
     });
     renderComponent({
@@ -505,5 +516,6 @@ describe('NotificationSettingsByType', function () {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
   });
 });

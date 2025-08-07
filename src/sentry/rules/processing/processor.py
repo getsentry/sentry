@@ -12,6 +12,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, buffer, features
+from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -27,6 +28,7 @@ from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -390,11 +392,12 @@ class RuleProcessor:
 
         if randrange(10) == 0:
             analytics.record(
-                "issue_alert.fired",
-                issue_id=self.group.id,
-                project_id=rule.project.id,
-                organization_id=rule.project.organization.id,
-                rule_id=rule.id,
+                IssueAlertFiredEvent(
+                    issue_id=self.group.id,
+                    project_id=rule.project.id,
+                    organization_id=rule.project.organization.id,
+                    rule_id=rule.id,
+                )
             )
 
         if features.has(
@@ -412,6 +415,11 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
+        metrics.timing(
+            "rule_fire_history.latency",
+            (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
+            tags={"delayed": False, "group_type": self.group.issue_type.slug},
+        )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history

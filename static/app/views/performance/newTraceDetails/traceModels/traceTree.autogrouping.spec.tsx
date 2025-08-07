@@ -1,4 +1,6 @@
 import {
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -55,10 +57,84 @@ const siblingAutogroupSpans = [
   }),
 ];
 
+const siblingAutogroupEAPSpans = [
+  makeEAPSpan({
+    op: 'http.server',
+    description: 'redis',
+    event_id: '0000',
+    children: [
+      makeEAPSpan({
+        event_id: '0001',
+        op: 'db',
+        description: 'redis',
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        parent_span_id: '0000',
+      }),
+      makeEAPSpan({
+        event_id: '0002',
+        op: 'db',
+        description: 'redis',
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        parent_span_id: '0000',
+      }),
+      makeEAPSpan({
+        event_id: '0003',
+        op: 'db',
+        description: 'redis',
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        parent_span_id: '0000',
+      }),
+      makeEAPSpan({
+        event_id: '0004',
+        op: 'db',
+        description: 'redis',
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        parent_span_id: '0000',
+      }),
+      makeEAPSpan({
+        event_id: '0005',
+        op: 'db',
+        description: 'redis',
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        parent_span_id: '0000',
+      }),
+    ],
+  }),
+];
+
 const parentAutogroupSpans = [
   makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
   makeSpan({op: 'db', description: 'redis', span_id: '0001', parent_span_id: '0000'}),
   makeSpan({op: 'db', description: 'redis', span_id: '0002', parent_span_id: '0001'}),
+];
+
+const parentAutogroupEAPSpans = [
+  makeEAPSpan({
+    op: 'db',
+    description: 'redis',
+    event_id: '0000',
+    children: [
+      makeEAPSpan({
+        op: 'db',
+        description: 'redis',
+        event_id: '0001',
+        parent_span_id: '0000',
+        children: [
+          makeEAPSpan({
+            op: 'db',
+            description: 'redis',
+            event_id: '0002',
+            parent_span_id: '0001',
+          }),
+        ],
+      }),
+    ],
+  }),
 ];
 
 const parentAutogroupSpansWithChilden = [
@@ -306,6 +382,101 @@ describe('autogrouping', () => {
       expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
+
+    describe('eap traces', () => {
+      it('groups parent chain with same op', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('assigns children to tail node', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              op: 'db',
+              description: 'redis',
+              event_id: '0000',
+              children: [
+                makeEAPSpan({
+                  op: 'db',
+                  description: 'redis',
+                  event_id: '0001',
+                  parent_span_id: '0000',
+                  children: [
+                    makeEAPSpan({
+                      op: 'db',
+                      description: 'redis',
+                      event_id: '0002',
+                      parent_span_id: '0001',
+                      children: [
+                        makeEAPSpan({
+                          op: 'http.server',
+                          description: 'redis',
+                          event_id: '0003',
+                          parent_span_id: '0002',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ]),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('collapsing parent autogroup removes its children', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isParentAutogroupedNode(c)) {
+            tree.expand(c, true);
+          }
+        });
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isParentAutogroupedNode(c)) {
+            tree.expand(c, false);
+          }
+        });
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('removes collapsed parent autogroup', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+        const snapshot = tree.build().serialize();
+
+        // Add children autogroup
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+
+        // Remove it and assert that the tree is back to the original state
+        TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
+
+        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+        expect(tree.build().serialize()).toEqual(snapshot);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+    });
   });
 
   describe('sibling autogrouping', () => {
@@ -417,5 +588,119 @@ describe('autogrouping', () => {
     it.todo(
       'collects errors, performance issues and profiles from sibling autogroup chain'
     );
+
+    describe('eap traces', () => {
+      it('groups spans with the same op and description', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(siblingAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('does not autogroup if count is less 5', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              op: 'http.server',
+              description: 'redis',
+              event_id: '0000',
+              children: [
+                makeEAPSpan({
+                  event_id: '0001',
+                  op: 'db',
+                  description: 'redis',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0002',
+                  op: 'db',
+                  description: 'redis',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0003',
+                  op: 'db',
+                  description: 'redis',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+              ],
+            }),
+          ]),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('expanding sibling autogroup renders its children', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(siblingAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isSiblingAutogroupedNode(c)) {
+            tree.expand(c, true);
+          }
+        });
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('collapsing sibling autogroup removes its children', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(siblingAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isSiblingAutogroupedNode(c)) {
+            tree.expand(c, true);
+          }
+        });
+        expect(tree.build().serialize()).toMatchSnapshot();
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isSiblingAutogroupedNode(c)) {
+            tree.expand(c, false);
+          }
+        });
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('removes sibling autogroup', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(siblingAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        const snapshot = tree.build().serialize();
+
+        // Add sibling autogroup
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        expect(
+          TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))
+        ).not.toBeNull();
+
+        // Remove it and assert that the tree is back to the original state
+        TraceTree.RemoveSiblingAutogroupNodes(tree.root);
+        expect(tree.build().serialize()).toEqual(snapshot);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+    });
   });
 });

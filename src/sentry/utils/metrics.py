@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import time
@@ -6,7 +8,7 @@ from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import sentry_sdk
 from django.conf import settings
@@ -14,6 +16,9 @@ from rest_framework.request import Request
 
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags
 from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
@@ -264,11 +269,11 @@ def event(
 def ensure_crash_rate_in_bounds(
     data: Any,
     request: Request,
-    organization,
+    organization: Organization,
     CRASH_RATE_METRIC_KEY: str,
     lower_bound: float = 0.0,
     upper_bound: float = 1.0,
-):
+) -> None:
     """
     Ensures that crash rate metric will always have value in expected bounds, and
     that invalid value is never returned to the customer by replacing all the invalid values with

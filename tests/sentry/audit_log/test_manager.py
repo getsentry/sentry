@@ -15,7 +15,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class AuditLogEventManagerTest(TestCase):
-    def test_audit_log_manager(self):
+    def test_audit_log_manager(self) -> None:
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -43,7 +43,7 @@ class AuditLogEventManagerTest(TestCase):
 
         assert log_event.render(log_entry) == "test member my_email@mail.com is admin"
 
-    def test_duplicate_event_id(self):
+    def test_duplicate_event_id(self) -> None:
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -68,7 +68,7 @@ class AuditLogEventManagerTest(TestCase):
         with pytest.raises(AuditLogEventNotRegistered):
             test_manager.get_event_id(name="TEST_DUPLICATE")
 
-    def test_duplicate_event_name(self):
+    def test_duplicate_event_name(self) -> None:
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -94,7 +94,7 @@ class AuditLogEventManagerTest(TestCase):
         with pytest.raises(AuditLogEventNotRegistered):
             test_manager.get(501)
 
-    def test_duplicate_api_name(self):
+    def test_duplicate_api_name(self) -> None:
         test_manager = AuditLogEventManager()
 
         test_manager.add(

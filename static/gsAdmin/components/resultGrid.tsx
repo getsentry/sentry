@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -237,7 +236,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
   constructor(props: any) {
     super(props);
     const queryParams = this.props.location?.query ?? {};
-    const {cursor, query, sortBy} = queryParams;
+    const {cursor, query, sortBy, regionUrl} = queryParams;
 
     this.state = {
       rows: [],
@@ -246,7 +245,11 @@ class ResultGrid extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: this.props.isRegional ? ConfigStore.get('regions')[0] : undefined,
+      region: this.props.isRegional
+        ? regionUrl
+          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
+          : ConfigStore.get('regions')[0]
+        : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
     };
@@ -254,6 +257,14 @@ class ResultGrid extends Component<ResultGridProps, State> {
 
   componentDidMount() {
     this.fetchData();
+
+    // Remove regionalUrl after setting state
+    if (this.props.isRegional && this.props.location?.query?.regionUrl) {
+      browserHistory.replace({
+        pathname: this.props.location.pathname,
+        query: {...this.props.location.query, regionUrl: undefined},
+      });
+    }
   }
 
   componentDidUpdate(prevProps: ResultGridProps) {
@@ -449,7 +460,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
         <SortSearchForm onSubmit={this.onSearch}>
           {this.props.isRegional && (
             <CompactSelect
-              triggerProps={{prefix: t('Region')}}
+              triggerProps={{prefix: 'Region'}}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({
                 label: r.name,
@@ -494,7 +505,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 icon={<IconSearch />}
                 priority="primary"
                 size="sm"
-                aria-label={t('Search')}
+                aria-label={'Search'}
               />
             </SearchBar>
           )}
@@ -563,7 +574,7 @@ const SearchBar = styled('div')`
 `;
 
 export const SearchInput = styled(Input)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(0.5)} ${space(1)};
   height: 100%;
 

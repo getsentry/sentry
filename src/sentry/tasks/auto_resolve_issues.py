@@ -8,18 +8,22 @@ from typing import Any
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus, update_group_open_period
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.signals import issue_resolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
 ONE_HOUR = 3600
@@ -31,6 +35,10 @@ ONE_HOUR = 3600
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=75,
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_resolution():
@@ -53,7 +61,11 @@ def schedule_auto_resolution():
         if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
             continue
 
-        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+        auto_resolve_project_issues.apply_async(
+            args=[project_id],
+            expires=ONE_HOUR,
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @instrumented_task(
@@ -62,6 +74,10 @@ def schedule_auto_resolution():
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=90,
+    ),
 )
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
@@ -70,7 +86,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if not age:
         return
 
-    project.update_option("sentry:_last_auto_resolve", int(time()))
+    project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
 
     if cutoff:
         cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
@@ -95,13 +111,14 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
+        resolution_time = django_timezone.now()
         happened = Group.objects.filter(
             id=group.id,
             status=GroupStatus.UNRESOLVED,
             last_seen__lte=cutoff,
         ).update(
             status=GroupStatus.RESOLVED,
-            resolved_at=django_timezone.now(),
+            resolved_at=resolution_time,
             substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
@@ -117,8 +134,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             update_group_open_period(
                 group=group,
                 new_status=GroupStatus.RESOLVED,
-                activity=activity,
-                should_reopen_open_period=False,
+                resolution_time=resolution_time,
+                resolution_activity=activity,
             )
 
             kick_off_status_syncs.apply_async(
@@ -126,12 +143,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
             analytics.record(
-                "issue.auto_resolved",
-                project_id=project.id,
-                organization_id=project.organization_id,
-                group_id=group.id,
-                issue_type=group.issue_type.slug,
-                issue_category=group.issue_category.name.lower(),
+                IssueAutoResolvedEvent(
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    group_id=group.id,
+                    issue_type=group.issue_type.slug,
+                    issue_category=group.issue_category.name.lower(),
+                )
             )
             # auto-resolve is a kind of resolve and this signal makes
             # sure all things that need to happen after resolve are triggered
@@ -146,6 +164,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
     if might_have_more:
-        auto_resolve_project_issues.delay(
-            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+        auto_resolve_project_issues.apply_async(
+            args=[project_id],
+            kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
+            expires=ONE_HOUR,
+            headers={"sentry-propagate-traces": False},
         )

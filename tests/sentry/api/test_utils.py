@@ -18,7 +18,6 @@ from sentry.api.utils import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -38,7 +37,7 @@ from sentry.utils.snuba import (
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
-    def test_timeframe(self):
+    def test_timeframe(self) -> None:
         start, end = get_date_range_from_params({"timeframe": "14h"})
         assert end - datetime.timedelta(hours=14) == start
 
@@ -66,7 +65,7 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
         with pytest.raises(InvalidParams):
             get_date_range_from_params({"timeframe": "9000000d"})
 
-    def test_date_range(self):
+    def test_date_range(self) -> None:
         start, end = get_date_range_from_params({"start": "2018-11-01", "end": "2018-11-07"})
 
         assert start == datetime.datetime(2018, 11, 1, tzinfo=datetime.UTC)
@@ -78,19 +77,19 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
             )
 
     @freeze_time("2018-12-11 03:21:34")
-    def test_no_params(self):
+    def test_no_params(self) -> None:
         start, end = get_date_range_from_params({})
         assert start == timezone.now() - MAX_STATS_PERIOD
         assert end == timezone.now()
 
     @freeze_time("2018-12-11 03:21:34")
-    def test_no_params_optional(self):
+    def test_no_params_optional(self) -> None:
         start, end = get_date_range_from_params({}, optional=True)
         assert start is None
         assert end is None
 
     @freeze_time("2018-12-11 03:21:34")
-    def test_relative_date_range(self):
+    def test_relative_date_range(self) -> None:
         start, end = get_date_range_from_params({"timeframeStart": "14d", "timeframeEnd": "7d"})
 
         assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
@@ -102,17 +101,17 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
         assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
     @freeze_time("2018-12-11 03:21:34")
-    def test_relative_date_range_incomplete(self):
+    def test_relative_date_range_incomplete(self) -> None:
         with pytest.raises(InvalidParams):
             start, end = get_date_range_from_params({"timeframeStart": "14d"})
 
 
 class PrintAndCaptureHandlerExceptionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.handler_error = Exception("nope")
 
     @patch("sys.stderr.write")
-    def test_logs_error_locally(self, mock_stderr_write: MagicMock):
+    def test_logs_error_locally(self, mock_stderr_write: MagicMock) -> None:
         try:
             raise self.handler_error
         except Exception as e:
@@ -172,7 +171,7 @@ class FooBarError(Exception):
 
 class HandleQueryErrorsTest(APITestCase):
     @patch("sentry.api.utils.ParseError")
-    def test_handle_query_errors(self, mock_parse_error):
+    def test_handle_query_errors(self, mock_parse_error: MagicMock) -> None:
         exceptions = [
             DatasetSelectionError,
             IncompatibleMetricsQuery,
@@ -199,45 +198,33 @@ class HandleQueryErrorsTest(APITestCase):
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
 
-    def test_handle_postgres_timeout(self):
+    def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to statement timeout"
 
-        # Test when option is disabled (default)
         try:
             with handle_query_errors():
                 raise TimeoutError()
         except Exception as e:
-            assert isinstance(e, TimeoutError)  # Should propagate original error
+            assert isinstance(e, Throttled)
+            assert (
+                str(e) == "Query timeout. Please try with a smaller date range or fewer conditions."
+            )
 
-        # Test when option is enabled
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            try:
-                with handle_query_errors():
-                    raise TimeoutError()
-            except Exception as e:
-                assert isinstance(e, Throttled)
-                assert (
-                    str(e)
-                    == "Query timeout. Please try with a smaller date range or fewer conditions."
-                )
-
-    def test_handle_postgres_user_cancel(self):
+    def test_handle_postgres_user_cancel(self) -> None:
         class UserCancelError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to user request"
 
-        # Should propagate the error regardless of the feature flag
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            try:
-                with handle_query_errors():
-                    raise UserCancelError()
-            except Exception as e:
-                assert isinstance(e, UserCancelError)  # Should propagate original error
+        try:
+            with handle_query_errors():
+                raise UserCancelError()
+        except Exception as e:
+            assert isinstance(e, UserCancelError)  # Should propagate original error
 
     @patch("sentry.api.utils.ParseError")
-    def test_handle_other_operational_error(self, mock_parse_error):
+    def test_handle_other_operational_error(self, mock_parse_error: MagicMock) -> None:
         class OtherError(OperationalError):
             pass
 
@@ -250,28 +237,28 @@ class HandleQueryErrorsTest(APITestCase):
 
 
 class ClampDateRangeTest(unittest.TestCase):
-    def test_no_clamp_if_range_under_max(self):
+    def test_no_clamp_if_range_under_max(self) -> None:
         start = datetime.datetime(2024, 1, 1)
         end = datetime.datetime(2024, 1, 2)
         max_timedelta = datetime.timedelta(days=7)
 
         assert clamp_date_range((start, end), max_timedelta) == (start, end)
 
-    def test_no_clamp_for_negative_range(self):
+    def test_no_clamp_for_negative_range(self) -> None:
         start = datetime.datetime(2024, 1, 1)
         end = datetime.datetime(2023, 1, 2)
         max_timedelta = datetime.timedelta(hours=1)
 
         assert clamp_date_range((start, end), max_timedelta) == (start, end)
 
-    def test_clamps_even_to_zero(self):
+    def test_clamps_even_to_zero(self) -> None:
         start = datetime.datetime(2024, 1, 1)
         end = datetime.datetime(2024, 1, 2)
         max_timedelta = datetime.timedelta(0)
 
         assert clamp_date_range((start, end), max_timedelta) == (end, end)
 
-    def test_clamps_to_end(self):
+    def test_clamps_to_end(self) -> None:
         start = datetime.datetime(2024, 1, 1)
         end = datetime.datetime(2024, 1, 14)
         max_timedelta = datetime.timedelta(days=1)

@@ -9,8 +9,8 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -34,7 +34,6 @@ from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
-    AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
@@ -45,11 +44,12 @@ from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
-from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
-from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.notifications.notifications.activity.resolved_in_pull_request import (
     ResolvedInPullRequestActivityNotification,
@@ -64,15 +64,15 @@ from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 
 _default_logger = getLogger(__name__)
 
 
 DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
-    ActivityType, type[ActivityNotification]
+    ActivityType, type[GroupActivityNotification]
 ] = {
     ActivityType.ASSIGNED: AssignedActivityNotification,
-    ActivityType.DEPLOY: ReleaseActivityNotification,
     ActivityType.SET_REGRESSION: RegressionActivityNotification,
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
@@ -110,7 +110,7 @@ class SlackService:
         issue_alert_repository: IssueAlertNotificationMessageRepository,
         notification_action_repository: NotificationActionNotificationMessageRepository,
         message_block_builder: BlockSlackMessageBuilder,
-        activity_thread_notification_handlers: dict[ActivityType, type[ActivityNotification]],
+        activity_thread_notification_handlers: dict[ActivityType, type[GroupActivityNotification]],
         logger: Logger,
     ) -> None:
         self._issue_alert_repository = issue_alert_repository
@@ -143,7 +143,7 @@ class SlackService:
         }
 
         if activity.group is None:
-            self._logger.info(
+            self._logger.debug(
                 "no group associated on the activity, nothing to do",
                 extra=log_params,
             )
@@ -154,11 +154,26 @@ class SlackService:
 
         uptime_resolved_notification = (
             activity.type == ActivityType.SET_RESOLVED.value
-            and activity.group.issue_category == GroupCategory.UPTIME
+            and activity.group.issue_type.type_id == UptimeDomainCheckFailure.type_id
         )
 
-        if activity.user_id is None and not uptime_resolved_notification:
+        metric_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_type.type_id == MetricIssue.type_id
+        )
+
+        if activity.user_id is None and metric_resolved_notification:
+            # For Metric Issue resolved notifications triggered by the workflow engine, we don't need to send a notification here -
+            # It will be sent via action.trigger.
             self._logger.info(
+                "metric resolved notification, will be sent via action.trigger - nothing to do here",
+                extra=log_params,
+            )
+            return None
+
+        if activity.user_id is None and not uptime_resolved_notification:
+            # This is a machine/system update, so we don't need to send a notification
+            self._logger.debug(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra=log_params,
             )
@@ -187,6 +202,8 @@ class SlackService:
             )
             return None
 
+        # TODO: This will return None if there are multiple integrations for the same organization, meaning if there are multiple slack installations for the same organization.
+        # We need to associate integration with the threading logic in notif platform so we don't run into this issue.
         integration = get_active_integration_for_organization(
             organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
@@ -231,13 +248,13 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
+            will_fire_workflow_actions = should_fire_workflow_actions(
+                group.organization, group.type
+            )
             if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                         open_period_start=open_period_start,
@@ -249,10 +266,7 @@ class SlackService:
                         open_period_start=open_period_start,
                     )
             else:
-                if features.has(
-                    "organizations:workflow-engine-trigger-actions",
-                    group.organization,
-                ):
+                if will_fire_workflow_actions:
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                     )
@@ -396,6 +410,8 @@ class SlackService:
             thread_ts=message_identifier,
             text=notification_to_send,
             blocks=json_blocks,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
@@ -430,7 +446,7 @@ class SlackService:
             return None
 
         notification_obj = notification_cls(activity=activity)
-        context = notification_obj.get_context()
+        context = notification_obj.get_context(provider=ExternalProviders.SLACK)
         text_description = context.get("text_description", None)
         if not text_description:
             self._logger.info(

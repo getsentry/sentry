@@ -28,15 +28,21 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-transform: uppercase;
+
+  /* Do not apply text styles to overlay elements such as dropdowns */
+  > *:not(:has([data-overlay], button, a[role='button']), button, a[role='button']),
+  &:not(:has(> *)) {
+    color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
+    font-size: ${p => p.theme.fontSize.sm};
+    font-weight: ${p => p.theme.fontWeight.bold};
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: calc(${p => p.theme.borderRadius} + 1px)
     calc(${p => p.theme.borderRadius} + 1px) 0 0;
   background: ${p => p.theme.backgroundSecondary};
-  line-height: 1;
   position: relative;
   ${getPadding};
 `;

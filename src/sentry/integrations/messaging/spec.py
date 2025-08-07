@@ -128,7 +128,7 @@ class MessagingIntegrationSpec(ABC):
 
         def build_path(operation_slug: str, view_cls: type[View]) -> URLPattern:
             return re_path(
-                route=rf"^{operation_slug}/(?P<signed_params>[^\/]+)/$",
+                route=rf"^{operation_slug}/(?P<signed_params>[^/]+)/$",
                 view=view_cls.as_view(),
                 name=f"sentry-integration-{self.provider_slug}-{operation_slug}",
             )
@@ -229,7 +229,11 @@ class MessagingActionHandler(DefaultActionHandler):
         )
         if success:
             self.record_alert_sent_analytics(
-                action, incident, project, action.target_identifier, notification_uuid
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.target_identifier,
+                notification_uuid=notification_uuid,
             )
 
 

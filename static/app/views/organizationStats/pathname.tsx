@@ -3,7 +3,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 const LEGACY_STATS_BASE_PATHNAME = 'stats';
-const STATS_BASE_PATHNAME = 'settings/stats';
 
 export function makeStatsPathname({
   path,
@@ -13,8 +12,8 @@ export function makeStatsPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
-      ? `/organizations/${organization.slug}/${STATS_BASE_PATHNAME}${path}`
+    prefersStackedNav(organization)
+      ? `/settings/${organization.slug}/stats${path}`
       : `/organizations/${organization.slug}/${LEGACY_STATS_BASE_PATHNAME}${path}`
   );
 }

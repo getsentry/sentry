@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -7,7 +7,13 @@ import responses
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_halt_metric,
+    assert_many_halt_metrics,
+    assert_slo_metric,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -41,11 +47,11 @@ class OpsgenieClientTest(APITestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         with pytest.raises(NotImplementedError):
             self.installation.get_client()
 
-    def test_get_keyring_client(self):
+    def test_get_keyring_client(self) -> None:
         client = self.installation.get_keyring_client("team-123")
         assert client.integration == self.installation.model
         assert client.base_url == METADATA["base_url"] + "v2"
@@ -53,7 +59,7 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_notification(self, mock_record):
+    def test_send_notification(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -113,7 +119,9 @@ class OpsgenieClientTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_send_notification_with_workflow_engine_trigger_actions(self, mock_record):
+    def test_send_notification_with_workflow_engine_trigger_actions(
+        self, mock_record: MagicMock
+    ) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -179,7 +187,7 @@ class OpsgenieClientTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_send_notification_with_workflow_engine_ui_links(self, mock_record):
+    def test_send_notification_with_workflow_engine_ui_links(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -241,3 +249,154 @@ class OpsgenieClientTest(APITestCase):
             "source": "Sentry",
         }
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_notification_unauthorized_errors(self, mock_record: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=401,
+            json={"message": ":bufo-riot:"},
+        )
+
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=403,
+            json={"code": 40301},
+        )
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+
+        with self.options({"system.url-prefix": "http://example.com"}):
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            with pytest.raises(ApiUnauthorized):
+                client.send_notification(payload)
+
+            with pytest.raises(ApiError):
+                client.send_notification(payload)
+
+        # CREATE (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+        assert_many_halt_metrics(
+            mock_record=mock_record,
+            messages_or_errors=[ApiUnauthorized("something"), ApiError("something")],
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_metric_alert_notification_unauthorized_errors(
+        self, mock_record: MagicMock
+    ) -> None:
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=401,
+            json={"message": "bufo-brick"},
+        )
+
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=403,
+            json={"code": 40301},
+        )
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+
+        # Test critical alert (P1)
+        critical_payload = {
+            "message": "Critical Alert Rule",
+            "alias": "incident_123_456",
+            "description": "This is a critical alert",
+            "source": "Sentry",
+            "priority": "P1",
+            "details": {
+                "URL": "http://example.com/alert/1",
+            },
+        }
+
+        with pytest.raises(ApiUnauthorized):
+            client.send_metric_alert_notification(critical_payload)
+
+        with pytest.raises(ApiError):
+            client.send_metric_alert_notification(critical_payload)
+
+        # CREATE (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+        assert_many_halt_metrics(
+            mock_record=mock_record,
+            messages_or_errors=[ApiUnauthorized("something"), ApiError("something")],
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_metric_alert_notification_closed_unauthorized_errors(
+        self, mock_record: MagicMock
+    ) -> None:
+        identifier = "poggers"
+        closed_payload = {
+            "identifier": identifier,
+        }
+        responses.add(
+            responses.POST,
+            url=f"https://api.opsgenie.com/v2/alerts/{identifier}/close?identifierType=alias",
+            status=401,
+            json={"code": 40301},
+        )
+
+        responses.add(
+            responses.POST,
+            url=f"https://api.opsgenie.com/v2/alerts/{identifier}/close?identifierType=alias",
+            status=403,
+            json={"message": ":bufo-riot:"},
+        )
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+
+        with pytest.raises(ApiUnauthorized):
+            client.send_metric_alert_notification(closed_payload)
+
+        with pytest.raises(ApiError):
+            client.send_metric_alert_notification(closed_payload)
+
+        # CREATE (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+        assert_halt_metric(mock_record=mock_record, error_msg=ApiError("something"))

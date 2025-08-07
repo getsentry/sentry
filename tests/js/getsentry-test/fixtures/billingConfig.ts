@@ -96,7 +96,12 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
         uptime: 1,
       },
       annualDiscount: 0.1,
-      planList: Object.values(MM1_PLANS).concat(Object.values(MM2_PLANS), Object.values(AM1_PLANS), Object.values(AM2_PLANS), Object.values(AM3_PLANS)),
+      planList: Object.values(MM1_PLANS).concat(
+        Object.values(MM2_PLANS),
+        Object.values(AM1_PLANS),
+        Object.values(AM2_PLANS),
+        Object.values(AM3_PLANS)
+      ),
       featureList: FeatureListFixture(),
     };
   }

@@ -2,7 +2,7 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
@@ -19,7 +19,7 @@ pytestmark = [requires_snuba]
 class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraServerCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, org_integration = self.create_provider_integration_for(
             self.organization,
@@ -46,7 +46,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(user=self.user)
 
-    def trigger(self, event, rule_object):
+    def trigger(self, event: GroupEvent, rule_object: Rule):
         action = rule_object.data.get("actions", ())[0]
         action_inst = self.get_rule(data=action, rule=rule_object)
         results = list(action_inst.after(event=event))
@@ -55,13 +55,13 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: Event):
+    def get_key(self, event: GroupEvent):
         return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
             "key", flat=True
         )[0]
 
     @responses.activate()
-    def test_ticket_rules(self):
+    def test_ticket_rules(self) -> None:
         project = "10000"
         issueType = "1"
         key = "external_issue_key"
@@ -185,7 +185,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # Get the rule from DB
         rule_object = Rule.objects.get(id=response.data["id"])
-        event = self.get_event()
+        event = self.get_group_event()
 
         # Trigger its `after`
         self.trigger(event, rule_object)
@@ -206,7 +206,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count
 
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """

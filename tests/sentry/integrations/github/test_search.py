@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from urllib.parse import urlencode
 
 import responses
 from django.urls import reverse
 
+from sentry.integrations.github.integration import build_repository_query
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
@@ -38,7 +40,18 @@ class GithubSearchTest(APITestCase):
             },
         )
 
-    def setUp(self):
+    def _build_repo_query_path(self, *, query: str) -> str:
+        return f"{self.base_url}/search/repositories?" + urlencode(
+            {
+                "q": build_repository_query(
+                    metadata=self.integration.metadata,
+                    name=self.integration.name,
+                    query=query,
+                ).decode("utf-8")
+            }
+        )
+
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self._create_integration()
         identity = Identity.objects.create(
@@ -62,7 +75,7 @@ class GithubSearchTest(APITestCase):
     # Happy Paths
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_external_issue_results(self, mock_record):
+    def test_finds_external_issue_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20AEIOU",
@@ -94,7 +107,7 @@ class GithubSearchTest(APITestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_external_issue_results_with_id(self):
+    def test_finds_external_issue_results_with_id(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%2025",
@@ -109,10 +122,10 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_repo_results(self, mock_record):
+    def test_finds_repo_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            self._build_repo_query_path(query="ex"),
             json={
                 "items": [
                     {"name": "example", "full_name": "test/example"},
@@ -141,10 +154,10 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_repo_search_validation_error(self, mock_record):
+    def test_repo_search_validation_error(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20nope",
+            self._build_repo_query_path(query="nope"),
             json={
                 "message": "Validation Error",
                 "errors": [{"message": "Cannot search for that org"}],
@@ -170,7 +183,7 @@ class GithubSearchTest(APITestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_no_external_issues_results(self):
+    def test_finds_no_external_issues_results(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20nope",
@@ -184,10 +197,8 @@ class GithubSearchTest(APITestCase):
         assert resp.data == []
 
     @responses.activate
-    def test_finds_no_project_results(self):
-        responses.add(
-            responses.GET, self.base_url + "/search/repositories?q=org:test%20nope", json={}
-        )
+    def test_finds_no_project_results(self) -> None:
+        responses.add(responses.GET, self._build_repo_query_path(query="nope"), json={})
         resp = self.client.get(self.url, data={"field": "repo", "query": "nope"})
 
         assert resp.status_code == 200
@@ -195,7 +206,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues_rate_limit(self, mock_record):
+    def test_search_issues_rate_limit(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20ex",
@@ -224,10 +235,10 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_project_rate_limit(self, mock_record):
+    def test_search_project_rate_limit(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            self._build_repo_query_path(query="ex"),
             status=403,
             json={
                 "message": "API rate limit exceeded",
@@ -252,7 +263,7 @@ class GithubSearchTest(APITestCase):
     # Request Validations
     # Test observability requests for GET requests failures here
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_field(self, mock_record):
+    def test_missing_field(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"query": "XYZ"})
         assert resp.status_code == 400
         assert len(mock_record.mock_calls) == 6
@@ -265,7 +276,7 @@ class GithubSearchTest(APITestCase):
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_query(self, mock_record):
+    def test_missing_query(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue"})
 
         assert resp.status_code == 400
@@ -278,7 +289,7 @@ class GithubSearchTest(APITestCase):
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_repository(self, mock_record):
+    def test_missing_repository(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue", "query": "XYZ"})
 
         assert resp.status_code == 400
@@ -292,7 +303,7 @@ class GithubSearchTest(APITestCase):
             mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_FIELD.value
         )
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         resp = self.client.get(self.url, data={"field": "invalid-field", "query": "nope"})
 
         assert resp.status_code == 400
@@ -300,7 +311,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     # Test observability requests for GET requests failures here
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_integration(self, mock_record):
+    def test_missing_integration(self, mock_record: MagicMock) -> None:
         url = reverse(
             "sentry-integration-github-search",
             kwargs={
@@ -324,7 +335,7 @@ class GithubSearchTest(APITestCase):
             mock_record, SourceCodeSearchEndpointHaltReason.MISSING_INTEGRATION.value
         )
 
-    def test_missing_installation(self):
+    def test_missing_installation(self) -> None:
         # remove organization integration aka "uninstalling" installation
         org_integration = OrganizationIntegration.objects.get(
             id=self.installation.org_integration.id
@@ -337,7 +348,7 @@ class GithubSearchTest(APITestCase):
 
     # Distributed System Issues
     @responses.activate
-    def test_search_issues_request_fails(self):
+    def test_search_issues_request_fails(self) -> None:
         responses.add(
             responses.GET, self.base_url + "/search/issues?q=repo:example%20ex", status=503
         )
@@ -347,7 +358,7 @@ class GithubSearchTest(APITestCase):
         assert resp.status_code == 503
 
     @responses.activate
-    def test_projects_request_fails(self):
+    def test_projects_request_fails(self) -> None:
         responses.add(
             responses.GET, self.base_url + "/search/repositories?q=org:test%20ex", status=503
         )

@@ -34,7 +34,7 @@ function BreadcrumbFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Breadcrumb Events')}
         query={searchTerm}
-        disabled={!frames || !frames.length}
+        disabled={!frames?.length}
       />
     </FiltersGrid>
   );

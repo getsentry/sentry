@@ -32,6 +32,7 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
     "eap-spans-subscription-results",
+    "subscription-results-eap-items",
 ]
 
 
@@ -353,10 +354,6 @@ def devserver(
                 kafka_consumers.add("uptime-results")
 
             if settings.SENTRY_USE_RELAY:
-                # TODO: Remove this once we have a better way to check if relay is running for new devservices
-                if "relay-relay-1" not in containers:
-                    daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
-
                 kafka_consumers.add("ingest-events")
                 kafka_consumers.add("ingest-attachments")
                 kafka_consumers.add("ingest-transactions")
@@ -414,12 +411,13 @@ def devserver(
             """
                 )
 
-            from sentry.conf.types.kafka_definition import Topic
-            from sentry.utils.batching_kafka_consumer import create_topics
-            from sentry.utils.kafka_config import get_topic_definition
+            from sentry_kafka_schemas import list_topics
 
-            for topic in Topic:
-                topic_defn = get_topic_definition(topic)
+            from sentry.utils.batching_kafka_consumer import create_topics
+            from sentry.utils.kafka_config import get_topic_definition_from_name
+
+            for topic in list_topics():
+                topic_defn = get_topic_definition_from_name(topic)
                 create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
             if dev_consumer:

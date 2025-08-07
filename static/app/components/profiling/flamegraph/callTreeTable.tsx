@@ -8,7 +8,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
-export const enum CallTreeTableClassNames {
+const enum CallTreeTableClassNames {
   ROW = 'CallTreeTableRow',
   CELL = 'CallTreeTableTableCell',
   FRAME_CELL = 'CallTreeTableTableCellFrame',
@@ -22,7 +22,7 @@ export const enum CallTreeTableClassNames {
 }
 
 export const CallTreeTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
   overflow: auto;
   max-height: 100%;
@@ -384,13 +384,9 @@ interface CallTreeTableRowProps {
   onMouseEnter: () => void;
   tabIndex: number;
   top: string;
-}
-export function CallTreeTableRow({
-  ref,
-  ...props
-}: CallTreeTableRowProps & {
   ref?: React.Ref<HTMLDivElement>;
-}) {
+}
+export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
   return (
     <div
       ref={ref}

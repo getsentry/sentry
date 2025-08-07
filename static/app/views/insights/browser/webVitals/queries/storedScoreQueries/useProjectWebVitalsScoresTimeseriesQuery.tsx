@@ -1,10 +1,10 @@
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
-import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -30,8 +30,6 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   browserTypes,
   subregions,
 }: Props) => {
-  const defaultQuery = useDefaultWebVitalsQuery();
-
   const search = new MutableSearch([
     'has:measurements.score.total',
     ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
@@ -40,15 +38,15 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     search.addFilterValue('transaction', transaction);
   }
   if (subregions) {
-    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
-  const result = useMetricsSeries(
+  const result = useSpanSeries(
     {
-      search: [defaultQuery, search.formatString()].join(' ').trim(),
+      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       yAxis: [
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',

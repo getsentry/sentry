@@ -13,7 +13,7 @@ class SiloRouterSimulatedTest(TestCase):
     """Simulated mode can resolve both silos to separate connections"""
 
     @override_settings(SILO_MODE=None)
-    def test_simulated_no_silo(self):
+    def test_simulated_no_silo(self) -> None:
         # Simulated silo mode should work the same as with a silo mode defined..
         router = SiloRouter()
         router.use_simulated(True)
@@ -35,7 +35,7 @@ class SiloRouterSimulatedTest(TestCase):
         ), "Removed tables should not error and not route"
 
     @override_settings(SILO_MODE="CONTROL")
-    def test_for_control(self):
+    def test_for_control(self) -> None:
         router = SiloRouter()
         router.use_simulated(True)
         assert "default" == router.db_for_read(Organization)
@@ -53,7 +53,7 @@ class SiloRouterSimulatedTest(TestCase):
         ), "Removed tables should not error and not route"
 
     @override_settings(SILO_MODE="REGION")
-    def test_for_region(self):
+    def test_for_region(self) -> None:
         router = SiloRouter()
         router.use_simulated(True)
         assert "default" == router.db_for_read(Organization)
@@ -67,7 +67,7 @@ class SiloRouterSimulatedTest(TestCase):
         assert not router.allow_migrate("default", "sentry", User)
 
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith_simulated(self):
+    def test_for_monolith_simulated(self) -> None:
         router = SiloRouter()
         router.use_simulated(True)
         assert "default" == router.db_for_read(Organization)
@@ -83,7 +83,7 @@ class SiloRouterSimulatedTest(TestCase):
 
     @pytest.mark.skipif(use_split_dbs(), reason="requires single db mode")
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith_single(self):
+    def test_for_monolith_single(self) -> None:
         router = SiloRouter()
         assert "default" == router.db_for_read(Organization)
         assert "default" == router.db_for_read(User)
@@ -94,7 +94,7 @@ class SiloRouterSimulatedTest(TestCase):
 
     @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith_split(self):
+    def test_for_monolith_split(self) -> None:
         router = SiloRouter()
         assert "default" == router.db_for_read(Organization)
         assert "control" == router.db_for_read(User)
@@ -105,7 +105,7 @@ class SiloRouterSimulatedTest(TestCase):
 
     @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
     @override_settings(SILO_MODE="REGION")
-    def test_removed_region_model(self):
+    def test_removed_region_model(self) -> None:
         router = SiloRouter()
         assert router.allow_migrate(
             "default", "sentry", hints={"tables": ["sentry_pagerdutyservice"]}
@@ -116,7 +116,7 @@ class SiloRouterIsolatedTest(TestCase):
     """Isolated mode raises errors for the 'other' silo"""
 
     @override_settings(SILO_MODE="CONTROL")
-    def test_for_control(self):
+    def test_for_control(self) -> None:
         router = SiloRouter()
         router.use_simulated(False)
 
@@ -138,7 +138,7 @@ class SiloRouterIsolatedTest(TestCase):
             router.allow_migrate("default", "sentry", tables=["sentry_pagerdutyservice"])
 
     @override_settings(SILO_MODE="REGION")
-    def test_for_region(self):
+    def test_for_region(self) -> None:
         router = SiloRouter()
         router.use_simulated(False)
 
@@ -163,7 +163,7 @@ class SiloRouterIsolatedTest(TestCase):
             router.allow_migrate("control", "sentry", User)
 
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith(self):
+    def test_for_monolith(self) -> None:
         router = SiloRouter()
         router.use_simulated(False)
 

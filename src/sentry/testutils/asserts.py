@@ -1,5 +1,7 @@
 from functools import reduce
 
+from django.db import models
+from django.db.models.functions import Cast
 from django.http import StreamingHttpResponse
 
 from sentry.constants import ObjectStatus
@@ -70,7 +72,14 @@ def org_audit_log_exists(**kwargs):
     assert kwargs
     if "organization" in kwargs:
         kwargs["organization_id"] = kwargs.pop("organization").id
-    return AuditLogEntry.objects.filter(**kwargs).exists()
+    if "data" in kwargs:
+        kwargs["data__asjsonb"] = kwargs.pop("data")
+    return (
+        # would be nice to remove this and just use JSONField but the table is too big
+        AuditLogEntry.objects.annotate(data__asjsonb=Cast("data", models.JSONField()))
+        .filter(**kwargs)
+        .exists()
+    )
 
 
 def assert_org_audit_log_exists(**kwargs):
@@ -153,3 +162,15 @@ def assert_many_halt_metrics(mock_record, messages_or_errors):
             assert isinstance(halt.args[1], type(error_msg))
         else:
             assert halt.args[1] == error_msg
+
+
+# Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
+def assert_many_failure_metrics(mock_record, messages_or_errors):
+    failures = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+    )
+    for failure, error_msg in zip(failures, messages_or_errors):
+        if isinstance(error_msg, Exception):
+            assert isinstance(failure.args[1], type(error_msg))
+        else:
+            assert failure.args[1] == error_msg

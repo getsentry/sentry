@@ -260,11 +260,7 @@ export function WidgetOnDemandQueryWarning(props: {
         'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
         {strong: <strong />}
       )}
-      color={
-        organization.features.includes('dashboards-widget-builder-redesign')
-          ? 'yellow300'
-          : undefined
-      }
+      color="yellow300"
     />
   );
 }
@@ -281,7 +277,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     height: auto;
   }

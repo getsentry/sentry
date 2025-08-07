@@ -125,7 +125,35 @@ export function GridLineLabels({
           <TimeLabel date={date} {...dateTimeProps} />
         </TimeLabelContainer>
       ))}
+      {labelPosition && (
+        <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
+      )}
     </LabelsContainer>
+  );
+}
+
+interface GridLinesProps {
+  labelPosition: LabelPosition;
+  timeWindowConfig: TimeWindowConfig;
+}
+
+function GridLines({timeWindowConfig, labelPosition}: GridLinesProps) {
+  const {timelineUnderscanWidth} = timeWindowConfig.rollupConfig;
+
+  const gridLine = getTimeMarkersFromConfig(timeWindowConfig);
+
+  // Skip rendering of the first grid line marker when the underscan width is
+  // below the threshold to be displayed
+  if (timelineUnderscanWidth < UNDERSCAN_MARKER_LINE_THRESHOLD) {
+    gridLine.shift();
+  }
+
+  return (
+    <GridLineContainer>
+      {gridLine.map(({date, position}) => (
+        <Gridline key={date.getTime()} left={position} labelPosition={labelPosition} />
+      ))}
+    </GridLineContainer>
   );
 }
 
@@ -147,9 +175,22 @@ interface GridLineOverlayProps {
    */
   cursorOffsets?: CursorOffsets;
   /**
+   * Whether to anchor the cursor overlay to the top or bottom of the container. Defaults to 'top'
+   */
+  cursorOverlayAnchor?: 'top' | 'bottom';
+  /**
+   * The offset of the cursor overlay. If anchor is 'top', this will be added to the top offset.
+   * If anchor is 'bottom', this will be added to the bottom offset.
+   */
+  cursorOverlayAnchorOffset?: number;
+  /**
    * Configres where the timeline labels are displayed
    */
   labelPosition?: LabelPosition;
+  /**
+   * Resets pagination cursor when zooming the timeline.
+   */
+  resetPaginationOnZoom?: boolean;
   /**
    * Enable the timeline cursor
    */
@@ -166,9 +207,12 @@ export function GridLineOverlay({
   additionalUi,
   stickyCursor,
   cursorOffsets,
+  cursorOverlayAnchor,
+  cursorOverlayAnchorOffset,
   allowZoom,
   className,
   labelPosition = 'left-top',
+  resetPaginationOnZoom,
 }: GridLineOverlayProps) {
   const router = useRouter();
   const {periodStart, timelineWidth, dateLabelFormat, rollupConfig} = timeWindowConfig;
@@ -197,9 +241,9 @@ export function GridLineOverlay({
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
         router,
-        {keepCursor: true}
+        {keepCursor: !resetPaginationOnZoom}
       ),
-    [dateFromPosition, router]
+    [dateFromPosition, resetPaginationOnZoom, router]
   );
 
   const {
@@ -213,27 +257,18 @@ export function GridLineOverlay({
     sticky: stickyCursor,
     offsets: cursorOffsets,
     labelText: makeCursorLabel,
+    anchor: cursorOverlayAnchor,
+    anchorOffset: cursorOverlayAnchorOffset,
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
-  const gridLine = getTimeMarkersFromConfig(timeWindowConfig);
-
-  // Skip rendering of the first grid line marker when the underscan width is
-  // below the threshold to be displayed
-  if (timelineUnderscanWidth < UNDERSCAN_MARKER_LINE_THRESHOLD) {
-    gridLine.shift();
-  }
 
   return (
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
-      <GridLineContainer>
-        {gridLine.map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} labelPosition={labelPosition} />
-        ))}
-      </GridLineContainer>
+      <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
     </Overlay>
   );
 }
@@ -248,7 +283,6 @@ const GridLineContainer = styled('div')`
   position: relative;
   overflow: hidden;
   height: 100%;
-  z-index: 1;
   pointer-events: none;
 `;
 
@@ -259,7 +293,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
   ${p =>
     p.labelPosition === 'left-top' &&
     css`
-      height: 50px;
+      min-height: 50px;
     `}
   ${p =>
     p.labelPosition === 'center-bottom' &&
@@ -332,7 +366,7 @@ const TimeLabelContainer = styled('div')<{
 
 const TimeLabel = styled(DateTime)`
   font-variant-numeric: tabular-nums;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   pointer-events: none;
 `;

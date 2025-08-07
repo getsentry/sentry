@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -22,11 +22,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
-import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
+import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
@@ -156,7 +155,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.subText};
   font-size: ${p => p.fontSize}px;
@@ -171,7 +170,7 @@ interface ProjectRendererProps {
   hideName?: boolean;
 }
 
-export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
+function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   const organization = useOrganization();
 
   return (
@@ -370,7 +369,7 @@ export function SpanBreakdownSliceRenderer({
 }
 
 const Subtext = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 const FlexContainer = styled('div')`
@@ -393,7 +392,6 @@ const BreakdownSlice = styled('div')<{
 `;
 
 interface SpanIdRendererProps {
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
@@ -402,7 +400,6 @@ interface SpanIdRendererProps {
 }
 
 export function SpanIdRenderer({
-  projectSlug,
   spanId,
   timestamp,
   traceId,
@@ -413,7 +410,6 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    projectSlug,
     traceSlug: traceId,
     timestamp,
     eventId: transactionId,
@@ -469,32 +465,6 @@ export function TraceIdRenderer({
   );
 }
 
-interface TransactionRendererProps {
-  projectSlug: string;
-  transaction: string;
-}
-
-export function TransactionRenderer({
-  projectSlug,
-  transaction,
-}: TransactionRendererProps) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const {projects} = useProjects({slugs: [projectSlug]});
-
-  const target = transactionSummaryRouteWithQuery({
-    organization,
-    transaction,
-    query: {
-      ...location.query,
-      query: undefined,
-    },
-    projectID: String(projects[0]?.id ?? ''),
-  });
-
-  return <Link to={target}>{transaction}</Link>;
-}
-
 export function SpanTimeRenderer({
   timestamp,
   tooltipShowSeconds,
@@ -512,7 +482,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = SpanResponse[SpanFields.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',
@@ -544,7 +514,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-export function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {

@@ -50,7 +50,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
@@ -59,7 +59,7 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin: 0;
 `;
 
-export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
+const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
   color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

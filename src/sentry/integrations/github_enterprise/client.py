@@ -1,9 +1,10 @@
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.utils import get_jwt
+from sentry.integrations.types import IntegrationProviderSlug
 
 
 class GitHubEnterpriseApiClient(GitHubBaseClient):
-    integration_name = "github_enterprise"
+    integration_name = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def __init__(self, base_url, integration, app_id, private_key, verify_ssl, org_integration_id):
         self.base_url = f"https://{base_url}"

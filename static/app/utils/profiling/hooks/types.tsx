@@ -1,7 +1,7 @@
 import type {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {FieldValueType} from 'sentry/utils/fields';
 
-export type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
+type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
 type BaseReference =
   | Profiling.BaseTransactionProfileReference
@@ -17,7 +17,7 @@ export type EventsResultsDataRow<F extends string> = Pick<
 > &
   Record<Exclude<F, keyof SpecialColumns>, string[] | string | number | null>;
 
-export type EventsResultsMeta<F extends string> = {
+type EventsResultsMeta<F extends string> = {
   fields: Partial<Record<F, FieldValueType>>;
   units: Partial<Record<F, Unit>>;
 };

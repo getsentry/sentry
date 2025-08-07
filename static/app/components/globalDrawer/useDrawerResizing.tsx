@@ -32,7 +32,7 @@ export function useDrawerResizing({
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const rafIdRef = useRef<number | null>(null);

@@ -41,17 +41,17 @@ class OrganizationMapping(Model):
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
     # Replicated from the Organization.flags attribute
-    allow_joinleave = models.BooleanField(default=False)
-    enhanced_privacy = models.BooleanField(default=False)
-    require_2fa = models.BooleanField(default=False)
-    early_adopter = models.BooleanField(default=False)
-    disable_shared_issues = models.BooleanField(default=False)
-    disable_new_visibility_features = models.BooleanField(default=False)
-    require_email_verification = models.BooleanField(default=False)
-    codecov_access = models.BooleanField(default=False)
-    disable_member_project_creation = models.BooleanField(default=False)
-    prevent_superuser_access = models.BooleanField(default=False)
-    disable_member_invite = models.BooleanField(default=False)
+    allow_joinleave = models.BooleanField(default=False, db_default=False)
+    enhanced_privacy = models.BooleanField(default=False, db_default=False)
+    require_2fa = models.BooleanField(default=False, db_default=False)
+    early_adopter = models.BooleanField(default=False, db_default=False)
+    disable_shared_issues = models.BooleanField(default=False, db_default=False)
+    disable_new_visibility_features = models.BooleanField(default=False, db_default=False)
+    require_email_verification = models.BooleanField(default=False, db_default=False)
+    codecov_access = models.BooleanField(default=False, db_default=False)
+    disable_member_project_creation = models.BooleanField(default=False, db_default=False)
+    prevent_superuser_access = models.BooleanField(default=False, db_default=False)
+    disable_member_invite = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"

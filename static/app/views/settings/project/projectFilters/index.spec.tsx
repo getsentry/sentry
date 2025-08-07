@@ -188,7 +188,7 @@ describe('ProjectFilters', function () {
       await screen.findByRole('textbox', {name: 'IP Addresses'}),
       'test\ntest2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
@@ -228,7 +228,7 @@ describe('ProjectFilters', function () {
       screen.getByRole('textbox', {name: 'Releases'}),
       'release\nrelease2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
@@ -239,7 +239,7 @@ describe('ProjectFilters', function () {
       screen.getByRole('textbox', {name: 'Error Message'}),
       'error\nerror2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
       'error\nerror2'

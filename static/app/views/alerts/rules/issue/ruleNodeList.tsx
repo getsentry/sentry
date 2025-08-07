@@ -333,7 +333,7 @@ const RuleNodes = styled('div')`
   margin-bottom: ${space(1)};
   gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-auto-flow: row;
   }
 `;

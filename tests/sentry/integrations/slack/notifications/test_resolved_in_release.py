@@ -28,7 +28,7 @@ class SlackResolvedInReleaseNotificationTest(
             )
         )
 
-    def test_resolved_in_release_block(self):
+    def test_resolved_in_release_block(self) -> None:
         notification = self.create_notification(self.group)
         with self.tasks():
             notification.send()
@@ -39,11 +39,16 @@ class SlackResolvedInReleaseNotificationTest(
         release_name = notification.activity.data["version"]
         assert fallback_text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_release_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        emoji = "red_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_release_activity-slack&notification_uuid={notification_uuid}"
+        text = f"{self.group.title}"
+        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
@@ -54,7 +59,9 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_resolved_in_release_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_resolved_in_release_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
         and block kit is enabled.
@@ -83,7 +90,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_resolved_in_release_generic_issue_block(self, occurrence):
+    def test_resolved_in_release_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved in a release
         and block kit is enabled.
@@ -110,7 +117,7 @@ class SlackResolvedInReleaseNotificationTest(
             "resolved_in_release_activity-slack",
         )
 
-    def test_resolved_in_release_parsed_version_block(self):
+    def test_resolved_in_release_parsed_version_block(self) -> None:
         """
         Test that the release version is formatted to the short version when block kit is enabled.
         """
@@ -123,7 +130,9 @@ class SlackResolvedInReleaseNotificationTest(
 
         assert fallback_text == f"Issue marked as resolved in 1.0.0 by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
+        )
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"

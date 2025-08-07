@@ -24,13 +24,17 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -86,7 +90,7 @@ class IssueArgs(TypedDict):
     platform: str | None
     message: str
     level: int | None
-    culprit: str
+    culprit: str | None
     last_seen: datetime
     first_seen: datetime
     active_at: datetime
@@ -100,6 +104,8 @@ class IssueArgs(TypedDict):
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
+    priority = occurrence.priority or occurrence.type.default_priority
+
     kwargs: IssueArgs = {
         "platform": event.platform,
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
@@ -113,11 +119,7 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": (
-            occurrence.initial_issue_priority
-            if occurrence.initial_issue_priority is not None
-            else occurrence.type.default_priority
-        ),
+        "priority": priority,
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -125,7 +127,7 @@ def _create_issue_kwargs(
 
 class OccurrenceMetadata(TypedDict):
     type: str
-    culprit: str
+    culprit: str | None
     metadata: Mapping[str, Any]
     title: str
     location: str | None
@@ -145,7 +147,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
-    event_metadata["initial_priority"] = occurrence.initial_issue_priority
+    event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -155,6 +157,9 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        associated_event_id = occurrence.evidence_data.get("associated_event_id")
+        if associated_event_id:
+            event_metadata["associated_event_id"] = associated_event_id
 
     return {
         "type": event_type.key,
@@ -195,7 +200,10 @@ def save_issue_from_occurrence(
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
         if not should_create_group(occurrence.type, client, primary_hash, project):
-            metrics.incr("issues.issue.dropped.noise_reduction")
+            metrics.incr(
+                "issues.issue.dropped.noise_reduction",
+                tags={"group_type": occurrence.type.slug},
+            )
             return None
 
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
@@ -225,6 +233,18 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
+            if is_new and occurrence.evidence_data and "detector_id" in occurrence.evidence_data:
+                DetectorGroup.objects.get_or_create(
+                    detector_id=occurrence.evidence_data["detector_id"],
+                    group_id=group.id,
+                )
+
+            open_period = get_latest_open_period(group)
+            if open_period is not None:
+                highest_seen_priority = group.priority
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -263,11 +283,12 @@ def save_issue_from_occurrence(
         return None
     else:
         group = primary_grouphash.group
-        if group.issue_category.value != occurrence.type.category:
+        if group.issue_type.type_id != occurrence.type.type_id:
             logger.error(
-                "save_issue_from_occurrence.category_mismatch",
+                "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_category": group.issue_category,
+                    "issue_type": group.issue_type.slug,
+                    "occurrence_type": occurrence.type.slug,
                     "event_type": "platform",
                     "group_id": group.id,
                 },
@@ -278,6 +299,30 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+        if (
+            issue_kwargs["priority"]
+            and group.priority != issue_kwargs["priority"]
+            and group.priority_locked_at is None
+        ):
+            update_priority(
+                group=group,
+                priority=PriorityLevel(issue_kwargs["priority"]),
+                sender="save_issue_from_occurrence",
+                reason=PriorityChangeReason.ISSUE_PLATFORM,
+                project=project,
+            )
+
+            open_period = get_latest_open_period(group)
+            if open_period is not None:
+                highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+                if highest_seen_priority is None:
+                    highest_seen_priority = group.priority
+                elif group.priority is not None:
+                    # XXX: we know this is not None, because we just set the group's priority
+                    highest_seen_priority = max(highest_seen_priority, group.priority)
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:

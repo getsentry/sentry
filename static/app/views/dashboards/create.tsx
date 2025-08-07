@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
@@ -25,13 +24,14 @@ type Props = RouteComponentProps<{templateId?: string; widgetId?: string}> & {
 function CreateDashboard(props: Props) {
   const {location, organization} = props;
   const {templateId} = props.params;
-  const theme = useTheme();
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -61,7 +61,6 @@ function CreateDashboard(props: Props) {
       <ErrorBoundary>
         <DashboardDetail
           {...props}
-          theme={theme}
           initialState={initialState}
           dashboard={dashboard}
           dashboards={[]}

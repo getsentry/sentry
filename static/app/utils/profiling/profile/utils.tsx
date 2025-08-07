@@ -2,7 +2,6 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
-import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
@@ -261,14 +260,6 @@ export function wrapWithSpan<T>(
     });
   });
 }
-
-export const isSystemCall = (node: CallTreeNode): boolean => {
-  return !node.frame.is_application;
-};
-
-export const isApplicationCall = (node: CallTreeNode): boolean => {
-  return !!node.frame.is_application;
-};
 
 function indexNodeToParents(
   roots: readonly FlamegraphFrame[],

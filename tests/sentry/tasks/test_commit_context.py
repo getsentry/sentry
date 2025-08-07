@@ -1,13 +1,17 @@
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
 from celery.exceptions import Retry
 from django.utils import timezone
 
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+    IntegrationsSuccessfullyFetchedCommitContextAllFrames,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
@@ -21,7 +25,7 @@ from sentry.integrations.source_code_management.metrics import CommitContextHalt
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
@@ -35,6 +39,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -44,7 +49,7 @@ pytestmark = [requires_snuba]
 
 
 class TestCommitContextIntegration(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -103,7 +108,7 @@ class TestCommitContextIntegration(TestCase):
 
 
 class TestCommitContextAllFrames(TestCommitContextIntegration):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.blame_recent = FileBlameInfo(
             repo=self.repo,
@@ -165,7 +170,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_inactive_integration(self, mock_get_commit_context):
+    def test_inactive_integration(self, mock_get_commit_context: MagicMock) -> None:
         """
         Early return if the integration is not active
         """
@@ -197,7 +202,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_existing_commit(self, mock_get_commit_context, mock_record):
+    def test_success_existing_commit(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests a simple successful case, where get_commit_context_all_frames returns
         a single blame item. A GroupOwner should be created, but Commit and CommitAuthor
@@ -215,13 +222,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -238,28 +246,119 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert commit.message == "placeholder commit message"
 
         assert created_group_owner
-        assert created_group_owner.context == {"commitId": existing_commit.id}
+        assert created_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+        }
 
-        mock_record.assert_any_call(
-            "integrations.successfully_fetched_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_unique_commits=1,
-            num_unique_commit_authors=1,
-            num_successfully_mapped_frames=1,
-            selected_frame_index=0,
-            selected_provider="github",
-            selected_code_mapping_id=self.code_mapping.id,
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_unique_commits=1,
+                num_unique_commit_authors=1,
+                num_successfully_mapped_frames=1,
+                selected_frame_index=0,
+                selected_provider="github",
+                selected_code_mapping_id=self.code_mapping.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_create_commit(self, mock_get_commit_context, mock_record):
+    def test_success_updating_group_owner(self, mock_get_commit_context, mock_record):
+        """
+        Runs through process_commit_context twice to make sure we aren't creating duplicate
+        GroupOwners for the same suggestion.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            existing_commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=self.commit_author,
+                key="existing-commit",
+            )
+            existing_commit.update(message="")
+            assert Commit.objects.count() == 2
+            event_frames = get_frame_paths(self.event)
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
+
+        created_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be updated
+        assert commit.message == "placeholder commit message"
+
+        assert created_group_owner
+        assert created_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+        }
+
+        with self.tasks():
+            assert GroupOwner.objects.filter(group=self.event.group).count() == 1
+            event_frames = get_frame_paths(self.event)
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
+
+        assert GroupOwner.objects.filter(group=self.event.group).count() == 1
+
+        updated_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be unchanged
+        assert commit.message == "placeholder commit message"
+
+        assert updated_group_owner
+        assert updated_group_owner.context == {
+            "commitId": existing_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+        }
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_success_create_commit(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         A simple success case where a new commit needs to be created.
         """
@@ -267,13 +366,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_commit_author = CommitAuthor.objects.get(
             organization_id=self.organization.id, email="admin2@localhost"
@@ -299,13 +399,18 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-        ).context == {"commitId": created_commit.id}
+        ).context == {
+            "commitId": created_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_multiple_blames(self, mock_get_commit_context, mock_record):
+    def test_success_multiple_blames(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         A simple success case where multiple blames are returned.
         The most recent blame should be selected.
@@ -318,13 +423,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -335,13 +441,18 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         created_commit = Commit.objects.get(key="commit-id-recent")
 
-        assert created_group_owner.context == {"commitId": created_commit.id}
+        assert created_group_owner.context == {
+            "commitId": created_commit.id,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_maps_correct_files(self, mock_get_commit_context, mock_record):
+    def test_maps_correct_files(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests that the get_commit_context_all_frames function is called with the correct
         files. Code mappings should be applied properly and non-matching files thrown out.
@@ -473,15 +584,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=0,
-            num_successfully_mapped_frames=0,
-            reason="could_not_find_in_app_stacktrace_frame",
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=0,
+                num_successfully_mapped_frames=0,
+                reason="could_not_find_in_app_stacktrace_frame",
+            ),
         )
 
     @patch("sentry.integrations.utils.commit_context.logger.info")
@@ -520,15 +633,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="no_commit_found",
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="no_commit_found",
+            ),
         )
 
         mock_logger_info.assert_any_call(
@@ -579,15 +694,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             sdk_name="sentry.python",
         )
 
-        mock_record.assert_any_call(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            num_frames=1,
-            num_successfully_mapped_frames=1,
-            reason="commit_too_old",
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                num_frames=1,
+                num_successfully_mapped_frames=1,
+                reason="commit_too_old",
+            ),
         )
 
         mock_logger_info.assert_any_call(
@@ -607,7 +724,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("Unknown API error"),
     )
-    def test_retry_on_bad_api_error(self, mock_get_commit_context, mock_process_suspect_commits):
+    def test_retry_on_bad_api_error(
+        self, mock_get_commit_context: MagicMock, mock_process_suspect_commits: MagicMock
+    ) -> None:
         """
         A failure case where the integration hits an unknown API error.
         The task should be retried.
@@ -741,7 +860,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_filters_invalid_and_dedupes_frames(self, mock_get_commit_context, mock_record):
+    def test_filters_invalid_and_dedupes_frames(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests that invalid frames are filtered out and that duplicate frames are deduped.
         """
@@ -817,21 +938,23 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 "organization": self.organization.id,
             },
         )
-        mock_record.assert_any_call(
-            "integrations.successfully_fetched_commit_context_all_frames",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            event_id=self.event.event_id,
-            # 1 was a duplicate, 2 filtered out because of missing properties
-            num_frames=2,
-            num_unique_commits=1,
-            num_unique_commit_authors=1,
-            # Only 1 successfully mapped frame of the 6 total
-            num_successfully_mapped_frames=1,
-            selected_frame_index=0,
-            selected_provider="github",
-            selected_code_mapping_id=self.code_mapping.id,
+        assert_any_analytics_event(
+            mock_record,
+            IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                event_id=self.event.event_id,
+                # 1 was a duplicate, 2 filtered out because of missing properties
+                num_frames=2,
+                num_unique_commits=1,
+                num_unique_commit_authors=1,
+                # Only 1 successfully mapped frame of the 6 total
+                num_successfully_mapped_frames=1,
+                selected_frame_index=0,
+                selected_provider="github",
+                selected_code_mapping_id=self.code_mapping.id,
+            ),
         )
 
 
@@ -839,12 +962,12 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     return_value=[],
 )
-@patch("sentry.integrations.github.tasks.pr_comment.github_comment_workflow.delay")
+@patch("sentry.integrations.source_code_management.tasks.pr_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pull_request = PullRequest.objects.create(
             organization_id=self.commit.organization_id,
@@ -888,7 +1011,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             json=[{"merge_commit_sha": self.pull_request.merge_commit_sha, "state": "closed"}],
         )
 
-    def test_gh_comment_not_github(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_not_github(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """Non github repos shouldn't be commented on"""
         mock_get_commit_context.return_value = [self.blame]
         self.repo.provider = "integrations:gitlab"
@@ -904,7 +1029,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert not mock_comment_workflow.called
 
-    def test_gh_comment_org_option(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_org_option(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """No comments on org with organization option disabled"""
         mock_get_commit_context.return_value = [self.blame]
         OrganizationOption.objects.set_value(
@@ -1025,7 +1152,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_pr_too_old(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request.date_added = before_now(days=PR_COMMENT_WINDOW + 1)
@@ -1072,7 +1204,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_repeat_issue(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comment on a pr that has a comment with the issue in the same pr list"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request_comment.group_ids.append(self.event.group_id)
@@ -1149,7 +1286,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_update_queue(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """Task queued if new issue for prior comment"""
         mock_get_commit_context.return_value = [self.blame]
         self.add_responses()
@@ -1170,7 +1312,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    def test_gh_comment_no_repo(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_no_repo(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """No comments on suspect commit if no repo row exists"""
         mock_get_commit_context.return_value = [self.blame]
         self.repo.delete()
@@ -1202,7 +1346,10 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
-            context={"commitId": self.commit.id},
+            context={
+                "commitId": self.commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
             date_added=timezone.now(),
         )
 
@@ -1215,13 +1362,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert isinstance(install, CommitContextIntegration)
 
         with self.tasks():
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
                 group_id=self.event.group_id,
             )
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
@@ -1252,7 +1399,10 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
-            context={"commitId": self.commit.id},
+            context={
+                "commitId": self.commit.id,
+                "suspectCommitStrategy": "scm_based",
+            },
             date_added=timezone.now(),
         )
 
@@ -1275,13 +1425,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         )
 
         with self.tasks():
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
                 group_id=self.event.group_id,
             )
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,

@@ -13,10 +13,17 @@ describe('javascript-angular onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes import statement
+    // Always includes AppComponent class wrapper in verify section
+    expect(
+      screen.getByText(textWithMarkupMatcher(/export class AppComponent/))
+    ).toBeInTheDocument();
+
+    // Includes import statement in main config and app config (not in verify section by default)
     expect(
       screen.getAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
@@ -96,5 +103,54 @@ describe('javascript-angular onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+
+    // When logs are selected, import statement should appear in verify section too
+    expect(
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
+      )
+    ).toHaveLength(3);
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });

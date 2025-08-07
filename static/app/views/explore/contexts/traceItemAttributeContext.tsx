@@ -2,6 +2,7 @@ import type React from 'react';
 import {createContext, useContext, useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   SENTRY_LOG_NUMBER_TAGS,
@@ -11,9 +12,14 @@ import {
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 
-type TypedTraceItemAttributes = {number: TagCollection; string: TagCollection};
+type TypedTraceItemAttributes = {
+  number: TagCollection;
+  numberSecondaryAliases: TagCollection;
+  string: TagCollection;
+  stringSecondaryAliases: TagCollection;
+};
 
 type TypedTraceItemAttributesStatus = {
   numberAttributesLoading: boolean;
@@ -23,7 +29,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-export const TraceItemAttributeContext = createContext<
+const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
@@ -31,22 +37,21 @@ interface TraceItemAttributeProviderProps {
   children: React.ReactNode;
   enabled: boolean;
   traceItemType: TraceItemDataset;
+  projects?: Project[];
 }
 
 export function TraceItemAttributeProvider({
   children,
   traceItemType,
   enabled,
+  projects,
 }: TraceItemAttributeProviderProps) {
-  const {data: indexedTags} = useSpanFieldCustomTags({
-    enabled: traceItemType === TraceItemDataset.SPANS && enabled,
-  });
-
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projects,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -54,6 +59,7 @@ export function TraceItemAttributeProvider({
       enabled,
       type: 'string',
       traceItemType,
+      projects,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -62,7 +68,16 @@ export function TraceItemAttributeProvider({
       {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
 
-    return {...numberAttributes, ...Object.fromEntries(measurements)};
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(numberAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
+    );
+
+    return {
+      attributes: {...numberAttributes, ...Object.fromEntries(measurements)},
+      secondaryAliases,
+    };
   }, [numberAttributes, traceItemType]);
 
   const allStringAttributes = useMemo(() => {
@@ -71,35 +86,38 @@ export function TraceItemAttributeProvider({
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
-    if (traceItemType === TraceItemDataset.SPANS) {
-      return {...indexedTags, ...stringAttributes, ...Object.fromEntries(tags)};
-    }
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(stringAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.TAG}])
+    );
 
-    return {...stringAttributes, ...Object.fromEntries(tags)};
-  }, [traceItemType, indexedTags, stringAttributes]);
-
-  const attributesResult = useMemo(() => {
     return {
-      number: allNumberAttributes,
-      string: allStringAttributes,
-      numberAttributesLoading,
-      stringAttributesLoading,
+      attributes: {...stringAttributes, ...Object.fromEntries(tags)},
+      secondaryAliases,
     };
-  }, [
-    allNumberAttributes,
-    allStringAttributes,
-    numberAttributesLoading,
-    stringAttributesLoading,
-  ]);
+  }, [traceItemType, stringAttributes]);
 
   return (
-    <TraceItemAttributeContext value={attributesResult}>
+    <TraceItemAttributeContext
+      value={{
+        number: allNumberAttributes.attributes,
+        string: allStringAttributes.attributes,
+        numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+        stringSecondaryAliases: allStringAttributes.secondaryAliases,
+        numberAttributesLoading,
+        stringAttributesLoading,
+      }}
+    >
       {children}
     </TraceItemAttributeContext>
   );
 }
 
-export function useTraceItemAttributes(type?: 'number' | 'string') {
+export function useTraceItemAttributes(
+  type?: 'number' | 'string',
+  hiddenKeys?: string[]
+) {
   const typedAttributesResult = useContext(TraceItemAttributeContext);
 
   if (typedAttributesResult === undefined) {
@@ -110,21 +128,24 @@ export function useTraceItemAttributes(type?: 'number' | 'string') {
 
   if (type === 'number') {
     return {
-      attributes: typedAttributesResult.number,
+      attributes: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeys)
+        : typedAttributesResult.number,
+      secondaryAliases: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeys)
+        : typedAttributesResult.numberSecondaryAliases,
       isLoading: typedAttributesResult.numberAttributesLoading,
     };
   }
   return {
-    attributes: typedAttributesResult.string,
+    attributes: hiddenKeys
+      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeys)
+      : typedAttributesResult.string,
+    secondaryAliases: hiddenKeys
+      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeys)
+      : typedAttributesResult.stringSecondaryAliases,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
-}
-
-export function useTraceItemAttribute(key: string) {
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-
-  return stringAttributes[key] ?? numberAttributes[key] ?? null;
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

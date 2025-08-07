@@ -13,6 +13,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
@@ -62,7 +63,7 @@ def get_user_conversation_id(integration: Integration | RpcIntegration, user_id:
 
 def get_channel_id(organization: Organization, integration_id: int, name: str) -> str | None:
     integrations = integration_service.get_integrations(
-        providers=["msteams"],
+        providers=[IntegrationProviderSlug.MSTEAMS.value],
         organization_id=organization.id,
         integration_ids=[integration_id],
     )

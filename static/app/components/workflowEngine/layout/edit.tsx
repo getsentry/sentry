@@ -1,87 +1,126 @@
 import styled from '@emotion/styled';
 
-import EditableText from 'sentry/components/editableText';
+import {Flex} from 'sentry/components/core/layout';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
-import {t} from 'sentry/locale';
+import {HeaderActions} from 'sentry/components/layouts/thirds';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {
+  StickyFooter,
+  StickyFooterLabel,
+} from 'sentry/components/workflowEngine/ui/footer';
 import {space} from 'sentry/styles/space';
+import type {AvatarProject} from 'sentry/types/project';
 
-export interface WorkflowEngineEditLayoutProps {
+interface WorkflowEngineEditLayoutProps {
   /**
    * The main content for this page
-   * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
+   * Expected to include `<EditLayout.Body>`, `<EditLayout.Header>`, and `<EditLayout.Footer>` components.
    */
   children: React.ReactNode;
-  onTitleChange?: (title: string) => void;
+  formProps?: React.ComponentProps<typeof FullHeightForm>;
 }
 
 /**
- * Precomposed full-width layout for Automations / Monitors edit pages.
+ * Precomposed layout for Automations / Monitors edit pages with form handling.
  */
-function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
-  const title = useDocumentTitle();
+function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
   return (
-    <Layout.Page>
-      <StyledHeader>
-        <Layout.HeaderContent>
-          <BreadcrumbsFromContext />
-          <Layout.Title>
-            <EditableText
-              isDisabled={false}
-              value={title}
-              onChange={newTitle => onTitleChange?.(newTitle)}
-              errorMessage={t('Please set a title')}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <ActionsFromContext />
-      </StyledHeader>
-      <Body>{children}</Body>
-    </Layout.Page>
+    <FullHeightForm hideFooter {...formProps}>
+      <StyledPage>{children}</StyledPage>
+    </FullHeightForm>
   );
 }
 
-const StyledHeader = styled(Layout.Header)`
+const StyledPage = styled(Layout.Page)`
   background: ${p => p.theme.background};
 `;
 
-const Body = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  flex-grow: 1;
-`;
-
-const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
+const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
-  gap: ${space(3)};
-  width: 100%;
-  flex-grow: 1;
-  padding: ${space(1)} ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const PanelsContainer = styled('div')`
+const StyledBody = styled(Layout.Body)`
   display: flex;
   flex-direction: column;
-  padding: ${space(3)} ${space(4)};
-  gap: ${space(2)};
-  width: 100%;
-  flex-grow: 1;
+  gap: ${space(3)};
 `;
 
-function Chart({children}: any) {
-  return <ChartContainer>{children}</ChartContainer>;
+const FullWidthContent = styled('div')`
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+interface RequiredChildren {
+  children: React.ReactNode;
 }
 
-function Panels({children}: any) {
-  return <PanelsContainer>{children}</PanelsContainer>;
+interface HeaderProps extends RequiredChildren {
+  noActionWrap?: boolean;
 }
 
-const WorkflowEngineEditLayout = Object.assign(EditLayout, {Chart, Panels});
+function Header({children, noActionWrap}: HeaderProps) {
+  return <StyledLayoutHeader noActionWrap={noActionWrap}>{children}</StyledLayoutHeader>;
+}
+
+function HeaderContent({children}: RequiredChildren) {
+  return <Layout.HeaderContent>{children}</Layout.HeaderContent>;
+}
+
+function Title({title, project}: {title: string; project?: AvatarProject}) {
+  return (
+    <Flex direction="column" gap="md">
+      <Layout.Title>{title}</Layout.Title>
+      {project && <ProjectBadge project={project} disableLink avatarSize={16} />}
+    </Flex>
+  );
+}
+
+function Actions({children}: RequiredChildren) {
+  return (
+    <HeaderActions>
+      <Flex gap="sm">{children}</Flex>
+    </HeaderActions>
+  );
+}
+
+function HeaderFields({children}: RequiredChildren) {
+  return <FullWidthContent>{children}</FullWidthContent>;
+}
+
+function Body({children}: RequiredChildren) {
+  return (
+    <StyledBody>
+      <Layout.Main fullWidth>{children}</Layout.Main>
+    </StyledBody>
+  );
+}
+
+interface FooterProps extends RequiredChildren {
+  label?: string;
+}
+
+function Footer({children, label}: FooterProps) {
+  return (
+    <StickyFooter>
+      {label && <StickyFooterLabel>{label}</StickyFooterLabel>}
+      <Flex gap="md" flex={label ? undefined : 1} justify="end">
+        {children}
+      </Flex>
+    </StickyFooter>
+  );
+}
+
+const WorkflowEngineEditLayout = Object.assign(EditLayout, {
+  Header,
+  HeaderContent,
+  Actions,
+  HeaderFields,
+  Body,
+  Footer,
+  Title,
+});
 
 export default WorkflowEngineEditLayout;

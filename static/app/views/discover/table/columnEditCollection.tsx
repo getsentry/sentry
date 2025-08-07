@@ -8,8 +8,8 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -584,7 +584,7 @@ class ColumnEditCollection extends Component<Props, State> {
               const operation =
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
-              if (!operation || !operation.parameters) {
+              if (!operation?.parameters) {
                 // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
                 return 3;
               }
@@ -638,7 +638,7 @@ class ColumnEditCollection extends Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="sm"
               aria-label={t('Add a Column')}
@@ -706,7 +706,7 @@ const RowContainer = styled('div')<{
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
 
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${space(1)})`
           : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
@@ -768,12 +768,12 @@ const AliasInput = styled(Input)`
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
   margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: 0;
     margin-left: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2/2;
     grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
   }

@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -90,14 +89,13 @@ def send_issue_unresolved_webhook_helper(
     **kwargs,
 ) -> None:
     organization = project.organization
-    if features.has("organizations:webhooks-unresolved", organization):
-        send_workflow_webhooks(
-            organization=organization,
-            issue=group,
-            user=user,
-            event="issue.unresolved",
-            data=data,
-        )
+    send_workflow_webhooks(
+        organization=organization,
+        issue=group,
+        user=user,
+        event="issue.unresolved",
+        data=data,
+    )
 
 
 @comment_created.connect(weak=False)
@@ -117,6 +115,8 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 
 def send_comment_webhooks(organization, issue, user, event, data=None):
     data = data or {}
+    if "timestamp" in data:
+        data["timestamp"] = data["timestamp"].isoformat()
 
     for install in installations_to_notify(organization, "comment"):
         build_comment_webhook.delay(

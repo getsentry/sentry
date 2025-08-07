@@ -1,4 +1,4 @@
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.urls import reverse
 
@@ -18,7 +18,7 @@ from sentry.utils import json
 class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly"))
 
@@ -26,7 +26,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     def features(self):
         return {}
 
-    def test_generic_post_create(self, mock_incr):
+    def test_generic_post_create(self, mock_incr: MagicMock) -> None:
         request_data = {
             "data": [
                 {
@@ -56,7 +56,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
-    def test_unleash_post_create(self, mock_incr):
+    def test_unleash_post_create(self, mock_incr: MagicMock) -> None:
         request_data = {
             "id": 28,
             "tags": [{"type": "simple", "value": "testvalue"}],
@@ -87,7 +87,17 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
-    def test_statsig_post_create(self, mock_incr):
+    def test_statsig_post_verification(self, mock_incr: MagicMock) -> None:
+        request_data = {"data": {"event": "url_verification", "verification_code": "123"}}
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 200, response.content
+            assert response.json() == {"verification_code": "123"}
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_statsig_post_create(self, mock_incr: MagicMock) -> None:
         request_data = {
             "data": [
                 {
@@ -137,7 +147,35 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
-    def test_launchdarkly_post_create(self, mock_incr):
+    def test_statsig_post_unauthorized(self, mock_incr: MagicMock) -> None:
+        request_data = {
+            "data": [
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1",
+                        "type": "Gate",
+                        "name": "gate1",
+                        "description": "Updated Config Conditions\n    - Added rule Rule 1",
+                        "environments": "development,staging,production",
+                        "action": "updated",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                },
+            ]
+        }
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_launchdarkly_post_create(self, mock_incr: MagicMock) -> None:
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
 
@@ -170,14 +208,14 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.tags is not None
         assert flag.tags["description"] == "flag was created"
 
-    def test_launchdarkly_post_create_invalid_signature(self, mock_incr):
+    def test_launchdarkly_post_create_invalid_signature(self, mock_incr: MagicMock) -> None:
         with self.feature(self.features):
             sig = hmac_sha256_hex_digest(key="123", message=b"456")
             response = self.client.post(self.url, LD_REQUEST, headers={"X-LD-Signature": sig})
             assert response.status_code == 401
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_launchdarkly_deserialization_failed(self, mock_incr):
+    def test_post_launchdarkly_deserialization_failed(self, mock_incr: MagicMock) -> None:
         signature = hmac_sha256_hex_digest(key="123", message=json.dumps({}).encode())
         FlagWebHookSigningSecretModel.objects.create(
             organization=self.organization, provider="launchdarkly", secret="123"
@@ -189,14 +227,14 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert FlagAuditLogModel.objects.count() == 0
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_invalid_provider(self, mock_incr):
+    def test_post_invalid_provider(self, mock_incr: MagicMock) -> None:
         url = reverse(self.endpoint, args=(self.organization.slug, "test"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 404
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_missing_signature(self, mock_incr):
+    def test_post_missing_signature(self, mock_incr: MagicMock) -> None:
         with self.feature(self.features):
             response = self.client.post(self.url, {})
             assert response.status_code == 401, response.content

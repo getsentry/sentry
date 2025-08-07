@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {
   IdentityIcon,
@@ -163,6 +163,41 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'action'],
         keywords: ['cron', 'monitors', 'clock', 'cycle'],
         name: 'Timer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer-waiting',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'waiting'},
+      },
+      {
+        id: 'seer-loading',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'loading'},
+      },
+      {
+        id: 'my-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'MyProjects',
+        defaultProps: {},
+      },
+      {
+        id: 'all-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'AllProjects',
         defaultProps: {},
       },
     ],
@@ -456,6 +491,13 @@ const SECTIONS: TSection[] = [
     label: 'Status',
     icons: [
       {
+        id: 'angry',
+        groups: ['status'],
+        keywords: ['angry', 'rage', 'face'],
+        name: 'Angry',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
@@ -519,6 +561,13 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'dead',
+        groups: ['status'],
+        keywords: ['dead', 'face'],
+        name: 'Dead',
         defaultProps: {},
       },
       {
@@ -652,10 +701,31 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'ruler',
+        groups: ['ruler'],
+        keywords: ['ruler', 'measure'],
+        name: 'Ruler',
+        defaultProps: {},
+      },
+      {
         id: 'download',
         groups: ['action'],
         keywords: ['file', 'image', 'down'],
         name: 'Download',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollHorizontally',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollHorizontally',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollVertically',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollVertically',
         defaultProps: {},
       },
       {
@@ -1384,7 +1454,7 @@ function Section({section}: {section: TSection}) {
               key={icon.id}
               isHoverable
               overlayStyle={{maxWidth: 440}}
-              title={<JSXNode name={name} props={props} />}
+              title={<Storybook.JSXNode name={name} props={props} />}
             >
               <Cell>
                 <Component {...props} />
@@ -1420,7 +1490,7 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="PlatformIcon" props={{platform}} />
+                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
               </Fragment>
             }
           >
@@ -1502,7 +1572,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
+                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
               </Fragment>
             }
           >
@@ -1570,7 +1640,10 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="IdentityIcon" props={{providerId: platform.id}} />
+                <Storybook.JSXNode
+                  name="IdentityIcon"
+                  props={{providerId: platform.id}}
+                />
               </Fragment>
             }
           >

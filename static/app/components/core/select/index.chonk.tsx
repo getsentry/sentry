@@ -1,7 +1,8 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -59,18 +60,19 @@ export const getChonkStylesConfig = ({
       color: 'currentcolor',
     },
   });
+  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     control: (_, state) => ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.textColor,
-      background: theme.background,
+      ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
-      boxShadow: 'none',
-      borderRadius: theme.formRadius[size].borderRadius,
+      boxShadow,
+      ...theme.formRadius[size],
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
-      ...(state.isFocused && theme.focusRing),
+      ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.background,
         color: theme.disabled,
@@ -94,8 +96,6 @@ export const getChonkStylesConfig = ({
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
-      top: '100%',
-      marginTop: '8px',
     }),
     noOptionsMessage: provided => ({
       ...provided,
@@ -161,6 +161,7 @@ export const getChonkStylesConfig = ({
       backgroundColor: theme.background,
       borderRadius: '4px',
       border: `1px solid ${theme.border}`,
+      boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
       margin: 0,
       marginTop: multiValueSizeMapping[size].spacing,
@@ -179,7 +180,7 @@ export const getChonkStylesConfig = ({
     multiValueRemove: () => ({
       alignItems: 'center',
       display: 'flex',
-      padding: '0 4px',
+      margin: '4px 4px',
 
       ...(isDisabled
         ? {
@@ -187,6 +188,7 @@ export const getChonkStylesConfig = ({
           }
         : {
             '&:hover': {
+              cursor: 'pointer',
               background: theme.hover,
             },
           }),
@@ -271,31 +273,27 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   justify-content: center;
   align-items: center;
   width: 1em;
-  height: 1.2em;
+  height: 1.4em;
 
   ${p =>
     p.isMultiple
-      ? `
-      padding: 1px;
-      border: solid 1px ${p.theme.border};
-      background: ${p.theme.backgroundElevated};;
-      border-radius: 2px;
-      height: 1em;
-      margin-top: 2px;
-      ${
-        p.isSelected &&
+      ? css`
+          padding: 1px;
+          border: solid 1px ${p.theme.border};
+          background: ${p.theme.backgroundElevated};
+          border-radius: 2px;
+          height: 1em;
+          margin-top: 2px;
+          ${p.isSelected &&
+          css`
+            background: ${p.theme.purple300};
+            border-color: ${p.theme.purple300};
+          `}
         `
-        background: ${p.theme.purple300};
-        border-color: ${p.theme.purple300};
-       `
-      }
-    `
-      : `
-      ${
-        p.isSelected &&
-        `
-        color: ${p.theme.colors.content.accent};
-       `
-      }
-    `}
+      : css`
+          ${p.isSelected &&
+          css`
+            color: ${p.theme.colors.content.accent};
+          `}
+        `}
 `;

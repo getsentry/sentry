@@ -1,6 +1,7 @@
-import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
+import type {CSSProperties, HTMLAttributes} from 'react';
+import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
-import {ClassNames, useTheme} from '@emotion/react';
+import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -16,11 +17,10 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,37 +107,27 @@ export function TourContextProvider<T extends TourEnumType>({
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
-  const tourHotkeys = useMemo(() => {
-    if (!isTourActive) {
-      return [];
-    }
-
-    return [
-      {
-        match: 'Escape',
-        callback: () => {
-          if (tourKey) {
-            mutate({guide: tourKey, status: 'dismissed'});
-          }
-          trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
-          endTour();
-        },
-      },
-      {match: ['left', 'h'], callback: () => previousStep()},
-      {match: ['right', 'l'], callback: () => nextStep()},
-    ];
-  }, [
-    isTourActive,
-    tourKey,
-    organization,
-    currentStepId,
-    endTour,
-    mutate,
-    previousStep,
-    nextStep,
-  ]);
-
-  useHotkeys(tourHotkeys);
+  useHotkeys(
+    isTourActive
+      ? [
+          {
+            match: 'Escape',
+            callback: () => {
+              if (tourKey) {
+                mutate({guide: tourKey, status: 'dismissed'});
+              }
+              trackAnalytics('tour-guide.dismiss', {
+                organization,
+                id: `${currentStepId}`,
+              });
+              endTour();
+            },
+          },
+          {match: ['left', 'h'], callback: () => previousStep()},
+          {match: ['right', 'l'], callback: () => nextStep()},
+        ]
+      : []
+  );
 
   useEffect(() => {
     if (isTourActive && tourKey) {
@@ -184,6 +174,10 @@ export interface TourElementProps<T extends TourEnumType>
    */
   actions?: React.ReactNode;
   /**
+   * A margin to create between the tour element and the border.
+   */
+  margin?: number;
+  /**
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
@@ -219,6 +213,7 @@ export function TourElementContent<T extends TourEnumType>({
   position,
   className,
   actions,
+  margin,
 }: TourElementContentProps<T>) {
   const organization = useOrganization();
   const {
@@ -251,7 +246,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <ButtonBar gap={1}>
+      <ButtonBar>
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -315,6 +310,7 @@ export function TourElementContent<T extends TourEnumType>({
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
+      margin={margin}
     >
       {children}
     </TourGuide>
@@ -333,6 +329,7 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
   actions?: React.ReactNode;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
+  margin?: CSSProperties['margin'];
   offset?: UseOverlayProps['offset'];
   position?: UseOverlayProps['position'];
   stepCount?: number;
@@ -342,7 +339,6 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
     'aria-expanded': React.AriaAttributes['aria-expanded'];
     children: React.ReactNode;
     ref: React.RefAttributes<HTMLElement>['ref'];
-    prefersDarkMode?: boolean;
   }>;
 }
 
@@ -359,10 +355,10 @@ export function TourGuide({
   wrapperComponent,
   stepTotal,
   offset,
+  margin,
 }: TourGuideProps) {
-  const config = useLegacyStore(ConfigStore);
-  const prefersDarkMode = config.theme === 'dark';
   const theme = useTheme();
+  const invertedTheme = useInvertedTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
@@ -390,52 +386,55 @@ export function TourGuide({
         className={className}
         ref={triggerProps.ref}
         aria-expanded={triggerProps['aria-expanded']}
-        prefersDarkMode={prefersDarkMode}
+        margin={`${margin}px`}
       >
         {children}
       </Wrapper>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
             <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
-              <ClassNames>
-                {({css}) => (
-                  <TourOverlay
-                    animated
-                    arrowProps={{
-                      ...arrowProps,
-                      strokeWidth: 0,
-                      className: css`
-                        path.fill {
-                          fill: ${theme.tour.background};
-                        }
-                        path.stroke {
-                          stroke: transparent;
-                        }
-                      `,
-                    }}
-                  >
-                    <TourBody ref={scrollToElement} prefersDarkMode={prefersDarkMode}>
-                      {isTopRowVisible && (
-                        <TopRow>
-                          <div>{countText}</div>
-                          {isDismissVisible && (
-                            <TourCloseButton
-                              onClick={handleDismiss}
-                              icon={<IconClose />}
-                              aria-label={t('Close')}
-                              borderless
-                              size="sm"
-                            />
-                          )}
-                        </TopRow>
-                      )}
-                      {title && <TitleRow>{title}</TitleRow>}
-                      {description && <DescriptionRow>{description}</DescriptionRow>}
-                      {actions && <ActionRow>{actions}</ActionRow>}
-                    </TourBody>
-                  </TourOverlay>
-                )}
-              </ClassNames>
+              <ThemeProvider theme={invertedTheme}>
+                <ClassNames>
+                  {({css, theme: currentTheme}) => (
+                    <TourOverlay
+                      animated
+                      arrowProps={{
+                        ...arrowProps,
+                        strokeWidth: 0,
+                        className: css`
+                          path.fill {
+                            fill: ${currentTheme.tokens.background.primary};
+                          }
+                          path.stroke {
+                            stroke: transparent;
+                          }
+                        `,
+                      }}
+                    >
+                      <TourBody ref={scrollToElement}>
+                        {isTopRowVisible && (
+                          <TopRow>
+                            <div>{countText}</div>
+                            {isDismissVisible && (
+                              <Button
+                                priority="transparent"
+                                borderless
+                                onClick={handleDismiss}
+                                icon={<IconClose />}
+                                aria-label={t('Close')}
+                                size="zero"
+                              />
+                            )}
+                          </TopRow>
+                        )}
+                        {title && <TitleRow>{title}</TitleRow>}
+                        {description && <DescriptionRow>{description}</DescriptionRow>}
+                        {actions && <ActionRow>{actions}</ActionRow>}
+                      </TourBody>
+                    </TourOverlay>
+                  )}
+                </ClassNames>
+              </ThemeProvider>
             </PositionWrapper>,
             document.body
           )
@@ -449,28 +448,17 @@ function scrollToElement(element: HTMLDivElement | null) {
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')<{prefersDarkMode: boolean}>`
+const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
-  background: ${p => p.theme.tour.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(1.5)} ${space(2)};
-  color: ${p => p.theme.tour.text};
+  color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${p => p.theme.tour.text};
+    color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
-  }
-`;
-
-const TourCloseButton = styled(Button)`
-  display: block;
-  padding: 0;
-  height: 14px;
-  min-height: 14px;
-  color: ${p => p.theme.tour.close};
-  &:hover {
-    color: ${p => p.theme.tour.close};
   }
 `;
 
@@ -480,28 +468,26 @@ const TourOverlay = styled(Overlay)`
 `;
 
 const TopRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 15px;
-  align-items: start;
-  height: 18px;
-  color: ${p => p.theme.tour.close};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  opacity: 0.6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.muted};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const TitleRow = styled('div')`
-  color: ${p => p.theme.tour.header};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.4;
   white-space: wrap;
 `;
 
 const DescriptionRow = styled('div')`
-  color: ${p => p.theme.tour.text};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
@@ -513,29 +499,12 @@ const ActionRow = styled('div')`
   margin-top: ${space(1)};
 `;
 
-export const TourAction = styled(Button)`
-  border: 0;
-  background: ${p => p.theme.white};
-  color: ${p => p.theme.tour.next};
-
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.tour.next};
-  }
-`;
-
-export const TextTourAction = styled(Button)`
-  border: 0;
-  box-shadow: none;
-  background: transparent;
-  color: ${p => p.theme.tour.previous};
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.tour.previous};
-  }
-`;
+export function TourAction(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="primary" size="sm" />;
+}
+export function TextTourAction(props: React.ComponentProps<typeof Button>) {
+  return <Button {...props} priority="transparent" size="sm" borderless />;
+}
 
 const BlurWindow = styled('div')`
   content: '';
@@ -546,7 +515,7 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
+const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
   &[aria-expanded='true'] {
     position: relative;
     z-index: ${p => p.theme.zIndex.tour.element};
@@ -554,12 +523,12 @@ const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
     pointer-events: none;
     &:after {
       content: '';
-      opacity: 0.5;
       position: absolute;
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
+      ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }
 `;

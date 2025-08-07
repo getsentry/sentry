@@ -22,6 +22,16 @@ from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils.audit import get_api_key_for_audit_log
 
 
+ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
+ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
+ERR_EDIT_WHEN_REINVITING = (
+    "You cannot modify member details when resending an invitation. Separate requests are required."
+)
+ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
+ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
+
+MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
 @region_silo_endpoint
 class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -88,6 +98,14 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             "organizations:new-organization-member-invite", organization, actor=request.user
         ):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+
+        if invited_member.partnership_restricted:
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
 
         allowed_roles = get_allowed_org_roles(request, organization)
         validator = OrganizationMemberInviteRequestValidator(

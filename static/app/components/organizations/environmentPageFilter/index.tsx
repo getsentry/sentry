@@ -16,9 +16,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-import {EnvironmentPageFilterTrigger} from './trigger';
+import {
+  EnvironmentPageFilterTrigger,
+  type EnvironmentPageFilterTriggerProps,
+} from './trigger';
 
-export interface EnvironmentPageFilterProps
+interface EnvironmentPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<string>,
@@ -29,11 +32,13 @@ export interface EnvironmentPageFilterProps
       | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
+      | 'menuTitle'
       | 'menuBody'
       | 'menuFooter'
       | 'menuFooterMessage'
       | 'checkboxWrapper'
       | 'shouldCloseOnInteractOutside'
+      | 'triggerProps'
     >
   > {
   /**
@@ -44,6 +49,7 @@ export interface EnvironmentPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
 export function EnvironmentPageFilter({
@@ -53,7 +59,6 @@ export function EnvironmentPageFilter({
   sizeLimit,
   sizeLimitMessage,
   emptyMessage,
-  menuTitle,
   menuWidth,
   trigger,
   resetParamsOnChange,
@@ -184,6 +189,7 @@ export function EnvironmentPageFilter({
   return (
     <HybridFilter
       {...selectProps}
+      checkboxPosition="leading"
       searchable
       multiple
       options={options}
@@ -197,7 +203,7 @@ export function EnvironmentPageFilter({
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={menuTitle ?? t('Filter Environments')}
+      menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}

@@ -76,6 +76,8 @@ export function renderWithOnboardingLayout<
         csp: 'test-csp',
         minidump: 'test-minidump',
         unreal: 'test-unreal',
+        playstation: 'test-playstation',
+        otlp_traces: 'test-otlp_traces',
       }}
       platformKey="java-spring-boot"
       projectId="test-project-id"
@@ -85,6 +87,7 @@ export function renderWithOnboardingLayout<
     {
       organization,
       router,
+      deprecatedRouterMocks: true,
     }
   );
 }

@@ -6,7 +6,10 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
+import sentry_sdk
+
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.db.models import Model
 from sentry.digests.notifications import DigestInfo
 from sentry.digests.utils import (
@@ -16,23 +19,23 @@ from sentry.digests.utils import (
     should_get_personalized_digests,
 )
 from sentry.eventstore.models import Event
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
-from sentry.notifications.utils import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_integration_link,
-    get_rules,
-    has_alert_integration,
-)
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.notifications.utils.links import (
+    get_email_link_extra_params,
+    get_integration_link,
+    get_rules,
+)
 from sentry.types.actor import Actor
+from sentry.types.rules import NotificationRuleDetails
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -106,7 +109,11 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        rule_details = get_rules(list(self.digest.digest), self.project.organization, self.project)
+        rule_details = get_rules(
+            list(self.digest.digest),
+            self.project.organization,
+            self.project,
+        )
         context = DigestNotification.build_context(
             self.digest,
             self.project,
@@ -117,14 +124,20 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        snooze_alert = len(rule_details) > 0
-        snooze_alert_urls = {
-            rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
-            for rule in rule_details
-        }
+        if not features.has("organizations:workflow-engine-ui-links", self.project.organization):
+            # TODO(iamrajjoshi): This actually mutes a rule for a user, something we have not ported over in the new system
+            # By not including this context, the template will not show the mute button
+            snooze_alert = len(rule_details) > 0
+            snooze_alert_urls = {
+                rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
+                for rule in rule_details
+            }
 
-        context["snooze_alert"] = snooze_alert
-        context["snooze_alert_urls"] = snooze_alert_urls
+            context["snooze_alert"] = snooze_alert
+            context["snooze_alert_urls"] = snooze_alert_urls
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_urls"] = None
 
         return context
 
@@ -145,7 +158,7 @@ class DigestNotification(ProjectNotification):
             "user_counts": digest.user_counts,
             "has_alert_integration": has_alert_integration(project),
             "project": project,
-            "slack_link": get_integration_link(organization, "slack"),
+            "slack_link": get_integration_link(organization, IntegrationProviderSlug.SLACK.value),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email",
@@ -210,6 +223,8 @@ class DigestNotification(ProjectNotification):
                 "team_ids": team_ids,
                 "user_ids": user_ids,
                 "notification_uuid": self.notification_uuid,
+                "number_of_rules": len(shared_context.get("rules_details", [])),
+                "group_count": len(shared_context.get("counts", [])),
             },
         )
 
@@ -246,13 +261,17 @@ class DigestNotification(ProjectNotification):
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
-        analytics.record(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider=provider.name,
-            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
-            alert_type="issue_alert",
-            external_id=str(recipient.id),
-            notification_uuid=self.notification_uuid,
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    provider=provider.name,
+                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_type="issue_alert",
+                    external_id=str(recipient.id),
+                    notification_uuid=self.notification_uuid,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

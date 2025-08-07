@@ -16,16 +16,20 @@ import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -33,11 +37,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -46,9 +51,11 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
-const enum EventGraphSeries {
+enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -64,6 +71,7 @@ interface EventGraphProps {
    * chart).
    */
   disableZoomNavigation?: boolean;
+  eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
   /**
    * Configures showing releases on the chart as bubbles or lines. This is used
@@ -79,7 +87,10 @@ interface EventGraphProps {
 }
 
 function createSeriesAndCount(stats: EventsStats) {
-  return stats?.data?.reduce(
+  return stats?.data?.reduce<{
+    count: number;
+    series: Array<{name: number; value: number}>;
+  }>(
     (result, [timestamp, countData]) => {
       const count = countData?.[0]?.count ?? 0;
       return {
@@ -93,13 +104,14 @@ function createSeriesAndCount(stats: EventsStats) {
         count: result.count + count,
       };
     },
-    {series: [] as SeriesDataUnit[], count: 0}
+    {series: [], count: 0}
   );
 }
 
 export function EventGraph({
   group,
   event,
+  eventView: eventViewProps,
   disableZoomNavigation = false,
   showReleasesAs,
   showSummary = true,
@@ -108,6 +120,7 @@ export function EventGraph({
 }: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
@@ -131,7 +144,8 @@ export function EventGraph({
     ref: chartContainerRef,
     onResize,
   });
-  const eventView = useIssueDetailsEventView({group, isSmallContainer});
+  const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
+  const eventView = eventViewProps || eventViewHook;
 
   const {
     data: groupStats = {},
@@ -145,7 +159,7 @@ export function EventGraph({
     },
   });
 
-  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const shouldShowBubbles = showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -230,6 +244,7 @@ export function EventGraph({
   const currentEventSeries = useCurrentEventMarklineSeries({
     event,
     group,
+    eventSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -254,18 +269,48 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
+    groupId: group.id,
+    group,
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+    enabled: Boolean(event?.id && group.id),
+  });
+
+  const handleReleaseLineClick = useCallback(
+    (release: ReleaseMetaBasic) => {
+      navigate(
+        makeReleaseDrawerPathname({
+          location,
+          release: release.version,
+          source: 'issue-details',
+        })
+      );
+    },
+    [location, navigate]
+  );
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    releases: shouldShowBubbles ? [] : releases,
+    onReleaseClick: handleReleaseLineClick,
+  });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags: shouldShowBubbles ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
   const lastEventSeries = eventSeries.at(-1);
   const penultEventSeries = eventSeries.at(-2);
-  const lastEventSeriesTimestamp = lastEventSeries && (lastEventSeries.name as number);
-  const penultEventSeriesTimestamp =
-    penultEventSeries && (penultEventSeries.name as number);
+  const lastEventSeriesTimestamp = lastEventSeries?.name;
+  const penultEventSeriesTimestamp = penultEventSeries?.name;
   const eventSeriesInterval =
     lastEventSeriesTimestamp &&
     penultEventSeriesTimestamp &&
@@ -277,19 +322,8 @@ export function EventGraph({
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({ref: chartRef}) => {
-      return (
-        <EventGraph
-          ref={chartRef}
-          group={group}
-          event={event}
-          showSummary={false}
-          showReleasesAs="line"
-          disableZoomNavigation
-          {...styleProps}
-        />
-      );
-    },
+    chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -298,7 +332,8 @@ export function EventGraph({
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    releases: shouldShowBubbles ? releases : [],
+    flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
@@ -308,20 +343,14 @@ export function EventGraph({
     },
   });
 
+  useReleasesDrawer();
+
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {
       connectReleaseBubbleChartRef(e);
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
@@ -348,7 +377,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: theme.purple200,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: userSeries,
         animation: false,
@@ -374,7 +403,7 @@ export function EventGraph({
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
+          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
@@ -382,7 +411,7 @@ export function EventGraph({
     }
 
     // Only display the current event mark line if on the issue details tab
-    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
+    if (currentEventSeries?.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -421,7 +450,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.gray200,
+    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -438,7 +467,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert type="error" showIcon {...styleProps}>
+      <GraphAlert type="error" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </GraphAlert>
     );
@@ -447,18 +476,22 @@ export function EventGraph({
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
       <GraphWrapper {...styleProps}>
-        <SummaryContainer>
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.EVENT}
-            disabled
-            label={t('Events')}
-          />
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.USER}
-            disabled
-            label={t('Users')}
-          />
-        </SummaryContainer>
+        {showSummary ? (
+          <SummaryContainer>
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.EVENT}
+              disabled
+              label={t('Events')}
+            />
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.USER}
+              disabled
+              label={t('Users')}
+            />
+          </SummaryContainer>
+        ) : (
+          <div />
+        )}
         <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
@@ -542,6 +575,12 @@ export function EventGraph({
             },
           }}
           xAxis={{
+            axisTick: {
+              show: false,
+            },
+            axisLabel: {
+              margin: 8,
+            },
             ...releaseBubbleXAxis,
           }}
           {...(disableZoomNavigation
@@ -561,14 +600,18 @@ function GraphButton({
   label,
   count,
   ...props
-}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+}: {
+  isActive: boolean;
+  label: string;
+  count?: string;
+} & Partial<ButtonProps>) {
   return (
     <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <Flex column>
+      <Flex direction="column">
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>
@@ -583,14 +626,10 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
   flex-direction: column;
-  margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
+  margin: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  }
 `;
 
 const CalloutButton = withChonk(
@@ -598,7 +637,7 @@ const CalloutButton = withChonk(
     cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
     border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
     background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
     box-shadow: none;
     height: unset;
     overflow: hidden;
@@ -617,37 +656,37 @@ const CalloutButton = withChonk(
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 
 const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
 `;
 
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
   margin-right: -2px;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
 `;
 
 const LoadingChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} 0 ${space(0.75)} 0;
-  margin: 0 ${space(1)};
+  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const GraphAlert = styled(Alert)`
-  padding-left: 24px;
-  margin: 0 0 0 -24px;
+  padding-left: ${p => p.theme.space['2xl']};
+  margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;
   border-radius: 0;
 `;

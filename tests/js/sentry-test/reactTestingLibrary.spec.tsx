@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,7 +38,6 @@ describe('rerender', () => {
 describe('disableRouterMocks', () => {
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
-      enableRouterMocks: false,
       initialRouterConfig: {location: '/foo/'},
     });
 
@@ -57,9 +56,7 @@ describe('disableRouterMocks', () => {
       );
     }
 
-    const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
-    });
+    const {router} = render(<TestComp />, {});
 
     const link = screen.getByText('Click me');
     await userEvent.click(link);
@@ -81,9 +78,7 @@ describe('disableRouterMocks', () => {
       );
     }
 
-    const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
-    });
+    const {router} = render(<TestComp />, {});
 
     const button = screen.getByText('Click me');
     await userEvent.click(button);
@@ -99,7 +94,7 @@ describe('disableRouterMocks', () => {
       return <div>{location.pathname}</div>;
     }
 
-    const {router} = render(<TestComp />, {enableRouterMocks: false});
+    const {router} = render(<TestComp />);
 
     expect(screen.getByText('/mock-pathname/')).toBeInTheDocument();
 
@@ -130,7 +125,6 @@ describe('disableRouterMocks', () => {
     }
 
     render(<TestComp />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         route: '/projects/:projectId/',
         location: '/projects/123/',
@@ -156,7 +150,6 @@ describe('disableRouterMocks', () => {
     }
 
     const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',

@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ export function searchFrameFzf(
   return match;
 }
 
-export function searchSpanFzf(
+function searchSpanFzf(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string
@@ -86,7 +86,7 @@ export function searchFrameRegExp(
   return match;
 }
 
-export function searchSpanRegExp(
+function searchSpanRegExp(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string,
@@ -473,7 +473,7 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 
 const StyledTrailingText = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

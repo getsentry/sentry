@@ -1,13 +1,16 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -20,6 +23,7 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
@@ -31,7 +35,7 @@ import {
   WidgetPreviewContainer,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
@@ -39,8 +43,11 @@ import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualiz
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -72,13 +79,19 @@ function WidgetBuilderSlideout({
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
+  const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
-
+  const disableTransactionWidget = useDisableTransactionWidget();
+  const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -99,10 +112,10 @@ function WidgetBuilderSlideout({
   }, [openWidgetTemplates, organization]);
 
   const title = openWidgetTemplates
-    ? t('Add from Widget Library')
+    ? t('Widget Library')
     : isEditing
       ? t('Edit Widget')
-      : t('Create Custom Widget');
+      : t('Custom Widget Builder');
   const isChartWidget =
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
@@ -110,7 +123,7 @@ function WidgetBuilderSlideout({
   const customPreviewRef = useRef<HTMLDivElement>(null);
   const templatesPreviewRef = useRef<HTMLDivElement>(null);
 
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const showSortByStep =
     (isChartWidget && state.fields && state.fields.length > 0) ||
@@ -136,6 +149,53 @@ function WidgetBuilderSlideout({
     return () => observer.disconnect();
   }, [setIsPreviewDraggable, openWidgetTemplates]);
 
+  const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
+
+  const widgetLibraryElement = (
+    <SlideoutBreadcrumb
+      onClick={() => {
+        setCustomizeFromLibrary(false);
+        setOpenWidgetTemplates(true);
+        // clears the widget to start fresh on the library page
+        dispatch({
+          type: 'SET_STATE',
+          payload: convertWidgetToBuilderStateParams(
+            widgetLibraryWidgets[0] ?? ({} as Widget)
+          ),
+        });
+      }}
+    >
+      {t('Widget Library')}
+    </SlideoutBreadcrumb>
+  );
+
+  const onCloseWithModal = useCallback(() => {
+    openConfirmModal({
+      bypass: isEqual(initialState, state),
+      message: t('You have unsaved changes. Are you sure you want to leave?'),
+      priority: 'danger',
+      onConfirm: onClose,
+    });
+  }, [initialState, onClose, state]);
+
+  const breadcrumbs = customizeFromLibrary
+    ? [
+        {
+          label: widgetLibraryElement,
+          to: '',
+        },
+        {
+          label: title,
+          to: '',
+        },
+      ]
+    : [
+        {
+          label: title,
+          to: '',
+        },
+      ];
+
   return (
     <SlideOverPanel
       collapsed={!isOpen}
@@ -144,26 +204,45 @@ function WidgetBuilderSlideout({
       transitionProps={animationTransitionSettings}
     >
       <SlideoutHeaderWrapper>
-        <SlideoutTitle>{title}</SlideoutTitle>
+        <Breadcrumbs crumbs={breadcrumbs} />
         <CloseButton
           priority="link"
           size="zero"
           borderless
           aria-label={t('Close Widget Builder')}
           icon={<IconClose size="sm" />}
-          onClick={() => {
-            openConfirmModal({
-              bypass: isEqual(initialState, state),
-              message: t('You have unsaved changes. Are you sure you want to leave?'),
-              priority: 'danger',
-              onConfirm: onClose,
-            });
-          }}
+          onClick={onCloseWithModal}
         >
           {t('Close')}
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
+        {isTransactionsWidget && showTransactionsDeprecationAlert && (
+          <Section>
+            <Alert
+              type="warning"
+              trailingItems={
+                <StyledCloseButton
+                  icon={<IconClose size="sm" />}
+                  aria-label={t('Close')}
+                  onClick={() => {
+                    setShowTransactionsDeprecationAlert(false);
+                  }}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {disableTransactionWidget && isEditing
+                ? t(
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below.'
+                  )
+                : tctCode(
+                    'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead.'
+                  )}
+            </Alert>
+          </Section>
+        )}
         {openWidgetTemplates ? (
           <Fragment>
             <div ref={templatesPreviewRef}>
@@ -179,71 +258,88 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
               setIsPreviewDraggable={setIsPreviewDraggable}
+              setCustomizeFromLibrary={setCustomizeFromLibrary}
             />
           </Fragment>
         ) : (
           <Fragment>
-            <Section>
-              <WidgetBuilderFilterBar />
-            </Section>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderNameAndDescription error={error} setError={setError} />
+              </Section>
+            </DisableTransactionWidget>
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
-            <Section>
-              <WidgetBuilderTypeSelector error={error} setError={setError} />
-            </Section>
-            <div ref={customPreviewRef}>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderTypeSelector error={error} setError={setError} />
+              </Section>
+              <div ref={customPreviewRef}>
+                {isSmallScreen && (
+                  <Section>
+                    <WidgetPreviewContainer
+                      dashboard={dashboard}
+                      dashboardFilters={dashboardFilters}
+                      isWidgetInvalid={isWidgetInvalid}
+                      onDataFetched={onDataFetched}
+                      openWidgetTemplates={openWidgetTemplates}
+                    />
+                  </Section>
+                )}
+              </div>
               {isSmallScreen && (
                 <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
-                  />
+                  <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
                 </Section>
               )}
-            </div>
-            <Section>
-              <Visualize error={error} setError={setError} />
-            </Section>
-            <Section>
-              <WidgetBuilderQueryFilterBuilder
-                onQueryConditionChange={onQueryConditionChange}
-                validatedWidgetResponse={validatedWidgetResponse}
-              />
-            </Section>
-            {state.displayType === DisplayType.BIG_NUMBER && (
               <Section>
-                <ThresholdsSection
-                  dataType={thresholdMetaState?.dataType}
-                  dataUnit={thresholdMetaState?.dataUnit}
-                  error={error}
-                  setError={setError}
-                />
+                <Visualize error={error} setError={setError} />
               </Section>
-            )}
-            {isChartWidget && (
               <Section>
-                <WidgetBuilderGroupBySelector
+                <WidgetBuilderQueryFilterBuilder
+                  onQueryConditionChange={onQueryConditionChange}
                   validatedWidgetResponse={validatedWidgetResponse}
                 />
               </Section>
-            )}
-            {showSortByStep && (
-              <Section>
-                <WidgetBuilderSortBySelector />
-              </Section>
-            )}
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
-            <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
+              {state.displayType === DisplayType.BIG_NUMBER && (
+                <Section>
+                  <ThresholdsSection
+                    dataType={thresholdMetaState?.dataType}
+                    dataUnit={thresholdMetaState?.dataUnit}
+                    error={error}
+                    setError={setError}
+                  />
+                </Section>
+              )}
+              {isChartWidget && (
+                <Section>
+                  <WidgetBuilderGroupBySelector
+                    validatedWidgetResponse={validatedWidgetResponse}
+                  />
+                </Section>
+              )}
+              {showSortByStep && (
+                <Section>
+                  <WidgetBuilderSortBySelector />
+                </Section>
+              )}
+            </DisableTransactionWidget>
+            <SaveButtonGroup
+              isEditing={isEditing}
+              onSave={onSave}
+              setError={setError}
+              onClose={onCloseWithModal}
+            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>
@@ -252,6 +348,44 @@ function WidgetBuilderSlideout({
 }
 
 export default WidgetBuilderSlideout;
+
+function Section({children}: {children: React.ReactNode}) {
+  return (
+    <SectionWrapper>
+      <ErrorBoundary mini>{children}</ErrorBoundary>
+    </SectionWrapper>
+  );
+}
+
+type DisableModeProps = {
+  children: React.ReactNode;
+};
+
+function DisableTransactionWidget({children}: DisableModeProps) {
+  const disableTransactionWidget = useDisableTransactionWidget();
+
+  if (!disableTransactionWidget) {
+    return children;
+  }
+
+  return (
+    <div
+      data-test-id="transaction-widget-disabled-wrapper"
+      style={{
+        opacity: 0.6,
+        cursor: 'not-allowed',
+      }}
+    >
+      <div
+        style={{
+          pointerEvents: 'none',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
@@ -262,22 +396,33 @@ const CloseButton = styled(Button)`
   z-index: 100;
 `;
 
-const SlideoutTitle = styled('h5')`
-  margin: 0;
-`;
-
 const SlideoutHeaderWrapper = styled('div')`
-  padding: ${space(3)} ${space(4)};
+  padding: ${space(1)} ${space(4)};
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
+const SlideoutBreadcrumb = styled('div')`
+  cursor: pointer;
+`;
+
 const SlideoutBodyWrapper = styled('div')`
   padding: ${space(4)};
 `;
 
-const Section = styled('div')`
+const SectionWrapper = styled('div')`
   margin-bottom: 24px;
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;

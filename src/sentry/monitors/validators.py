@@ -18,10 +18,10 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
-from sentry.monitors.types import CrontabSchedule
+from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_STATUSES = {
@@ -119,6 +119,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
         min_value=1,
+        max_value=MAX_MARGIN,
     )
 
     max_runtime = EmptyIntegerField(
@@ -185,8 +186,7 @@ class ConfigValidator(serializers.Serializer):
 
         # Translate alternative schedule type key
         if isinstance(schedule, dict) and schedule.get("type"):
-            schedule_type = schedule.get("type")
-            schedule_type = SCHEDULE_TYPES.get(schedule_type)
+            schedule_type = SCHEDULE_TYPES.get(schedule["type"])
 
         if schedule_type is None:
             raise ValidationError({"schedule_type": "Missing or invalid schedule type"})
@@ -293,8 +293,12 @@ class MonitorValidator(CamelSnakeSerializer):
         return status
 
     def validate_slug(self, value):
+        if not value:
+            return value
+
+        value = slugify_monitor_slug(value)
         # Ignore if slug is equal to current value
-        if not value or (self.instance and value == self.instance.get("slug")):
+        if self.instance and value == self.instance.get("slug"):
             return value
 
         if Monitor.objects.filter(

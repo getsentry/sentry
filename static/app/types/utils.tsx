@@ -8,10 +8,6 @@ import type {Organization, SharedViewOrganization} from './organization';
 // value is true:
 export function assert(_value: unknown): asserts _value {}
 
-// This declares a function which asserts that the expression called
-// value is of type Type:
-export function assertType<Type>(_value: unknown): asserts _value is Type {}
-
 export function isNotSharedOrganization(
   maybe: Organization | SharedViewOrganization
 ): maybe is Organization {
@@ -24,3 +20,7 @@ export type DeepPartial<T> =
         [P in keyof T]?: DeepPartial<T[P]>;
       }
     : T;
+
+export type Nullable<T> = {
+  [P in keyof T]: T[P] | null;
+};

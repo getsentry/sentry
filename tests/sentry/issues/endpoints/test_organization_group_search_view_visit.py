@@ -3,7 +3,6 @@ from django.utils import timezone
 
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.endpoints.test_organization_group_search_views import (
     GroupSearchViewAPITestCase,
 )
@@ -23,7 +22,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         )
 
     @freeze_time("2025-03-03 14:52:37")
-    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_last_visited_success(self) -> None:
         assert (
             GroupSearchViewLastVisited.objects.filter(
@@ -46,7 +44,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         assert visited_view.last_visited == timezone.now()
 
     @freeze_time("2025-03-03 14:52:37")
-    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_existing_last_visited(self) -> None:
         # Create an initial last_visited record with an old timestamp
         with freeze_time("2025-02-03 14:52:37"):
@@ -75,7 +72,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         assert visited_view.last_visited.minute == 52
         assert visited_view.last_visited.second == 37
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_nonexistent_view(self) -> None:
         nonexistent_id = "99999"
         url = reverse(
@@ -86,7 +82,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         response = self.client.post(url)
         assert response.status_code == 404
 
-    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_view_from_another_user(self) -> None:
         user_two = self.create_user()
         self.create_member(organization=self.organization, user=user_two)
@@ -110,14 +105,3 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             group_search_view=view,
         )
         assert visited_view is not None
-
-    def test_update_without_feature_flag(self) -> None:
-        response = self.client.post(self.url)
-        assert response.status_code == 404
-
-        # Verify no last_visited record was created
-        assert not GroupSearchViewLastVisited.objects.filter(
-            organization=self.organization,
-            user_id=self.user.id,
-            group_search_view=self.view,
-        ).exists()

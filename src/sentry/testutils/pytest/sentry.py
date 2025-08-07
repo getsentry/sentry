@@ -243,7 +243,6 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_test_env_regions()
 
     # ID controls
-    settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
@@ -287,7 +286,7 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
-    sentry_sdk.Scope.get_global_scope().set_client(None)
+    sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -363,7 +362,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
 
-    sentry_sdk.Scope.get_global_scope().set_client(None)
+    sentry_sdk.get_global_scope().set_client(None)
 
 
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:

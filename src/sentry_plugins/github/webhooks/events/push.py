@@ -17,7 +17,6 @@ from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry_plugins.github.client import GithubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email
@@ -150,20 +149,33 @@ class PushEventWebhook(Webhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes = []
+
                     for fname in commit["added"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="A"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="A"
+                            )
                         )
+
                     for fname in commit["removed"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="D"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="D"
+                            )
                         )
                     for fname in commit["modified"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="M"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="M"
+                            )
                         )
+
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
+
             except IntegrityError:
-                incr_rollback_metrics(name="github_push_event")
                 pass
 
     # https://developer.github.com/v3/activity/events/types/#pushevent

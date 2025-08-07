@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
-import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {DataSection} from 'sentry/components/events/styles';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -23,8 +22,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
     },
     {enabled: !isShare}
   );
-  const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
+
+  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {
     return null;
@@ -64,7 +63,7 @@ const Wrapper = styled(DataSection)<{
 }>`
   padding: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>

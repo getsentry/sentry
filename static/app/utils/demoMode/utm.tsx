@@ -73,24 +73,3 @@ export function getUTMState(): UTMState {
     touches,
   };
 }
-
-export function updateTouches(state: UTMState) {
-  // Update our list of touches if the form was successful.
-  const newTouches = Object.keys(state.trackableQuery)
-    .filter(isUTM)
-    .reduce((a, utm) => {
-      const ftk = toFirstTouchKey(utm);
-      const ltk = toLastTouchKey(utm);
-      const value = state.trackableQuery[utm];
-      return value
-        ? {
-            ...a,
-            // First touch is either what we already stored or the current value
-            [ftk]: state.touches[ftk] || value,
-            // Last touch is the current value
-            [ltk]: value,
-          }
-        : a;
-    }, {});
-  localStorage.setItem(lsKey, JSON.stringify(newTouches));
-}

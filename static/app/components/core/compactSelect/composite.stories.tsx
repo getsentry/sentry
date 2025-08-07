@@ -1,10 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconSentry, IconStar} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
+import * as Storybook from 'sentry/stories';
 
 import {CompositeSelect} from './composite';
 import {CompactSelect} from './';
@@ -45,7 +44,7 @@ const ADJ_OPTIONS = [
   {value: 'awesome', label: 'awesome'},
 ];
 
-export default storyBook('CompositeSelect', story => {
+export default Storybook.story('CompositeSelect', story => {
   story('Introduction', () => {
     return (
       <Fragment>
@@ -129,7 +128,7 @@ export default storyBook('CompositeSelect', story => {
           <code>CompactSelect</code> deal with multiple single-select sections:
         </p>
 
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           <CompositeSelect
             trigger={triggerProps => (
               <Button

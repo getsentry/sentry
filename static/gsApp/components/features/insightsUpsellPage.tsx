@@ -5,7 +5,6 @@ import upsellImage from 'getsentry-images/features/insights/module-upsells/insig
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
 import cachesPreviewImg from 'sentry-images/insights/module-upsells/insights-caches-module-charts.svg';
-import llmPreviewImg from 'sentry-images/insights/module-upsells/insights-llm-module-charts.svg';
 import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-queries-module-charts.svg';
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
@@ -13,7 +12,8 @@ import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insight
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Panel from 'sentry/components/panels/panel';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -226,7 +226,6 @@ function ModuleNameList({
       <ModuleNameListItem moduleName="vital" {...commonProps} />
       <ModuleNameListItem moduleName="cache" {...commonProps} />
       <ModuleNameListItem moduleName="queue" {...commonProps} />
-      <ModuleNameListItem moduleName="ai" {...commonProps} />
       <ModuleNameListItem moduleName="screen-rendering" {...commonProps} />
     </FeatureList>
   );
@@ -278,7 +277,7 @@ const MainContent = styled('div')`
 `;
 
 const Title = styled('h2')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(1)};
 `;
 
@@ -325,7 +324,7 @@ const FeatureListItem = styled('li')<{isSelected: boolean}>`
   align-items: center;
   gap: ${space(2)};
   color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.subText)};
-  ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
+  ${p => p.isSelected && `font-weight: ${p.theme.fontWeight.bold};`}
   cursor: pointer;
   :hover {
     color: ${p => p.theme.gray500};
@@ -386,12 +385,7 @@ const MODULE_PREVIEW_CONTENT: Partial<
     description: t('Improve the latency associated with your application starting up.'),
     imageSrc: appStartPreviewImg,
   },
-  ai: {
-    description: t(
-      'Get insights into critical metrics, like token usage, to monitor and fix issues with AI pipelines.'
-    ),
-    imageSrc: llmPreviewImg,
-  },
+
   'mobile-ui': {
     description: t(
       'View the most active screens in your mobile application and monitor your releases for TTID and TTFD regressions.'
@@ -450,7 +444,6 @@ const MODULE_PREVIEW_CONTENT: Partial<
 
 // This matches ids in the sidebar items and in the hook in getsentry
 const sidebarIdMap: Partial<Record<TitleableModuleNames, InsightSidebarId>> = {
-  ai: 'llm-monitoring',
   'mobile-ui': 'performance-mobile-ui',
   cache: 'performance-cache',
   db: 'performance-database',

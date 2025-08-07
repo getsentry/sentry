@@ -33,7 +33,7 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
             )
         )
 
-    def test_query_baseline_set(self):
+    def test_query_baseline_set(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)
@@ -46,7 +46,7 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
         )
         assert results == [("key", "false", 1), ("key", "true", 1), ("other", "false", 2)]
 
-    def test_query_selection_set(self):
+    def test_query_selection_set(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)
@@ -57,7 +57,7 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
         results = query_selection_set(1, 1, before, later, environments=[], group_id=1)
         assert results == [("key", "true", 1), ("other", "false", 1)]
 
-    def test_get_suspect_tag_scores(self):
+    def test_get_suspect_tag_scores(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)

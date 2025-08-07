@@ -1,6 +1,5 @@
 from django.db import IntegrityError
 
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from social_auth.models import UserSocialAuth
 
 
@@ -20,7 +19,6 @@ def associate_user(backend, user, uid, social_user=None, *args, **kwargs):
     try:
         social = UserSocialAuth.create_social_auth(user, uid, backend.name)
     except IntegrityError:
-        incr_rollback_metrics(UserSocialAuth)
         # Protect for possible race condition, those bastard with FTL
         # clicking capabilities, check issue #131:
         #   https://github.com/omab/django-social-auth/issues/131

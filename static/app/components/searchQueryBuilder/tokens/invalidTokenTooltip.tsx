@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 

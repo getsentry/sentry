@@ -1,11 +1,13 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
+import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -34,7 +36,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
 
   return (
     <VerticalSpacing ref={wrapperRef}>
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
+      <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <FeedbackShortId feedbackItem={feedbackItem} />
         <FeedbackActions
           eventData={eventData}
@@ -46,12 +48,20 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
 
       {eventData && feedbackItem.project ? (
         <ErrorBoundary mini>
-          <Flex wrap="wrap" justify="flex-start" align="center" gap={space(1)}>
+          <Flex wrap="wrap" justify="between" align="center" gap="md">
             <StreamlinedExternalIssueList
               group={feedbackItem as unknown as Group}
               project={feedbackItem.project}
               event={eventData}
             />
+            {feedbackItem.seenBy.length ? (
+              <Flex justify="end">
+                <Flex gap="md" align="center">
+                  <SeenBy>{t('Seen by')}</SeenBy>
+                  <FeedbackViewers feedbackItem={feedbackItem} />
+                </Flex>
+              </Flex>
+            ) : null}
           </Flex>
         </ErrorBoundary>
       ) : null}
@@ -65,4 +75,9 @@ const VerticalSpacing = styled('div')`
   gap: ${space(1)};
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const SeenBy = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

@@ -1,7 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
@@ -40,7 +39,7 @@ type CellProps = {
 export const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}
@@ -61,16 +60,6 @@ export const Text = styled('div')`
   padding: ${space(0.75)} ${space(1.5)};
   display: flex;
   gap: ${space(0.5)};
-`;
-
-export const CodeHighlightCell = styled(CodeSnippet)`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  padding: ${space(0.75)} 0;
-  display: flex;
-  gap: ${space(0.5)};
-  --prism-block-background: transparent;
 `;
 
 export const AvatarWrapper = styled('div')`

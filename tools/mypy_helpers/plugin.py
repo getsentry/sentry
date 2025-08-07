@@ -6,7 +6,7 @@ from collections.abc import Callable
 from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, MDEF, MypyFile, SymbolTableNode, TypeInfo, Var
+from mypy.nodes import ARG_POS, MypyFile, TypeInfo
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -127,17 +127,8 @@ def _adjust_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
 
 
-def _add_name_to_info(ti: TypeInfo, name: str, tp: Type) -> None:
-    node = Var(name, tp)
-    node.info = ti
-    node._fullname = f"{ti.fullname}.{name}"
-
-    ti.names[name] = SymbolTableNode(MDEF, node, plugin_generated=True)
-
-
 def _adjust_http_response_members(ctx: ClassDefContext) -> None:
-    # there isn't a good plugin point for HttpResponseBase so we add it here?
-    if ctx.cls.name == "HttpResponse":
+    if ctx.cls.name == "HttpResponseBase":
         dict_str_list_str = ctx.api.named_type(
             "builtins.dict",
             [
@@ -145,9 +136,7 @@ def _adjust_http_response_members(ctx: ClassDefContext) -> None:
                 ctx.api.named_type("builtins.list", [ctx.api.named_type("builtins.str")]),
             ],
         )
-        base = ctx.cls.info.bases[0].type
-        assert base.name == "HttpResponseBase", base.name
-        _add_name_to_info(base, "_csp_replace", dict_str_list_str)
+        add_attribute_to_class(ctx.api, ctx.cls, "_csp_replace", dict_str_list_str)
 
 
 def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type:
@@ -179,11 +168,12 @@ class SentryMypyPlugin(Plugin):
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
         return _FUNCTION_SIGNATURE_HOOKS.get(fullname)
 
-    def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
-        # XXX: this is a hack -- I don't know if there's a better callback to modify a class
-        if fullname == "_io.BytesIO":
+    def get_customize_class_mro_hook(
+        self, fullname: str
+    ) -> Callable[[ClassDefContext], None] | None:
+        if fullname == "django.http.request.HttpRequest":
             return _adjust_http_request_members
-        elif fullname == "django.http.request.HttpRequest":
+        elif fullname == "rest_framework.request.Request":
             return _adjust_request_members
         elif fullname == "django.http.response.HttpResponseBase":
             return _adjust_http_response_members

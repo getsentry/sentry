@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconOpen} from 'sentry/icons';

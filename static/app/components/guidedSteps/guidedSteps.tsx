@@ -10,11 +10,13 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {type BaseButtonProps, Button} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -171,7 +173,7 @@ function Step(props: StepProps) {
   );
 }
 
-function BackButton({children, ...props}: BaseButtonProps) {
+function BackButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   if (currentStep === 1) {
@@ -180,12 +182,12 @@ function BackButton({children, ...props}: BaseButtonProps) {
 
   return (
     <Button size="sm" onClick={() => setCurrentStep(currentStep - 1)} {...props}>
-      {children ?? t('Back')}
+      {t('Back')}
     </Button>
   );
 }
 
-function NextButton({children, ...props}: BaseButtonProps) {
+function NextButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
 
   if (currentStep >= totalSteps) {
@@ -194,7 +196,7 @@ function NextButton({children, ...props}: BaseButtonProps) {
 
   return (
     <Button size="sm" onClick={() => setCurrentStep(currentStep + 1)} {...props}>
-      {children ?? t('Next')}
+      {t('Next')}
     </Button>
   );
 }
@@ -258,8 +260,8 @@ const StepWrapper = styled('div')`
 const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -267,16 +269,30 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   width: 34px;
   line-height: 34px;
   border-radius: 50%;
-  background: ${p => (p.isActive ? p.theme.purple300 : p.theme.gray100)};
-  color: ${p => (p.isActive ? p.theme.white : p.theme.subText)};
+  background: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.accent
+        : p.theme.purple300
+      : isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.muted
+        : p.theme.gray100};
+  color: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.white
+      : isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.subText};
   border: 4px solid ${p => p.theme.background};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;
 
@@ -290,7 +306,7 @@ const StepDoneIcon = styled(IconCheckmark, {
 
 const StepOptionalLabel = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-top: -${space(0.75)};
   margin-bottom: ${space(1)};
 `;

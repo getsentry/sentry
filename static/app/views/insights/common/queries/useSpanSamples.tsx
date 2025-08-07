@@ -1,23 +1,23 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  SpanIndexedFieldTypes,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
-  SpanMetricsQueryFilters,
+  SpanProperty,
+  SpanQueryFilters,
+  SpanResponse,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanFields;
 
 type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
@@ -31,29 +31,26 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 };
 
 export type SpanSample = Pick<
-  SpanIndexedFieldTypes,
-  | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILE_ID
-  | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
-  | SpanIndexedField.TRACE
+  SpanResponse,
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.PROJECT
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.PROFILEID
+  | SpanFields.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.TRACE
 >;
 
 export type DefaultSpanSampleFields =
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_ID
-  | SpanIndexedField.PROFILE_ID
-  | SpanIndexedField.SPAN_SELF_TIME;
+  | SpanFields.PROJECT
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.PROFILEID
+  | SpanFields.SPAN_SELF_TIME;
 
-export type NonDefaultSpanSampleFields = Exclude<
-  SpanIndexedProperty,
-  DefaultSpanSampleFields
->;
+export type NonDefaultSpanSampleFields = Exclude<SpanProperty, DefaultSpanSampleFields>;
 
 export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
@@ -75,7 +72,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   query.addFilterValue(SPAN_GROUP, groupId);
   query.addFilterValue('transaction', transactionName);
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     transaction: transactionName,
   };
 
@@ -90,14 +87,14 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   }
 
   if (subregions) {
-    query.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    query.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    filters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const dateConditions = getDateConditions(pageFilter.selection);
 
-  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],
@@ -115,8 +112,13 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
+  type DataRow = Pick<
+    SpanResponse,
+    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
+  >;
+
   return useApiQuery<{
-    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
+    data: DataRow[];
     meta: EventsMetaType;
   }>(
     [
@@ -132,9 +134,14 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max * (1 / 3),
           secondBound: max * (2 / 3),
           upperBound: max,
-          additionalFields: [SpanIndexedField.ID, ...additionalFields],
+          additionalFields: [
+            SpanFields.ID,
+            SpanFields.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
+            ...additionalFields,
+          ],
+          sampling: SAMPLING_MODE.NORMAL,
+          dataset: DiscoverDatasets.SPANS,
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],

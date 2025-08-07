@@ -2,8 +2,39 @@ import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
+import type {TransformOptions} from '@babel/core';
 
-import babelConfig from './babel.config';
+const babelConfig: TransformOptions = {
+  presets: [
+    [
+      '@babel/preset-react',
+      {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    ],
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.41',
+        targets: {
+          node: 'current',
+        },
+      },
+    ],
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
+  ],
+  plugins: [
+    [
+      '@emotion/babel-plugin',
+      {
+        sourceMap: false,
+      },
+    ],
+  ],
+};
 
 const {
   CI,
@@ -17,14 +48,6 @@ const {
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
-
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
 
 const optionalTags: {
   balancer?: boolean;
@@ -45,7 +68,7 @@ let JEST_TESTS: string[] | undefined;
 // to reexec itself here
 if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
-    const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
+    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
       stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
@@ -188,13 +211,22 @@ if (
 ) {
   let balance: null | Record<string, number> = null;
 
+  const BALANCE_RESULTS_PATH = path.resolve(
+    import.meta.dirname,
+    'tests',
+    'js',
+    'test-balancer',
+    'jest-balance.json'
+  );
   try {
-    balance = require(BALANCE_RESULTS_PATH);
+    balance = (await import(BALANCE_RESULTS_PATH, {with: {type: 'json'}})).default;
   } catch (err) {
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
+  const envTestList: string[] = JEST_TESTS.map(file =>
+    file.replace(import.meta.dirname, '')
+  );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
@@ -220,7 +252,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -231,8 +263,8 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|jpg|woff|mp4)$':
-      '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
@@ -240,12 +272,16 @@ const config: Config.InitialOptions = {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
-    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // Disabled @sentry/toolbar in tests. It depends on iframes and global
+    // window/cookies state.
+    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -269,7 +305,7 @@ const config: Config.InitialOptions = {
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
       : '/node_modules/',
   ],
 
@@ -298,6 +334,7 @@ const config: Config.InitialOptions = {
   // To disable the sentry jest integration, set this to 'jsdom'
   testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
+    globalsCleanup: 'on',
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)

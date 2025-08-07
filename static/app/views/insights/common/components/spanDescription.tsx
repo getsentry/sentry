@@ -9,8 +9,10 @@ import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {useRelease} from 'sentry/utils/useRelease';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -20,12 +22,12 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
-  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  groupId: SpanResponse[SpanFields.SPAN_GROUP];
+  op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
 }
 
@@ -47,27 +49,53 @@ export function DatabaseSpanDescription({
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
+  const {projects} = useProjects();
+  const organization = useOrganization();
 
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
       limit: 1,
       fields: [
-        SpanIndexedField.PROJECT_ID,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanFields.PROJECT_ID,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.DB_SYSTEM,
+        SpanFields.CODE_FILEPATH,
+        SpanFields.CODE_LINENO,
+        SpanFields.CODE_FUNCTION,
+        SpanFields.SDK_NAME,
+        SpanFields.SDK_VERSION,
+        SpanFields.RELEASE,
+        SpanFields.PLATFORM,
       ],
+      sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
     'api.starfish.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 
-  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
-  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
-    groupId,
-    [INDEXED_SPAN_SORT],
-    Boolean(indexedSpan)
-  );
+  const project = projects.find(p => p.id === indexedSpan?.['project.id']?.toString());
+
+  const {data: release} = useRelease({
+    orgSlug: organization.slug,
+    projectSlug: project?.slug ?? '',
+    releaseVersion: indexedSpan?.release ?? '',
+    enabled: indexedSpan?.release !== undefined,
+  });
+
+  const sdk =
+    indexedSpan?.['sdk.name'] && indexedSpan?.['sdk.version']
+      ? {
+          name: indexedSpan?.['sdk.name'],
+          version: indexedSpan?.['sdk.version'],
+        }
+      : undefined;
+
+  const event = {
+    platform: indexedSpan?.platform,
+    release,
+    sdk,
+  };
 
   // isExpanded is a query param that is meant to be accessed only when clicking on the
   // "View full query" button from the hover tooltip. It is removed from the query params
@@ -83,29 +111,24 @@ export function DatabaseSpanDescription({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const system = rawSpan?.data?.['db.system'];
+  const system = indexedSpan?.['db.system'];
+  const codeFilepath = indexedSpan?.['code.filepath'];
+  const codeLineno = indexedSpan?.['code.lineno'];
+  const codeFunction = indexedSpan?.['code.function'];
 
   const formattedDescription = useMemo(() => {
-    const rawDescription =
-      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+    const rawDescription = indexedSpan?.['span.description'] || preliminaryDescription;
 
     if (system === SupportedDatabaseSystem.MONGODB) {
       let bestDescription = '';
 
-      if (
-        rawSpan?.sentry_tags?.description &&
-        isValidJson(rawSpan.sentry_tags.description)
-      ) {
-        bestDescription = rawSpan.sentry_tags.description;
-      } else if (preliminaryDescription && isValidJson(preliminaryDescription)) {
+      if (preliminaryDescription && isValidJson(preliminaryDescription)) {
         bestDescription = preliminaryDescription;
       } else if (
         indexedSpan?.['span.description'] &&
         isValidJson(indexedSpan?.['span.description'])
       ) {
         bestDescription = indexedSpan?.['span.description'];
-      } else if (rawSpan?.description && isValidJson(rawSpan.description)) {
-        bestDescription = rawSpan?.description;
       } else {
         return rawDescription ?? 'N/A';
       }
@@ -114,11 +137,11 @@ export function DatabaseSpanDescription({
     }
 
     return formatter.toString(rawDescription ?? '');
-  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
+  }, [preliminaryDescription, indexedSpan, system]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading || isRawSpanLoading ? (
+      {areIndexedSpansLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
@@ -130,16 +153,16 @@ export function DatabaseSpanDescription({
         </QueryClippedBox>
       )}
 
-      {!areIndexedSpansLoading && !isRawSpanLoading && (
+      {!areIndexedSpansLoading && (
         <Fragment>
-          {rawSpan?.data?.['code.filepath'] ? (
+          {codeFilepath ? (
             <StackTraceMiniFrame
-              projectId={indexedSpan?.project_id?.toString()}
-              eventId={indexedSpan?.['transaction.id']}
+              projectId={indexedSpan?.['project.id']?.toString()}
+              event={event}
               frame={{
-                filename: rawSpan?.data?.['code.filepath'],
-                lineNo: rawSpan?.data?.['code.lineno'],
-                function: rawSpan?.data?.['code.function'],
+                filename: codeFilepath,
+                lineNo: codeLineno,
+                function: codeFunction,
               }}
             />
           ) : (
@@ -160,11 +183,6 @@ function QueryClippedBox(props: any) {
 
   return <StyledClippedBox {...props} />;
 }
-
-const INDEXED_SPAN_SORT = {
-  field: 'span.self_time',
-  kind: 'desc' as const,
-};
 
 export const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};

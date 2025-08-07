@@ -23,6 +23,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
@@ -98,6 +99,7 @@ class ActivityManager(BaseManager["Activity"]):
         if user_id is not None:
             activity_args["user_id"] = user_id
         activity = self.create(**activity_args)
+
         if send_notification:
             activity.send_notification()
 
@@ -197,13 +199,18 @@ class Activity(Model):
         if self.group:
             group_type = get_group_type_by_type_id(self.group.type)
             has_status_change_notifications = group_type.enable_status_change_workflow_notifications
+            has_workflow_notifications = group_type.enable_workflow_notifications
             is_status_change = self.type in {
                 activity.value for activity in STATUS_CHANGE_ACTIVITY_TYPES
             }
 
             # Skip sending the activity notification if the group type does not
             # support status change workflow notifications
-            if is_status_change and not has_status_change_notifications:
+            if (
+                is_status_change
+                and not has_status_change_notifications
+                or not has_workflow_notifications
+            ):
                 return
 
         activity.send_activity_notifications.delay(self.id)
@@ -214,7 +221,7 @@ class ActivityIntegration(Enum):
 
     CODEOWNERS = "codeowners"
     PROJECT_OWNERSHIP = "projectOwnership"
-    SLACK = "slack"
-    MSTEAMS = "msteams"
-    DISCORD = "discord"
+    SLACK = IntegrationProviderSlug.SLACK.value
+    MSTEAMS = IntegrationProviderSlug.MSTEAMS.value
+    DISCORD = IntegrationProviderSlug.DISCORD.value
     SUSPECT_COMMITTER = "suspectCommitter"

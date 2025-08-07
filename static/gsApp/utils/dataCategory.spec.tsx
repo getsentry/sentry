@@ -2,6 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  DynamicSamplingReservedBudgetFixture,
+  PendingReservedBudgetFixture,
+  ReservedBudgetFixture,
+  ReservedBudgetMetricHistoryFixture,
+  SeerReservedBudgetFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
@@ -10,6 +17,7 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   hasCategoryFeature,
+  isByteCategory,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -97,7 +105,7 @@ describe('hasCategoryFeature', function () {
 
   it('returns org does not have unknown feature', function () {
     const org = {...organization, features: []};
-    expect(hasCategoryFeature('unknown', subscription, org)).toBe(false);
+    expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
   });
 
   it('returns sorted categories', function () {
@@ -138,6 +146,18 @@ describe('hasCategoryFeature', function () {
         reserved: 1,
         prepaid: 1,
         order: 9,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        prepaid: 0,
+        order: 14,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        prepaid: 0,
+        order: 15,
       }),
     ]);
   });
@@ -199,6 +219,24 @@ describe('hasCategoryFeature', function () {
           order: 9,
         }),
       ],
+      [
+        'seerAutofix',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_AUTOFIX,
+          reserved: 0,
+          prepaid: 0,
+          order: 14,
+        }),
+      ],
+      [
+        'seerScanner',
+        MetricHistoryFixture({
+          category: DataCategory.SEER_SCANNER,
+          reserved: 0,
+          prepaid: 0,
+          order: 15,
+        }),
+      ],
     ]);
   });
 });
@@ -207,91 +245,118 @@ describe('getPlanCategoryName', function () {
   const plan = PlanDetailsLookupFixture('am3_team');
 
   it('should capitalize category', function () {
-    expect(getPlanCategoryName({plan, category: 'transactions'})).toBe('Transactions');
-    expect(getPlanCategoryName({plan, category: 'errors'})).toBe('Errors');
-    expect(getPlanCategoryName({plan, category: 'replays'})).toBe('Replays');
-    expect(getPlanCategoryName({plan, category: 'spans'})).toBe('Spans');
-    expect(getPlanCategoryName({plan, category: 'profiles'})).toBe('Profiles');
-    expect(getPlanCategoryName({plan, category: 'monitorSeats'})).toBe('Cron monitors');
+    expect(getPlanCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
+      'Transactions'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.ERRORS})).toBe('Errors');
+    expect(getPlanCategoryName({plan, category: DataCategory.REPLAYS})).toBe('Replays');
+    expect(getPlanCategoryName({plan, category: DataCategory.SPANS})).toBe('Spans');
+    expect(getPlanCategoryName({plan, category: DataCategory.PROFILE_DURATION})).toBe(
+      'Continuous profile hours'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
+      'Cron monitors'
+    );
   });
 
   it('should display spans as accepted spans for DS', function () {
     expect(
-      getPlanCategoryName({plan, category: 'spans', hadCustomDynamicSampling: true})
+      getPlanCategoryName({
+        plan,
+        category: DataCategory.SPANS,
+        hadCustomDynamicSampling: true,
+      })
     ).toBe('Accepted spans');
   });
 });
 
 describe('getReservedBudgetDisplayName', function () {
-  const am1Plan = PlanDetailsLookupFixture('am1_team');
-  const am2Plan = PlanDetailsLookupFixture('am2_business');
-  const am3Plan = PlanDetailsLookupFixture('am3_business');
   const am3DsPlan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
 
-  it('should oxfordize categories alphabetically for am1', function () {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am1Plan,
-        categories: am1Plan?.categories ?? [],
-        hadCustomDynamicSampling: false,
-      })
-    ).toBe(
-      'attachments, cron monitors, errors, replays, transactions, and uptime monitors'
-    );
-  });
-
-  it('should oxfordize categories alphabetically for am2', function () {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am2Plan,
-        categories: am2Plan?.categories ?? [],
-        hadCustomDynamicSampling: false,
-      })
-    ).toBe(
-      'attachments, continuous profile hours, cron monitors, errors, performance units, replays, UI profile hours, and uptime monitors'
-    );
-  });
-
-  it('should oxfordize categories alphabetically for am3', function () {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
-        hadCustomDynamicSampling: false,
-      })
-    ).toBe(
-      'attachments, continuous profile hours, cron monitors, errors, replays, spans, UI profile hours, and uptime monitors'
-    );
-  });
-
-  it('should use accepted spans for DS', function () {
+  it('should use the reserved budget name if it exists', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
-        hadCustomDynamicSampling: true,
+        reservedBudget: DynamicSamplingReservedBudgetFixture({}),
       })
-    ).toBe('accepted spans and stored spans');
+    ).toBe('spans budget');
 
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
-        hadCustomDynamicSampling: false,
-      })
-    ).toBe('spans and stored spans');
-  });
-
-  it('should title case categories only', function () {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
+        reservedBudget: SeerReservedBudgetFixture({}),
         shouldTitleCase: true,
       })
-    ).toBe(
-      'Attachments, Continuous Profile Hours, Cron Monitors, Errors, Replays, Spans, UI Profile Hours, and Uptime Monitors'
-    );
+    ).toBe('Seer Budget');
+  });
+
+  it('should try to find the reserved budget name if it does not exist', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        pendingReservedBudget: PendingReservedBudgetFixture({
+          categories: {
+            [DataCategory.SPANS]: true,
+            [DataCategory.SPANS_INDEXED]: true,
+          },
+          reservedBudget: 1000,
+        }),
+      })
+    ).toBe('spans budget');
+  });
+
+  it('should oxfordize the budget categories if no name exists or can be found', function () {
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        pendingReservedBudget: PendingReservedBudgetFixture({
+          categories: {
+            [DataCategory.SPANS_INDEXED]: true,
+          },
+          reservedBudget: 1000,
+        }),
+      })
+    ).toBe('stored spans budget');
+
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        reservedBudget: ReservedBudgetFixture({
+          categories: {
+            [DataCategory.REPLAYS]: ReservedBudgetMetricHistoryFixture({}),
+          },
+          dataCategories: [DataCategory.REPLAYS],
+        }),
+      })
+    ).toBe('replays budget');
+
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        pendingReservedBudget: PendingReservedBudgetFixture({
+          categories: {
+            [DataCategory.ERRORS]: true,
+            [DataCategory.SPANS]: true,
+            [DataCategory.REPLAYS]: true,
+            [DataCategory.MONITOR_SEATS]: true,
+          },
+          reservedBudget: 1000,
+        }),
+      })
+    ).toBe('cron monitors, errors, replays, and spans budget'); // alphabetically sorted
+
+    expect(
+      getReservedBudgetDisplayName({
+        plan: am3DsPlan,
+        reservedBudget: ReservedBudgetFixture({
+          categories: {
+            [DataCategory.ATTACHMENTS]: ReservedBudgetMetricHistoryFixture({}),
+            [DataCategory.UPTIME]: ReservedBudgetMetricHistoryFixture({}),
+          },
+          dataCategories: [DataCategory.ATTACHMENTS, DataCategory.UPTIME],
+        }),
+      })
+    ).toBe('attachments and uptime monitors budget');
   });
 });
 
@@ -303,12 +368,12 @@ describe('listDisplayNames', function () {
       listDisplayNames({
         plan: plan!,
         categories: [
-          'spans',
-          'transactions',
-          'errors',
-          'replays',
-          'monitorSeats',
-          'attachments',
+          DataCategory.SPANS,
+          DataCategory.TRANSACTIONS,
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.MONITOR_SEATS,
+          DataCategory.ATTACHMENTS,
         ],
       })
     ).toBe('spans, transactions, errors, replays, cron monitors, and attachments');
@@ -321,7 +386,9 @@ describe('listDisplayNames', function () {
         categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
-    ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
+    ).toBe(
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, and logs'
+    );
   });
 
   it('should include stored spans and use accepted spans for DS', function () {
@@ -332,7 +399,16 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, and stored spans'
     );
+  });
+});
+
+describe('isByteCategory', function () {
+  it('verifies isByteCategory function handles both ATTACHMENTS and LOG_BYTE', function () {
+    expect(isByteCategory(DataCategory.ATTACHMENTS)).toBe(true);
+    expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
+    expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
+    expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
   });
 });

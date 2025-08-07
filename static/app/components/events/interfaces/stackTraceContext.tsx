@@ -74,7 +74,7 @@ interface StacktraceContextType {
   stackView: StackView;
 }
 
-export const IssueStacktraceContext = createContext<StacktraceContextType>({
+const IssueStacktraceContext = createContext<StacktraceContextType>({
   stackView: StackView.APP,
   stackType: StackType.ORIGINAL,
   displayOptions: [],

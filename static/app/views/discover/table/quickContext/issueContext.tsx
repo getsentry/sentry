@@ -2,10 +2,10 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

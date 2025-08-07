@@ -3,15 +3,16 @@ import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import type {ListRowRenderer} from 'react-virtualized/dist/es/List';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
 import type {PanelTableProps} from 'sentry/components/panels/panelTable';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +28,7 @@ import type {BreadcrumbProps} from './breadcrumb';
 import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
-export const PANEL_INITIAL_HEIGHT = 400;
+const PANEL_INITIAL_HEIGHT = 400;
 
 const noop = () => void 0;
 
@@ -265,13 +266,13 @@ export const StyledBreadcrumbPanelTable = styled(PanelTable)`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           padding: 0;
         `}
     }
   }
 
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-columns: 48px 1fr 74px 82px;
     > * {
       :nth-child(-n + 6) {

@@ -1,17 +1,16 @@
 import LoadingTriangle from 'sentry/components/loadingTriangle';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('LoadingTriangle', story => {
+export default Storybook.story('LoadingTriangle', story => {
   story('Default', () => (
-    <SizingWindow style={{height: '150px'}}>
+    <Storybook.SizingWindow style={{height: '150px'}}>
       <LoadingTriangle />
-    </SizingWindow>
+    </Storybook.SizingWindow>
   ));
 
   story('With children', () => (
-    <SizingWindow style={{height: '190px'}}>
+    <Storybook.SizingWindow style={{height: '190px'}}>
       <LoadingTriangle>This will take a while...</LoadingTriangle>
-    </SizingWindow>
+    </Storybook.SizingWindow>
   ));
 });

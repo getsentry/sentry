@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -15,7 +15,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -26,7 +25,7 @@ from sentry.types.group import GroupSubStatus
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(
@@ -46,8 +45,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
 
-    @with_feature("organizations:webhooks-unresolved")
-    def test_notify_after_regress(self, delay):
+    def test_notify_after_regress(self, delay: MagicMock) -> None:
         # First we need to resolve the issue
         self.update_issue({})
         delay.assert_any_call(
@@ -69,8 +67,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
-    def test_notify_after_bulk_ongoing(self, delay):
+    def test_notify_after_bulk_ongoing(self, delay: MagicMock) -> None:
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
         bulk_transition_group_to_ongoing(
@@ -87,8 +84,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
-    def test_notify_after_escalating(self, delay):
+    def test_notify_after_escalating(self, delay: MagicMock) -> None:
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
         event = self.issue.get_latest_event()
@@ -107,7 +103,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    def test_notify_after_basic_resolved(self, delay):
+    def test_notify_after_basic_resolved(self, delay: MagicMock) -> None:
         self.update_issue()
 
         delay.assert_called_once_with(
@@ -118,7 +114,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "now"},
         )
 
-    def test_notify_after_resolve_in_commit(self, delay):
+    def test_notify_after_resolve_in_commit(self, delay: MagicMock) -> None:
         repo = self.create_repo(project=self.project)
         commit = self.create_commit(repo=repo)
 
@@ -134,7 +130,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "in_commit"},
         )
 
-    def test_notify_after_resolve_in_specific_release(self, delay):
+    def test_notify_after_resolve_in_specific_release(self, delay: MagicMock) -> None:
         release = self.create_release(project=self.project)
 
         self.update_issue({"statusDetails": {"inRelease": release.version}})
@@ -147,7 +143,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "in_release"},
         )
 
-    def test_notify_after_resolve_in_latest_release(self, delay):
+    def test_notify_after_resolve_in_latest_release(self, delay: MagicMock) -> None:
         self.create_release(project=self.project)
 
         self.update_issue({"statusDetails": {"inRelease": "latest"}})
@@ -160,7 +156,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "in_release"},
         )
 
-    def test_notify_after_resolve_in_next_release(self, delay):
+    def test_notify_after_resolve_in_next_release(self, delay: MagicMock) -> None:
         self.create_release(project=self.project)
 
         self.update_issue({"statusDetails": {"inNextRelease": True}})
@@ -173,7 +169,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "in_next_release"},
         )
 
-    def test_notify_after_resolve_from_set_commits(self, delay):
+    def test_notify_after_resolve_from_set_commits(self, delay: MagicMock) -> None:
         repo = Repository.objects.create(organization_id=self.organization.id, name="test/repo")
 
         release = Release.objects.create(version="abcabc", organization=self.organization)
@@ -210,7 +206,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={"resolution_type": "with_commit"},
         )
 
-    def test_notify_after_issue_ignored(self, delay):
+    def test_notify_after_issue_ignored(self, delay: MagicMock) -> None:
         self.update_issue({"status": "ignored"})
 
         delay.assert_called_once_with(
@@ -221,7 +217,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             data={},
         )
 
-    def test_notify_pending_installation(self, delay):
+    def test_notify_pending_installation(self, delay: MagicMock) -> None:
         self.install.status = SentryAppInstallationStatus.PENDING
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.install.save()
@@ -232,7 +228,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(events=["issue.assigned"])
@@ -243,7 +239,7 @@ class TestIssueAssigned(APITestCase):
 
         self.assignee = self.create_user(name="Bert", email="bert@example.com")
 
-    def test_after_issue_assigned(self, delay):
+    def test_after_issue_assigned(self, delay: MagicMock) -> None:
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
         delay.assert_called_once_with(
@@ -261,7 +257,7 @@ class TestIssueAssigned(APITestCase):
             },
         )
 
-    def test_after_issue_reassigned(self, delay):
+    def test_after_issue_reassigned(self, delay: MagicMock) -> None:
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
         new_assignee = self.create_user(name="Berry", email="berry@example.com")
@@ -282,7 +278,7 @@ class TestIssueAssigned(APITestCase):
             },
         )
 
-    def test_after_issue_assigned_with_enhanced_privacy(self, delay):
+    def test_after_issue_assigned_with_enhanced_privacy(self, delay: MagicMock) -> None:
         org = self.issue.project.organization
         org.flags.enhanced_privacy = True
         org.save()
@@ -303,7 +299,7 @@ class TestIssueAssigned(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
         self.sentry_app = self.create_sentry_app(
             organization=self.project.organization,
@@ -314,7 +310,7 @@ class TestComments(APITestCase):
         )
         self.login_as(self.user)
 
-    def test_comment_created(self, delay):
+    def test_comment_created(self, delay: MagicMock) -> None:
         url = f"/api/0/issues/{self.issue.id}/notes/"
         data = {"text": "hello world"}
         self.client.post(url, data=data, format="json")
@@ -323,7 +319,7 @@ class TestComments(APITestCase):
         )
         comment_data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
@@ -335,14 +331,14 @@ class TestComments(APITestCase):
             data=comment_data,
         )
 
-    def test_comment_updated(self, delay):
+    def test_comment_updated(self, delay: MagicMock) -> None:
         note = self.create_comment(self.issue, self.project, self.user)
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
         data = {"text": "goodbye cruel world"}
         self.client.put(url, data=data, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "goodbye cruel world",
             "project_slug": self.project.slug,
         }
@@ -354,13 +350,13 @@ class TestComments(APITestCase):
             data=data,
         )
 
-    def test_comment_deleted(self, delay):
+    def test_comment_deleted(self, delay: MagicMock) -> None:
         note = self.create_comment(self.issue, self.project, self.user)
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
         self.client.delete(url, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
@@ -375,7 +371,7 @@ class TestComments(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         # Creating an app that is not subscribed to issue.resolved, but subscription is by resource
@@ -387,7 +383,9 @@ class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
         self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
         self.login_as(self.user)
 
-    def test_notify_for_issue_event_if_subscribed_to_all_issue_events(self, delay):
+    def test_notify_for_issue_event_if_subscribed_to_all_issue_events(
+        self, delay: MagicMock
+    ) -> None:
         self.client.put(self.url, data={"status": "resolved"}, format="json")
 
         delay.assert_called_once_with(

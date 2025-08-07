@@ -29,7 +29,8 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
-  let theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  let theme: Theme | DO_NOT_USE_ChonkTheme =
+    config.theme === 'dark' ? darkTheme : lightTheme;
   // Check feature access and if chonk theme is enabled
   if (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI) {
     theme =
@@ -68,12 +69,10 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
     [user?.options?.prefersChonkUI, config.theme, mutateUserOptions]
   );
 
-  const themeToggleHotkeys = useMemo(() => {
-    return organization?.features?.includes('chonk-ui')
+  useHotkeys(
+    organization?.features?.includes('chonk-ui')
       ? [themeToggleHotkey, chonkThemeToggleHotkey]
-      : [themeToggleHotkey];
-  }, [organization, chonkThemeToggleHotkey, themeToggleHotkey]);
-
-  useHotkeys(themeToggleHotkeys);
+      : [themeToggleHotkey]
+  );
   return theme;
 }

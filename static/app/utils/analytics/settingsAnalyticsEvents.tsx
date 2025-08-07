@@ -15,7 +15,7 @@ export type SettingsEventParameters = {
   };
 };
 
-export type SettingsEventKey = keyof SettingsEventParameters;
+type SettingsEventKey = keyof SettingsEventParameters;
 
 export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.index_page_viewed': 'Notification Settings: Index Page Viewed',

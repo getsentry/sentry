@@ -6,7 +6,6 @@ import {PlatformIcon} from 'platformicons';
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
 import cachesPreviewImg from 'sentry-images/insights/module-upsells/insights-caches-module-charts.svg';
-import llmPreviewImg from 'sentry-images/insights/module-upsells/insights-llm-module-charts.svg';
 import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-queries-module-charts.svg';
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
@@ -16,9 +15,9 @@ import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insig
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,6 +28,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
@@ -79,6 +79,13 @@ export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps)
 }
 
 export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  const {view} = useDomainViewFilters();
+  const docLink =
+    typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
+      ? MODULE_PRODUCT_DOC_LINKS[moduleName]
+      : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        : '';
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
@@ -106,11 +113,7 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </SplitMainContent>
-        <LinkButton
-          priority="primary"
-          external
-          href={MODULE_PRODUCT_DOC_LINKS[moduleName]}
-        >
+        <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>
@@ -277,31 +280,26 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  ai: {
-    heading: t('Find out what your LLM is actually saying'),
-    description: tct(
-      'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
-      {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }
+
+  agents: {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
+  mcp: {
+    heading: t('Model Context Providers'),
+    description: t(
+      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
     ),
-    valuePropDescription: tct(
-      'See what your [dataTypePlural] are doing in production by monitoring:',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }
-    ),
+    imageSrc: screenLoadsPreviewImg,
+    valuePropDescription: t('MCP monitoring gives you visibility into:'),
     valuePropPoints: [
-      t('Token cost and usage per-provider and per-pipeline.'),
-      tct('The inputs and outputs of [dataType] calls.', {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }),
-      tct('Performance and timing information about [dataTypePlural] in production.', {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }),
+      t('Tool execution success rates and failure patterns.'),
+      t('Resource access performance and availability.'),
+      t('Usage patterns across different tools and prompts.'),
     ],
-    imageSrc: llmPreviewImg,
-    supportedSdks: ['python'],
   },
   'mobile-ui': {
     heading: t('TODO'),
@@ -312,10 +310,17 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'mobile-vitals': {
     heading: t('Mobile Vitals'),
-    description: t('Explore mobile app metrics.'),
-    valuePropDescription: '',
-    valuePropPoints: [],
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations to improve key mobile metrics.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),
@@ -485,22 +490,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
-  },
-  // XXX(epurkhiser): Crons does not use the insights onboarding component.
-  crons: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
-  },
-  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
-  uptime: {
-    description: null,
-    heading: null,
-    imageSrc: null,
-    valuePropDescription: null,
-    valuePropPoints: [],
   },
   sessions: {
     heading: t(`Get insights about your application's session health`),

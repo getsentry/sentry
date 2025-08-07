@@ -54,13 +54,13 @@ describe('UserContext', function () {
       },
       {
         key: 'extra_data',
-        subject: 'extra_data',
+        subject: 'data.extra_data',
         value: 'something',
         meta: undefined,
       },
       {
         key: 'unknown_key',
-        subject: 'unknown_key',
+        subject: 'data.unknown_key',
         value: 123,
         meta: undefined,
       },

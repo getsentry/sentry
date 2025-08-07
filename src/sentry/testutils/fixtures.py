@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from django.db.utils import IntegrityError
@@ -15,8 +16,11 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -46,11 +50,12 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    create_detector_from_project_subscription,
 )
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -141,7 +146,7 @@ class Fixtures:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             name="GitHub",
             external_id="github:1",
             metadata={
@@ -310,16 +315,33 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_group_activity(self, group=None, *args, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_n_groups_with_hashes(
+        self, number_of_groups: int, project: Project, group_type: int | None = None
+    ) -> list[Group]:
+        groups = []
+        for _ in range(number_of_groups):
+            if group_type:
+                group = self.create_group(
+                    project=project, status=GroupStatus.RESOLVED, type=group_type
+                )
+            else:
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
+
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
 
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
-
-    def create_event_attachment(self, event=None, *args, **kwargs):
-        if event is None:
-            event = self.event
-        return Factories.create_event_attachment(event, *args, **kwargs)
 
     def create_dif_file(self, project: Project | None = None, *args, **kwargs):
         if project is None:
@@ -498,6 +520,9 @@ class Fixtures:
             team=team, organization=team.organization, integration_id=integration.id, **kwargs
         )
 
+    def create_data_access_grant(self, **kwargs):
+        return Factories.create_data_access_grant(**kwargs)
+
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:
             project = self.project
@@ -656,11 +681,11 @@ class Fixtures:
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
-    def create_data_condition_group(self, *args, organization=None, **kwargs):
+    def create_data_condition_group(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization
 
-        return Factories.create_data_condition_group(*args, organization=organization, **kwargs)
+        return Factories.create_data_condition_group(organization=organization, **kwargs)
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
@@ -679,6 +704,10 @@ class Fixtures:
     def create_alert_rule_workflow(self, *args, **kwargs):
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
+
+    def create_incident_group_open_period(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_incident_group_open_period(*args, **kwargs)
 
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
@@ -705,6 +734,8 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -712,6 +743,8 @@ class Fixtures:
             headers = []
         if region_slugs is None:
             region_slugs = []
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         subscription = Factories.create_uptime_subscription(
             type=type,
@@ -729,6 +762,8 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -749,7 +784,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
-        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
@@ -760,12 +795,13 @@ class Fixtures:
             project = self.project
         if env is None:
             env = self.environment
-        if uptime_status_update_date is None:
-            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
-            uptime_subscription = self.create_uptime_subscription()
-        return Factories.create_project_uptime_subscription(
+            uptime_subscription = self.create_uptime_subscription(
+                uptime_status=uptime_status,
+                uptime_status_update_date=uptime_status_update_date,
+            )
+        monitor = Factories.create_project_uptime_subscription(
             project,
             env,
             uptime_subscription,
@@ -773,10 +809,13 @@ class Fixtures:
             mode,
             name,
             Actor.from_object(owner) if owner else None,
-            uptime_status,
-            uptime_status_update_date,
             id,
         )
+        # TODO(epurkhiser): Dual create a detector as well, can be removed
+        # once we completely remove ProjectUptimeSubscription
+        create_detector_from_project_subscription(monitor)
+
+        return monitor
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

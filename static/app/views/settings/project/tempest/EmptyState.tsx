@@ -10,6 +10,10 @@ import {space} from 'sentry/styles/space';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
+  AllowListIPAddresses,
+} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
 
 export default function EmptyState() {
   const navigate = useNavigate();
@@ -54,25 +58,11 @@ export default function EmptyState() {
 
             <GuidedSteps.Step stepKey="step-2" title={t('Allow list our IP Addresses:')}>
               <DescriptionWrapper>
-                {t(
-                  'Allow list our Outbound IP addresses as they will be the once used for making the requests using the provided credentials'
-                )}
+                {ALLOWLIST_IP_ADDRESSES_DESCRIPTION}
                 <CodeSnippetWrapper>
-                  <OnboardingCodeSnippet language="javascript">
-                    {`
-35.184.238.160/32
-104.155.159.182/32
-104.155.149.19/32
-130.211.230.102/32
-34.141.31.19/32
-34.141.4.162/32
-35.234.78.236/32
-213.164.1.114
-                    `}
-                  </OnboardingCodeSnippet>
+                  <AllowListIPAddresses />
                 </CodeSnippetWrapper>
               </DescriptionWrapper>
-
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
@@ -84,11 +74,11 @@ export default function EmptyState() {
               <DescriptionWrapper>
                 <p>
                   {t(
-                    'You can toggle “Attach Dumps” in which case Sentry will add the prosperodumps as an attachment to the issues.'
+                    'You can toggle "Attach Dumps" in which case Sentry will add the prosperodumps as an attachment to the issues.'
                   )}
                   <br />
                   {t(
-                    'You can toggle “Attach Screenshots” in which case Sentry will add the crash screenshot, if available, as an attachment to the issues. These screenshots are not PII stripped.'
+                    'You can toggle "Attach Screenshots" in which case Sentry will add the crash screenshot, if available, as an attachment to the issues. These screenshots are not PII stripped.'
                   )}
                 </p>
                 <p>
@@ -136,7 +126,7 @@ export default function EmptyState() {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Description = styled('div')``;
@@ -147,8 +137,8 @@ const HeaderWrapper = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
@@ -167,7 +157,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -191,5 +181,5 @@ const DescriptionWrapper = styled('div')`
 `;
 
 const BoldText = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

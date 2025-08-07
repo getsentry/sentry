@@ -8,12 +8,11 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
     IssueAlertMigrator,
-    UnableToAcquireLockApiError,
+    ensure_default_error_detector,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,27 +29,30 @@ class ProjectRuleCreator:
     environment: int | None = None
     owner: Actor | None = None
     filter_match: str | None = None
+    source: RuleSource | None = RuleSource.ISSUE
     request: Request | None = None
 
     def run(self) -> Rule:
-        try:
-            with transaction.atomic(router.db_for_write(Rule)):
-                self.rule = self._create_rule()
+        if features.has(
+            "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
+        ):
+            ensure_default_error_detector(self.project)
 
-                if features.has(
-                    "organizations:workflow-engine-issue-alert-dual-write",
-                    self.project.organization,
-                ):
-                    # uncaught errors will rollback the transaction
-                    workflow = IssueAlertMigrator(
-                        self.rule, self.request.user.id if self.request else None
-                    ).run()
-                    logger.info(
-                        "workflow_engine.issue_alert.migrated",
-                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-                    )
-        except UnableToAcquireLock:
-            raise UnableToAcquireLockApiError
+        with transaction.atomic(router.db_for_write(Rule)):
+            self.rule = self._create_rule()
+
+            if features.has(
+                "organizations:workflow-engine-issue-alert-dual-write",
+                self.project.organization,
+            ):
+                # uncaught errors will rollback the transaction
+                workflow = IssueAlertMigrator(
+                    self.rule, self.request.user.id if self.request else None
+                ).run()
+                logger.info(
+                    "workflow_engine.issue_alert.migrated",
+                    extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                )
 
         return self.rule
 
@@ -74,5 +76,6 @@ class ProjectRuleCreator:
             "project": self.project,
             "data": data,
             "owner": self.owner,
+            "source": self.source,
         }
         return _kwargs

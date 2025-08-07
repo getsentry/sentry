@@ -41,11 +41,12 @@ interface DrawerPanelProps {
   drawerCss?: DrawerOptions['drawerCss'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
+  ref?: React.Ref<HTMLDivElement>;
   resizable?: DrawerOptions['resizable'];
   transitionProps?: AnimationProps['transition'];
 }
 
-export function DrawerPanel({
+function DrawerPanel({
   ref,
   ariaLabel,
   children,
@@ -55,9 +56,7 @@ export function DrawerPanel({
   drawerKey,
   resizable = true,
   drawerCss,
-}: DrawerPanelProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
@@ -117,6 +116,7 @@ interface DrawerHeaderProps {
    * If true, hides the close button
    */
   hideCloseButton?: boolean;
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
 export function DrawerHeader({
@@ -125,25 +125,27 @@ export function DrawerHeader({
   children = null,
   hideBar = false,
   hideCloseButton = false,
-}: DrawerHeaderProps & {
-  ref?: React.Ref<HTMLHeadingElement>;
-}) {
+}: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
 
   return (
-    <Header ref={ref} className={className}>
+    <Header
+      ref={ref}
+      className={className}
+      hideCloseButton={hideCloseButton}
+      hideBar={hideBar}
+    >
       {!hideCloseButton && (
         <Fragment>
-          <CloseButton
-            priority="link"
+          <Button
+            priority="transparent"
             size="xs"
-            borderless
             aria-label={t('Close Drawer')}
             icon={<IconClose />}
             onClick={onClose}
           >
             {t('Close')}
-          </CloseButton>
+          </Button>
           {!hideBar && <HeaderBar />}
         </Fragment>
       )}
@@ -152,33 +154,30 @@ export function DrawerHeader({
   );
 }
 
-const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const HeaderBar = styled('div')`
   margin: 0 ${space(2)};
+  margin-left: ${space(1)};
   border-right: 1px solid ${p => p.theme.border};
 `;
 
-const Header = styled('header')`
+const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
   background: ${p => p.theme.background};
   justify-content: flex-start;
   display: flex;
+  gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};
   box-shadow: ${p => p.theme.border} 0 1px;
-  padding-left: 24px;
+  padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
+  padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
+  padding-bottom: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
 `;
 
 export const DrawerBody = styled('aside')`
   padding: ${space(2)} 24px;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const DrawerContainer = styled('div')`
@@ -219,7 +218,6 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
     /* Apply to all scrollable children */
     * {
-      overflow: hidden !important;
       scrollbar-width: none;
 
       &::-webkit-scrollbar {
@@ -231,10 +229,10 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
 const ResizeHandle = styled('div')`
   position: absolute;
-  left: -4px;
+  left: -2px;
   top: 0;
   bottom: 0;
-  width: 16px;
+  width: 8px;
   cursor: ew-resize;
   z-index: ${p => p.theme.zIndex.drawer + 2};
 
@@ -256,7 +254,7 @@ const ResizeHandle = styled('div')`
   &::after {
     content: '';
     position: absolute;
-    left: 4px;
+    left: 2px;
     top: 0;
     bottom: 0;
     width: 4px;

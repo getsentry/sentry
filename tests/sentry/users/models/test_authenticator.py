@@ -1,3 +1,5 @@
+from django.db import connection
+from django.db.models.expressions import Expression
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 
@@ -5,13 +7,14 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator, AuthenticatorConfig
 
 
 @control_silo_test
 class AuthenticatorTest(TestCase):
-    def test_user_has_2fa(self):
+    def test_user_has_2fa(self) -> None:
         user = self.create_user("foo@example.com")
         assert user.has_2fa() is False
         assert Authenticator.objects.filter(user=user).count() == 0
@@ -26,7 +29,7 @@ class AuthenticatorTest(TestCase):
         assert user.has_2fa() is True
         assert Authenticator.objects.filter(user=user).count() == 2
 
-    def test_bulk_users_have_2fa(self):
+    def test_bulk_users_have_2fa(self) -> None:
         user1 = self.create_user("foo1@example.com")
         user2 = self.create_user("foo2@example.com")
 
@@ -39,7 +42,8 @@ class AuthenticatorTest(TestCase):
         }
 
 
-def test_authenticator_config_compatibility():
+@django_db_all
+def test_authenticator_config_compatibility() -> None:
     field_json = AuthenticatorConfig()
 
     value = {
@@ -71,4 +75,6 @@ def test_authenticator_config_compatibility():
         ]
     }
 
-    assert field_json.to_python(field_json.get_db_prep_value(value)) == value
+    encoded = field_json.get_db_prep_value(value, connection=connection)
+    encoded_s = encoded.dumps(encoded.adapted)
+    assert field_json.from_db_value(encoded_s, Expression("config"), connection) == value

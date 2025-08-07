@@ -15,10 +15,11 @@ from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
-from sentry import options
+from sentry import options, quotas
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
@@ -44,7 +45,7 @@ from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -66,6 +67,10 @@ from sentry.utils.snuba_rpc import SnubaRPCError
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
+
+
+class TimeoutException(APIException):
+    status_code = HTTP_504_GATEWAY_TIMEOUT
 
 
 def get_datetime_from_stats_period(
@@ -377,7 +382,7 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except SnubaError as error:
@@ -399,7 +404,7 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
             raise ParseError(detail=str(error))
@@ -428,7 +433,7 @@ def handle_query_errors() -> Generator[None]:
     except OperationalError as error:
         error_message = str(error)
         is_timeout = "canceling statement due to statement timeout" in error_message
-        if is_timeout and options.get("api.postgres-query-timeout-error-handling.enabled"):
+        if is_timeout:
             sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
             sentry_sdk.capture_exception(error, level="warning")
             raise Throttled(
@@ -454,7 +459,7 @@ def update_snuba_params_with_timestamp(
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
         time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        set_span_attribute("trace_view.transactions.time_buffer", time_buffer)
         example_start = example_timestamp - timedelta(days=time_buffer)
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
@@ -462,3 +467,16 @@ def update_snuba_params_with_timestamp(
 
         params.start = max(params.start_date, example_start)
         params.end = min(params.end_date, example_end)
+        retention = quotas.backend.get_event_retention(organization=params.organization)
+        if retention and params.start < timezone.now() - timedelta(days=retention):
+            raise InvalidSearchQuery(
+                "Query dates our outside of retention, try again with a date within retention"
+            )
+
+
+def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
+    """
+    `timestamp_ms` arrives from Snuba in a slightly different format (no `T` and no timezone), so we convert to datetime and
+    back to isoformat to keep it standardized with other timestamp fields
+    """
+    return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()

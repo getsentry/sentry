@@ -1,13 +1,13 @@
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -16,10 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import {
-  CustomerStatsFilters,
-  DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
@@ -36,7 +33,7 @@ function ProjectDetails() {
   }>();
   const {data, isPending, isError} = useApiQuery<Project>(
     [`/projects/${orgId}/${projectId}/`],
-    {staleTime: 0}
+    {staleTime: Infinity}
   );
   const api = useApi();
   const location = useLocation();
@@ -63,15 +60,11 @@ function ProjectDetails() {
     return <LoadingError />;
   }
 
-  const activeDataType = (): DataType => {
-    if (Object.values(DataType).includes(location.query.dataType as DataType)) {
-      return location.query.dataType as DataType;
-    }
-
-    return DataType.ERRORS;
+  const activeDataType = (): DataCategoryExact => {
+    return (location.query.dataType as DataCategoryExact) ?? DataCategoryExact.ERROR;
   };
 
-  const handleStatsTypeChange = (dataType: DataType) => {
+  const handleStatsTypeChange = (dataType: DataCategoryExact) => {
     navigate({
       pathname: location.pathname,
       query: {...location.query, dataType},

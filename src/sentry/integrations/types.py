@@ -18,6 +18,7 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB = 200
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
+    JIRA_SERVER = 300
 
     # TODO: do migration to delete this from database
     CUSTOM = 700
@@ -54,6 +55,7 @@ class ExternalProviderEnum(StrEnum):
     GITHUB = IntegrationProviderSlug.GITHUB
     GITHUB_ENTERPRISE = IntegrationProviderSlug.GITHUB_ENTERPRISE
     GITLAB = IntegrationProviderSlug.GITLAB
+    JIRA_SERVER = IntegrationProviderSlug.JIRA_SERVER
 
 
 EXTERNAL_PROVIDERS_REVERSE = {
@@ -81,6 +83,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
     ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
+    ExternalProviders.JIRA_SERVER: ExternalProviderEnum.JIRA_SERVER.value,
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 

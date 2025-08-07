@@ -22,7 +22,9 @@ from sentry.testutils.cases import TestCase
 
 class MarkFailedTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_default_params(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_default_params(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -69,7 +71,7 @@ class MarkFailedTestCase(TestCase):
         )
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_muted(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_muted(self, mock_dispatch_incident_occurrence: mock.MagicMock) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -105,7 +107,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.active_incident is not None
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_env_muted(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_env_muted(self, mock_dispatch_incident_occurrence: mock.MagicMock) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -143,7 +145,9 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.active_incident is not None
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -270,7 +274,9 @@ class MarkFailedTestCase(TestCase):
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold_timeout(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold_timeout(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -340,7 +346,9 @@ class MarkFailedTestCase(TestCase):
 
     # we are duplicating this test as the code paths are different, for now
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold_disabled(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold_disabled(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -378,7 +386,7 @@ class MarkFailedTestCase(TestCase):
         assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
-    def test_mark_failed_issue_assignment(self):
+    def test_mark_failed_issue_assignment(self) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,

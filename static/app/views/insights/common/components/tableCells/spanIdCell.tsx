@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -13,19 +13,19 @@ import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/tr
 interface Props {
   location: Location;
   moduleName: ModuleName;
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
-  transactionId: string;
   source?: TraceViewSources;
+  transactionId?: string;
+  transactionSpanId?: string;
 }
 
 export function SpanIdCell({
   moduleName,
-  projectSlug,
   traceId,
   transactionId,
+  transactionSpanId,
   spanId,
   timestamp,
   source,
@@ -36,7 +36,7 @@ export function SpanIdCell({
   const url = normalizeUrl(
     generateLinkToEventInTraceView({
       eventId: transactionId,
-      projectSlug,
+      targetId: transactionSpanId,
       traceSlug: traceId,
       timestamp,
       organization,

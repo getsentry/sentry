@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {TagProps} from 'sentry/components/core/badge/tag';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
@@ -18,10 +18,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
-
-export const roundDuration = (seconds: number) => {
-  return round(seconds, seconds > 60 ? 0 : 3);
-};
 
 export const getCrashFreePercent = (
   percent: number,
@@ -150,7 +146,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    releaseEnd = moment(releaseEnd).add(1, 'minutes');
+    releaseEnd = moment(releaseEnd).add(1, 'seconds');
   }
 
   if (releaseStart.isBefore(retentionBound)) {

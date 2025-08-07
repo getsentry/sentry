@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Link} from 'sentry/components/core/link';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -26,13 +26,13 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/insights/types';
+import {type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'transaction'
-  | `avg_if(${string},${string},${string})`
+  | `avg_if(${string},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
@@ -55,7 +55,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -75,7 +75,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -85,21 +85,22 @@ const SORTABLE_FIELDS = [
   'transaction',
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(span.duration)`,
+  `sum(span.duration)`,
+  'trace_status_rate(ok)',
 ] as const;
 
 type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
-export function isAValidSort(sort: Sort): sort is ValidSort {
+function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(span.duration)' as const,
+  field: 'sum(span.duration)' as const,
   kind: 'desc' as const,
 };
 
@@ -186,7 +187,7 @@ function renderBodyCell(
       [
         'count_op(queue.process)',
         'avg(messaging.message.receive.latency)',
-        'avg_if(span.duration,span.op,queue.process)',
+        'avg_if(span.duration,span.op,equals,queue.process)',
       ].includes(key))
   ) {
     return (

@@ -5,7 +5,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -32,11 +39,10 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
-  'performance-trace-explorer',
   'profiling',
+  'visibility-explore-view',
 ];
 
 jest.mock('sentry/utils/demoMode');
@@ -44,10 +50,7 @@ jest.mock('sentry/utils/demoMode');
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
-  const userMock = UserFixture();
-  const user = UserFixture({
-    options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
-  });
+  const user = UserFixture();
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
@@ -94,6 +97,10 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'GET',
       body: {onboardingTasks: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {data: null},
     });
   });
 
@@ -376,9 +383,9 @@ describe('Sidebar', function () {
         'Frontend',
         'Backend',
         'Mobile',
-        'AI',
-        'User Feedback',
+        'AI Agents new',
         'Crons',
+        'User Feedback',
         'Alerts',
         'Dashboards',
         'Releases',
@@ -416,29 +423,13 @@ describe('Sidebar', function () {
     });
 
     it('should render the sidebar banner with no dismissed prompts and the feature flag enabled', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
 
     it('will not render sidebar banner when collapsed', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -448,21 +439,13 @@ describe('Sidebar', function () {
     });
 
     it('should show dot on help menu after dismissing sidebar banner', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
       const dismissMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         method: 'PUT',
         body: {},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 
@@ -477,6 +460,182 @@ describe('Sidebar', function () {
       });
 
       expect(dismissMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Chonk UI prompts', () => {
+    it('user does not have chonk-ui feature', () => {
+      renderSidebarWithFeatures([]);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Nothing is shown, this is the new default state
+    it('user has chonk enabled and has not dismissed banner', () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: true},
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Nothing is shown, this is the new default state
+    it('user has chonk enabled and has dismissed banner', () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: true},
+      });
+
+      const promptMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: {feature: 'chonk_ui_banner', dismissed_ts: Date.now()}},
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+
+      expect(promptMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/prompts-activity/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({feature: 'chonk_ui_banner'}),
+        })
+      );
+
+      expect(promptMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/prompts-activity/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({feature: 'chonk_ui_dot_indicator'}),
+        })
+      );
+    });
+
+    // Enabling chonk-ui disables both the banner and dot indicator
+    it('user enables chonk-ui', async () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: false},
+      });
+
+      const dismiss = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+
+      const optionsRequest = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Try It Out'));
+
+      expect(optionsRequest).toHaveBeenCalledWith(
+        '/users/me/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            options: expect.objectContaining({prefersChonkUI: true}),
+          }),
+        })
+      );
+
+      expect(dismiss).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_banner',
+            status: 'dismissed',
+          }),
+        })
+      );
+
+      expect(dismiss).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_dot_indicator',
+            status: 'dismissed',
+          }),
+        })
+      );
+
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Dismissing the banner enables the dot indicator
+    it('user dismisses chonk-ui banner', async () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: false},
+      });
+
+      const dismiss = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+
+      const optionsRequest = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+
+      // The dot is not visible initially - banner takes precedence
+      expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      const chonkBanner = await screen.findByText(/Sentry has a new look/);
+      expect(chonkBanner).toBeInTheDocument();
+
+      // Find the dismiss button within the chonk UI banner
+      await userEvent.click(
+        within(screen.getByRole('complementary')).getByRole('button', {
+          name: /Dismiss/,
+        })
+      );
+
+      expect(optionsRequest).not.toHaveBeenCalled();
+      expect(dismiss).toHaveBeenCalledWith(
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_banner',
+            status: 'dismissed',
+          }),
+        })
+      );
+      expect(dismiss).toHaveBeenCalledTimes(1);
+
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+      // The dot becomes visible after the banner is dismissed
+      expect(screen.getByTestId('help-menu-dot')).toBeInTheDocument();
+
+      // Clicking the help button will remove the dot
+      await userEvent.click(screen.getByRole('link', {name: /Help/}));
+      await waitFor(() => {
+        expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      });
+
+      expect(dismiss).toHaveBeenCalledTimes(2);
+      expect(dismiss).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_dot_indicator',
+            status: 'dismissed',
+          }),
+        })
+      );
     });
   });
 });

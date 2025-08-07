@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 from sentry import options
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
@@ -10,7 +11,6 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.testutils.cases import TestCase
@@ -109,7 +109,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "referrer": "ingest",
                 "use_reranking": True,
             },
-            {"hybrid_fingerprint": False},
+            {"platform": "python", "hybrid_fingerprint": False},
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -164,7 +164,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest",
                         "use_reranking": True,
                     },
-                    {"hybrid_fingerprint": False},
+                    {"platform": "python", "hybrid_fingerprint": False},
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -174,7 +174,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "k": 0,
                         "referrer": "ingest_follow_up",
                         "use_reranking": False,
-                    }
+                    },
+                    {"platform": "python"},
                 ),
             ]
 

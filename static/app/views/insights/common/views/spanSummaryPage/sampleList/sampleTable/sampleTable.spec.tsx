@@ -5,9 +5,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {PageFilters} from 'sentry/types/core';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 import SampleTable from './sampleTable';
 
@@ -164,8 +164,8 @@ const initializeMockRequests = () => {
     body: {
       data: [
         {
-          [SpanMetricsField.SPAN_OP]: 'db',
-          [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 0.52,
+          [SpanFields.SPAN_OP]: 'db',
+          [`avg(${SpanFields.SPAN_SELF_TIME})`]: 0.52,
         },
       ],
     },
@@ -238,7 +238,7 @@ const initializeMockRequests = () => {
           'span.self_time': 1.5,
           timestamp: '2023-05-21T19:30:06+00:00',
           span_id: 'span-id123',
-          'transaction.id': 'transaction-id123',
+          'transaction.span_id': 'transaction-id123',
         },
       ],
     },

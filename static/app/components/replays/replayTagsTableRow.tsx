@@ -3,18 +3,23 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Link from 'sentry/components/links/link';
+import ReleaseDropdownFilter from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 interface Props {
   name: string;
-  values: ReactNode[];
-  generateUrl?: (name: string, value: ReactNode) => LocationDescriptor;
+  values: string[];
+  generateUrl?: (name: string, value: string) => LocationDescriptor;
 }
 
 const expandedViewKeys = [
@@ -24,6 +29,8 @@ const expandedViewKeys = [
   // Flutter
   'sdk.replay.maskingRules',
 ];
+
+const releaseKeys = ['release', 'releases'];
 
 function renderValueList(values: ReactNode[]) {
   if (typeof values[0] === 'string') {
@@ -44,15 +51,32 @@ function renderValueList(values: ReactNode[]) {
 }
 
 function ReplayTagsTableRow({name, values, generateUrl}: Props) {
+  const organization = useOrganization();
+
   const renderTagValue = useMemo(() => {
-    if (name === 'release') {
+    if (releaseKeys.includes(name)) {
       return values.map((value, index) => (
         <Fragment key={`${name}-${index}-${value}`}>
           {index > 0 && ', '}
-          <Version key={index} version={String(value)} anchor={false} withPackage />
+          <StyledVersionContainer>
+            <ReleaseDropdownFilter version={String(value)} />
+            <QuickContextHoverWrapper
+              dataRow={{release: String(value)}}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version
+                key={index}
+                version={String(value)}
+                truncate={false}
+                anchor={false}
+              />
+            </QuickContextHoverWrapper>
+          </StyledVersionContainer>
         </Fragment>
       ));
     }
+
     if (
       expandedViewKeys.includes(name) &&
       renderValueList(values) &&
@@ -75,7 +99,7 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         </Fragment>
       );
     });
-  }, [name, values, generateUrl]);
+  }, [name, values, generateUrl, organization]);
 
   return (
     <KeyValueTableRow
@@ -85,20 +109,23 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         </StyledTooltip>
       }
       value={
-        <ValueContainer>
-          <StyledTooltip
-            overlayStyle={
-              expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
-            }
-            title={
-              expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
-            }
-            isHoverable
-            showOnlyOnOverflow
-          >
-            {renderTagValue}
-          </StyledTooltip>
-        </ValueContainer>
+        <ErrorBoundary mini>
+          <ValueContainer>
+            <StyledTooltip
+              disabled={releaseKeys.includes(name)}
+              overlayStyle={
+                expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
+              }
+              title={
+                expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
+              }
+              isHoverable
+              showOnlyOnOverflow
+            >
+              {renderTagValue}
+            </StyledTooltip>
+          </ValueContainer>
+        </ErrorBoundary>
       }
     />
   );
@@ -108,7 +135,7 @@ export default ReplayTagsTableRow;
 
 const ValueContainer = styled('div')`
   span {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
   display: flex;
   padding: ${space(0.25)};
@@ -117,4 +144,20 @@ const ValueContainer = styled('div')`
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const StyledVersionContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(0.75)};
+
+  .invisible-button {
+    visibility: hidden;
+  }
+
+  &:hover {
+    .invisible-button {
+      visibility: visible;
+    }
+  }
 `;

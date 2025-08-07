@@ -1,23 +1,21 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
+  isEAPTraceNode,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -30,7 +28,7 @@ function MetaSection({headingText, bodyText, rightAlignBody}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>{headingText}</StyledSectionHeading>
-      <SectionBody rightAlign={rightAlignBody}>{bodyText}</SectionBody>
+      <SectionBody alignment={rightAlignBody}>{bodyText}</SectionBody>
     </HeaderInfo>
   );
 }
@@ -40,23 +38,22 @@ const HeaderInfo = styled('div')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 `;
 
-const SectionBody = styled('div')<{rightAlign?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  text-align: ${p => (p.rightAlign ? 'right' : 'left')};
+const SectionBody = styled('div')<{alignment?: boolean}>`
+  font-size: ${p => p.theme.fontSize.xl};
+  text-align: ${p => (p.alignment ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
 
 interface MetaProps {
-  logs: OurLogsResponseItem[];
-  meta: TraceMeta | undefined;
+  logs: OurLogsResponseItem[] | undefined;
+  meta: TraceMetaQueryResults['data'];
   organization: Organization;
-  representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  representativeEvent: RepresentativeTraceEvent;
   tree: TraceTree;
 }
 
@@ -74,56 +71,26 @@ function getRootDuration(event: TraceTree.TraceEvent | null) {
 }
 
 export function Meta(props: MetaProps) {
-  const traceNode = props.tree.root.children[0]!;
+  const traceNode = props.tree.root.children[0];
   const {timestamp} = useTraceQueryParams();
 
-  const uniqueErrorIssues = useMemo(() => {
-    if (!traceNode) {
-      return [];
-    }
+  if (!traceNode) {
+    return null;
+  }
 
-    const unique: TraceTree.TraceErrorIssue[] = [];
-    const seenIssues: Set<number> = new Set();
+  const spansCount = isEAPTraceNode(traceNode)
+    ? props.tree.eap_spans_count
+    : (props.meta?.span_count ?? 0);
 
-    for (const issue of traceNode.errors) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-  }, [traceNode]);
-
-  const uniquePerformanceIssues = useMemo(() => {
-    if (!traceNode) {
-      return [];
-    }
-
-    const unique: TraceTree.TraceOccurrence[] = [];
-    const seenIssues: Set<number> = new Set();
-
-    for (const issue of traceNode.occurrences) {
-      if (seenIssues.has(issue.issue_id)) {
-        continue;
-      }
-      seenIssues.add(issue.issue_id);
-      unique.push(issue);
-    }
-
-    return unique;
-  }, [traceNode]);
-
-  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+  const uniqueIssuesCount = TraceTree.UniqueIssues(traceNode).length;
 
   // If there is no trace data, use the timestamp from the query params as an approximation for
   // the age of the trace.
   const ageStartTimestamp =
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
 
-  const hasSpans = (props.meta?.span_count ?? 0) > 0;
-  const hasLogs = props.logs.length > 0;
+  const hasSpans = spansCount > 0;
+  const hasLogs = (props.logs?.length ?? 0) > 0;
 
   return (
     <MetaWrapper>
@@ -141,9 +108,7 @@ export function Meta(props: MetaProps) {
           )
         }
       />
-      {hasSpans ? (
-        <MetaSection headingText={t('Spans')} bodyText={props.meta?.span_count} />
-      ) : null}
+      {hasSpans ? <MetaSection headingText={t('Spans')} bodyText={spansCount} /> : null}
       {ageStartTimestamp ? (
         <MetaSection
           headingText={t('Age')}
@@ -161,13 +126,19 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(props.representativeEvent as TraceTree.TraceEvent)}
+          bodyText={getRootDuration(
+            props.representativeEvent.event as TraceTree.TraceEvent
+          )}
         />
       ) : hasLogs ? (
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
-          bodyText={props.logs.length}
+          bodyText={
+            props.meta && 'logs' in props.meta
+              ? props.meta.logs
+              : (props.logs?.length ?? 0)
+          }
         />
       ) : null}
     </MetaWrapper>

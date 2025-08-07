@@ -1,19 +1,25 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {IconAllProjects} from 'sentry/views/nav/iconAllProjects';
+import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
+  allProjects?: boolean;
   className?: string;
 }
 
-function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
+function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
     case 0:
-      renderedIcons = <IconAllProjects />;
+      renderedIcons = allProjects ? (
+        <IconAllProjects size="md" />
+      ) : (
+        <IconMyProjects size="md" />
+      );
       break;
     case 1:
       renderedIcons = (
@@ -76,16 +82,16 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
   height: 14px;
   ${p =>
     p.index === 0 &&
-    `
-    top: 0;
-    left: 0;
-  `}
+    css`
+      top: 0;
+      left: 0;
+    `}
   ${p =>
     p.index === 1 &&
-    `
-    bottom: 0;
-    right: 0;
-  `}
+    css`
+      bottom: 0;
+      right: 0;
+    `}
 `;
 
 export default ProjectIcon;

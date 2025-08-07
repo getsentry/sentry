@@ -4,6 +4,7 @@ from typing import Any, Union
 
 import rb
 import requests
+from redis import StrictRedis
 from rediscluster import RedisCluster
 
 
@@ -47,7 +48,7 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
 # - a `rb.Cluster` (client side routing cluster client)
-Cluster = Union[RedisCluster, rb.Cluster]
+Cluster = Union[RedisCluster, rb.Cluster, StrictRedis]
 
 
 def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
@@ -68,12 +69,14 @@ def get_host_port_info(node_id: str, cluster: Cluster) -> NodeInfo:
             # RedisCluster node mapping
             node = cluster.connection_pool.nodes.nodes.get(node_id)
             return NodeInfo(node["host"], node["port"])
-        else:
+        elif isinstance(cluster, rb.Cluster):
             # rb.Cluster node mapping
             node = cluster.hosts[node_id]
             return NodeInfo(node.host, node.port)
     except Exception:
-        return NodeInfo(None, None)
+        pass
+
+    return NodeInfo(None, None)
 
 
 def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
@@ -83,6 +86,8 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
         cluster_info = cluster.info()
+    elif isinstance(cluster, StrictRedis):
+        cluster_info = {"main": cluster.info()}
     else:
         # rb.Cluster returns a promise with a dictionary with a _local_ node-id as key
         with cluster.all() as client:

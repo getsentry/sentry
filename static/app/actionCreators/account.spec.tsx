@@ -1,5 +1,7 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+
 import {logout} from './account';
 
 describe('logout', () => {
@@ -13,6 +15,6 @@ describe('logout', () => {
     logout(mockApi);
 
     await waitFor(() => expect(mockApiDelete).toHaveBeenCalled());
-    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/login/');
   });
 });

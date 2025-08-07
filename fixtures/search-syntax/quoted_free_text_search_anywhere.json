@@ -11,7 +11,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "user.email", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "foo@example.com",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "general kenobi", "quoted": true, "invalid": null},

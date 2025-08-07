@@ -7,12 +7,13 @@ export const Container = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   justify-content: flex-start;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    width: fit-content;
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    min-width: fit-content;
+    flex: 1;
   }
 `;

@@ -12,15 +12,14 @@ from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.messaging import commands
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.metrics import (
-    SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC,
-    SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC,
-)
+from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -41,7 +40,7 @@ from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndp
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.types.region import Region
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
@@ -149,22 +148,12 @@ class SlackRequestParser(BaseRequestParser):
                 trigger_id=payload["trigger_id"],
                 view=loading_modal,
             )
-            metrics.incr(
-                SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": action},
-            )
         except SlackApiError:
-            metrics.incr(
-                SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": action},
-            )
             logger_params = {
                 "integration_id": integration.id,
                 "action": action,
             }
-            logger.exception("slack.control.view.open.failure", extra=logger_params)
+            logger.info("slack.control.view.open.failure", extra=logger_params)
 
     def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
         if self.response_url is None:
@@ -225,10 +214,90 @@ class SlackRequestParser(BaseRequestParser):
 
         elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
-            params = unsign(self.match.kwargs.get("signed_params"), salt=SALT)
-            return Integration.objects.filter(id=params.get("integration_id")).first()
+            params = unsign(self.match.kwargs["signed_params"], salt=SALT)
+            return Integration.objects.filter(id=params["integration_id"]).first()
 
         return None
+
+    def filter_organizations_from_request(
+        self,
+        organizations: list[RpcOrganizationMapping],
+    ) -> list[RpcOrganizationMapping]:
+        """
+        For linking/unlinking teams, we can target specific organizations if the user provides it
+        as an additional argument. If not, we'll pick from all the organizations, which might fail.
+        """
+
+        drf_request: Request
+        if self.view_class == SlackCommandsEndpoint:
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            cmd_input = slack_request.get_command_input()
+
+            # For both linking/unlinking teams, the organization slug is found in the same place
+            link_input = None
+            if commands.LINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
+            elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
+                link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
+            if not link_input or not link_input.arg_values:
+                return organizations
+
+            linking_organization_slug = link_input.arg_values[0]
+            linking_organization = next(
+                (org for org in organizations if org.slug == linking_organization_slug), None
+            )
+            if linking_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
+                return [linking_organization]
+
+        elif self.view_class in [SlackActionEndpoint, SlackOptionsLoadEndpoint]:
+            drf_request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.view_class.slack_request_class(drf_request)
+            if self.view_class == SlackActionEndpoint:
+                actions = slack_request.data.get("actions", [])
+                action_ids: list[str] = [
+                    action["action_id"] for action in actions if action.get("action_id")
+                ]
+            elif self.view_class == SlackOptionsLoadEndpoint:
+                action_ids = [slack_request.data.get("action_id", "")]
+
+            decoded_actions: list[SlackRoutingData] = [
+                decode_action_id(action_id) for action_id in action_ids
+            ]
+            decoded_organization_ids = {
+                action.organization_id for action in decoded_actions if action.organization_id
+            }
+            if len(decoded_organization_ids) > 1:
+                # We shouldn't be encoding multiple organizations into the actions within a single
+                # message, but if we do -- log it so we can look into it.
+                logger.info(
+                    "slack.control.multiple_organizations",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "organization_ids": list(decoded_organization_ids),
+                        "action_ids": action_ids,
+                    },
+                )
+
+            action_organization = next(
+                (org for org in organizations if org.id in decoded_organization_ids), None
+            )
+            if action_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
+                return [action_organization]
+
+        logger.info(
+            "slack.control.could_not_route",
+            extra={"view_class": self.view_class},
+        )
+        return organizations
 
     def get_response(self):
         """

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
-from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -14,12 +12,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     sane_repr,
 )
 from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.users.services.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
@@ -65,7 +63,7 @@ class AuditLogEntry(Model):
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    data: models.Field[Mapping[str, Any] | None, dict[str, Any]] = GzippedDictField()
+    data = LegacyTextJSONField()
     datetime = models.DateTimeField(default=timezone.now)
 
     class Meta:

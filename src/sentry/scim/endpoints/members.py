@@ -43,6 +43,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -346,7 +347,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.UPDATE_USER_ROLE,
     )
-    def put(self, request: Request, organization, member):
+    def put(self, request: Request, organization: Organization, member):
         """
         Update an organization member
 
@@ -418,7 +419,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             previous_role != organization.default_role
             or previous_restriction != idp_role_restricted
         ):
-            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization.slug})
 
         context = serialize(
             member,
@@ -452,7 +453,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a paginated list of members bound to a organization with a SCIM Users GET Request.
         """
@@ -530,7 +531,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
             role = request.data["sentryOrgRole"].lower()

@@ -18,6 +18,7 @@ type Props = {
   selectedReleases: string[];
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
+  id?: string;
   isDisabled?: boolean;
 };
 
@@ -36,6 +37,7 @@ function ReleasesSelectControl({
   selectedReleases,
   className,
   isDisabled,
+  id,
 }: Props) {
   const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
@@ -61,6 +63,7 @@ function ReleasesSelectControl({
       multiple
       clearable
       searchable
+      id={id}
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
@@ -117,7 +120,7 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 300px;
   }
 `;

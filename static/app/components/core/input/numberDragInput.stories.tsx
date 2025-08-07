@@ -2,14 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/numberDragInput';
 
-export default storyBook('NumberDragInput', (story, APIReference) => {
+export default Storybook.story('NumberDragInput', (story, APIReference) => {
   APIReference(types.NumberDragInput);
 
   story('Default', () => {
@@ -19,13 +16,13 @@ export default storyBook('NumberDragInput', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="NumberDragInput" /> component allows users to enter numeric
-          values either by typing or by clicking and dragging. Click and hold the arrows
-          on the right side of the input to drag and adjust the value. Holding shift while
-          dragging will increase the step size by a factor of 10 (can be modified by
-          passing a `shiftKeyMultiplier` prop).
+          The <Storybook.JSXNode name="NumberDragInput" /> component allows users to enter
+          numeric values either by typing or by clicking and dragging. Click and hold the
+          arrows on the right side of the input to drag and adjust the value. Holding
+          shift while dragging will increase the step size by a factor of 10 (can be
+          modified by passing a `shiftKeyMultiplier` prop).
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <Label>
             Horizontal
             <NumberDragInput
@@ -48,8 +45,8 @@ export default storyBook('NumberDragInput', (story, APIReference) => {
               axis="y"
             />
           </Label>
-        </SideBySide>
-        <SideBySide>
+        </Storybook.SideBySide>
+        <Storybook.SideBySide>
           <Label>
             Horizontal uncontrolled
             <NumberDragInput
@@ -70,13 +67,13 @@ export default storyBook('NumberDragInput', (story, APIReference) => {
               axis="y"
             />
           </Label>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
 });
 
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;

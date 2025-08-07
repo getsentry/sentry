@@ -1,47 +1,9 @@
-from unittest import TestCase, mock
+from unittest import mock
 
-from rest_framework import serializers
-
+from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionHandler
-from tests.sentry.workflow_engine.test_base import MockModel
-
-
-class MockActionHandler(ActionHandler):
-    config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Configuration",
-        "type": "object",
-        "properties": {
-            "foo": {
-                "type": ["string"],
-            },
-        },
-        "required": ["foo"],
-        "additionalProperties": False,
-    }
-
-    data_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Data",
-        "type": "object",
-        "properties": {
-            "baz": {
-                "type": ["string"],
-            },
-        },
-        "required": ["baz"],
-        "additionalProperties": False,
-    }
-
-
-class MockActionValidator(BaseActionValidator[MockModel]):
-    field1 = serializers.CharField()
-
-    class Meta:
-        model = MockModel
-        fields = "__all__"
+from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
 @mock.patch(
@@ -49,18 +11,17 @@ class MockActionValidator(BaseActionValidator[MockModel]):
     return_value=MockActionHandler,
 )
 class TestBaseActionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
-            "field1": "test",
             "type": Action.Type.SLACK,
             "config": {"foo": "bar"},
             "data": {"baz": "bar"},
             "integrationId": 1,
         }
 
-    def test_validate_type(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_type(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "type": Action.Type.SLACK,
@@ -70,8 +31,8 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_type__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_type__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "type": "invalid_test",
@@ -81,8 +42,8 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate_config(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_config(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {"foo": "bar"},
@@ -92,8 +53,8 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_config__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_config__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {"invalid": 1},
@@ -103,8 +64,8 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate_data(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_data(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "data": {"baz": "foo"},
@@ -114,8 +75,8 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_data__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+    def test_validate_data__invalid(self, mock_action_handler_get: mock.MagicMock) -> None:
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "data": {"invalid": 1},
@@ -124,3 +85,24 @@ class TestBaseActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is False
+
+    def test_validate_type__action_gated(self, mock_action_handler_get: mock.MagicMock) -> None:
+        organization = self.create_organization()
+
+        def make_validator():
+            return BaseActionValidator(
+                context={"organization": organization},
+                data={
+                    **self.valid_data,
+                    "type": Action.Type.SLACK,
+                },
+            )
+
+        validator = make_validator()
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            assert not validator.is_valid()
+
+        # Exact same one, but new, because validation is cached.
+        validator2 = make_validator()
+        with self.feature("organizations:integrations-alert-rule"):
+            assert validator2.is_valid()

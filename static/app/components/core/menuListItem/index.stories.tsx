@@ -1,14 +1,12 @@
 import styled from '@emotion/styled';
 
 import {MenuListItem} from 'sentry/components/core/menuListItem/index';
-import {Grid} from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/menuListItem';
 
-export default storyBook('MenuListItem', (story, APIReference) => {
+export default Storybook.story('MenuListItem', (story, APIReference) => {
   APIReference(types.MenuListItem);
 
   story('focused', () => {
@@ -30,6 +28,12 @@ export default storyBook('MenuListItem', (story, APIReference) => {
   story('with trailing items', () => {
     return <SizeVariants trailingItems="🚀" />;
   });
+
+  story('with details', () => {
+    return (
+      <SizeVariants details="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." />
+    );
+  });
 });
 
 const Container = styled('div')`
@@ -44,7 +48,7 @@ const leadingItems: React.ComponentProps<typeof MenuListItem>['leadingItems'] = 
 
 function SizeVariants(props: Partial<React.ComponentProps<typeof MenuListItem>>) {
   return (
-    <Grid>
+    <Storybook.Grid>
       <div>
         Medium:
         <Container>
@@ -69,6 +73,6 @@ function SizeVariants(props: Partial<React.ComponentProps<typeof MenuListItem>>)
           <MenuListItem size="xs" label="world" leadingItems={leadingItems} />
         </Container>
       </div>
-    </Grid>
+    </Storybook.Grid>
   );
 }

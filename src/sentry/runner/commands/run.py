@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import signal
 import time
+from collections.abc import Mapping
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -16,6 +18,7 @@ from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
+logger = logging.getLogger("sentry.runner.commands.run")
 
 
 def _address_validate(
@@ -254,6 +257,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
+    from sentry import options as runtime_options
+    from sentry.conf.types.taskworker import ScheduleConfig
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
@@ -265,8 +270,19 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+        schedules: Mapping[str, ScheduleConfig] = {}
+        if runtime_options.get("taskworker.enabled"):
+            schedules = settings.TASKWORKER_SCHEDULES
+
+        for key, schedule_data in schedules.items():
             runner.add(key, schedule_data)
+
+        logger.info(
+            "taskworker.scheduler.schedule_data",
+            extra={
+                "schedule_keys": list(schedules.keys()),
+            },
+        )
 
         runner.log_startup()
         while True:
@@ -277,13 +293,17 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @run.command()
 @click.option(
     "--rpc-host",
-    help="The hostname for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
 )
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
 )
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option(
+    "--rpc-host-list",
+    help="Provide a comma separated list of broker RPC host:ports. Use when your broker host names are not compatible with `rpc-host`",
+    default=None,
+)
 @click.option(
     "--max-child-task-count",
     help="Number of tasks child processes execute before being restart",
@@ -319,15 +339,15 @@ def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
-    if options["autoreload"]:
-        autoreload.run_with_reloader(run_taskworker, **options)
-    else:
-        run_taskworker(**options)
+    os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
+    # TODO(mark) restore autoreload
+    run_taskworker(**options)
 
 
 def run_taskworker(
     rpc_host: str,
     num_brokers: int | None,
+    rpc_host_list: str | None,
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
@@ -340,12 +360,14 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
+    from sentry.taskworker.client.client import make_broker_hosts
     from sentry.taskworker.worker import TaskWorker
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            rpc_host=rpc_host,
-            num_brokers=num_brokers,
+            broker_hosts=make_broker_hosts(
+                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+            ),
             max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,
@@ -403,6 +425,12 @@ def run_taskworker(
     help="The namespace that the task is registered in",
     default=None,
 )
+@click.option(
+    "--extra-arg-bytes",
+    type=int,
+    help="Generater random args of specified size in bytes",
+    default=None,
+)
 def taskbroker_send_tasks(
     task_function_path: str,
     args: str,
@@ -411,6 +439,7 @@ def taskbroker_send_tasks(
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
+    extra_arg_bytes: int | None,
 ) -> None:
     from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
@@ -425,8 +454,15 @@ def taskbroker_send_tasks(
     except Exception as e:
         click.echo(f"Error: {e}")
         raise click.Abort()
+
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
+
+    if extra_arg_bytes is not None:
+        extra_padding_arg = "".join(
+            [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
+        )
+        task_args.append(extra_padding_arg)
 
     checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
     for i in range(repeat):
@@ -461,12 +497,25 @@ def cron(**options: Any) -> None:
     "Run periodic task dispatcher."
     from django.conf import settings
 
+    from sentry import options as runtime_options
+
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
             "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
         )
 
     from sentry.celery import app
+
+    schedule = app.conf.CELERYBEAT_SCHEDULE
+    if runtime_options.get("taskworker.enabled"):
+        click.secho(
+            "You have `taskworker.enabled` active, run `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
+        )
+        click.secho("Ignoring all schedules in settings.CELERYBEAT_SCHEDULE", fg="yellow")
+        schedule = {}
+
+    app.conf.update(CELERYBEAT_SCHEDULE=schedule)
 
     with managed_bgtasks(role="cron"):
         app.Beat(
@@ -487,6 +536,11 @@ def cron(**options: Any) -> None:
     "--topic",
     type=str,
     help="Which physical topic to use for this consumer. This can be a topic name that is not specified in settings. The logical topic is still hardcoded in sentry.consumers.",
+)
+@click.option(
+    "--kafka-slice-id",
+    type=int,
+    help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
 )
 @click.option(
     "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
@@ -565,11 +619,18 @@ def cron(**options: Any) -> None:
     default=None,
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
+@click.option(
+    "--shutdown-strategy-before-consumer",
+    is_flag=True,
+    default=False,
+    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
     consumer_args: tuple[str, ...],
     topic: str | None,
+    kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
     **options: Any,
 ) -> None:
@@ -593,16 +654,22 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
-    from sentry.utils.arroyo import initialize_arroyo_main
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
-    add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
-    initialize_arroyo_main()
-
-    processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
+    add_global_tags(
+        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+    )
+    processor = get_stream_processor(
+        consumer_name,
+        consumer_args,
+        topic=topic,
+        kafka_slice_id=kafka_slice_id,
+        add_global_tags=True,
+        **options,
+    )
 
     # for backwards compat: should eventually be removed
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
@@ -624,9 +691,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     """
 
     from sentry.consumers import get_stream_processor
-    from sentry.utils.arroyo import initialize_arroyo_main
-
-    initialize_arroyo_main()
 
     processors = [
         get_stream_processor(

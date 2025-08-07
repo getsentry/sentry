@@ -1,8 +1,8 @@
 import type {ComponentProps, CSSProperties} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
+import type {Tooltip} from 'sentry/components/core/tooltip';
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 

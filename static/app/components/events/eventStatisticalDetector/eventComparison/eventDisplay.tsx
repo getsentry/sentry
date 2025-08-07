@@ -2,8 +2,11 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
@@ -15,10 +18,8 @@ import {
 } from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -196,7 +197,6 @@ function EventDisplay({
   const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
   const fullEventTarget = generateLinkToEventInTraceView({
     eventId: eventData.id,
-    projectSlug: project.slug,
     traceSlug,
     timestamp: eventData.endTimestamp,
     location,
@@ -351,7 +351,7 @@ const EmptyStateWrapper = styled('div')`
 `;
 
 const SelectionTextWrapper = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledNavButton = styled(Button)`

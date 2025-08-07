@@ -7,15 +7,21 @@ import useApi from 'sentry/utils/useApi';
 
 import type {SubmitData} from 'getsentry/components/creditCardForm';
 import CreditCardForm from 'getsentry/components/creditCardForm';
-import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
+import type {
+  FTCConsentLocation,
+  PaymentSetupCreateResponse,
+  Subscription,
+} from 'getsentry/types';
 
 type Props = {
   onSuccess: (data: Subscription) => void;
   organization: Organization;
+  budgetModeText?: string;
   buttonText?: string;
   cancelButtonText?: string;
   className?: string;
   isModal?: boolean;
+  location?: FTCConsentLocation;
   onCancel?: () => void;
   referrer?: string;
 };
@@ -32,6 +38,8 @@ function CreditCardSetup({
   buttonText = t('Save Changes'),
   cancelButtonText = t('Cancel'),
   referrer,
+  location,
+  budgetModeText,
 }: Props) {
   const api = useApi();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -106,7 +114,6 @@ function CreditCardSetup({
       );
       return;
     }
-
     try {
       const subscription: Subscription = await api.requestPromise(
         `/customers/${organization.slug}/`,
@@ -114,6 +121,7 @@ function CreditCardSetup({
           method: 'PUT',
           data: {
             paymentMethod: setupResult.setupIntent.payment_method,
+            ftcConsentLocation: location,
           },
         }
       );
@@ -145,6 +153,8 @@ function CreditCardSetup({
       onCancel={onCancel}
       onSubmit={handleSubmit}
       referrer={referrer}
+      location={location}
+      budgetModeText={budgetModeText}
     />
   );
 }

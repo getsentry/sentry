@@ -12,7 +12,7 @@ import type {ALLOWED_SCOPES} from 'sentry/constants';
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
   avatarUrl?: string | null;
   color?: boolean;
@@ -67,16 +67,20 @@ export type Choice = [
 export type Choices = Choice[];
 
 /**
- * These are very similar to the plural types of DATA_CATEGORY_INFO.
- * DATA_CATEGORY_INFO and DataCategoryExact have additional categories
- * that are used in stats but not other places like billing.
+ * These are used in billing, stats, and other places to consistently refer to categories.
+ *
+ * These should always be in plural camelCase form.
  */
 export enum DataCategory {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
+  TRANSACTIONS_PROCESSED = 'transactionsProcessed',
+  TRANSACTIONS_INDEXED = 'transactionsIndexed',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
+  PROFILES_INDEXED = 'profilesIndexed',
   REPLAYS = 'replays',
+  MONITOR = 'monitors',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   PROFILE_DURATION_UI = 'profileDurationUI',
@@ -85,6 +89,11 @@ export enum DataCategory {
   PROFILE_CHUNKS = 'profileChunks',
   PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
+  LOG_ITEM = 'logItems',
+  LOG_BYTE = 'logBytes',
+  SEER_AUTOFIX = 'seerAutofix',
+  SEER_SCANNER = 'seerScanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 /**
@@ -97,35 +106,42 @@ export enum DataCategoryExact {
   TRANSACTION = 'transaction',
   ATTACHMENT = 'attachment',
   PROFILE = 'profile',
+  PROFILE_INDEXED = 'profile_indexed',
   REPLAY = 'replay',
-  // TODO: Update processed and indexed transactions to camel case"
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
-  MONITOR_SEAT = 'monitorSeat',
-  PROFILE_DURATION = 'profileDuration',
-  PROFILE_DURATION_UI = 'profileDurationUI',
+  MONITOR_SEAT = 'monitor_seat',
+  PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
+  PROFILE_CHUNK = 'profile_chunk',
+  PROFILE_CHUNK_UI = 'profile_chunk_ui',
   SPAN = 'span',
-  SPAN_INDEXED = 'spanIndexed',
+  SPAN_INDEXED = 'span_indexed',
   UPTIME = 'uptime',
-
-  LOG_ITEM = 'logItem',
-  LOG_BYTE = 'logByte',
+  LOG_ITEM = 'log_item',
+  LOG_BYTE = 'log_byte',
+  SEER_AUTOFIX = 'seer_autofix',
+  SEER_SCANNER = 'seer_scanner',
+  USER_REPORT_V2 = 'feedback',
 }
 
 export interface DataCategoryInfo {
-  apiName: string;
   displayName: string;
   isBilledCategory: boolean;
   name: DataCategoryExact;
-  plural: string;
+  plural: DataCategory;
   productName: string;
+  singular: string; // singular form of `plural`
+  statsInfo: {
+    showExternalStats: boolean;
+    showInternalStats: boolean;
+    yAxisMinInterval: number;
+  };
   titleName: string;
   uid: number;
-  snakeCasePlural?: string;
+  docsUrl?: string;
 }
-
-export type EventType = 'error' | 'transaction' | 'attachment';
 
 export enum Outcome {
   ACCEPTED = 'accepted',

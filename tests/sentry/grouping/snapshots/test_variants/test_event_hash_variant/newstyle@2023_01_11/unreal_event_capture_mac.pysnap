@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:34:16.642847+00:00'
+created: '2025-05-12T23:41:31.153786+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -79,7 +79,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "ProcessLocalFunction"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app) but ignored by stack trace rule (category:indirection -group))
             function*
               "ProcessLocalFunction::lambda::operator()"
           frame* (marked in-app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
@@ -112,25 +112,25 @@ app:
           frame (marked out of app by stack trace rule (family:native function:USentrySubsystem::*execCapture* v+app -app ^-app))
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureEvent:withScopeBlock:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureEvent:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
 --------------------------------------------------------------------------
@@ -251,24 +251,24 @@ system:
           frame*
             function*
               "SentrySubsystemApple::CaptureEventWithScope"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureEvent:withScopeBlock:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureEvent:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"

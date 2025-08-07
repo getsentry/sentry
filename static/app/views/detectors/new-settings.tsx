@@ -1,28 +1,50 @@
-import {Flex} from 'sentry/components/container/flex';
-import {Button, LinkButton} from 'sentry/components/core/button';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
+import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
+import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
+import {isValidDetectorType} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export default function DetectorNewSettings() {
+  const location = useLocation();
+  const {projects, fetching: isFetchingProjects} = useProjects();
+  const detectorType = location.query.detectorType as DetectorType;
   useWorkflowEngineFeatureGate({redirect: true});
 
+  if (!isValidDetectorType(detectorType)) {
+    return <LoadingError message={t('Invalid detector type: %s', detectorType)} />;
+  }
+
+  if (isFetchingProjects) {
+    return (
+      <Layout.Page>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <LoadingIndicator />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    );
+  }
+
+  const project = projects.find(p => p.id === (location.query.project as string));
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
+  }
+
   return (
-    <NewDetectorLayout>
-      <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/issues/monitors/new">
-            {t('Back')}
-          </LinkButton>
-          <Button priority="primary">{t('Create Monitor')}</Button>
-        </Flex>
-      </StickyFooter>
-    </NewDetectorLayout>
+    <DetectorFormProvider detectorType={detectorType} project={project}>
+      <SentryDocumentTitle
+        title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
+      />
+      <NewDetectorForm detectorType={detectorType} />
+    </DetectorFormProvider>
   );
 }

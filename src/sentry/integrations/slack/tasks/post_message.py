@@ -8,7 +8,7 @@ from sentry.integrations.slack.service import SlackService
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -18,6 +18,10 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     queue="integrations",
     max_retries=0,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def post_message(
     integration_id: int,
@@ -41,6 +45,7 @@ def post_message(
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def post_message_control(

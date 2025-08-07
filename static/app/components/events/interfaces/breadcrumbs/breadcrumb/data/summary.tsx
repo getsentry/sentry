@@ -49,7 +49,7 @@ export default Summary;
 
 const Wrapper = styled('div')`
   word-break: break-all;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
   overflow: hidden;
 
@@ -57,7 +57,7 @@ const Wrapper = styled('div')`
   code {
     margin: 0;
     padding: 0;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 

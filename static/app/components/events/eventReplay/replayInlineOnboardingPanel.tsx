@@ -33,7 +33,7 @@ export default function ReplayInlineOnboardingPanel({
 
   const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
   const platformName = platformKey === otherPlatform ? '' : platformKey.name;
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_replay_inline_onboarding',
@@ -111,7 +111,7 @@ export default function ReplayInlineOnboardingPanel({
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerWrapper = styled('div')`
@@ -129,9 +129,9 @@ const BannerWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`

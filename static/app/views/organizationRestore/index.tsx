@@ -15,6 +15,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -47,7 +48,9 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+        <Alert type="error" showIcon={false}>
+          {t('There was an error loading your organization.')}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -83,7 +86,7 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
           addSuccessMessage(t('Organization Restored'));
 
           // Use window.location to ensure page reloads
-          window.location.assign(
+          testableWindowLocation.assign(
             normalizeUrl(`/organizations/${organization.slug}/issues/`)
           );
         }}

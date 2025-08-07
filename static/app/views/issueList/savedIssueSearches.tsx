@@ -5,7 +5,7 @@ import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
@@ -24,7 +24,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SavedIssueSearchesProps {
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
@@ -174,15 +174,12 @@ function SavedIssueSearches({
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const prefersStackedNav = usePrefersStackedNav();
 
-  if (
-    !isOpen ||
-    isMobile ||
-    prefersStackedNav ||
-    organization.features.includes('issue-stream-custom-views')
-  ) {
+  const shouldShowSavedSearches = !prefersStackedNav;
+
+  if (!isOpen || isMobile || !shouldShowSavedSearches) {
     return null;
   }
 
@@ -279,12 +276,12 @@ const StyledSidebar = styled('aside')`
   width: 100%;
   padding: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
     padding: ${space(2)} 0;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     border-left: 1px solid ${p => p.theme.gray200};
     max-width: 340px;
   }
@@ -304,7 +301,7 @@ const HeadingContainer = styled('div')`
 `;
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 
@@ -323,14 +320,10 @@ const StyledItemButton = styled(Button)`
   width: 100%;
   text-align: left;
   height: auto;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
-
-  ${ButtonLabel} {
-    justify-content: start;
-  }
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
@@ -349,13 +342,13 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
   ${p =>
     p.hasMenu &&
     css`
-      @media (max-width: ${p.theme.breakpoints.small}) {
+      @media (max-width: ${p.theme.breakpoints.sm}) {
         ${StyledItemButton} {
           padding-right: 60px;
         }
       }
 
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         ${OverflowMenu} {
           display: none;
         }
@@ -376,29 +369,35 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
 
 const TitleDescriptionWrapper = styled('div')`
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  width: 100%;
 `;
 
 const SavedSearchItemTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  text-align: left;
+  font-size: ${p => p.theme.fontSize.lg};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.5)} ${space(2)};
 
   &:hover {

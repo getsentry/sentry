@@ -36,7 +36,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-export interface BreadcrumbsDataSectionProps {
+interface BreadcrumbsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
@@ -125,7 +125,7 @@ export default function BreadcrumbsDataSection({
       : BreadcrumbTimeDisplay.ABSOLUTE;
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       <Button
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}

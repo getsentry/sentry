@@ -65,6 +65,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     spans: undefined,
   };
 
+  eapSpanOpsBreakdown: TraceTree.OpsBreakdown = [];
+
   event: EventTransaction | null = null;
 
   // Events associated with the node, these are inferred from the node value.
@@ -106,6 +108,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       ];
     } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
       this.space = [value.timestamp * 1e3, 0];
+    } else if (
+      value &&
+      'start_timestamp' in value &&
+      typeof value.start_timestamp === 'number'
+    ) {
+      this.space = [value.start_timestamp * 1e3, 0];
     }
 
     if (value) {

@@ -6,6 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.vsts.integration import VstsIntegration
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
@@ -15,7 +16,7 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 class VstsSearchEndpoint(SourceCodeSearchEndpoint):
     @property
     def integration_provider(self):
-        return "vsts"
+        return IntegrationProviderSlug.AZURE_DEVOPS.value
 
     @property
     def installation_class(self):

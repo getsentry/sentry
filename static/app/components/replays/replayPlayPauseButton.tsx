@@ -1,10 +1,26 @@
-import type {BaseButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
+import NewReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
-function ReplayPlayPauseButton(props: BaseButtonProps & {isLoading?: boolean}) {
+export default function ReplayPlayPauseButton({
+  isLoading,
+  ...props
+}: Partial<ButtonProps> & {isLoading?: boolean}) {
+  const organization = useOrganization();
+  if (organization.features.includes('replay-new-context')) {
+    return <NewReplayPlayPauseButton {...props} />;
+  }
+
+  return <OriginalReplayPlayPauseButton isLoading={isLoading} {...props} />;
+}
+
+function OriginalReplayPlayPauseButton(
+  props: Partial<ButtonProps> & {isLoading?: boolean}
+) {
   const {isFinished, isPlaying, restart, togglePlayPause} = useReplayContext();
 
   return isFinished ? (
@@ -28,5 +44,3 @@ function ReplayPlayPauseButton(props: BaseButtonProps & {isLoading?: boolean}) {
     />
   );
 }
-
-export default ReplayPlayPauseButton;

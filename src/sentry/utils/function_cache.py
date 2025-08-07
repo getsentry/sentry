@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from decimal import Decimal
-from functools import partial
-from typing import TypeVar, TypeVarTuple
+from functools import partial, update_wrapper
+from typing import Generic, TypeVar, TypeVarTuple
 
 from django.core.cache import cache
 from django.db import models
@@ -67,7 +67,7 @@ def cache_func_for_models(
     cache_invalidators: list[tuple[type[S], Callable[[S], tuple[*Ts]]]],
     cache_ttl: None | timedelta = None,
     recalculate: bool = True,
-) -> Callable[[Callable[[*Ts], R]], Callable[[*Ts], R]]:
+) -> Callable[[Callable[[*Ts], R]], CachedFunction[*Ts, R]]:
     """
     Decorator that caches the result of a function, and actively invalidates the result when related models are
     created/updated/deleted. To use this, decorate a function with this decorator and pass a list of `cache_invalidators`
@@ -82,11 +82,14 @@ def cache_func_for_models(
 
     If `recalculate` is `True`, we'll re-run the decorated function and overwrite the cached value. If `False`, we'll
     just remove the value from the cache.
+
+    The decorated function is replaced with a CachedFunction instance that provides both the original
+    function behavior and a batch method for efficient bulk operations.
     """
     if cache_ttl is None:
         cache_ttl = timedelta(days=7)
 
-    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
+    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> CachedFunction[*Ts, R]:
         for model, arg_getter in cache_invalidators:
             clear_cache_callable = partial(
                 clear_cache_for_cached_func, func_to_cache, arg_getter, recalculate
@@ -94,32 +97,55 @@ def cache_func_for_models(
             post_save.connect(clear_cache_callable, sender=model, weak=False)
             post_delete.connect(clear_cache_callable, sender=model, weak=False)
 
-        return build_inner_cache_func(func_to_cache, cache_ttl)
+        return CachedFunction(func_to_cache, cache_ttl)
 
     return cached_query_func
 
 
 def cache_func(
     cache_ttl: None | timedelta = None,
-) -> Callable[[Callable[[*Ts], R]], Callable[[*Ts], R]]:
+) -> Callable[[Callable[[*Ts], R]], CachedFunction[*Ts, R]]:
     if cache_ttl is None:
         cache_ttl = timedelta(days=7)
 
-    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
-        return build_inner_cache_func(func_to_cache, cache_ttl)
+    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> CachedFunction[*Ts, R]:
+        return CachedFunction(func_to_cache, cache_ttl)
 
     return cached_query_func
 
 
-def build_inner_cache_func(
-    func_to_cache: Callable[[*Ts], R], cache_ttl: timedelta
-) -> Callable[[*Ts], R]:
-    def inner(*args: *Ts) -> R:
-        cache_key = cache_key_for_cached_func(func_to_cache, *args)
+class CachedFunction(Generic[*Ts, R]):
+    """
+    A callable class that wraps a function with caching capabilities and provides a batch method
+    for processing multiple sets of arguments efficiently.
+    """
+
+    def __init__(self, func: Callable[[*Ts], R], cache_ttl: timedelta):
+        self.func = func
+        self.cache_ttl = cache_ttl
+        update_wrapper(self, func)
+
+    def __call__(self, *args: *Ts) -> R:
+        cache_key = cache_key_for_cached_func(self.func, *args)
         cached_val = cache.get(cache_key, None)
         if cached_val is None:
-            cached_val = func_to_cache(*args)
-            cache.set(cache_key, cached_val, timeout=cache_ttl.total_seconds())
+            cached_val = self.func(*args)
+            cache.set(cache_key, cached_val, timeout=self.cache_ttl.total_seconds())
         return cached_val
 
-    return inner
+    def batch(self, args_list: Sequence[tuple[*Ts]]) -> list[R]:
+        cache_keys = [cache_key_for_cached_func(self.func, *args) for args in args_list]
+        values = cache.get_many(cache_keys)
+
+        missing_keys = {ck: args for ck, args in zip(cache_keys, args_list) if ck not in values}
+
+        to_cache = {}
+        for cache_key, args in missing_keys.items():
+            result = self.func(*args)
+            values[cache_key] = result
+            to_cache[cache_key] = result
+
+        if to_cache:
+            cache.set_many(to_cache, timeout=self.cache_ttl.total_seconds())
+
+        return [values[ck] for ck in cache_keys]

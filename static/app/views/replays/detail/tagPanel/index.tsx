@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -6,20 +5,19 @@ import type {LocationDescriptor} from 'history';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-function TagPanel() {
+export default function TagPanel() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const tags = replayRecord?.tags;
   const sdkOptions = replay?.getSDKOptions();
@@ -53,7 +51,7 @@ function TagPanel() {
   const {items} = filterProps;
 
   const generateUrl = useCallback(
-    (name: string, value: ReactNode): LocationDescriptor => ({
+    (name: string, value: string): LocationDescriptor => ({
       pathname: makeReplaysPathname({
         path: '/',
         organization,
@@ -67,42 +65,47 @@ function TagPanel() {
   );
 
   if (!replayRecord) {
-    return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
+    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
   const filteredTags = Object.entries(items);
 
   return (
-    <FluidHeight>
+    <Wrapper>
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <StyledPanel>
-          <FluidPanel>
-            {filteredTags.length ? (
-              <KeyValueTable noMargin>
-                {filteredTags.map(([key, values]) => (
-                  <ReplayTagsTableRow
-                    key={key}
-                    name={key}
-                    values={values}
-                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                  />
-                ))}
-              </KeyValueTable>
-            ) : (
-              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-            )}
-          </FluidPanel>
-        </StyledPanel>
+        <OverflowBody>
+          {filteredTags.length ? (
+            <KeyValueTable noMargin>
+              {filteredTags.map(([key, values]) => (
+                <ReplayTagsTableRow
+                  key={key}
+                  name={key}
+                  values={values}
+                  generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                />
+              ))}
+            </KeyValueTable>
+          ) : (
+            <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+          )}
+        </OverflowBody>
       </TabItemContainer>
-    </FluidHeight>
+    </Wrapper>
   );
 }
 
-const StyledPanel = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: auto;
-  display: grid;
+const PaddedPlaceholder = styled(Placeholder)`
+  padding-top: ${space(1)};
 `;
 
-export default TagPanel;
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-height: 0;
+`;
+
+const OverflowBody = styled('section')`
+  flex: 1 1 auto;
+  overflow: auto;
+`;

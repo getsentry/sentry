@@ -1,22 +1,16 @@
-import type {CSSProperties} from 'react';
 import {useEffect} from 'react';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  className?: string;
-  style?: CSSProperties;
-}
-
-export default function FeedbackWhatsNewBanner({className, style}: Props) {
+export default function FeedbackWhatsNewBanner() {
   const organization = useOrganization();
 
   const {dismiss, isDismissed} = useDismissAlert({
@@ -37,8 +31,6 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
 
   return (
     <PageBanner
-      className={className}
-      style={style}
       button={
         <LinkButton
           external
@@ -54,7 +46,7 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
       description={t(
         'Users can submit feedback anytime they’re having a problem with your app via our feedback widget.'
       )}
-      heading={t('Introducing the New User Feedback')}
+      heading={t('Introducing User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
       title={t('What’s new')}

@@ -179,7 +179,7 @@ const getStylesConfig = ({
 }: {
   isInsideModal: boolean | undefined;
   maxMenuWidth: string | number | undefined;
-  size: FormSize | undefined;
+  size: ControlProps['size'];
   theme: Theme;
 }) => {
   // TODO(epurkhiser): The loading indicator should probably also be our loading
@@ -498,7 +498,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-export interface PickerProps<OptionType extends OptionTypeBase>
+interface PickerProps<OptionType extends OptionTypeBase>
   extends ControlProps<OptionType> {
   /**
    * Enable async option loading.

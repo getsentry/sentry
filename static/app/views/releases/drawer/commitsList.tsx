@@ -11,7 +11,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
@@ -20,6 +21,7 @@ import {
   getCommitsByRepository,
   getReposToRender,
 } from 'sentry/views/releases/detail/utils';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
 
 interface CommitsProps {
@@ -29,10 +31,18 @@ interface CommitsProps {
 }
 
 export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) {
-  const location = useLocation();
+  const {
+    [ReleasesDrawerFields.COMMIT_CURSOR]: rdCiCursor,
+    [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
+  } = useLocationQuery({
+    fields: {
+      [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
+      [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
+    },
+  });
   const navigate = useNavigate();
   const activeReleaseRepo =
-    releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
+    releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
   const {
     data: commitList = [],
@@ -44,7 +54,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
     release,
     projectSlug,
     activeRepository: activeReleaseRepo,
-    cursor: location.query.commitsCursor,
+    cursor: rdCiCursor,
   });
 
   const commitsByRepository = getCommitsByRepository(commitList);
@@ -81,7 +91,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
             onCursor={(cursor, path, searchQuery) => {
               navigate({
                 pathname: path,
-                query: {...searchQuery, commitsCursor: cursor},
+                query: {...searchQuery, [ReleasesDrawerFields.COMMIT_CURSOR]: cursor},
               });
             }}
           />

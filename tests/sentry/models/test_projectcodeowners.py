@@ -1,5 +1,5 @@
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -10,7 +10,7 @@ class ProjectCodeOwnersTestCase(TestCase):
 
         super().tearDown()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -36,7 +36,7 @@ class ProjectCodeOwnersTestCase(TestCase):
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
 
-    def test_merge_codeowners(self):
+    def test_merge_codeowners(self) -> None:
         self.code_mapping_2 = self.create_code_mapping(
             project=self.project,
             stack_root="stack/root/",

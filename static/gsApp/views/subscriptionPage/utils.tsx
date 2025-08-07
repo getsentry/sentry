@@ -1,4 +1,4 @@
-import type {Scope} from 'sentry/types/core';
+import type {DataCategory, Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
@@ -9,6 +9,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
+import {isPartOfReservedBudget} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 
@@ -28,7 +29,7 @@ export const trackSubscriptionView = (
 
 export function calculateCategorySpend(
   subscription: Subscription,
-  category: string
+  category: DataCategory
 ): {
   onDemandSpent: number;
   onDemandUnitPrice: number;
@@ -36,11 +37,11 @@ export function calculateCategorySpend(
   prepaidSpent: number;
   unitPrice: number;
 } {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const slots: EventBucket[] = subscription.planDetails.planCategories[category];
-  if (!defined(categoryInfo?.reserved)) {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const slots: EventBucket[] | undefined =
+    subscription.planDetails.planCategories[category];
+  if (!defined(categoryInfo?.reserved) || !slots) {
     return {
       prepaidSpent: 0,
       onDemandSpent: 0,
@@ -63,7 +64,10 @@ export function calculateCategorySpend(
   const isMonthly = subscription.planDetails.billingInterval === 'monthly';
   // Put prepaid prices into monthly terms
   const prepaidPrice = priceBucket.price / (isMonthly ? 1 : 12);
-  const percentPrepaidUsed = Math.min(reservedUse / eventsByPrice, 1);
+  const percentPrepaidUsed = Math.min(
+    eventsByPrice === 0 ? 0 : reservedUse / eventsByPrice,
+    1
+  );
   const prepaidSpent = percentPrepaidUsed * prepaidPrice;
   const onDemandSpent = categoryInfo.onDemandSpendUsed ?? 0;
 
@@ -78,12 +82,14 @@ export function calculateCategorySpend(
 
 export function calculateTotalSpend(subscription: Subscription): {
   onDemandTotalSpent: number;
+  prepaidReservedBudgetPrice: number;
   prepaidTotalPrice: number;
   prepaidTotalSpent: number;
 } {
   let prepaidTotalSpent = 0;
+  let prepaidReservedBudgetPrice = 0;
   let onDemandTotalSpent = 0;
-  let prepaidTotalPrice = 0;
+  let prepaidTotalPrice = 0; // Total price of the subscription (includes upgraded reserved volumes and reserved budgets)
   for (const category of subscription.planDetails.categories) {
     const {prepaidSpent, onDemandSpent, prepaidPrice} = calculateCategorySpend(
       subscription,
@@ -92,9 +98,17 @@ export function calculateTotalSpend(subscription: Subscription): {
     prepaidTotalSpent += prepaidSpent;
     onDemandTotalSpent += onDemandSpent;
     prepaidTotalPrice += prepaidPrice;
+    if (isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])) {
+      prepaidReservedBudgetPrice += prepaidPrice;
+    }
   }
 
-  return {prepaidTotalSpent, onDemandTotalSpent, prepaidTotalPrice};
+  return {
+    prepaidTotalSpent,
+    prepaidReservedBudgetPrice,
+    onDemandTotalSpent,
+    prepaidTotalPrice,
+  };
 }
 
 /**

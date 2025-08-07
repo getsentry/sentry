@@ -21,7 +21,7 @@ type KnownDecoder =
 
 type GenericDecoder<T = unknown> = (query: QueryValue) => T;
 
-export type Decoder = KnownDecoder | GenericDecoder;
+type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.

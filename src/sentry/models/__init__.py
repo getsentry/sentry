@@ -16,6 +16,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
+from .commitcomparison import *  # NOQA
 from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
@@ -63,7 +64,6 @@ from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .importchunk import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA

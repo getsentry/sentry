@@ -198,6 +198,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
@@ -210,6 +211,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
@@ -225,6 +227,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('navigation')).toHaveTextContent(
@@ -238,7 +241,11 @@ describe('Performance > Web Vitals', function () {
     it.each(vitals)('Renders %s', async function (vital) {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
@@ -251,7 +258,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
@@ -266,7 +277,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -281,7 +296,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -297,7 +316,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -315,7 +338,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
@@ -350,7 +377,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitForElementToBeRemoved(() =>
@@ -373,7 +404,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitForElementToBeRemoved(() =>
@@ -409,6 +444,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));

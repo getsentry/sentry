@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 
 export function useReleases(
   searchTerm: string | undefined,
@@ -26,8 +25,6 @@ export function useReleases(
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
   const api = useApi();
-
-  const useEap = useInsightsEap();
 
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useApiQuery<Release[]>(
@@ -56,10 +53,10 @@ export function useReleases(
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:ui.load ${escapeFilterValue(
+        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
           `release:[${releases.map(r => `"${r.version}"`).join()}]`
         )}`,
-        dataset: useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+        dataset: DiscoverDatasets.SPANS,
         version: 2,
         projects: selection.projects,
       };

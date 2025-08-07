@@ -16,7 +16,9 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.usecases.ingest.save_event_feedback import (
+    save_event_feedback as save_event_feedback_impl,
+)
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -25,7 +27,15 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import (
+    ingest_attachments_tasks,
+    ingest_errors_tasks,
+    ingest_transactions_tasks,
+    issues_tasks,
+)
 from sentry.utils import metrics
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
@@ -137,6 +147,11 @@ def _do_preprocess_event(
         error_logger.error("preprocess.failed.empty", extra={"cache_key": cache_key})
         return
 
+    track_event_since_received(
+        step="start_preprocess_event",
+        event_data=data,
+    )
+
     original_data = data
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -220,13 +235,6 @@ def _do_preprocess_event(
     )
 
 
-@instrumented_task(
-    name="sentry.tasks.store.preprocess_event",
-    queue="events.preprocess_event",
-    time_limit=65,
-    soft_time_limit=60,
-    silo_mode=SiloMode.REGION,
-)
 def preprocess_event(
     cache_key: str,
     data: MutableMapping[str, Any] | None = None,
@@ -247,13 +255,6 @@ def preprocess_event(
     )
 
 
-@instrumented_task(
-    name="sentry.tasks.store.preprocess_event_from_reprocessing",
-    queue="events.reprocessing.preprocess_event",
-    time_limit=65,
-    soft_time_limit=60,
-    silo_mode=SiloMode.REGION,
-)
 def preprocess_event_from_reprocessing(
     cache_key: str,
     data: MutableMapping[str, Any] | None = None,
@@ -323,6 +324,11 @@ def do_process_event(
         )
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
+
+    track_event_since_received(
+        step="start_process_event",
+        event_data=data,
+    )
 
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -432,6 +438,10 @@ def do_process_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def process_event(
     cache_key: str,
@@ -469,6 +479,10 @@ def process_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -520,6 +534,11 @@ def _do_save_event(
         data = processing_store.get(cache_key)
         if data is not None:
             event_type = data.get("type") or "none"
+
+    track_event_since_received(
+        step="start_save_event",
+        event_data=data,
+    )
 
     with metrics.global_tags(event_type=event_type):
         if event_id is None and data is not None:
@@ -615,6 +634,11 @@ def _do_save_event(
                     },
                 )
 
+            track_event_since_received(
+                step="end_save_event",
+                event_data=data,
+            )
+
 
 @instrumented_task(
     name="sentry.tasks.store.save_event",
@@ -622,6 +646,10 @@ def _do_save_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event(
     cache_key: str | None = None,
@@ -647,6 +675,10 @@ def save_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_transactions_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event_transaction(
     cache_key: str | None = None,
@@ -680,6 +712,10 @@ def save_event_transaction(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event_feedback(
     cache_key: str | None = None,
@@ -690,7 +726,7 @@ def save_event_feedback(
     project_id: int,
     **kwargs: Any,
 ) -> None:
-    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    save_event_feedback_impl(data, project_id)
 
 
 @instrumented_task(
@@ -699,6 +735,10 @@ def save_event_feedback(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_attachments_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event_attachments(
     cache_key: str | None = None,

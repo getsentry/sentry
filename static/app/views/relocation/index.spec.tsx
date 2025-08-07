@@ -31,14 +31,13 @@ describe('Relocation Onboarding Container', function () {
   });
 
   it('should render if feature enabled', async function () {
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},
       },
     });
     ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<RelocationOnboardingContainer {...routerProps} />, {
-      router,
       organization,
     });
     expect(
@@ -50,14 +49,13 @@ describe('Relocation Onboarding Container', function () {
   });
 
   it('should not render if feature disabled', async function () {
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},
       },
     });
     ConfigStore.set('features', new Set([]));
     render(<RelocationOnboardingContainer {...routerProps} />, {
-      router,
       organization,
     });
     expect(

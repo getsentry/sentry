@@ -1,4 +1,4 @@
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';

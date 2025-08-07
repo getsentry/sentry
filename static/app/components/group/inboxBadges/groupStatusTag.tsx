@@ -3,8 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 
 interface GroupStatusBadgeProps {
   children: string;
@@ -47,8 +47,7 @@ export function GroupStatusTag({
 const StyledTag = styled(Tag, {
   shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p =>
-    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
+  font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`

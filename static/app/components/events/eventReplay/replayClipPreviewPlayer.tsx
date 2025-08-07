@@ -1,168 +1,95 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Alert} from 'sentry/components/core/alert';
-import type {LinkButtonProps} from 'sentry/components/core/button';
-import {
-  REPLAY_LOADING_HEIGHT,
-  REPLAY_LOADING_HEIGHT_LARGE,
-} from 'sentry/components/events/eventReplay/constants';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
-interface ReplayClipPreviewPlayerProps {
+interface Props {
   analyticsContext: string;
-  orgSlug: string;
+  fullReplayButtonProps: Partial<Omit<LinkButtonProps, 'external'>>;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
-  focusTab?: TabKey;
-  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
-  handleBackClick?: () => void;
-  handleForwardClick?: () => void;
-  isLarge?: boolean;
-  onClickNextReplay?: () => void;
   overlayContent?: React.ReactNode;
-  showNextAndPrevious?: boolean;
-}
-
-function getReplayAnalyticsStatus({
-  fetchError,
-  replayRecord,
-}: {
-  fetchError?: RequestError;
-  replayRecord?: ReplayRecord;
-}) {
-  if (fetchError) {
-    return 'error';
-  }
-
-  if (replayRecord?.is_archived) {
-    return 'archived';
-  }
-
-  if (replayRecord) {
-    return 'success';
-  }
-
-  return 'none';
 }
 
 export default function ReplayClipPreviewPlayer({
   analyticsContext,
-  orgSlug,
   fullReplayButtonProps,
-  isLarge,
-  handleForwardClick,
-  handleBackClick,
-  overlayContent,
   replayReaderResult,
-  showNextAndPrevious,
-}: ReplayClipPreviewPlayerProps) {
-  useRouteAnalyticsParams({
-    event_replay_status: getReplayAnalyticsStatus({
-      fetchError: replayReaderResult.fetchError,
-      replayRecord: replayReaderResult.replayRecord,
-    }),
+  overlayContent,
+}: Props) {
+  useLogEventReplayStatus({
+    readerResult: replayReaderResult,
   });
-  const organization = useOrganization();
-
-  useEffect(() => {
-    if (replayReaderResult.fetchError) {
-      trackAnalytics('replay.render-missing-replay-alert', {
-        organization,
-        surface: 'issue details - clip preview',
-      });
-    }
-  }, [organization, replayReaderResult.fetchError]);
-
-  if (replayReaderResult.replayRecord?.is_archived) {
-    return (
-      <Alert.Container>
-        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
-      </Alert.Container>
-    );
-  }
-
-  if (replayReaderResult.fetchError) {
-    return <MissingReplayAlert orgSlug={orgSlug} />;
-  }
-
-  if (
-    replayReaderResult.fetching ||
-    !replayReaderResult.replayRecord ||
-    !replayReaderResult.replay
-  ) {
-    return (
-      <StyledNegativeSpaceContainer
-        data-test-id="replay-loading-placeholder"
-        isLarge={isLarge}
-      >
-        <LoadingIndicator />
-      </StyledNegativeSpaceContainer>
-    );
-  }
-
-  if (replayReaderResult.replay.getDurationMs() <= 0) {
-    return (
-      <StaticReplayPreview
-        analyticsContext={analyticsContext}
-        isFetching={false}
-        replay={replayReaderResult.replay}
-        replayId={replayReaderResult.replayId}
-        fullReplayButtonProps={fullReplayButtonProps}
-        initialTimeOffsetMs={0}
-      />
-    );
-  }
 
   return (
-    <PlayerContainer data-test-id="player-container" isLarge={isLarge}>
-      {replayReaderResult.replay?.hasProcessingErrors() ? (
-        <ReplayProcessingError
-          processingErrors={replayReaderResult.replay.processingErrors()}
-        />
-      ) : (
-        <ReplayPreviewPlayer
-          errorBeforeReplayStart={replayReaderResult.replay.getErrorBeforeReplayStart()}
-          replayId={replayReaderResult.replayId}
-          fullReplayButtonProps={fullReplayButtonProps}
-          replayRecord={replayReaderResult.replayRecord}
-          handleBackClick={handleBackClick}
-          handleForwardClick={handleForwardClick}
-          overlayContent={overlayContent}
-          showNextAndPrevious={showNextAndPrevious}
-          // if the player is large, we want to keep the priority as default
-          playPausePriority={isLarge ? 'default' : undefined}
-        />
+    <ReplayLoadingState
+      readerResult={replayReaderResult}
+      renderArchived={() => (
+        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       )}
-    </PlayerContainer>
+      renderLoading={() => (
+        <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
+          <LoadingIndicator />
+        </StyledNegativeSpaceContainer>
+      )}
+    >
+      {({replay}) => {
+        if (replay.getDurationMs() <= 0) {
+          return (
+            <StaticReplayPreview
+              analyticsContext={analyticsContext}
+              isFetching={false}
+              replay={replay}
+              replayId={replayReaderResult.replayId}
+              fullReplayButtonProps={fullReplayButtonProps}
+              initialTimeOffsetMs={0}
+            />
+          );
+        }
+
+        return (
+          <PlayerContainer data-test-id="player-container">
+            <ReplayPlayerPluginsContextProvider>
+              <ReplayReaderProvider replay={replay}>
+                <ReplayPlayerStateContextProvider>
+                  <ReplayPreviewPlayer
+                    errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
+                    fullReplayButtonProps={fullReplayButtonProps}
+                    overlayContent={overlayContent}
+                    replayId={replayReaderResult.replayId}
+                    replayRecord={replayReaderResult.replayRecord!}
+                  />
+                </ReplayPlayerStateContextProvider>
+              </ReplayReaderProvider>
+            </ReplayPlayerPluginsContextProvider>
+          </PlayerContainer>
+        );
+      }}
+    </ReplayLoadingState>
   );
 }
 
-const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
+const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: ${p =>
-    p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-height: ${p =>
-      p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
+  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   }
 `;
 
-const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
-  height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
   border-radius: ${p => p.theme.borderRadius};
 `;

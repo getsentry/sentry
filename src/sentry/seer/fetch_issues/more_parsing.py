@@ -1,11 +1,21 @@
 import re
 
+from snuba_sdk import Condition, Op
+
 from sentry.integrations.source_code_management.language_parsers import (
     PATCH_PARSERS,
     LanguageParser,
     PythonParser,
     SimpleLanguageParser,
+    stackframe_function_name,
 )
+
+
+def simple_function_name_conditions(
+    function_names: list[str],
+    stack_frame_idx: int,
+):
+    return Condition(stackframe_function_name(stack_frame_idx), Op.IN, function_names)
 
 
 class PythonParserMore(PythonParser):
@@ -33,7 +43,7 @@ class PythonParserMore(PythonParser):
         return function_names_from_hunk_headers | function_names_from_rest_of_patch
 
 
-patch_parsers_more: dict[str, SimpleLanguageParser | LanguageParser] = PATCH_PARSERS | {
+patch_parsers_more: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = PATCH_PARSERS | {
     "py": PythonParserMore,
 }
 """

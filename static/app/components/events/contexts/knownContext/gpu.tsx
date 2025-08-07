@@ -11,6 +11,7 @@ enum GPUContextKeys {
   VENDOR_ID = 'vendor_id',
   VENDOR_NAME = 'vendor_name',
   MEMORY_SIZE = 'memory_size',
+  DRIVER_VERSION = 'driver_version',
   API_TYPE = 'api_type',
   MULTI_THREAD_RENDERING = 'multi_threaded_rendering',
   NPOT_SUPPORT = 'npot_support',
@@ -31,6 +32,7 @@ export interface GPUContext {
   [GPUContextKeys.VERSION]?: string;
   [GPUContextKeys.VENDOR_NAME]?: string;
   [GPUContextKeys.MEMORY_SIZE]?: number;
+  [GPUContextKeys.DRIVER_VERSION]?: string;
   [GPUContextKeys.API_TYPE]?: string;
   [GPUContextKeys.MULTI_THREAD_RENDERING]?: boolean;
   [GPUContextKeys.NPOT_SUPPORT]?: string;
@@ -97,6 +99,12 @@ export function getGPUContextData({
           key: ctxKey,
           subject: t('Memory'),
           value: data.memory_size ? formatMemory(data.memory_size) : undefined,
+        };
+      case GPUContextKeys.DRIVER_VERSION:
+        return {
+          key: ctxKey,
+          subject: t('Driver Version'),
+          value: data.driver_version,
         };
       case GPUContextKeys.API_TYPE:
         return {

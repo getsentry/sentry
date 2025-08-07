@@ -18,6 +18,7 @@ describe('WidgetCardContextMenu', () => {
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
             organization={OrganizationFixture({
               features: ['discover-basic'],
@@ -66,6 +67,7 @@ describe('WidgetCardContextMenu', () => {
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
             organization={OrganizationFixture({
               features: ['discover-basic', 'dashboards-edit'],
@@ -93,8 +95,9 @@ describe('WidgetCardContextMenu', () => {
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
-            organization={OrganizationFixture({})}
+            organization={OrganizationFixture()}
             router={RouterFixture()}
             selection={PageFiltersFixture()}
             widget={WidgetFixture({widgetType: WidgetType.SPANS})}

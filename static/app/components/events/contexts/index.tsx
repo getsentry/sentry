@@ -94,8 +94,8 @@ export function EventContexts({event, group, disableCollapsePersistence}: Props)
     if (usingOtel() && span) {
       const rootSpan = Sentry.getRootSpan(span);
       rootSpan.setAttribute('otel_event', true);
-      rootSpan.setAttribute('otel_sdk', sdk?.name);
-      rootSpan.setAttribute('otel_sdk_version', sdk?.version);
+      rootSpan.setAttribute('otel_sdk', sdk?.name ?? undefined);
+      rootSpan.setAttribute('otel_sdk_version', sdk?.version ?? undefined);
     }
   }, [usingOtel, sdk]);
 

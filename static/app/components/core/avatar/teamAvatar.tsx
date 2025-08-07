@@ -1,21 +1,16 @@
 import type React from 'react';
 
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
 export interface TeamAvatarProps extends BaseAvatarProps {
   team: Team | undefined;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
-export function TeamAvatar({
-  ref,
-  team,
-  tooltip: tooltipProp,
-  ...props
-}: TeamAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+export function TeamAvatar({ref, team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
   if (!team) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;

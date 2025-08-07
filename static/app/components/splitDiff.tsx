@@ -86,7 +86,7 @@ const SplitTable = styled('table')`
 
 const SplitBody = styled('tbody')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`

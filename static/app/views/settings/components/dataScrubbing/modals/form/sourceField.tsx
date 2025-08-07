@@ -174,8 +174,7 @@ class SourceField extends Component<Props, State> {
 
     const splittedValue = newValue.split(' ');
 
-    for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex]!;
+    for (const value of splittedValue) {
       const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
       if (
@@ -242,8 +241,7 @@ class SourceField extends Component<Props, State> {
     const {fieldValues} = this.state;
     const newValue: string[] = [];
 
-    for (const index in fieldValues) {
-      const fieldValue = fieldValues[index]!;
+    for (const fieldValue of fieldValues) {
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);
@@ -490,7 +488,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
   background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};
   :hover {

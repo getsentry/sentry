@@ -204,7 +204,9 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
     return (
       <Confirm
-        onConfirm={() => updateAllProjects(isEnabling)}
+        onConfirm={() => {
+          updateAllProjects(isEnabling);
+        }}
         message={confirmationText}
         disabled={!hasOrgWrite}
       >
@@ -265,7 +267,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     <Fragment>
       <Container>
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar merged>
+        <StyledButtonBar gap="0" merged>
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
         </StyledButtonBar>
@@ -366,7 +368,7 @@ const StyledAccordionDetails = styled('div')`
   margin-right: ${space(3)};
   margin-top: ${space(2)};
   padding-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledPanelTableHeader = styled('div')`

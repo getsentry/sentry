@@ -80,9 +80,7 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
-            ApiPublishStatus.UNKNOWN.value: sorted(
-                ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN]
-            ),
+            ApiPublishStatus.UNKNOWN.value: sorted(ownership_data[team][ApiPublishStatus.UNKNOWN]),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -165,9 +163,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
 
 def dereference_schema(
-    schema: Mapping[str, Any],
+    schema: dict[str, Any],
     schema_components: Mapping[str, Any],
-) -> Mapping[str, Any]:
+) -> dict[str, Any]:
     """
     Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
     """
@@ -179,7 +177,7 @@ def dereference_schema(
 
 
 def _validate_request_body(
-    request_body: Mapping[str, Any], schema_components: Mapping[str, Any], endpoint_name: str
+    request_body: dict[str, Any], schema_components: Mapping[str, Any], endpoint_name: str
 ) -> None:
     """
     1. Dereferences schema if needed.

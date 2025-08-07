@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,7 +51,7 @@ function SetupReleasesPrompt() {
   );
 }
 
-export interface ResolveActionsProps {
+interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -126,23 +127,6 @@ function ResolveActions({
     });
   }
 
-  function handleUpcomingReleaseResolution() {
-    if (hasRelease) {
-      onUpdate({
-        status: GroupStatus.RESOLVED,
-        statusDetails: {
-          inUpcomingRelease: true,
-        },
-        substatus: null,
-      });
-    }
-
-    trackAnalytics('resolve_issue', {
-      organization,
-      release: 'upcoming',
-    });
-  }
-
   function handleNextReleaseResolution() {
     if (hasRelease) {
       onUpdate({
@@ -207,21 +191,8 @@ function ResolveActions({
       });
     };
 
-    const hasUpcomingRelease = organization.features.includes(
-      'resolve-in-upcoming-release'
-    );
-
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
     const items: MenuItemProps[] = [
-      {
-        key: 'upcoming-release',
-        label: t('The upcoming release'),
-        details: actionTitle
-          ? actionTitle
-          : t('The next release that is not yet released'),
-        onAction: () => onActionOrConfirm(handleUpcomingReleaseResolution),
-        hidden: !hasUpcomingRelease,
-      },
       {
         key: 'next-release',
         label: t('The next release'),
@@ -279,15 +250,9 @@ function ResolveActions({
         )}
         disabledKeys={
           multipleProjectsSelected
-            ? [
-                'next-release',
-                'current-release',
-                'another-release',
-                'a-commit',
-                'upcoming-release',
-              ]
+            ? ['next-release', 'current-release', 'another-release', 'a-commit']
             : disabled || !hasRelease
-              ? ['next-release', 'current-release', 'another-release', 'upcoming-release']
+              ? ['next-release', 'current-release', 'another-release']
               : []
         }
         menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
@@ -328,7 +293,7 @@ function ResolveActions({
 
   return (
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-      <ButtonBar merged>
+      <ButtonBar merged gap="0">
         <ResolveButton
           priority={priority}
           size={size}
@@ -410,11 +375,11 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.gray400};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 

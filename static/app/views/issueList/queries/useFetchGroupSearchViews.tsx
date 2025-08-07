@@ -3,8 +3,17 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
   GroupSearchView,
   GroupSearchViewCreatedBy,
-  GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
+
+export type GroupSearchViewBackendSortOption =
+  | 'visited'
+  | '-visited'
+  | 'popularity'
+  | '-popularity'
+  | 'name'
+  | '-name'
+  | 'created'
+  | '-created';
 
 type FetchGroupSearchViewsParameters = {
   orgSlug: string;
@@ -12,7 +21,7 @@ type FetchGroupSearchViewsParameters = {
   cursor?: string;
   limit?: number;
   query?: string;
-  sort?: GroupSearchViewSort;
+  sort?: GroupSearchViewBackendSortOption[];
 };
 
 export const makeFetchGroupSearchViewsKey = ({

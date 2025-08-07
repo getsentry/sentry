@@ -74,13 +74,13 @@ describe('useWidgetBuilderState', () => {
       expect.objectContaining({
         query: expect.objectContaining({title: 'new title'}),
       }),
-      {replace: true}
+      expect.anything()
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -131,7 +131,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
 
@@ -835,7 +835,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
 
@@ -1673,6 +1673,34 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
     });
+
+    it('correctly reverses sort between events (freq) and last seen (date) field', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            sort: ['freq'],
+            dataset: WidgetType.ISSUE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // We expect desc even though freq doesn't use '-'
+      expect(result.current.state.sort).toEqual([{field: 'freq', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [{field: 'date', kind: 'desc'}],
+        });
+      });
+
+      // Expect it to switch back to asc for other issue fields
+      expect(result.current.state.sort).toEqual([{field: 'date', kind: 'asc'}]);
+    });
   });
 
   describe('limit', () => {
@@ -1788,7 +1816,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
   });

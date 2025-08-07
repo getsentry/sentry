@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconLock} from 'sentry/icons';
@@ -43,7 +43,7 @@ function DisabledCustomSymbolSources({organization}: Props) {
         }
       )}
       action={
-        <ButtonBar gap={0.75}>
+        <ButtonBar gap="sm">
           <StyledButton
             priority="primary"
             icon={<IconBusiness />}
@@ -78,9 +78,7 @@ const Content = styled(EmptyMessage)`
 
 const StyledButton = styled(Button)`
   margin: ${space(0.75)};
-  ${ButtonLabel} {
-    white-space: nowrap;
-  }
+  white-space: nowrap;
 `;
 
 const StyledLearnMoreButton = styled(LearnMoreButton)`

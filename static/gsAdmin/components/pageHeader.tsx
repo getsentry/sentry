@@ -11,7 +11,7 @@ const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   & > *:not(:first-child) {
     display: flex;
@@ -19,13 +19,13 @@ const Breadcrumbs = styled('div')`
     gap: ${space(1)};
 
     &:before {
-      content: '\u203A';
+      content: '\203A';
     }
   }
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-transform: uppercase;
   margin: 0;
 `;
@@ -34,7 +34,9 @@ const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   <header {...props}>
     <Breadcrumbs>
       <Heading>{title}</Heading>
-      {breadcrumbs?.map((item, i) => <div key={i}>{item}</div>)}
+      {breadcrumbs?.map((item, i) => (
+        <div key={i}>{item}</div>
+      ))}
     </Breadcrumbs>
     {children}
   </header>

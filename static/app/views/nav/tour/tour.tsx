@@ -1,5 +1,7 @@
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 
+import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {
   TourAction,
@@ -8,16 +10,19 @@ import {
   type TourElementProps,
   TourGuide,
 } from 'sentry/components/tours/components';
+import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
-import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
@@ -29,7 +34,10 @@ export const enum StackedNavigationTour {
   SETTINGS = 'settings',
 }
 
-export const ORDERED_STACKED_NAVIGATION_TOUR = [
+// Started rolling out to GA users on June 18, 2025
+const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
+
+const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
   StackedNavigationTour.EXPLORE,
   StackedNavigationTour.DASHBOARDS,
@@ -70,9 +78,9 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-export const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
+const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-export const StackedNavigationTourContext =
+const StackedNavigationTourContext =
   createContext<TourContextType<StackedNavigationTour> | null>(null);
 
 export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
@@ -147,34 +155,47 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       switch (stepId) {
         case StackedNavigationTour.ISSUES:
           if (activeGroup !== PrimaryNavGroup.ISSUES) {
-            navigate(normalizeUrl(`/${prefix}/issues/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/issues/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.EXPLORE:
           if (activeGroup !== PrimaryNavGroup.EXPLORE) {
-            navigate(
-              normalizeUrl(`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`),
-              {
-                replace: true,
-              }
-            );
+            const target = normalizeUrl({
+              pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
           if (activeGroup !== PrimaryNavGroup.DASHBOARDS) {
-            navigate(normalizeUrl(`/${prefix}/dashboards/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/dashboards/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
-            navigate(normalizeUrl(`/${prefix}/insights/frontend/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/insights/frontend/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
-            navigate(normalizeUrl(`/settings/${organization.slug}/`), {
-              replace: true,
+            const target = normalizeUrl({
+              pathname: `/settings/${organization.slug}/`,
+              query: {referrer: NAV_REFERRER},
             });
+            navigate(target, {replace: true});
           }
           break;
         default:
@@ -230,50 +251,82 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
+  const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useStackedNavigationTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
+  const user = useUser();
+  const [localTourState, setLocalTourState] = useLocalStorageState(
+    STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+    {hasSeen: false}
+  );
+
+  const enforceStackedNav = organization.features.includes('enforce-stacked-navigation');
+  // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
+  const shouldSkipForNewUserEnforcedStackedNav =
+    enforceStackedNav && new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
-      ?.seen === false;
+      ?.seen === false &&
+    !shouldSkipForNewUserEnforcedStackedNav &&
+    !localTourState.hasSeen;
+
+  const dismissTour = useCallback(() => {
+    trackAnalytics('navigation.tour_modal_dismissed', {organization});
+    mutateAssistant({
+      guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+      status: 'dismissed',
+    });
+    setLocalTourState({hasSeen: true});
+    endTour();
+  }, [mutateAssistant, organization, endTour, setLocalTourState]);
 
   useEffect(() => {
     if (shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
+      trackAnalytics('navigation.tour_modal_shown', {organization});
       openModal(
         props => (
-          <NavTourModal
+          <StartTourModal
+            img={{src: stackedNavTourSvg, alt: t('Stacked Navigation Tour')}}
+            header={t('Welcome to a simpler Sentry')}
+            description={t(
+              'Find what you need, faster. Our new navigation puts your top workflows front and center.'
+            )}
             closeModal={props.closeModal}
-            handleDismissTour={() => {
-              mutateAssistant({
-                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
-                status: 'dismissed',
-              });
-              endTour();
-              props.closeModal();
-            }}
-            handleStartTour={startTour}
+            onDismissTour={dismissTour}
+            onStartTour={startTour}
           />
         ),
         {
-          modalCss: navTourModalCss,
+          modalCss: startTourModalCss,
 
           // If user closes modal through other means, also prevent the modal from being shown again.
           onClose: reason => {
             if (reason) {
-              mutateAssistant({
-                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
-                status: 'dismissed',
-              });
-              endTour();
+              dismissTour();
             }
           },
         }
       );
     }
-  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+  }, [
+    shouldShowTourModal,
+    startTour,
+    mutateAssistant,
+    endTour,
+    organization,
+    dismissTour,
+  ]);
+}
+
+const NAV_REFERRER = 'nav-tour';
+
+export function useIsNavTourActive() {
+  const location = useLocation();
+  return location.query.referrer === NAV_REFERRER;
 }

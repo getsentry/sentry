@@ -32,7 +32,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         | {stats: Record<string, EventsStats>; seriesName?: string}
     ) => {
       if (Array.isArray(data.stats.data)) {
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
         const areaSeries = AreaSeries({
           name: data.seriesName,
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
@@ -54,7 +54,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.keys(data.stats).map(key =>
         Object.assign({}, {key}, (data.stats as any)[key])
       );
-      const color = theme.chart.getColorPalette(stats.length - 2);
+      const color = theme.chart.getColorPalette(stats.length - 1);
 
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -92,7 +92,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         | {stats: Record<string, EventsStats>; seriesName?: string}
     ) => {
       if (Array.isArray(data.stats.data)) {
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
         const barSeries = BarSeries({
           name: data.seriesName,
@@ -117,7 +117,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.keys(data.stats).map(key =>
         Object.assign({}, {key}, (data.stats as any)[key])
       );
-      const color = theme.chart.getColorPalette(stats.length - 2);
+      const color = theme.chart.getColorPalette(stats.length - 1);
 
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -156,7 +156,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         | {stats: EventsStats; seriesName?: string}
     ) => {
       if (Array.isArray(data.stats.data)) {
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
         const areaSeries = AreaSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
@@ -178,7 +178,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.values(data.stats);
       const hasOther = Object.keys(data.stats).includes('Other');
       const color = theme.chart
-        .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+        .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[];
 
       if (hasOther) {
@@ -220,7 +220,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         | {stats: EventsStats; seriesName?: string}
     ) => {
       if (Array.isArray(data.stats.data)) {
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
         const lineSeries = LineSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
@@ -242,7 +242,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.values(data.stats);
       const hasOther = Object.keys(data.stats).includes('Other');
       const color = theme.chart
-        .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+        .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[];
       if (hasOther) {
         color.push(theme.chartOther);
@@ -282,7 +282,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         | {stats: EventsStats; seriesName?: string}
     ) => {
       if (Array.isArray(data.stats.data)) {
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
         const areaSeries = AreaSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
@@ -304,7 +304,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.values(data.stats);
       const hasOther = Object.keys(data.stats).includes('Other');
       const color = theme.chart
-        .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+        .getColorPalette(stats.length - 1 - (hasOther ? 1 : 0))
         ?.slice() as string[] | undefined;
       if (hasOther) {
         color?.push(theme.chartOther);
@@ -347,7 +347,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         const dataMiddleIndex = Math.floor(data.stats.data.length / 2);
         const current = data.stats.data.slice(dataMiddleIndex);
         const previous = data.stats.data.slice(0, dataMiddleIndex);
-        const color = theme.chart.getColorPalette(data.stats.data.length - 2);
+        const color = theme.chart.getColorPalette(data.stats.data.length - 1);
         const areaSeries = AreaSeries({
           name: data.seriesName,
           data: current.map(([timestamp, countsForTimestamp]) => [
@@ -379,7 +379,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const stats = Object.keys(data.stats).map(key =>
         Object.assign({}, {key}, (data.stats as any)[key])
       );
-      const color = theme.chart.getColorPalette(stats.length - 2) ?? [];
+      const color = theme.chart.getColorPalette(stats.length - 1) ?? [];
       const previousPeriodColor = lightenHexToRgb(color);
 
       const areaSeries: SeriesOption[] = [];

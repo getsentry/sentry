@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError
@@ -79,7 +80,7 @@ class ViewSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        def handle(obj: Any, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
                 f"Received {request.method} request at {request.path!r} to server in "
@@ -233,11 +234,22 @@ class OrganizationMixin:
     def is_not_2fa_compliant(
         self, request: HttpRequest, organization: RpcOrganization | Organization
     ) -> bool:
-        return (
-            organization.flags.require_2fa
-            and (not request.user.is_authenticated or not request.user.has_2fa())
-            and not is_active_superuser(request)
-        )
+        if not organization.flags.require_2fa:
+            return False
+
+        if request.user.is_authenticated and request.user.has_2fa():
+            return False
+
+        if request.user.is_authenticated and request.user.is_sentry_app:
+            return False
+
+        if request.user.is_anonymous:
+            return False
+
+        if is_active_superuser(request):
+            return False
+
+        return True
 
     def is_member_disabled_from_limit(
         self, request: HttpRequest, organization: RpcUserOrganizationContext | RpcOrganization

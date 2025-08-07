@@ -13,7 +13,7 @@ export function makeFeedbackPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${FEEDBACK_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_FEEDBACK_BASE_PATHNAME}${path}`
   );

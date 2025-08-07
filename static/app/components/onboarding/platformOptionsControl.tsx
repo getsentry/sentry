@@ -61,7 +61,7 @@ function OptionControl({option, value, onChange}: OptionControlProps) {
   );
 }
 
-export type PlatformOptionsControlProps = {
+type PlatformOptionsControlProps = {
   /**
    * Object with an option array for each platformOption
    */

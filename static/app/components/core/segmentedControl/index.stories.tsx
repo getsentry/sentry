@@ -1,13 +1,10 @@
 import {Fragment, useState} from 'react';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {IconStats} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('SegmentedControl', story => {
+export default Storybook.story('SegmentedControl', story => {
   story('Controlled Value', () => {
     const [value, setValue] = useState('two');
     const [value2, setValue2] = useState('one');
@@ -16,11 +13,14 @@ export default storyBook('SegmentedControl', story => {
         <p>
           If you want to control the state of the tabs from outside, you can call{' '}
           <var>{'useState()'}</var> and set{' '}
-          <JSXNode name="SegmentedControl" props={{value: String, onChange: Function}} />{' '}
+          <Storybook.JSXNode
+            name="SegmentedControl"
+            props={{value: String, onChange: Function}}
+          />{' '}
           manually.
         </p>
         <p>selected={value}</p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <SegmentedControl value={value} onChange={setValue} priority="default">
             <SegmentedControl.Item key="one">One</SegmentedControl.Item>
             <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
@@ -31,10 +31,10 @@ export default storyBook('SegmentedControl', story => {
             <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
             <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
           </SegmentedControl>
-        </SideBySide>
+        </Storybook.SideBySide>
 
         <p>selected={value2}</p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <SegmentedControl value={value2} onChange={setValue2} priority="default">
             <SegmentedControl.Item key="one">One</SegmentedControl.Item>
             <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
@@ -43,13 +43,13 @@ export default storyBook('SegmentedControl', story => {
             <SegmentedControl.Item key="one">One</SegmentedControl.Item>
             <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
           </SegmentedControl>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
 
   story('Props', () => (
-    <Matrix
+    <Storybook.PropMatrix
       render={props => {
         const [value, setValue] = useState('two');
         return (
@@ -69,8 +69,8 @@ export default storyBook('SegmentedControl', story => {
   ));
 
   story('SegmentedControl.Item', () => (
-    <SideBySide>
-      <Matrix
+    <Storybook.SideBySide>
+      <Storybook.PropMatrix
         render={({showChild, ...props}) => {
           const [value, setValue] = useState('two');
           return (
@@ -105,7 +105,7 @@ export default storyBook('SegmentedControl', story => {
           icon: [undefined, <IconStats key="play" />],
         }}
       />
-      <Matrix
+      <Storybook.PropMatrix
         render={props => {
           const [value, setValue] = useState('two');
           return (
@@ -128,7 +128,7 @@ export default storyBook('SegmentedControl', story => {
           disabled: [false, true],
         }}
       />
-      <Matrix
+      <Storybook.PropMatrix
         render={props => {
           const [value, setValue] = useState('two');
           return (
@@ -151,6 +151,6 @@ export default storyBook('SegmentedControl', story => {
           priority: ['default' as const, 'primary' as const],
         }}
       />
-    </SideBySide>
+    </Storybook.SideBySide>
   ));
 });

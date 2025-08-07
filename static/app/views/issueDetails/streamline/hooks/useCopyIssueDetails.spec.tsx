@@ -41,7 +41,7 @@ describe('useCopyIssueDetails', () => {
 
   // Create a mock AutofixData with steps that includes root cause and solution steps
   const mockAutofixData: AutofixData = {
-    created_at: '2023-01-01T00:00:00Z',
+    last_triggered_at: '2023-01-01T00:00:00Z',
     request: {
       repos: [],
     },

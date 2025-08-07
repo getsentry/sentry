@@ -5,12 +5,13 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
@@ -22,39 +23,46 @@ describe('Visualize', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-widget-builder-redesign', 'performance-view'],
+      features: ['performance-view'],
     });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockImplementation((type?: 'number' | 'string') => {
+    jest.mocked(useTraceItemTags).mockImplementation((type?: 'number' | 'string') => {
       if (type === 'number') {
         const tags: TagCollection = {
           'span.duration': {
             key: 'span.duration',
             name: 'span.duration',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
           'span.self_time': {
             key: 'span.self_time',
             name: 'span.self_time',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
         };
-        return {tags, isLoading: false};
+        return {tags, isLoading: false, secondaryAliases: {}};
       }
 
       const tags: TagCollection = {
         'span.op': {
           key: 'span.op',
           name: 'span.op',
+          kind: FieldKind.TAG,
         },
         'span.description': {
           key: 'span.description',
           name: 'span.description',
+          kind: FieldKind.TAG,
         },
       };
 
       return {
         tags,
+        secondaryAliases: {},
         isLoading: false,
       };
     });
@@ -70,6 +78,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -79,6 +88,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -103,6 +114,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -112,6 +124,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -132,6 +146,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -141,6 +156,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -161,6 +178,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -170,6 +188,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -192,6 +212,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -201,6 +222,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -222,6 +245,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -231,6 +255,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -260,6 +286,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -269,6 +296,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -287,6 +316,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -296,6 +326,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -320,6 +352,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -329,6 +362,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -349,6 +384,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -358,6 +394,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -376,6 +414,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -385,6 +424,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -403,6 +444,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -412,6 +454,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -430,6 +474,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -439,6 +484,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -453,7 +500,7 @@ describe('Visualize', () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -464,6 +511,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -473,6 +521,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -490,7 +540,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -501,6 +551,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -510,6 +561,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -528,6 +581,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -537,6 +591,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -560,6 +616,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -569,6 +626,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -584,6 +643,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -593,6 +653,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -612,6 +674,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -621,6 +684,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -637,6 +702,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -646,6 +712,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -663,6 +731,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -672,6 +741,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -714,6 +785,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -722,6 +794,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -745,11 +819,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -764,6 +841,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -773,6 +851,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -794,6 +874,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -804,6 +885,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -817,7 +900,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({selectedAggregate: undefined}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -828,11 +911,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -853,11 +939,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -876,6 +965,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -884,6 +974,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -906,6 +998,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -914,6 +1007,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -930,11 +1025,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -954,11 +1052,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -975,6 +1076,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -983,6 +1085,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -998,6 +1102,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1007,6 +1112,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1022,11 +1129,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1049,11 +1159,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1073,11 +1186,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1104,6 +1220,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1112,6 +1229,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1131,7 +1250,7 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {
@@ -1146,6 +1265,7 @@ describe('Visualize', () => {
                 kind: 'measurement',
               },
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
@@ -1158,6 +1278,7 @@ describe('Visualize', () => {
               kind: 'tag',
             },
           } as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1170,6 +1291,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1179,6 +1301,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1200,6 +1324,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1209,6 +1334,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1238,6 +1365,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1247,6 +1375,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1266,6 +1396,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1275,6 +1406,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1288,18 +1421,20 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
             tags: {
               'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
 
         return {
           tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1309,6 +1444,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1318,6 +1454,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1335,6 +1473,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1344,6 +1483,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -1359,6 +1500,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1368,6 +1510,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1389,6 +1533,148 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'spans'
     );
+    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['epm()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables changing visualize fields for failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['failure_rate()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'epm'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+  });
+  it('changes to failure_rate() when using failure_rate', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_rate'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'failure_rate'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
   });
 
   it('defaults count_unique argument to span.op', async function () {
@@ -1398,6 +1684,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1407,6 +1694,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1455,5 +1744,73 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('span.op');
+  });
+
+  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async function () {
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be disabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeDisabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async function () {
+    const organizationWithoutDeprecation = OrganizationFixture({
+      features: [], // No discover-saved-queries-deprecation feature
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithoutDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be enabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
   });
 });

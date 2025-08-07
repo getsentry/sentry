@@ -16,7 +16,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg();
 
@@ -29,10 +30,14 @@ function wrapper({children}: {children?: ReactNode}) {
 
   queryClient.invalidateQueries = mockInvalidateQueries;
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
+    </QueryClientProvider>
+  );
 }
 
-function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
+function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
   const HYDRATED_REPLAY = ReplayRecordFixture({
     ...replayRecord,
     project_id: project.id,
@@ -96,11 +101,14 @@ describe('useReplayData', () => {
       expect(result.current).toEqual({
         attachments: expect.any(Array),
         errors: expect.any(Array),
+        feedbackEvents: expect.any(Array),
         fetchError: undefined,
-        fetching: false,
+        isError: false,
+        isPending: false,
         onRetry: expect.any(Function),
         projectSlug: project.slug,
         replayRecord: expectedReplay,
+        status: 'success',
       })
     );
   });
@@ -453,11 +461,14 @@ describe('useReplayData', () => {
     const expectedReplayData = {
       attachments: [],
       errors: [],
+      feedbackEvents: [],
       fetchError: undefined,
-      fetching: true,
+      isError: true,
+      isPending: true,
       onRetry: expect.any(Function),
       projectSlug: null,
       replayRecord: undefined,
+      status: 'error',
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made

@@ -1,9 +1,11 @@
 import type {FieldValue} from 'sentry/components/forms/model';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
+import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -24,17 +26,13 @@ type AddEventCTA = HasSub & {
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
 
-type OnDemandBudgetUpdate = {
-  attachment_budget: number;
-  error_budget: number;
-  previous_attachment_budget: number;
-  previous_error_budget: number;
+type OnDemandCategory = `${EventType}_budget` | `previous_${EventType}_budget`; // for whatever reason, we used singular category names historically :( so we use EventType to retain that
+
+type OnDemandBudgetUpdate = Partial<Record<OnDemandCategory, number>> & {
   previous_strategy: OnDemandBudgetStrategy;
   previous_total_budget: number;
-  previous_transaction_budget: number;
   strategy: OnDemandBudgetStrategy;
   total_budget: number;
-  transaction_budget: number;
 };
 
 export type ProductUnavailableUpsellAlert = {
@@ -86,29 +84,22 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
+  'checkout.product_select': Record<
+    SelectableProduct,
+    {
+      enabled: boolean;
+      previously_enabled: boolean;
+    }
+  > &
+    HasSub;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
   // no sub here
-  'checkout.upgrade': {
-    attachments?: number;
-    errors?: number;
-    monitorSeats?: number;
-    previous_attachments?: number;
-    previous_errors?: number;
-    previous_monitorSeats?: number;
-    previous_plan?: string;
-    previous_profileDuration?: number;
-    previous_replays?: number;
-    previous_spans?: number;
-    previous_transactions?: number;
-    previous_uptime?: number;
-    replays?: number;
-    spans?: number;
-    transactions?: number;
-    uptime?: number;
-  } & Checkout;
+  'checkout.upgrade': Partial<
+    Record<DataCategory | `previous_${DataCategory}`, number | undefined>
+  > & {previous_plan: string} & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
   'data_consent_settings.updated': {setting: string; value: FieldValue};
@@ -122,6 +113,7 @@ type GetsentryEventParameters = {
     value: FieldValue;
   };
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
+  'github.multi_org.upsell': {source?: string};
   'grace_period_modal.seen': HasSub;
   'growth.clicked_enter_sandbox': {
     scenario: string;
@@ -230,6 +222,7 @@ export type GetsentryEventKey = keyof GetsentryEventParameters;
 
 const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
+  'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_need_help': 'Growth: Onboarding Clicked Need Help',
   'growth.onboarding_clicked_upgrade': 'Growth: Onboarding Clicked Upgrade',
@@ -273,6 +266,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'am_checkout.viewed': 'AM Checkout: Viewed',
   'checkout.bundle_navigation': 'Checkout: Bundle Navigation',
   'checkout.change_plan': 'Checkout: Change Plan',
+  'checkout.product_select': 'Checkout: Product Select',
   'checkout.ondemand_changed': 'Checkout: Ondemand Changed',
   'checkout.payg_changed': 'Checkout: Pay As You Go Budget Changed',
   'checkout.change_contract': 'Checkout: Change Contract',

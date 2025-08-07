@@ -83,6 +83,7 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
             re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-autocomplete",
             )
         ]
 
@@ -142,7 +143,7 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError) and exc.code == 404:
             return ERR_404
         return super().message_from_error(exc)

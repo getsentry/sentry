@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
@@ -17,8 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
-import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
+import {TransactionDurationChartWithSamples} from 'sentry/views/insights/cache/components/charts/transactionDurationChartWithSamples';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -27,31 +29,14 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {
-  useMetrics,
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
-import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
-import {
-  MetricsFields,
-  type MetricsQueryFilters,
-  ModuleName,
-  SpanFunction,
-  SpanIndexedField,
-  type SpanIndexedQueryFilters,
-  type SpanIndexedResponse,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/types';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -69,10 +54,8 @@ export function CacheSamplePanel() {
     },
   });
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    10
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
@@ -92,74 +75,66 @@ export function CacheSamplePanel() {
     });
   };
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
     'project.id': query.project,
   };
 
-  const {data: cacheHitRateData, isPending: isCacheHitRateLoading} = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
-      yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
-  );
+  const search = MutableSearch.fromQueryObject(filters);
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
-    useSpanMetrics(
+    useSpans(
       {
-        search: MutableSearch.fromQueryObject(filters),
+        search,
         fields: [
           `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
-          `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-          `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-          `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
+          `sum(${SpanFields.SPAN_SELF_TIME})`,
+          `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         ],
       },
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
 
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
-    useMetrics(
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({
           transaction: query.transaction,
-        } satisfies MetricsQueryFilters),
-        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+          is_transaction: 'true',
+        } satisfies SpanQueryFilters),
+        fields: [`avg(${SpanFields.SPAN_DURATION})`],
       },
       Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
     );
 
-  const sampleFilters: SpanIndexedQueryFilters = {
+  const sampleFilters: SpanQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
-    project_id: query.project,
+    ['project.id']: query.project,
   };
 
-  const useIndexedCacheSpans = (
-    isCacheHit: SpanIndexedResponse['cache.hit'],
-    limit: number
-  ) =>
-    useSpansIndexed(
+  const useIndexedCacheSpans = (isCacheHit: SpanResponse['cache.hit'], limit: number) =>
+    useSpans(
       {
         search: MutableSearch.fromQueryObject({
           ...sampleFilters,
           ...new MutableSearch(query.spanSearchQuery).filters,
-          'cache.hit': isCacheHit,
+          'cache.hit': `${isCacheHit}`,
         }),
         fields: [
-          SpanIndexedField.PROJECT,
-          SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_ID,
-          SpanIndexedField.SPAN_ID,
-          SpanIndexedField.TIMESTAMP,
-          SpanIndexedField.SPAN_DESCRIPTION,
-          SpanIndexedField.CACHE_HIT,
-          SpanIndexedField.SPAN_OP,
-          SpanIndexedField.CACHE_ITEM_SIZE,
+          SpanFields.ID,
+          SpanFields.PROJECT,
+          SpanFields.TRACE,
+          SpanFields.TRANSACTION_SPAN_ID,
+          SpanFields.SPAN_ID,
+          SpanFields.TIMESTAMP,
+          SpanFields.SPAN_DESCRIPTION,
+          SpanFields.CACHE_HIT,
+          SpanFields.SPAN_OP,
+          SpanFields.CACHE_ITEM_SIZE,
+          SpanFields.TRACE,
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
@@ -183,33 +158,52 @@ export function CacheSamplePanel() {
     data: cacheHitSamples,
     isFetching: isCacheHitsFetching,
     refetch: refetchCacheHits,
-  } = useIndexedCacheSpans('true', cacheHitSamplesLimit);
+  } = useIndexedCacheSpans(true, cacheHitSamplesLimit);
 
   const {
     data: cacheMissSamples,
     isFetching: isCacheMissesFetching,
     refetch: refetchCacheMisses,
-  } = useIndexedCacheSpans('false', cacheMissSamplesLimit);
+  } = useIndexedCacheSpans(false, cacheMissSamplesLimit);
 
-  const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
+  const cacheSamples = useMemo(() => {
+    return [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
+  }, [cacheHitSamples, cacheMissSamples]);
+
+  const transactionIds =
+    cacheSamples?.map(span => span[SpanFields.TRANSACTION_SPAN_ID]) || [];
+  const traceIds = cacheSamples?.map(span => span.trace) || [];
+  const transactionDurationSearch = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] trace:[${traceIds.join(',')}] is_transaction:true`;
 
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useTransactions(
-    cacheSamples?.map(span => span['transaction.id']) || [],
+  } = useSpans(
+    {
+      search: transactionDurationSearch,
+      enabled: Boolean(transactionIds.length),
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
+    },
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
-  const transactionDurationsMap = keyBy(transactionData, 'id');
-
-  const spansWithDuration =
-    cacheSamples?.map(span => ({
+  const spansWithDuration = useMemo(() => {
+    const transactionDurationsMap = keyBy(transactionData, 'id');
+    return cacheSamples.map(span => ({
       ...span,
+      'cache.hit':
+        span['cache.hit'] === undefined
+          ? ''
+          : (`${span['cache.hit']}` as 'true' | 'false' | ''),
       'transaction.duration':
-        transactionDurationsMap[span['transaction.id']]?.['transaction.duration']!,
-    })) || [];
+        transactionDurationsMap[span[SpanFields.TRANSACTION_SPAN_ID]]?.['span.duration']!,
+    }));
+  }, [cacheSamples, transactionData]);
+
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spansWithDuration, 'id');
+  }, [spansWithDuration]);
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
@@ -229,159 +223,171 @@ export function CacheSamplePanel() {
     refetchCacheMisses();
   };
 
+  const avg = transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`] ?? 0;
+
+  const samplesPlottable = useMemo(() => {
+    // Create a `TabularData` object from multiple datasets. This requires
+    // setting the meta manually. A little annoying, but the meta is simple.
+    const sampleData = {
+      data: spansWithDuration,
+      meta: {
+        fields: {'span.duration': 'duration'},
+        units: {'span.duration': DurationUnit.MILLISECOND},
+      },
+    } satisfies TabularData;
+
+    return new Samples(sampleData, {
+      attributeName: 'transaction.duration',
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onHighlight: sample => {
+        setHighlightedSpanId(sample.id);
+      },
+      onDownplay: () => {
+        setHighlightedSpanId(undefined);
+      },
+    });
+  }, [avg, spansWithDuration, setHighlightedSpanId]);
+
+  useEffect(() => {
+    if (highlightedSpanId) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
+
+    return () => {
+      if (!highlightedSpanId) {
+        return;
+      }
+
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
-        <SampleDrawerHeaderTransaction
-          project={project}
-          transaction={query.transaction}
-        />
-      </DrawerHeader>
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={query.transaction}
+          />
+        </EventDrawerHeader>
 
-      <SampleDrawerBody>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <ReadoutRibbon>
-              <MetricReadout
-                title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
-                value={
-                  cacheTransactionMetrics?.[0]?.[
-                    `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`
-                  ]
-                }
-                unit={SizeUnit.BYTE}
-                isLoading={areCacheTransactionMetricsFetching}
-              />
-              <MetricReadout
-                title={getThroughputTitle('cache')}
-                value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
-                unit={RateUnit.PER_MINUTE}
-                isLoading={areCacheTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
-                value={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
-                }
-                unit={DurationUnit.MILLISECOND}
-                isLoading={isTransactionDurationLoading}
-              />
-
-              <MetricReadout
-                title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
-                value={
-                  cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
-                }
-                unit="percentage"
-                isLoading={areCacheTransactionMetricsFetching}
-              />
-
-              <MetricReadout
-                title={DataTitles.timeSpent}
-                value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
-                unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']!
-                )}
-                isLoading={areCacheTransactionMetricsFetching}
-              />
-            </ReadoutRibbon>
-          </ModuleLayout.Full>
-          <ModuleLayout.Full>
-            <CompactSelect
-              value={query.statusClass}
-              options={CACHE_STATUS_OPTIONS}
-              onChange={handleStatusClassChange}
-              triggerProps={{
-                prefix: t('Status'),
-              }}
-            />
-          </ModuleLayout.Full>
-          <ModuleLayout.Half>
-            <CacheHitMissChart
-              isLoading={isCacheHitRateLoading}
-              series={cacheHitRateData[`cache_miss_rate()`]}
-            />
-          </ModuleLayout.Half>
-          <ModuleLayout.Half>
-            <TransactionDurationChart
-              samples={spansWithDuration}
-              averageTransactionDuration={
-                transactionDurationData?.[0]?.[
-                  `avg(${MetricsFields.TRANSACTION_DURATION})`
-                ]!
-              }
-              highlightedSpanId={highlightedSpanId}
-              onHighlight={highlights => {
-                const firstHighlight = highlights[0];
-
-                if (!firstHighlight || !firstHighlight.dataPoint) {
-                  setHighlightedSpanId(undefined);
-                  return;
-                }
-
-                const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
-                  firstHighlight.dataPoint,
-                  spansWithDuration,
-                  'transaction.duration'
-                );
-                setHighlightedSpanId(sample?.span_id);
-              }}
-            />
-          </ModuleLayout.Half>
-
-          <ModuleLayout.Full>
-            <SpanSearchQueryBuilder
-              searchSource={`${ModuleName.CACHE}-sample-panel`}
-              initialQuery={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              projects={selection.projects}
-            />
-          </ModuleLayout.Full>
-
-          <Fragment>
+        <SampleDrawerBody>
+          <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <SpanSamplesTable
-                data={spansWithDuration ?? []}
-                meta={{
-                  fields: {
-                    'transaction.duration': 'duration',
-                    [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',
-                  },
-                  units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
+              <ReadoutRibbon>
+                <MetricReadout
+                  title={DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`]}
+                  value={
+                    cacheTransactionMetrics?.[0]?.[`avg(${SpanFields.CACHE_ITEM_SIZE})`]
+                  }
+                  unit={SizeUnit.BYTE}
+                  isLoading={areCacheTransactionMetricsFetching}
+                />
+                <MetricReadout
+                  title={getThroughputTitle('cache')}
+                  value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
+                  unit={RateUnit.PER_MINUTE}
+                  isLoading={areCacheTransactionMetricsFetching}
+                />
+
+                <MetricReadout
+                  title={DataTitles['avg(transaction.duration)']}
+                  value={
+                    transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]
+                  }
+                  unit={DurationUnit.MILLISECOND}
+                  isLoading={isTransactionDurationLoading}
+                />
+
+                <MetricReadout
+                  title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
+                  value={
+                    cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
+                  }
+                  unit="percentage"
+                  isLoading={areCacheTransactionMetricsFetching}
+                />
+
+                <MetricReadout
+                  title={DataTitles.timeSpent}
+                  value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
+                  unit={DurationUnit.MILLISECOND}
+                  isLoading={areCacheTransactionMetricsFetching}
+                />
+              </ReadoutRibbon>
+            </ModuleLayout.Full>
+            <ModuleLayout.Full>
+              <CompactSelect
+                value={query.statusClass}
+                options={CACHE_STATUS_OPTIONS}
+                onChange={handleStatusClassChange}
+                triggerProps={{
+                  prefix: t('Status'),
                 }}
-                isLoading={
-                  isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
-                }
-                highlightedSpanId={highlightedSpanId}
-                onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
-                onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-                error={transactionError}
               />
             </ModuleLayout.Full>
-          </Fragment>
+            <ModuleLayout.Half>
+              <CacheHitMissChart search={search} />
+            </ModuleLayout.Half>
+            <ModuleLayout.Half>
+              <TransactionDurationChartWithSamples samples={samplesPlottable} />
+            </ModuleLayout.Half>
 
-          <Fragment>
             <ModuleLayout.Full>
-              <Button
-                onClick={() => {
-                  trackAnalytics(
-                    'performance_views.sample_spans.try_different_samples_clicked',
-                    {organization, source: ModuleName.CACHE}
-                  );
-                  handleRefetch();
-                }}
-              >
-                {t('Try Different Samples')}
-              </Button>
+              <EapSpanSearchQueryBuilderWrapper
+                searchSource={`${ModuleName.CACHE}-sample-panel`}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                projects={selection.projects}
+              />
             </ModuleLayout.Full>
-          </Fragment>
-        </ModuleLayout.Layout>
-      </SampleDrawerBody>
+
+            <Fragment>
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={spansWithDuration ?? []}
+                  meta={{
+                    // TODO: combine meta between samples and transactions response instead
+                    fields: {
+                      'transaction.duration': 'duration',
+                      [SpanFields.CACHE_ITEM_SIZE]: 'size',
+                    },
+                    units: {[SpanFields.CACHE_ITEM_SIZE]: 'byte'},
+                  }}
+                  isLoading={
+                    isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
+                  }
+                  highlightedSpanId={highlightedSpanId}
+                  onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                  onSampleMouseOut={() => setHighlightedSpanId(undefined)}
+                  error={transactionError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+
+            <Fragment>
+              <ModuleLayout.Full>
+                <Button
+                  onClick={() => {
+                    trackAnalytics(
+                      'performance_views.sample_spans.try_different_samples_clicked',
+                      {organization, source: ModuleName.CACHE}
+                    );
+                    handleRefetch();
+                  }}
+                >
+                  {t('Try Different Samples')}
+                </Button>
+              </ModuleLayout.Full>
+            </Fragment>
+          </ModuleLayout.Layout>
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }

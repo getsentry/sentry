@@ -12,7 +12,7 @@ const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
-export function openDemoSignupModal() {
+function openDemoSignupModal() {
   if (!isDemoModeActive()) {
     return;
   }

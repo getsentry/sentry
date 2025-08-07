@@ -48,7 +48,11 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     return null;
   }
 
-  return <SecondaryNav.Section title={name}>{navLinks}</SecondaryNav.Section>;
+  return (
+    <SecondaryNav.Section id={props.id} title={name}>
+      {navLinks}
+    </SecondaryNav.Section>
+  );
 }
 
 export default SettingsNavigationGroup;

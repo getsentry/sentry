@@ -58,6 +58,8 @@ from sentry.statistical_detectors.issue_platform_adapter import (
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks, profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
@@ -110,6 +112,10 @@ def all_projects_with_flags() -> Generator[tuple[int, int]]:
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def run_detection() -> None:
     if not options.get("statistical_detectors.enable"):
@@ -164,7 +170,7 @@ def dispatch_performance_projects(
                 args=[
                     [],
                     projects,
-                    timestamp,
+                    timestamp.isoformat(),
                 ],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
@@ -178,7 +184,7 @@ def dispatch_performance_projects(
             args=[
                 [],
                 projects,
-                timestamp,
+                timestamp.isoformat(),
             ],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
@@ -205,7 +211,7 @@ def dispatch_profiling_projects(
 
         if len(projects) >= PROJECTS_PER_BATCH:
             detect_function_trends.apply_async(
-                args=[projects, timestamp],
+                args=[projects, timestamp.isoformat()],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
             projects = []
@@ -215,7 +221,7 @@ def dispatch_profiling_projects(
     # make sure to dispatch a task to handle the remaining projects
     if projects:
         detect_function_trends.apply_async(
-            args=[projects, timestamp],
+            args=[projects, timestamp.isoformat()],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
 
@@ -323,12 +329,18 @@ class FunctionRegressionDetector(RegressionDetector):
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    start_time = datetime.fromisoformat(start)
 
     EndpointRegressionDetector.configure_tags()
 
@@ -337,20 +349,20 @@ def detect_transaction_trends(
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
-    trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.detect_trends(projects, start_time)
     trends = EndpointRegressionDetector.get_regression_groups(trends)
-    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-    trends = EndpointRegressionDetector.redirect_escalations(trends, start)
+    trends = EndpointRegressionDetector.redirect_resolutions(trends, start_time)
+    trends = EndpointRegressionDetector.redirect_escalations(trends, start_time)
     trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
-    delayed_start = start + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=delay)
 
     for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
@@ -363,11 +375,16 @@ def detect_transaction_trends(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+    ),
 )
 def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
 ) -> None:
-    _detect_transaction_change_points(transactions, start, *args, **kwargs)
+    start_time = datetime.fromisoformat(start)
+
+    _detect_transaction_change_points(transactions, start_time, *args, **kwargs)
 
 
 def _detect_transaction_change_points(
@@ -412,10 +429,16 @@ def _detect_transaction_change_points(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+        processing_deadline_duration=30,
+    ),
 )
-def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwargs) -> None:
+def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    start_time = datetime.fromisoformat(start)
 
     FunctionRegressionDetector.configure_tags()
 
@@ -424,20 +447,20 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
         project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
-    trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.detect_trends(projects, start_time)
     trends = FunctionRegressionDetector.get_regression_groups(trends)
-    trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
-    trends = FunctionRegressionDetector.redirect_escalations(trends, start)
+    trends = FunctionRegressionDetector.redirect_resolutions(trends, start_time)
+    trends = FunctionRegressionDetector.redirect_escalations(trends, start_time)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
-    delayed_start = start + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=delay)
 
     for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
@@ -450,11 +473,16 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+    ),
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
 ) -> None:
-    _detect_function_change_points(functions_list, start, *args, **kwargs)
+    start_time = datetime.fromisoformat(start)
+
+    _detect_function_change_points(functions_list, start_time, *args, **kwargs)
 
 
 def _detect_function_change_points(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -24,12 +25,14 @@ from sentry.integrations.messaging.message_builder import (
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
+    SlackAction,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
@@ -39,7 +42,7 @@ from sentry.integrations.slack.utils.escape import (
     escape_slack_text,
 )
 from sentry.integrations.time_utils import get_approx_start_time, time_since
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
@@ -52,13 +55,14 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -66,12 +70,12 @@ from sentry.users.services.user.model import RpcUser
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
-    "github",
+    IntegrationProviderSlug.GITHUB.value,
     "integrations:github",
     "integrations:github_enterprise",
     "integrations:vsts",
     "integrations:gitlab",
-    "bitbucket",
+    IntegrationProviderSlug.BITBUCKET.value,
     "integrations:bitbucket",
 )
 
@@ -268,12 +272,7 @@ def get_suggested_assignees(
     project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees = []
-    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-    if (
-        issue_owners != ProjectOwnership.Everyone
-    ):  # we don't want every user in the project to be a suggested assignee
-        suggested_assignees = issue_owners
+    suggested_assignees, _ = ProjectOwnership.get_owners(project.id, event.data)
     try:
         suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
@@ -325,7 +324,7 @@ def get_suspect_commit_text(group: Group) -> str | None:
         repo_base = repo.url
         provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
-            if "bitbucket" in provider:
+            if IntegrationProviderSlug.BITBUCKET.value in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
             else:
                 commit_link = f"<{repo_base}/commit/{commit_id}"
@@ -378,22 +377,61 @@ def build_actions(
         if group.issue_category == GroupCategory.FEEDBACK:
             return None
         if status == GroupStatus.IGNORED:
-            return MessageAction(name="status", label="Mark as Ongoing", value="unresolved:ongoing")
+            return MessageAction(
+                name="status",
+                label="Mark as Ongoing",
+                value="unresolved:ongoing",
+                action_id=encode_action_id(
+                    action=SlackAction.UNRESOLVED_ONGOING,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
+            )
 
-        return MessageAction(name="status", label="Archive", value="archive_dialog")
+        return MessageAction(
+            name="status",
+            label="Archive",
+            value="archive_dialog",
+            action_id=encode_action_id(
+                action=SlackAction.ARCHIVE_DIALOG,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
+        )
 
     def _resolve_button() -> MessageAction:
         if status == GroupStatus.RESOLVED:
             return MessageAction(
-                name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
+                name="unresolved:ongoing",
+                label="Unresolve",
+                value="unresolved:ongoing",
+                action_id=encode_action_id(
+                    action=SlackAction.UNRESOLVED_ONGOING,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
             )
         if not project.flags.has_releases:
-            return MessageAction(name="status", label="Resolve", value="resolved")
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolved",
+                action_id=encode_action_id(
+                    action=SlackAction.STATUS,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
+                ),
+            )
 
         return MessageAction(
             name="status",
             label="Resolve",
             value="resolve_dialog",
+            action_id=encode_action_id(
+                action=SlackAction.RESOLVE_DIALOG,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
         )
 
     def _assign_button() -> MessageAction:
@@ -403,6 +441,11 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
+            action_id=encode_action_id(
+                action=SlackAction.ASSIGN,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+            ),
         )
         return assign_button
 
@@ -460,41 +503,51 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        # If using summary, put the body in the headline as well
-        headline = None
-        if self.issue_summary is not None:
-            error_type = build_attachment_title(event_or_group)
-            text = build_attachment_text(self.group, self.event) or ""
-            text = text.strip(" \n")
-            text = escape_slack_markdown_text(text)
-            text = text.lstrip(" ")
-            if "\n" in text:
-                text = text.strip().split("\n")[0] + "..."
-            if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
-                text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
-            headline = f"{error_type}: {text}" if text else error_type
+        summary_headline = self.get_issue_summary_headline(event_or_group)
+        title = summary_headline or build_attachment_title(event_or_group)
+        title_emojis = self.get_title_emoji(has_action)
 
-        title = headline if headline else build_attachment_title(event_or_group)
+        return self.get_rich_text_link(title_emojis, title, title_link)
 
+    def get_title_emoji(self, has_action: bool) -> list[str]:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
-        title_emoji = None
+
+        title_emojis: list[str] = []
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
-            title_emoji = (
+            title_emojis = (
                 ACTION_EMOJI
                 if is_error_issue
-                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
             )
         elif is_error_issue:
             level_text = LOG_LEVELS[self.group.level]
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            title_emojis = LEVEL_TO_EMOJI.get(level_text, [])
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
-        title_emoji = title_emoji + " " if title_emoji else ""
-        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
+        return title_emojis
 
-        return self.get_markdown_block(title_text)
+    def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
+        if self.issue_summary is None:
+            return None
+
+        # issue summary headline is formatted like ErrorType: message...
+        error_type = build_attachment_title(event_or_group)
+        text = build_attachment_text(self.group, self.event) or ""
+        text = text.strip(" \r\n\u2028\u2029")
+        text = escape_slack_markdown_text(text)
+        text = text.lstrip(" ")
+
+        linebreak_match = re.search(r"\r?\n|\u2028|\u2029", text)
+        if linebreak_match:
+            text = text[: linebreak_match.start()].strip() + "..."
+
+        if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+            text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+
+        headline = f"{error_type}: {text}" if text else error_type
+        return headline
 
     def get_issue_summary_text(self) -> str | None:
         """Generate formatted text from issue summary fields."""
@@ -572,13 +625,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else:
                 footer_text = footer_text[:-4]  # chop off the empty space
 
-            if self.issue_summary:
-                footer_text += "    Powered by Seer"
-
             return self.get_context_block(text=footer_text)
         else:
-            if self.issue_summary:
-                footer += " | Powered by Seer"
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
@@ -614,9 +662,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             if features.has("organizations:workflow-engine-ui-links", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", self.group.organization
-            ):
+            elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
             else:
                 rule_id = self.rules[0].id

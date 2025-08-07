@@ -1,6 +1,5 @@
 from warnings import warn
 
-from sentry import options
 from sentry.utils.safe import get_path
 from sentry.utils.strings import strip, truncatechars
 
@@ -49,11 +48,7 @@ class DefaultEvent(BaseEvent):
         )
 
         if message:
-            if options.get("sentry.save-event.title-char-limit-256.enabled"):
-                truncate_to = 256
-            else:
-                truncate_to = 100
-            title = truncatechars(message.splitlines()[0], truncate_to)
+            title = truncatechars(message.splitlines()[0], 256)
         else:
             title = "<unlabeled event>"
 

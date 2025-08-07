@@ -72,7 +72,7 @@ If there are no issue state changes (causes no group ids), then do not filter by
 
 
 def get_update_kwargs_for_groups(
-    dataset: Dataset,
+    dataset: Dataset | None,
     group_ids: Sequence[int],
     kwargs: dict[str, Any],
     has_issue_state_condition: bool = True,

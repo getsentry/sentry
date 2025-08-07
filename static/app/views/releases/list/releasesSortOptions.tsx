@@ -53,7 +53,7 @@ export default ReleasesSortOptions;
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 2;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     order: 2;
   }
 `;

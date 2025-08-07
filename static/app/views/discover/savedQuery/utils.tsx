@@ -11,7 +11,8 @@ import {
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {Link} from 'sentry/components/core/link';
+import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
@@ -22,6 +23,7 @@ import {
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
@@ -198,8 +200,16 @@ export function handleUpdateHomepageQuery(
       addSuccessMessage(t('Saved as Discover default'));
       return savedQuery;
     })
-    .catch(() => {
-      addErrorMessage(t('Unable to set query as Discover default'));
+    .catch((e: RequestError) => {
+      let errorMessage = t('Unable to set query as Discover default');
+
+      if ('responseJSON' in e) {
+        const response = e.responseJSON;
+        if (response?.non_field_errors && Array.isArray(response.non_field_errors)) {
+          errorMessage = response.non_field_errors[0];
+        }
+      }
+      addErrorMessage(errorMessage);
     });
 }
 
@@ -215,7 +225,7 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
     });
 }
 
-export function getAnalyticsCreateEventKeyName(
+function getAnalyticsCreateEventKeyName(
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
   isNewQuery: boolean,
@@ -232,7 +242,7 @@ export function getAnalyticsCreateEventKeyName(
  * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
  * the desired fields to populate into reload analytics
  */
-export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   const {projects, fields, query} = payload;
   return {
     projects,
@@ -337,4 +347,13 @@ export function getSavedQueryDatasetFromLocationOrDataset(
     default:
       return undefined;
   }
+}
+
+export function getTransactionDeprecationMessage(tracesUrl: string) {
+  return tct(
+    'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+    {
+      traces: <Link to={tracesUrl} />,
+    }
+  );
 }

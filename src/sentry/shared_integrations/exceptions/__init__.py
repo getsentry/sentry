@@ -169,7 +169,7 @@ class IntegrationError(Exception):
     pass
 
 
-class IntegrationInstallationConfigurationError(Exception):
+class IntegrationInstallationConfigurationError(IntegrationError):
     """
     Error when external API access is blocked due to configuration issues
     like permissions, visibility changes, or invalid project settings.
@@ -178,6 +178,12 @@ class IntegrationInstallationConfigurationError(Exception):
     """
 
     pass
+
+
+class IntegrationResourceNotFoundError(IntegrationError):
+    """
+    Error when an external API resource is not found.
+    """
 
 
 class IntegrationProviderError(Exception):
@@ -189,7 +195,7 @@ class DuplicateDisplayNameError(IntegrationError):
 
 
 class IntegrationFormError(IntegrationError):
-    def __init__(self, field_errors: Mapping[str, Any]) -> None:
+    def __init__(self, field_errors: Mapping[str, Any] | None = None) -> None:
         error = "Invalid integration action"
         if field_errors:
             error = str(field_errors)

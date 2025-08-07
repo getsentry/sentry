@@ -10,6 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 function setupConfigStore(organization: Organization) {
@@ -81,7 +82,10 @@ describe('IntegrationOrganizationLink', () => {
       body: {providers: [VercelProviderFixture()]},
     });
 
-    render(<IntegrationOrganizationLink />, {router});
+    render(<IntegrationOrganizationLink />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(getOrgsMock).toHaveBeenCalled();
@@ -89,7 +93,9 @@ describe('IntegrationOrganizationLink', () => {
 
     // Select organization
     await selectEvent.select(screen.getByRole('textbox'), org2.name);
-    expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl(org2.slug));
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+      generateOrgSlugUrl(org2.slug)
+    );
   });
   it('Selecting the same org as the domain allows you to install', async () => {
     setupConfigStore(org2);
@@ -106,12 +112,15 @@ describe('IntegrationOrganizationLink', () => {
       body: org2,
     });
 
-    render(<IntegrationOrganizationLink />, {router});
+    render(<IntegrationOrganizationLink />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     // Select the same organization as the domain
     await selectEvent.select(screen.getByRole('textbox'), org2.name);
-    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
     expect(getProviderMock).toHaveBeenCalled();

@@ -8,9 +8,8 @@ import {
   SentryAppInstallsFixture,
 } from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
@@ -23,7 +22,6 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const router = RouterFixture();
   const organization = OrganizationFixture();
 
   describe('Renders view', function () {
@@ -52,7 +50,9 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('shows installed integrations at the top in order of weight', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -69,7 +69,9 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -77,10 +79,26 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
+    });
+
+    it('shows integrations that match the search query', async function () {
+      render(<IntegrationListDirectory />, {organization});
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(screen.queryByText('PagerDuty (Legacy)')).not.toBeInTheDocument();
+      expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+      expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
     });
   });
 });

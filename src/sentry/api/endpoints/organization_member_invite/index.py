@@ -158,7 +158,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         referrer = request.query_params.get("referrer")
         omi.send_invite_email(referrer)
         member_invited.send_robust(
-            invited_member=omi,
+            member=omi,
             user=request.user,
             sender=self,
             referrer=request.data.get("referrer"),
@@ -184,7 +184,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         async_send_notification(InviteRequestNotification, omi, request.user)
         return Response(serialize(omi), status=201)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List all organization member invites.
         """

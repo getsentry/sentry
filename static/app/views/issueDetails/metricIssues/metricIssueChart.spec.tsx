@@ -20,8 +20,8 @@ describe('MetricIssueChart', () => {
   const incident = IncidentFixture({alertRule: rule});
   const group = GroupFixture({
     project,
-    issueCategory: IssueCategory.METRIC_ALERT,
-    issueType: IssueType.METRIC_ISSUE_POC,
+    issueCategory: IssueCategory.METRIC,
+    issueType: IssueType.METRIC_ISSUE,
   });
   const event = EventFixture({
     contexts: {

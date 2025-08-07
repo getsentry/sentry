@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
-import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -49,7 +48,7 @@ export const TraceDetailHeader = styled('div')`
   gap: ${space(3)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }
@@ -63,11 +62,6 @@ export const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-`;
-
-export const TracePanel = styled(Panel)`
-  height: 100%;
-  overflow: auto;
 `;
 
 export const ProjectBadgeContainer = styled('span')`

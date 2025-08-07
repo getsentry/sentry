@@ -4,7 +4,7 @@ import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
 import {Button} from 'sentry/components/core/button';
-import {Checkbox, type CheckboxProps} from 'sentry/components/core/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -35,6 +35,7 @@ export interface HybridFilterProps<Value extends SelectKey>
     | 'onKeyUp'
     | 'onToggle'
   > {
+  checkboxPosition: 'leading' | 'trailing';
   /**
    * Default selection value. When the user clicks "Reset", the selection value will
    * return to this value.
@@ -43,7 +44,7 @@ export interface HybridFilterProps<Value extends SelectKey>
   onChange: (selected: Value[]) => void;
   value: Value[];
   checkboxWrapper?: (
-    renderCheckbox: (props: CheckboxProps) => React.ReactNode
+    renderCheckbox: (props: {disabled?: boolean}) => React.ReactNode
   ) => React.ReactNode;
   /**
    * Whether to disable the commit action in multiple selection mode. When true, the
@@ -92,6 +93,7 @@ export function HybridFilter<Value extends SelectKey>({
   menuFooter,
   menuFooterMessage,
   checkboxWrapper,
+  checkboxPosition,
   disableCommit,
   ...selectProps
 }: HybridFilterProps<Value>) {
@@ -174,42 +176,65 @@ export function HybridFilter<Value extends SelectKey>({
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
-      trailingItems: ({isFocused, isSelected, disabled}) => {
-        function TrailingCheckbox(props: CheckboxProps) {
-          return (
-            <CheckWrap
-              visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
-              role="presentation"
-            >
-              <Checkbox
-                size="sm"
-                checked={isSelected}
-                disabled={disabled || props.disabled}
-                onChange={() => toggleOption(option.value)}
-                aria-label={t('Select %s', option.label)}
-                tabIndex={-1}
-                {...props}
-              />
-            </CheckWrap>
-          );
-        }
-
-        return (
-          <TrailingWrap
+      leadingItems: ({isFocused, isSelected, disabled}) => {
+        const children =
+          typeof option.leadingItems === 'function'
+            ? option.leadingItems({isFocused, isSelected, disabled})
+            : option.leadingItems;
+        return children || checkboxPosition === 'leading' ? (
+          <ItemsWrap
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
           >
-            {typeof option.trailingItems === 'function'
-              ? option.trailingItems({isFocused, isSelected, disabled})
-              : option.trailingItems}
-            {checkboxWrapper ? (
-              checkboxWrapper(props => <TrailingCheckbox {...props} />)
+            {checkboxPosition === 'leading' ? (
+              <FilterCheckbox
+                isSelected={isSelected}
+                disabled={disabled}
+                option={option}
+                isFocused={isFocused}
+                modifierKeyPressed={modifierKeyPressed}
+                toggleOption={toggleOption}
+                multiple={multiple}
+                checkboxWrapper={checkboxWrapper}
+              >
+                {children}
+              </FilterCheckbox>
             ) : (
-              <TrailingCheckbox />
+              children
             )}
-          </TrailingWrap>
-        );
+          </ItemsWrap>
+        ) : null;
+      },
+      trailingItems: ({isFocused, isSelected, disabled}) => {
+        const children =
+          typeof option.trailingItems === 'function'
+            ? option.trailingItems({isFocused, isSelected, disabled})
+            : option.trailingItems;
+        return children || checkboxPosition === 'trailing' ? (
+          <ItemsWrap
+            onKeyDown={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
+            {checkboxPosition === 'trailing' ? (
+              <FilterCheckbox
+                isSelected={isSelected}
+                disabled={disabled}
+                option={option}
+                isFocused={isFocused}
+                modifierKeyPressed={modifierKeyPressed}
+                toggleOption={toggleOption}
+                multiple={multiple}
+                checkboxWrapper={checkboxWrapper}
+              >
+                {children}
+              </FilterCheckbox>
+            ) : (
+              children
+            )}
+          </ItemsWrap>
+        ) : null;
       },
     });
 
@@ -218,7 +243,14 @@ export function HybridFilter<Value extends SelectKey>({
         ? {...item, options: item.options.map(mapOption)}
         : mapOption(item)
     );
-  }, [options, toggleOption, multiple, checkboxWrapper, modifierKeyPressed]);
+  }, [
+    options,
+    checkboxPosition,
+    modifierKeyPressed,
+    toggleOption,
+    multiple,
+    checkboxWrapper,
+  ]);
 
   const [modifierTipSeen, setModifierTipSeen] = useSyncedLocalStorageState(
     'hybrid-filter:modifier-tip-seen',
@@ -393,13 +425,16 @@ export function HybridFilter<Value extends SelectKey>({
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
-  margin: -${space(0.25)} -${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;
 
-const TrailingWrap = styled('div')`
+const ItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -410,7 +445,7 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: ${p => (p.visible ? 1 : 0.5)};
+  opacity: ${p => (p.theme.isChonk ? undefined : p.visible ? 1 : 0.5)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
 `;
 
@@ -432,7 +467,7 @@ const FooterMessage = styled('p')`
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const FooterTip = styled('p')`
@@ -442,7 +477,7 @@ const FooterTip = styled('p')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
 
   /* Right-align content if there's non-empty content to the left */
@@ -475,3 +510,62 @@ const FooterInnerWrap = styled('div')`
     justify-items: start;
   }
 `;
+
+type CheckboxProps<Value extends SelectKey> = {
+  disabled: boolean;
+  isFocused: boolean;
+  isSelected: boolean;
+  modifierKeyPressed: boolean;
+  option: SelectOption<Value>;
+  toggleOption: (value: Value) => void;
+};
+
+function WrappedCheckbox<Value extends SelectKey>({
+  isFocused,
+  isSelected,
+  multiple,
+  modifierKeyPressed,
+  option,
+  disabled,
+  toggleOption,
+}: CheckboxProps<Value> & Pick<HybridFilterProps<Value>, 'multiple'>) {
+  return (
+    <CheckWrap
+      visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
+      role="presentation"
+    >
+      <Checkbox
+        size="sm"
+        checked={isSelected}
+        disabled={disabled}
+        onChange={() => toggleOption(option.value)}
+        aria-label={t('Select %s', option.label)}
+        tabIndex={-1}
+      />
+    </CheckWrap>
+  );
+}
+
+function FilterCheckbox<Value extends SelectKey>({
+  checkboxWrapper,
+  children,
+  ...props
+}: CheckboxProps<Value> & {
+  children: React.ReactNode;
+} & Pick<HybridFilterProps<Value>, 'checkboxWrapper' | 'multiple'>) {
+  return (
+    <Fragment>
+      {children}
+      {checkboxWrapper ? (
+        checkboxWrapper(checkboxWrapperProps => (
+          <WrappedCheckbox
+            {...props}
+            disabled={props.disabled || !!checkboxWrapperProps.disabled}
+          />
+        ))
+      ) : (
+        <WrappedCheckbox {...props} />
+      )}
+    </Fragment>
+  );
+}

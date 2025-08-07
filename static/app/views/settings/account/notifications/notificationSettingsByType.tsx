@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Form from 'sentry/components/forms/form';
@@ -183,13 +183,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const getFields = (): Field[] => {
-    const help = isGroupedByProject(notificationType)
-      ? t('This is the default for all projects.')
-      : t('This is the default for all organizations.');
-
-    const fields: Field[] = [];
-
+  const filterCategoryFields = (fields: Field[]) => {
     // at least one org exists with am3 tiered plan
     const hasOrgWithAm3 = organizations.some(organization =>
       organization.features?.includes('am3-tier')
@@ -210,10 +204,42 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('continuous-profiling-billing')
     );
 
+    const hasSeerBilling = organizations.some(organization =>
+      organization.features?.includes('seer-billing')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
     const includeProfileDuration =
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
+    const includeSeer = hasSeerBilling;
+
+    return fields.filter(field => {
+      if (field.name === 'quotaSpans' && !includeSpans) {
+        return false;
+      }
+      if (field.name === 'quotaTransactions' && excludeTransactions) {
+        return false;
+      }
+      if (
+        ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+        !includeProfileDuration
+      ) {
+        return false;
+      }
+      if (field.name.startsWith('quotaSeer') && !includeSeer) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const getFields = (): Field[] => {
+    const help = isGroupedByProject(notificationType)
+      ? t('This is the default for all projects.')
+      : t('This is the default for all organizations.');
+
+    const fields: Field[] = [];
 
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
@@ -224,62 +250,38 @@ export function NotificationSettingsByType({notificationType}: Props) {
         )
       ) {
         fields.push(
-          ...SPEND_FIELDS.filter(field => {
-            if (field.name === 'quotaSpans' && !includeSpans) {
-              return false;
-            }
-            if (field.name === 'quotaTransactions' && excludeTransactions) {
-              return false;
-            }
-            if (
-              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
-              !includeProfileDuration
-            ) {
-              return false;
-            }
-            return true;
-          }).map(field => ({
-            ...field,
-            type: 'select' as const,
-            getData: (data: Record<PropertyKey, unknown>) => {
-              return {
-                type: field.name,
-                scopeType: 'user',
-                scopeIdentifier: ConfigStore.get('user').id,
-                value: data[field.name],
-              };
-            },
-          }))
+          ...filterCategoryFields(
+            SPEND_FIELDS.map(field => ({
+              ...field,
+              type: 'select' as const,
+              getData: (data: Record<PropertyKey, unknown>) => {
+                return {
+                  type: field.name,
+                  scopeType: 'user',
+                  scopeIdentifier: ConfigStore.get('user').id,
+                  value: data[field.name],
+                };
+              },
+            }))
+          )
         );
       } else {
         // TODO(isabella): Once GA, remove this case
         fields.push(
-          ...QUOTA_FIELDS.filter(field => {
-            if (field.name === 'quotaSpans' && !includeSpans) {
-              return false;
-            }
-            if (field.name === 'quotaTransactions' && excludeTransactions) {
-              return false;
-            }
-            if (
-              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
-              !includeProfileDuration
-            ) {
-              return false;
-            }
-            return true;
-          }).map(field => ({
-            ...field,
-            type: 'select' as const,
-            getData: (data: Record<PropertyKey, unknown>) => {
-              return {
-                type: field.name,
-                scopeType: 'user',
-                scopeIdentifier: ConfigStore.get('user').id,
-                value: data[field.name],
-              };
-            },
-          }))
+          ...filterCategoryFields(
+            QUOTA_FIELDS.map(field => ({
+              ...field,
+              type: 'select' as const,
+              getData: (data: Record<PropertyKey, unknown>) => {
+                return {
+                  type: field.name,
+                  scopeType: 'user',
+                  scopeIdentifier: ConfigStore.get('user').id,
+                  value: data[field.name],
+                };
+              },
+            }))
+          )
         );
       }
     } else {
@@ -329,7 +331,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const removeNotificationMutation = useMutation({
     mutationFn: (id: string) =>
-      fetchMutation(['DELETE', `/users/me/notification-options/${id}/`]),
+      fetchMutation({method: 'DELETE', url: `/users/me/notification-options/${id}/`}),
     onSuccess: (_, id) => {
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
@@ -345,12 +347,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const addNotificationMutation = useMutation({
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
-      fetchMutation<NotificationOptionsObject>([
-        'PUT',
-        '/users/me/notification-options/',
-        {},
+      fetchMutation<NotificationOptionsObject>({
+        method: 'PUT',
+        url: '/users/me/notification-options/',
+        options: {},
         data,
-      ]),
+      }),
     onSuccess: notificationOption => {
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
@@ -365,12 +367,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: (data: NotificationOptionsObject) =>
-      fetchMutation<NotificationOptionsObject>([
-        'PUT',
-        '/users/me/notification-options/',
-        {},
+      fetchMutation<NotificationOptionsObject>({
+        method: 'PUT',
+        url: '/users/me/notification-options/',
+        options: {},
         data,
-      ]),
+      }),
     onSuccess: notificationOption => {
       // Replace the item in state
       setApiQueryData<NotificationOptionsObject[]>(
@@ -425,6 +427,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {description && <TextBlock>{description}</TextBlock>}
       <Observer>
         {() => {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           return providerModel.getValue('provider')?.toString().includes('slack') &&
             unlinkedSlackOrgs.length > 0 ? (
             <UnlinkedAlert organizations={unlinkedSlackOrgs} />

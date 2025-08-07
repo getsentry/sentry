@@ -1,4 +1,4 @@
-""" Write transactions into redis sets """
+"""Write transactions into redis sets"""
 
 import logging
 from collections.abc import Iterator, Mapping
@@ -69,6 +69,17 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
             # Could theoretically delete the key here, but it has a lifetime
             # of 24h, so probably not worth it.
             logger.debug("Could not find project %s in db", project_id)
+
+
+def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
+    """
+    Scan redis for projects and fetch their ids.
+
+    Unlike get_active_projects(), this will include ids for projects
+    that have been deleted since clustering was scheduled.
+    """
+    for key in _get_all_keys(namespace):
+        yield int(key)
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:

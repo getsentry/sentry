@@ -78,7 +78,9 @@ describe('EventDetailsHeader', () => {
   });
 
   it('renders filters alongside the graph', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
@@ -103,7 +105,6 @@ describe('EventDetailsHeader', () => {
     });
     render(<EventDetailsHeader {...defaultProps} group={oldGroup} />, {
       organization,
-      router,
     });
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
@@ -128,7 +129,9 @@ describe('EventDetailsHeader', () => {
       method: 'GET',
     });
 
-    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
@@ -143,7 +146,9 @@ describe('EventDetailsHeader', () => {
   }, 20_000);
 
   it('does not render timeline summary if disabled', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
@@ -169,7 +174,9 @@ describe('EventDetailsHeader', () => {
           },
         })}
       />,
-      {organization, router}
+      {
+        organization,
+      }
     );
     expect(await screen.findByText('Status Code')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();

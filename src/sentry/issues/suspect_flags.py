@@ -1,18 +1,25 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import NamedTuple
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.seer.workflows.compare import KeyedValueCount, keyed_rrf_score_with_filter
 from sentry.utils.snuba import raw_snql_query
 
 
-class Score(NamedTuple):
-    key: str
+class Distribution(TypedDict):
+    baseline: dict[str, float]
+    outliers: dict[str, float]
+
+
+class Score(TypedDict):
+    flag: str
     score: float
     baseline_percent: float
+    distribution: Distribution
+    is_filtered: bool
 
 
 @sentry_sdk.trace
@@ -36,11 +43,11 @@ def get_suspect_flag_scores(
     outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
     baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
 
-    keyed_scores = keyed_kl_score(
-        a=baseline,
-        b=outliers,
-        total_a=baseline_count,
-        total_b=outliers_count,
+    keyed_scores = keyed_rrf_score_with_filter(
+        baseline,
+        outliers,
+        total_baseline=baseline_count,
+        total_outliers=outliers_count,
     )
 
     baseline_percent_dict: defaultdict[str, float] = defaultdict(int)
@@ -49,9 +56,21 @@ def get_suspect_flag_scores(
             if value == "true":
                 baseline_percent_dict[key] = count / baseline_count
 
+    distributions: dict[str, Distribution] = defaultdict(lambda: {"baseline": {}, "outliers": {}})
+    for key, value, count in baseline:
+        distributions[key]["baseline"][value] = count
+    for key, value, count in outliers:
+        distributions[key]["outliers"][value] = count
+
     return [
-        Score(key=key, score=score, baseline_percent=baseline_percent_dict[key])
-        for key, score in keyed_scores
+        {
+            "flag": key,
+            "score": score,
+            "baseline_percent": baseline_percent_dict[key],
+            "distribution": distributions[key],
+            "is_filtered": is_filtered,
+        }
+        for key, score, is_filtered in keyed_scores
     ]
 
 

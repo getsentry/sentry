@@ -2,7 +2,7 @@ import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -14,10 +14,10 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined, urlEncode} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
   Aggregation,
@@ -31,7 +31,6 @@ import {
   AGGREGATIONS,
   explodeFieldString,
   getAggregateAlias,
-  getAggregateArg,
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
@@ -46,30 +45,26 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   type DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
   DisplayType,
   type Widget,
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  getAllViews,
+  getTransactionViews,
+  getWebVitalsViews,
+} from 'sentry/views/discover/results/data';
+import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
+import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {displayModeToDisplayType} from './savedQuery/utils';
-import type {FieldValue, TableColumn} from './table/types';
-import {FieldValueKind} from './table/types';
-import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
-
-export type QueryWithColumnState =
-  | Query
-  | {
-      field: string | string[] | null | undefined;
-      sort: string | string[] | null | undefined;
-    };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
@@ -82,19 +77,21 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<string>> {
+export function decodeColumnOrder(
+  fields: readonly Field[],
+  meta?: MetaType
+): Array<TableColumn<string>> {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field, f.alias);
-    const columnName = f.field;
     if (isEquation(f.field)) {
       column.key = f.field;
-      column.name = getEquation(columnName);
+      column.name = getEquation(f.field);
       column.type = 'number';
     } else {
-      column.key = columnName;
-      column.name = columnName;
+      column.key = f.field;
+      column.name = f.field;
     }
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
@@ -117,6 +114,12 @@ export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<s
         column.type = 'duration';
       }
     }
+
+    // If provided meta with field type, prioritize that over guessing
+    if (meta?.fields?.[column.key]) {
+      column.type = meta.fields[column.key];
+    }
+
     column.column = col;
 
     return column;
@@ -404,33 +407,6 @@ function generateAdditionalConditions(
   return conditions;
 }
 
-/**
- * Discover queries can query either Errors, Transactions or a combination
- * of the two datasets. This is a util to determine if the query will excusively
- * hit the Transactions dataset.
- */
-export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
-  let usesTransactions = false;
-  const parsedQuery = new MutableSearch(eventView.query);
-  for (const yAxis of yAxisValue) {
-    const aggregateArg = getAggregateArg(yAxis) ?? '';
-    if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
-      usesTransactions = true;
-      break;
-    }
-    const eventTypeFilter = parsedQuery.getFilterValues('event.type');
-    if (
-      eventTypeFilter.length > 0 &&
-      eventTypeFilter.every(filter => filter === 'transaction')
-    ) {
-      usesTransactions = true;
-      break;
-    }
-  }
-
-  return usesTransactions;
-}
-
 function generateExpandedConditions(
   eventView: EventView,
   additionalConditions: Record<string, string>,
@@ -629,17 +605,6 @@ export function generateFieldOptions({
   return fieldOptions;
 }
 
-const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
-
-export function shouldRenderPrebuilt(): boolean {
-  const shouldRender = localStorage.getItem(RENDER_PREBUILT_KEY);
-  return shouldRender === 'true' || shouldRender === null;
-}
-
-export function setRenderPrebuilt(value: boolean) {
-  localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
-}
-
 export function eventViewToWidgetQuery({
   eventView,
   yAxis,
@@ -744,31 +709,27 @@ export function handleAddQueryToDashboard({
     widget: {
       // We need the event view name for when we're adding from a saved query page
       title: (query?.name ??
-        (eventView.name === 'All Errors' ? t('Custom Widget') : eventView.name))!,
+        (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
           ...defaultWidgetQuery,
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
-          ...(organization.features.includes('dashboards-widget-builder-redesign')
-            ? {
-                // The widget query params filters out aggregate fields
-                // so we can use the fields as columns. This is so yAxes
-                // can be grouped by the fields.
-                fields: widgetAsQueryParams?.field ?? [],
-                columns: widgetAsQueryParams?.field ?? [],
-              }
-            : {}),
+          ...{
+            // The widget query params filters out aggregate fields
+            // so we can use the fields as columns. This is so yAxes
+            // can be grouped by the fields.
+            fields: widgetAsQueryParams?.field ?? [],
+            columns: widgetAsQueryParams?.field ?? [],
+          },
         },
       ],
       interval: eventView.interval!,
       limit: widgetAsQueryParams?.limit,
       widgetType,
     },
+    source,
     router,
-    // Previously undetected because the type relied on implicit any.
-    // @ts-expect-error TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
-    widgetAsQueryParams,
     location,
   });
   return;
@@ -832,7 +793,6 @@ export function constructAddQueryToDashboardLink({
     widgetType === WidgetType.SPANS
       ? (eventView.display as DisplayType)
       : displayModeToDisplayType(eventView.display as DisplayModes);
-  const defaultTableFields = eventView.fields.map(({field}) => field);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
@@ -847,58 +807,36 @@ export function constructAddQueryToDashboardLink({
       ? Number(eventView.topEvents) || TOP_N
       : undefined;
 
-  if (organization.features.includes('dashboards-widget-builder-redesign')) {
-    const widget: Widget = {
-      title: defaultTitle!,
-      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      widgetType,
-      limit,
-      interval: eventView.interval ?? '',
-      queries: [
-        {
-          ...defaultWidgetQuery,
-          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
-          fields: eventView.getFields(),
-          columns:
-            widgetType === WidgetType.SPANS ||
-            displayType === DisplayType.TOP_N ||
-            eventView.display === DisplayModes.DAILYTOP5
-              ? eventView
-                  .getFields()
-                  .filter(
-                    column => defined(column) && !isAggregateFieldOrEquation(column)
-                  )
-              : [],
-        },
-      ],
-    };
-    return {
-      pathname: `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
-      query: {
-        ...location?.query,
-        start: eventView.start,
-        end: eventView.end,
-        statsPeriod: eventView.statsPeriod,
-        ...convertWidgetToBuilderStateParams(widget),
-        source,
+  const widget: Widget = {
+    title: defaultTitle!,
+    displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+    widgetType,
+    limit,
+    interval: eventView.interval ?? '',
+    queries: [
+      {
+        ...defaultWidgetQuery,
+        aggregates: [...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']))],
+        fields: eventView.getFields(),
+        columns:
+          widgetType === WidgetType.SPANS ||
+          displayType === DisplayType.TOP_N ||
+          eventView.display === DisplayModes.DAILYTOP5
+            ? eventView
+                .getFields()
+                .filter(column => defined(column) && !isAggregateFieldOrEquation(column))
+            : [],
       },
-    };
-  }
-
+    ],
+  };
   return {
-    pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+    pathname: `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
     query: {
       ...location?.query,
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-      defaultTableColumns: defaultTableFields,
-      defaultTitle,
-      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      dataset: widgetType,
-      field: eventView.getFields(),
-      limit,
+      ...convertWidgetToBuilderStateParams(widget),
       source,
     },
   };

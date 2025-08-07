@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -34,9 +34,7 @@ import {
   IconSettings,
   IconSiren,
   IconStats,
-  IconSupport,
   IconTelescope,
-  IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -49,15 +47,15 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
-  AI_LANDING_SUB_PATH,
-  AI_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/ai/settings';
+  AGENTS_LANDING_SUB_PATH,
+  getAISidebarLabel,
+} from 'sentry/views/insights/pages/agents/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
@@ -104,7 +102,7 @@ function Sidebar() {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
-  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
   // Panel determines whether to highlight
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
@@ -208,14 +206,19 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features={['performance-trace-explorer', 'performance-view']}>
-      <SidebarItem
-        {...sidebarItemProps}
-        label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/traces/`}
-        id="performance-trace-explorer"
-        icon={<SubitemDot collapsed />}
-      />
+    <Feature features={['performance-view']}>
+      <Feature
+        features={['performance-trace-explorer', 'visibility-explore-view']}
+        requireAll={false}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/traces/`}
+          id="performance-trace-explorer"
+          icon={<SubitemDot collapsed />}
+        />
+      </Feature>
     </Feature>
   );
 
@@ -227,6 +230,7 @@ function Sidebar() {
         to={`/organizations/${organization?.slug}/explore/logs/`}
         id="ourlogs"
         icon={<SubitemDot collapsed />}
+        isNew
       />
     </Feature>
   );
@@ -241,29 +245,14 @@ function Sidebar() {
     />
   );
 
-  const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSupport />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    </Feature>
-  );
-
   const feedback = hasOrganization && (
-    <Feature features="user-feedback-ui" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconMegaphone />}
-        label={t('User Feedback')}
-        variant="short"
-        to={`/organizations/${organization.slug}/feedback/`}
-        id="feedback"
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconMegaphone />}
+      label={t('User Feedback')}
+      to={`/organizations/${organization.slug}/feedback/`}
+      id="feedback"
+    />
   );
 
   const alerts = hasOrganization && (
@@ -273,16 +262,6 @@ function Sidebar() {
       label={t('Alerts')}
       to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
-    />
-  );
-
-  const monitors = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconTimer />}
-      label={t('Crons')}
-      to={`/organizations/${organization.slug}/crons/`}
-      id="crons"
     />
   );
 
@@ -391,13 +370,32 @@ function Sidebar() {
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
+
         <SidebarItem
           {...sidebarItemProps}
-          label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
-          id="performance-domains-ai"
+          label={getAISidebarLabel(organization)}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`}
+          id="performance-domains-agents"
+          icon={<SubitemDot collapsed />}
+          isNew
+        />
+
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Crons')}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/crons/`}
+          id="performance-crons"
           icon={<SubitemDot collapsed />}
         />
+        <Feature features={['uptime']} organization={organization}>
+          <SidebarItem
+            {...sidebarItemProps}
+            label={t('Uptime')}
+            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/uptime/`}
+            id="performance-uptime"
+            icon={<SubitemDot collapsed />}
+          />
+        </Feature>
       </SidebarAccordion>
     </Feature>
   );
@@ -452,7 +450,6 @@ function Sidebar() {
 
                     <SidebarSection>
                       {feedback}
-                      {monitors}
                       {alerts}
                       {dashboards}
                       {releases}
@@ -467,7 +464,6 @@ function Sidebar() {
                       {discover}
                       {dashboards}
                       {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}
@@ -529,6 +525,8 @@ function Sidebar() {
                 collapsed={collapsed || horizontal}
                 organization={organization}
               />
+              <ChonkOptInBanner collapsed={collapsed || horizontal} />
+
               {HookStore.get('sidebar:try-business').length > 0 &&
                 HookStore.get('sidebar:try-business')[0]!({
                   orientation,
@@ -589,7 +587,7 @@ const responsiveFlex = (theme: Theme) => css`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${theme.breakpoints.medium}) {
+  @media (max-width: ${theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;
@@ -615,7 +613,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   border-right: solid 1px ${p => p.theme.sidebar.border};
   ${p => responsiveFlex(p.theme)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     top: 0;
     left: 0;
     right: 0;
@@ -643,7 +641,7 @@ const SidebarSectionGroupPrimary = styled('div')`
   min-width: 0;
   flex: 1;
   /* expand to fill the entire height on mobile */
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     height: 100%;
     align-items: center;
   }
@@ -662,21 +660,23 @@ const PrimaryItems = styled('div')`
     `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
   scrollbar-width: thin;
 
-  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.md}) {
     border-bottom: 1px solid ${p => p.theme.sidebar.border};
     padding-bottom: ${space(1)};
-    box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) 0px -10px 10px inset'};
   }
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     overflow-y: hidden;
     overflow-x: auto;
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.sidebar.border};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
-    box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
+    border-right: none;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) -10px 0px 10px inset'};
     ::-webkit-scrollbar {
       display: none;
     }
@@ -690,7 +690,7 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
   border-radius: 50%;
 
   opacity: ${p => (p.collapsed ? 1 : 0)};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     opacity: 1;
   }
 `;
@@ -704,14 +704,14 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   ${p => !p.noMargin && !p.hasNewNav && `margin: ${space(1)} 0`};
   ${p => !p.noPadding && !p.hasNewNav && `padding: 0 ${space(2)}`};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin: 0;
     padding: 0;
   }
   ${p =>
     p.hasNewNav &&
     css`
-      @media (max-width: ${p.theme.breakpoints.medium}) {
+      @media (max-width: ${p.theme.breakpoints.md}) {
         margin: 0;
         padding: 0;
       }
@@ -751,7 +751,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;
@@ -762,7 +762,7 @@ const SuperuserBadgeContainer = styled('div')`
   right: 5px;
 
   /* Hiding on smaller screens because it looks misplaced */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

@@ -13,7 +13,10 @@ import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomain
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -28,22 +31,20 @@ describe('HTTPDomainSummaryPage', function () {
   let domainMetricsRibbonRequestMock: jest.Mock;
   let regionFilterRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -214,7 +215,8 @@ describe('HTTPDomainSummaryPage', function () {
           method: 'GET',
           query: {
             cursor: undefined,
-            dataset: 'spansMetrics',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
             field: [],
@@ -223,7 +225,7 @@ describe('HTTPDomainSummaryPage', function () {
             partial: 1,
             per_page: 50,
             project: [],
-            query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+            query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
             referrer: 'api.performance.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             topEvents: undefined,
@@ -241,7 +243,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -250,7 +253,7 @@ describe('HTTPDomainSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -267,7 +270,8 @@ describe('HTTPDomainSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -276,7 +280,7 @@ describe('HTTPDomainSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -296,7 +300,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'epm()',
@@ -305,12 +309,12 @@ describe('HTTPDomainSummaryPage', function () {
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
-            'time_spent_percentage()',
           ],
           per_page: 50,
           project: [],
-          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -322,7 +326,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'project.id',
@@ -334,14 +338,14 @@ describe('HTTPDomainSummaryPage', function () {
             'http_response_rate(5)',
             'avg(span.self_time)',
             'sum(span.self_time)',
-            'time_spent_percentage()',
           ],
           per_page: 20,
           project: [],
           cursor: '0:20:0',
-          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
-          sort: '-time_spent_percentage()',
+          query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
+          sort: '-sum(span.self_time)',
           referrer: 'api.performance.http.domain-summary-transactions-list',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -352,7 +356,7 @@ describe('HTTPDomainSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: ['user.geo.subregion', 'count()'],
           per_page: 50,
@@ -360,6 +364,7 @@ describe('HTTPDomainSummaryPage', function () {
           query: 'has:user.geo.subregion',
           sort: '-count()',
           referrer: 'api.insights.user-geo-subregion-selector',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })

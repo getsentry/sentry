@@ -1,15 +1,19 @@
+import {Fragment} from 'react';
+
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
   StackedNavigationTourReminder,
@@ -27,7 +31,7 @@ function getContactSupportItem({
     return null;
   }
 
-  if (zendeskIsLoaded()) {
+  if (hasZendesk()) {
     return {
       key: 'support',
       label: t('Contact Support'),
@@ -55,10 +59,15 @@ export function PrimaryNavigationHelp() {
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
+  const chonkPrompt = useChonkPrompt();
 
   return (
     <StackedNavigationTourReminder>
       <SidebarMenu
+        onOpen={() => {
+          chonkPrompt.dismissDotIndicatorPrompt();
+          chonkPrompt.dismissBannerPrompt();
+        }}
         items={[
           {
             key: 'search',
@@ -139,7 +148,7 @@ export function PrimaryNavigationHelp() {
                 ? user.options.prefersChonkUI
                   ? {
                       key: 'new-chonk-ui',
-                      label: t('Switch to old UI theme'),
+                      label: t('Switch back to our old look'),
                       onAction() {
                         mutateUserOptions({prefersChonkUI: false});
                         trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
@@ -149,7 +158,12 @@ export function PrimaryNavigationHelp() {
                     }
                   : {
                       key: 'new-chonk-ui',
-                      label: t('Try New UI2 Theme'),
+                      label: (
+                        <Fragment>
+                          {t('Try our new look')} <FeatureBadge type="beta" />
+                        </Fragment>
+                      ),
+                      textValue: 'Try our new look',
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {

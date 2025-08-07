@@ -251,7 +251,7 @@ class ProjectContextProvider extends Component<Props, State> {
         return (
           <Layout.Page withPadding>
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {t('The project you were looking for was not found.')}
               </Alert>
             </Alert.Container>

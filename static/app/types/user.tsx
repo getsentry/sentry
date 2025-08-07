@@ -1,6 +1,5 @@
 import type {UserEnrolledAuthenticator} from './auth';
 import type {Avatar, Scope} from './core';
-import type {UserExperiments} from './experiments';
 
 /**
  * Avatars are a more primitive version of User.
@@ -22,12 +21,12 @@ export type AvatarUser = {
   };
 };
 
-// This object tracks the status of the quick start display for each organization.
-// The key is the organization ID, and the value represents the display status:
-// Null = Hidden on the first visit
-// 1 = Shown once (on the second visit)
-// 2 = Hidden automatically after the second visit
-type QuickStartDisplay = Record<string, number>;
+export enum StacktraceOrder {
+  DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
+  MOST_RECENT_LAST = 1,
+  MOST_RECENT_FIRST = 2,
+}
+
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
@@ -36,7 +35,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     id: string;
     is_verified: boolean;
   }>;
-  experiments: Partial<UserExperiments>;
   flags: {newsletter_consent_prompt: boolean};
   has2fa: boolean;
   hasPasswordAuth: boolean;
@@ -56,9 +54,8 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
     prefersNextjsInsightsOverview: boolean;
-    prefersStackedNavigation: boolean;
-    quickStartDisplay: QuickStartDisplay;
-    stacktraceOrder: number;
+    prefersStackedNavigation: boolean | null;
+    stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };
@@ -130,5 +127,3 @@ export type InternetProtocol = {
   lastSeen: string;
   regionCode: string | null;
 };
-
-export type SubscriptionDetails = {disabled?: boolean; reason?: string};

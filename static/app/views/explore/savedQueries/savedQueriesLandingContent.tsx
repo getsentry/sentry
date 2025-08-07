@@ -6,6 +6,9 @@ import SearchBar from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SortOption} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import {SavedQueriesTable} from './savedQueriesTable';
@@ -13,22 +16,30 @@ import {SavedQueriesTable} from './savedQueriesTable';
 type Option = {label: string; value: SortOption};
 
 export function SavedQueriesLandingContent() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sort, setSort] = useState<SortOption>('recentlyViewed');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const searchQuery = decodeScalar(location.query.query);
+  const [sort, setSort] = useState<SortOption>('mostStarred');
   const sortOptions: Option[] = [
-    {value: 'recentlyViewed', label: t('Recently Viewed')},
-    {value: 'name', label: t('Name')},
-    {value: '-dateAdded', label: t('Date Added')},
-    {value: '-dateUpdated', label: t('Date Updated')},
     {value: 'mostStarred', label: t('Most Starred')},
+    {value: 'recentlyViewed', label: t('Recently Viewed')},
+    {value: 'name', label: t('Name A-Z')},
+    {value: '-name', label: t('Name Z-A')},
+    {value: '-dateAdded', label: t('Created (Newest)')},
+    {value: 'dateAdded', label: t('Created (Oldest)')},
   ];
   return (
     <div>
       <FilterContainer>
         <SearchBarContainer>
           <SearchBar
-            onChange={setSearchQuery}
-            value={searchQuery}
+            onSearch={newQuery => {
+              navigate({
+                pathname: location.pathname,
+                query: {...location.query, query: newQuery},
+              });
+            }}
+            defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
         </SearchBarContainer>
@@ -43,21 +54,22 @@ export function SavedQueriesLandingContent() {
           onChange={option => setSort(option.value)}
         />
       </FilterContainer>
-      <h4>{t('Created by Me')}</h4>
       <SavedQueriesTable
         mode="owned"
-        perPage={5}
+        perPage={20}
         cursorKey="ownedCursor"
         sort={sort}
         searchQuery={searchQuery}
+        title={t('Created by Me')}
+        hideIfEmpty
       />
-      <h4>{t('Created by Others')}</h4>
       <SavedQueriesTable
         mode="shared"
-        perPage={8}
+        perPage={20}
         cursorKey="sharedCursor"
         sort={sort}
         searchQuery={searchQuery}
+        title={t('Created by Others')}
       />
     </div>
   );

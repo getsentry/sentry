@@ -1,4 +1,5 @@
 from sentry import analytics
+from sentry.integrations.analytics import IntegrationIssueCommentsSyncedEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.metrics import (
@@ -23,7 +24,10 @@ from sentry.types.activity import ActivityType
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
@@ -65,10 +69,9 @@ def update_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
         )
         installation.update_comment(external_issue.key, user_id, note)
         analytics.record(
-            # TODO(lb): this should be changed and/or specified?
-            "integration.issue.comments.synced",
-            provider=installation.model.provider,
-            id=installation.model.id,
-            organization_id=external_issue.organization_id,
-            user_id=user_id,
+            IntegrationIssueCommentsSyncedEvent(
+                provider=installation.model.provider,
+                id=installation.model.id,
+                organization_id=external_issue.organization_id,
+            )
         )

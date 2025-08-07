@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -129,6 +128,12 @@ dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/log4j2/data-management/data-collected/ for more info
 send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -159,7 +164,12 @@ const getConsoleAppenderSnippet = (params: Params) => `
 
 const getLogLevelSnippet = (params: Params) => `
 <!-- Setting minimumBreadcrumbLevel modifies the default minimum level to add breadcrumbs from INFO to DEBUG  -->
-<!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->
+<!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->${
+  params.isLogsSelected
+    ? `
+<!-- Setting minimumLevel configures which log messages are sent to Sentry -->`
+    : ''
+}
 <Sentry name="Sentry"${
   params.platformOptions.opentelemetry === YesNo.NO
     ? `
@@ -167,7 +177,12 @@ const getLogLevelSnippet = (params: Params) => `
     : ''
 }
         minimumBreadcrumbLevel="DEBUG"
-        minimumEventLevel="WARN"
+        minimumEventLevel="WARN"${
+          params.isLogsSelected
+            ? `
+        minimumLevel="DEBUG"`
+            : ''
+        }
 />`;
 
 const getVerifyJavaSnippet = () => `
@@ -219,9 +234,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',
@@ -312,7 +327,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    label: 'Properties',
+                    value: 'properties',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],

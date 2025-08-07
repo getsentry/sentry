@@ -1,4 +1,4 @@
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
 

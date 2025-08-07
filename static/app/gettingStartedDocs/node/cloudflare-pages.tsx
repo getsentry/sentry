@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -12,7 +12,11 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -36,11 +40,26 @@ import * as Sentry from "@sentry/cloudflare";
 export const onRequest = [
   // Make sure Sentry is the first middleware
   Sentry.sentryPagesPlugin((context) => ({
-    dsn: "${params.dsn.public}",
+    dsn: "${params.dsn.public}",${
+      params.isPerformanceSelected
+        ? `
     // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
     // Learn more at
     // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+
+    // Send structured logs to Sentry
+    enableLogs: true,`
+        : ''
+    }
+
+    // Setting this option to true will send default PII data to Sentry.
+    // For example, automatic IP address collection on events
+    sendDefaultPii: true,
   })),
   // Add more middlewares here
 ];`;
@@ -146,6 +165,31 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'cloudflare-features',
+        name: t('Cloudflare Features'),
+        description: t(
+          'Learn about our first class integration with the Cloudflare Pages platform.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -166,6 +210,12 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'cloudflare',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
+    basePackage: 'cloudflare',
+  }),
 };
 
 export default docs;

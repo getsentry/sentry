@@ -1,5 +1,4 @@
 import type {Client} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
@@ -18,6 +17,7 @@ import {
   type Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
@@ -29,19 +29,6 @@ import GenericWidgetQueries from './genericWidgetQueries';
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
-export function getIsMetricsDataFromSeriesResponse(
-  result: SeriesResult
-): boolean | undefined {
-  const multiIsMetricsData = Object.values(result)
-    .map(({isMetricsData}) => isMetricsData)
-    // One non-metrics series will cause all of them to be marked as such
-    .reduce((acc, value) => (acc === false ? false : value), undefined);
-
-  return isMultiSeriesStats(result)
-    ? multiIsMetricsData
-    : (result as EventsStats).isMetricsData;
-}
-
 type Props = {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
@@ -51,6 +38,7 @@ type Props = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
@@ -66,6 +54,7 @@ function WidgetQueries({
   limit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
@@ -127,20 +116,18 @@ function WidgetQueries({
     );
 
     const resultValues = Object.values(rawResults);
-    if (organization.features.includes('performance-discover-dataset-selector')) {
-      let splitDecision: WidgetType | undefined = undefined;
-      if (rawResults.meta) {
-        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
-      } else if (Object.values(rawResults).length > 0) {
-        // Multi-series queries will have a meta key on each series
-        // We can just read the decision from one.
-        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
-      }
+    let splitDecision: WidgetType | undefined = undefined;
+    if (rawResults.meta) {
+      splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+    } else if (Object.values(rawResults).length > 0) {
+      // Multi-series queries will have a meta key on each series
+      // We can just read the decision from one.
+      splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+    }
 
-      if (splitDecision) {
-        // Update the dashboard state with the split decision
-        onWidgetSplitDecision?.(splitDecision);
-      }
+    if (splitDecision) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision?.(splitDecision);
     }
   };
 
@@ -162,7 +149,6 @@ function WidgetQueries({
     );
 
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
       [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
         rawResults?.meta?.discoverSplitDecision
       )
@@ -181,10 +167,14 @@ function WidgetQueries({
           organization={organization}
           selection={selection}
           widget={widget}
+          samplingMode={
+            widget.widgetType === WidgetType.SPANS ? SAMPLING_MODE.NORMAL : undefined
+          }
           cursor={cursor}
           limit={limit}
           dashboardFilters={dashboardFilters}
           onDataFetched={onDataFetched}
+          onDataFetchStart={onDataFetchStart}
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}
           mepSetting={mepSettingContext.metricSettingState}

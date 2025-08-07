@@ -15,7 +15,7 @@ import {
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
 jest.mock('getsentry/utils/stripe', () => ({
@@ -216,6 +216,12 @@ describe('Subscription > BillingDetails', function () {
     const modal = await screen.findByRole('dialog');
     const inModal = within(modal);
 
+    expect(
+      inModal.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
+
     // Save the updated credit card details
     await userEvent.click(inModal.getByRole('button', {name: 'Save Changes'}));
     await waitForModalToHide();
@@ -228,6 +234,7 @@ describe('Subscription > BillingDetails', function () {
       expect.objectContaining({
         data: expect.objectContaining({
           paymentMethod: 'pm_abc123',
+          ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
         }),
       })
     );

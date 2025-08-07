@@ -4,7 +4,7 @@
 {% load sentry_assets %}
 
 {% block twofactor_form_body %}
-  <div id="u2f-container">
+  <div id="webauthn-container">
     <div class="loading">
       <div class="loading-mask"></div>
       <div class="loading-indicator" data-test-id="loading-indicator"></div>
@@ -15,8 +15,8 @@
     window.__onSentryInit = window.__onSentryInit || [];
     window.__onSentryInit.push({
       name: 'renderReact',
-      component: 'U2fSign',
-      container: '#u2f-container',
+      component: 'WebAuthnAssert',
+      container: '#webauthn-container',
       props: {
         challengeData: {{ activation.challenge|to_json|safe }},
       },

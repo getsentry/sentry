@@ -5,17 +5,18 @@ import warnings
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
+from enum import Enum
 from typing import Any, DefaultDict, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import experiments
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -58,18 +59,23 @@ class _Identity(TypedDict):
     dateSynced: datetime
 
 
+class _SerializedStacktraceOrder(int, Enum):
+    DEFAULT = int(StacktraceOrder.DEFAULT)  # Equivalent to `MOST_RECENT_FIRST`
+    MOST_RECENT_LAST = int(StacktraceOrder.MOST_RECENT_LAST)
+    MOST_RECENT_FIRST = int(StacktraceOrder.MOST_RECENT_FIRST)
+
+
 class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
-    stacktraceOrder: int  # TODO: enum/literal
+    stacktraceOrder: _SerializedStacktraceOrder
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersNextjsInsightsOverview: bool
-    prefersStackedNavigation: bool
+    prefersStackedNavigation: bool | None
     prefersChonkUI: bool
-    quickStartDisplay: dict[str, int]
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -160,7 +166,6 @@ class UserSerializer(Serializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
-        experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {
             "id": str(obj.id),
@@ -177,11 +182,13 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
-            "experiments": experiment_assignments,
             "emails": [
                 {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
                 for e in attrs["emails"]
             ],
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
         }
 
         if self._user_is_requester(obj, user):
@@ -189,8 +196,16 @@ class UserSerializer(Serializer):
             options = {
                 o.key: o.value
                 for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
+                if o.value is not None
             }
-            stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
+
+            stacktrace_order = _SerializedStacktraceOrder(
+                int(
+                    options.get("stacktrace_order", StacktraceOrder.DEFAULT)
+                    # TODO: This second `or` won't be necessary once we remove empty strings from the DB
+                    or StacktraceOrder.DEFAULT
+                )
+            )
 
             d["options"] = {
                 "theme": options.get("theme") or "light",
@@ -205,9 +220,8 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
                 ),
-                "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
+                "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
-                "quickStartDisplay": options.get("quick_start_display") or {},
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
@@ -297,7 +311,7 @@ class DetailedUserSerializer(UserSerializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse:
-        d = cast(UserSerializerResponse, super().serialize(obj, attrs, user))
+        d = super().serialize(obj, attrs, user)
 
         # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
 
@@ -322,6 +336,10 @@ class DetailedUserSerializer(UserSerializer):
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
     permissions: Sequence[str]
+
+
+class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):
+    organizations: Sequence[str]
 
 
 class DetailedSelfUserSerializer(UserSerializer):
@@ -396,3 +414,49 @@ class DetailedSelfUserSerializer(UserSerializer):
                 "Incorrectly calling `DetailedSelfUserSerializer`. See docstring for details."
             )
         return d
+
+
+class UserSerializerWithOrgMemberships(UserSerializer):
+    def get_attrs(
+        self,
+        item_list: Sequence[User],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> MutableMapping[User, Any]:
+        attrs = super().get_attrs(item_list, user, **kwargs)
+
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_org_id_to_slug = dict(
+            OrganizationMapping.objects.filter(
+                organization_id__in={m.organization_id for m in memberships},
+                status=OrganizationStatus.ACTIVE,
+            ).values_list("organization_id", "slug")
+        )
+        active_organization_ids = active_org_id_to_slug.keys()
+
+        user_org_memberships: DefaultDict[int, set[str]] = defaultdict(set)
+        for membership in memberships:
+            if membership.organization_id in active_organization_ids:
+                user_org_memberships[membership.user_id].add(
+                    active_org_id_to_slug[membership.organization_id]
+                )
+        for item in item_list:
+            attrs[item]["organizations"] = user_org_memberships[item.id]
+
+        return attrs
+
+    def serialize(
+        self,
+        obj: User,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> UserSerializerWithOrgMembershipsResponse:
+        response = cast(
+            UserSerializerWithOrgMembershipsResponse, super().serialize(obj, attrs, user)
+        )
+
+        response["organizations"] = sorted(attrs["organizations"])
+        return response

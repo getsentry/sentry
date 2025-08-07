@@ -66,8 +66,8 @@ const NavSection = styled('div')`
 
 const SettingsHeading = styled('div')`
   color: ${p => p.theme.text};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   margin-bottom: ${space(0.5)};
 `;

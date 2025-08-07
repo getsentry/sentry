@@ -8,9 +8,9 @@ import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -65,6 +65,7 @@ type Props = {
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
   className?: string;
+  disableParameterSelector?: boolean;
   disabled?: boolean;
   error?: string;
   /**
@@ -439,6 +440,7 @@ class _QueryField extends Component<Props> {
       fieldValue,
       useMenuPortal,
       theme,
+      disableParameterSelector,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -453,6 +455,7 @@ class _QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
@@ -483,7 +486,7 @@ class _QueryField extends Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
-            disabled={disabled}
+            disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
@@ -551,7 +554,9 @@ class _QueryField extends Component<Props> {
           />
         );
       }
-      throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
+      throw new Error(
+        `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
+      );
     });
 
     if (skipParameterPlaceholder) {
@@ -576,7 +581,8 @@ class _QueryField extends Component<Props> {
     if (shouldRenderTag === false) {
       return null;
     }
-    let text, tagType;
+    let text: string;
+    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -606,7 +612,6 @@ class _QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
@@ -633,6 +638,7 @@ class _QueryField extends Component<Props> {
       : Object.values(fieldOptions);
 
     allFieldOptions.forEach(opt => {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
     });
 
@@ -838,7 +844,7 @@ const BlankSpace = styled('div')`
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
     color: ${p => p.theme.subText};
   }

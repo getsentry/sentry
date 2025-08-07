@@ -1,4 +1,4 @@
-import {CheckinProcessingError} from "sentry/views/insights/crons/types";
+import type {CheckinProcessingError} from 'sentry/views/insights/crons/types';
 
 export function CheckinProcessingErrorFixture(
   params: Partial<CheckinProcessingError> = {}

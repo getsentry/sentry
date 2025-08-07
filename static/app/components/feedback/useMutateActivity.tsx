@@ -14,19 +14,19 @@ export type TError = RequestError;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 
-export type DeleteCommentCallback = (
+type DeleteCommentCallback = (
   noteId: string,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type CreateCommentCallback = (
+type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type UpdateCommentCallback = (
+type UpdateCommentCallback = (
   note: NoteType,
   noteId: string,
   activity: GroupActivity[],
@@ -61,12 +61,12 @@ export default function useMutateActivity({
           ? `/organizations/${organization.slug}/issues/${group.id}/comments/${noteId}/`
           : `/organizations/${organization.slug}/issues/${group.id}/comments/`;
 
-      return fetchMutation([
+      return fetchMutation({
         method,
         url,
-        {},
-        {text: note?.text, mentions: note?.mentions},
-      ]);
+        options: {},
+        data: {text: note?.text, mentions: note?.mentions},
+      });
     },
     onSettled: onSettled ?? undefined,
     gcTime: 0,

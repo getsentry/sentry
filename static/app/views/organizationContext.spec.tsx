@@ -78,7 +78,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -94,7 +97,6 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/',
           location: {
@@ -140,7 +142,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -159,7 +164,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -185,7 +193,6 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/',
           location: {

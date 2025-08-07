@@ -21,6 +21,7 @@ export function OrganizationSelectHeader({
     <OrgControlWrapper>
       {t('Settings for Organization')}
       <StyledSelectControl
+        allowEmpty
         options={organizations.map(org => {
           return {
             label: org.name,
@@ -51,7 +52,7 @@ export function OrganizationSelectHeader({
 // Resetting styles because its in a panel header
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const OrgControlWrapper = styled('div')`

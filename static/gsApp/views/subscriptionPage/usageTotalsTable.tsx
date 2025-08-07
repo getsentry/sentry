@@ -1,29 +1,29 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/core/button';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
 import {formatUsageWithUnits} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   isContinuousProfiling,
-  SINGULAR_DATA_CATEGORY,
 } from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
 type RowProps = {
-  category: string;
+  category: DataCategory;
   /**
    * Name of outcome reason (e.g. Over Quota, Spike Protection, etc.)
    */
@@ -44,7 +44,7 @@ type RowProps = {
   /**
    * Adds an info tooltip to `name`
    */
-  tooltipTitle?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipTitle?: TooltipProps['title'];
 };
 
 function OutcomeRow({
@@ -92,7 +92,7 @@ function OutcomeRow({
 }
 
 type OutcomeSectionProps = {
-  category: string;
+  category: DataCategory;
   children: React.ReactNode;
   name: string;
   quantity: number;
@@ -137,13 +137,15 @@ function OutcomeSection({
 }
 
 type Props = {
-  category: string;
+  category: DataCategory;
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
 };
 
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+  const categoryInfo = getCategoryInfoFromPlural(category);
+
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
       ? toTitleCase(category, {allowInnerUpperCase: true})
@@ -166,8 +168,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               <TextOverflow>
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      singularName: capitalize(SINGULAR_DATA_CATEGORY[category]),
+                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                        allowInnerUpperCase: true,
+                      }),
                     })
                   : categoryName}
               </TextOverflow>
@@ -187,6 +190,8 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const totalDropped = isContinuousProfiling(category)
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
+
+  const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
     <UsageTableWrapper>
@@ -211,13 +216,15 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             category={category}
             totals={totals}
           />
-          <OutcomeRow
-            indent
-            name={t('Spike Protection')}
-            quantity={totals.droppedSpikeProtection}
-            category={category}
-            totals={totals}
-          />
+          {hasSpikeProtection && (
+            <OutcomeRow
+              indent
+              name={t('Spike Protection')}
+              quantity={totals.droppedSpikeProtection}
+              category={category}
+              totals={totals}
+            />
+          )}
           <OutcomeRow
             indent
             name={t('Other')}

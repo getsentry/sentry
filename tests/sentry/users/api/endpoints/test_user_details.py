@@ -2,6 +2,7 @@ from django.test import override_settings
 from pytest import fixture
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -20,7 +21,7 @@ from sentry.users.models.userrole import UserRole
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
         self.superuser = self.create_user(is_superuser=True)
@@ -31,11 +32,11 @@ class UserDetailsTest(APITestCase):
 @control_silo_test
 class UserDetailsGetTest(UserDetailsTest):
     # TODO(dcramer): theres currently no way to look up other users
-    def test_look_up_other_user(self):
+    def test_look_up_other_user(self) -> None:
         user2 = self.create_user(email="b@example.com")
         self.get_error_response(user2.id, status_code=403)
 
-    def test_lookup_self(self):
+    def test_lookup_self(self) -> None:
         resp = self.get_success_response("me")
 
         assert resp.data["id"] == str(self.user.id)
@@ -43,14 +44,13 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["defaultIssueEvent"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
-        assert resp.data["options"]["stacktraceOrder"] == -1
+        assert resp.data["options"]["stacktraceOrder"] == int(StacktraceOrder.DEFAULT)
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
         assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["prefersChonkUI"]
-        assert not resp.data["options"]["quickStartDisplay"]
 
-    def test_superuser_simple(self):
+    def test_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_success_response(self.user.id)
@@ -60,7 +60,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert len(resp.data["identities"]) == 0
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_simple(self):
+    def test_staff_simple(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
         resp = self.get_success_response(self.user.id)
@@ -69,7 +69,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
-    def test_superuser_includes_roles_and_permissions(self):
+    def test_superuser_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.superuser, "users.admin")
         self.login_as(user=self.superuser, superuser=True)
 
@@ -85,7 +85,7 @@ class UserDetailsGetTest(UserDetailsTest):
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
-    def test_staff_includes_roles_and_permissions(self):
+    def test_staff_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
 
@@ -106,7 +106,7 @@ class UserDetailsGetTest(UserDetailsTest):
 class UserDetailsUpdateTest(UserDetailsTest):
     method = "put"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_success_response(
             "me",
             name="hello world",
@@ -114,7 +114,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "theme": "system",
                 "defaultIssueEvent": "latest",
                 "timezone": "UTC",
-                "stacktraceOrder": "2",
+                "stacktraceOrder": StacktraceOrder.MOST_RECENT_FIRST,
                 "language": "fr",
                 "clock24Hours": True,
                 "extra": True,
@@ -122,7 +122,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersNextjsInsightsOverview": True,
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
-                "quickStartDisplay": {self.organization.id: 1},
             },
         )
 
@@ -136,7 +135,10 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="theme") == "system"
         assert UserOption.objects.get_value(user=self.user, key="default_issue_event") == "latest"
         assert UserOption.objects.get_value(user=self.user, key="timezone") == "UTC"
-        assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
+        assert (
+            UserOption.objects.get_value(user=self.user, key="stacktrace_order")
+            == StacktraceOrder.MOST_RECENT_FIRST
+        )
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert UserOption.objects.get_value(
@@ -145,16 +147,10 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
-                str(self.organization.id)
-            )
-            == 1
-        )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
-    def test_saving_changes_value(self):
+    def test_saving_changes_value(self) -> None:
         """
         Even when saving on an option directly, we should still be able to use
         `get_value` to retrieve updated options.
@@ -167,7 +163,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert UserOption.objects.get_value(user=self.user, key="language") == "en"
 
-    def test_managed_fields(self):
+    def test_managed_fields(self) -> None:
         assert self.user.name == "example name"
         with self.settings(SENTRY_MANAGED_USER_FIELDS=("name",)):
             self.get_success_response("me", name="new name")
@@ -176,7 +172,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             user = User.objects.get(id=self.user.id)
             assert user
 
-    def test_change_username_when_different(self):
+    def test_change_username_when_different(self) -> None:
         # if email != username and we change username, only username should change
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
@@ -189,7 +185,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert response.data["email"] == "c@example.com"
         assert user.username == "new@example.com"
 
-    def test_change_username_when_same(self):
+    def test_change_username_when_same(self) -> None:
         # if email == username and we change username,
         # keep email in sync
         user = self.create_user(email="c@example.com", username="c@example.com")
@@ -203,7 +199,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
 
-    def test_cannot_change_username_to_non_verified(self):
+    def test_cannot_change_username_to_non_verified(self) -> None:
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
@@ -216,7 +212,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
 
-    def test_saving_nextjs_insights_overview_option(self):
+    def test_saving_nextjs_insights_overview_option(self) -> None:
         self.get_success_response(
             "me",
             options={"prefersNextjsInsightsOverview": True},
@@ -235,76 +231,18 @@ class UserDetailsUpdateTest(UserDetailsTest):
             is False
         )
 
-    def test_default_nextjs_insights_overview_option_is_true(self):
+    def test_default_nextjs_insights_overview_option_is_true(self) -> None:
         resp = self.get_success_response(
             "me",
         )
         assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
-
-    def test_saving_quick_start_display_option(self):
-        org1_id = str(self.organization.id)
-        org2_id = str(self.create_organization().id)
-
-        # 1 = Shown once (on the second visit)
-        self.get_success_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: 1, org2_id: 2}},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
-            == 1
-        )
-
-        # 2 = Hidden automatically after the second visit
-        self.get_success_response("me", options={"quickStartDisplay": {org1_id: 2}})
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org1_id)
-            == 2
-        )
-
-        # Validate that existing other orgs entries are not affected
-        assert (
-            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org2_id)
-            == 2
-        )
-
-        # Invalid values
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: None}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: -1}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: 0}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: 3}},
-            status_code=400,
-        )
-
-        self.get_error_response(
-            "me",
-            options={"quickStartDisplay": {org1_id: "invalid"}},
-            status_code=400,
-        )
 
 
 @control_silo_test
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
-    def test_superuser_can_change_is_active(self):
+    def test_superuser_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -317,7 +255,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_superuser_with_permission_can_change_is_active(self):
+    def test_superuser_with_permission_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -333,7 +271,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_cannot_change_is_active(self):
+    def test_superuser_read_cannot_change_is_active(self) -> None:
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
@@ -349,7 +287,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_write_can_change_is_active(self):
+    def test_superuser_write_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.add_user_permission(superuser, "superuser.write")
@@ -364,7 +302,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         self.user.refresh_from_db()
         assert not self.user.is_active
 
-    def test_superuser_cannot_add_superuser(self):
+    def test_superuser_cannot_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -378,7 +316,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
 
-    def test_superuser_cannot_add_staff(self):
+    def test_superuser_cannot_add_staff(self) -> None:
         self.user.update(is_staff=False)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -392,7 +330,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_staff
 
-    def test_superuser_with_permission_can_add_superuser(self):
+    def test_superuser_with_permission_can_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -406,7 +344,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.is_superuser
 
-    def test_superuser_with_permission_can_add_staff(self):
+    def test_superuser_with_permission_can_add_staff(self) -> None:
         self.user.update(is_staff=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -430,7 +368,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         with override_options({"staff.ga-rollout": True}):
             yield
 
-    def test_staff_can_change_is_active(self):
+    def test_staff_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
         self.login_as(user=self.staff_user, staff=True)
 
@@ -443,7 +381,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_staff_with_permission_can_change_is_active(self):
+    def test_staff_with_permission_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.login_as(user=self.staff_user, staff=True)
@@ -457,7 +395,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_staff_cannot_add_superuser(self):
+    def test_staff_cannot_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
         self.login_as(user=self.staff_user, staff=True)
 
@@ -471,7 +409,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
 
-    def test_staff_cannot_add_staff(self):
+    def test_staff_cannot_add_staff(self) -> None:
         self.user.update(is_staff=False)
 
         self.login_as(user=self.staff_user, staff=True)
@@ -486,7 +424,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_staff
 
-    def test_superuser_cannot_add_superuser_or_staff_with_feature_flag(self):
+    def test_superuser_cannot_add_superuser_or_staff_with_feature_flag(self) -> None:
         self.user.update(is_staff=False)
 
         self.login_as(user=self.superuser, superuser=True)
@@ -509,7 +447,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         assert not user.is_staff
         assert not user.is_superuser
 
-    def test_staff_with_permission_can_add_superuser(self):
+    def test_staff_with_permission_can_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
 
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
@@ -524,7 +462,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.is_superuser
 
-    def test_staff_with_permission_can_add_staff(self):
+    def test_staff_with_permission_can_add_staff(self) -> None:
         self.user.update(is_staff=False)
 
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
@@ -544,7 +482,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
 class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
     method = "delete"
 
-    def test_close_account(self):
+    def test_close_account(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
         org_with_other_owner = self.create_organization(name="B", owner=self.user)
@@ -595,7 +533,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_close_account_no_orgs(self):
+    def test_close_account_no_orgs(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
         org_with_other_owner = self.create_organization(name="B", owner=self.user)
@@ -641,11 +579,11 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_cannot_hard_delete_self(self):
+    def test_cannot_hard_delete_self(self) -> None:
         # Cannot hard delete your own account
         self.get_error_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
-    def test_superuser_hard_delete_account_without_permission(self):
+    def test_superuser_hard_delete_account_without_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
@@ -658,7 +596,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert User.objects.filter(id=user2.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_hard_delete_account_without_permission(self):
+    def test_staff_hard_delete_account_without_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
@@ -670,7 +608,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    def test_superuser_hard_delete_account_with_permission(self):
+    def test_superuser_hard_delete_account_with_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
@@ -681,7 +619,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert not User.objects.filter(id=user2.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_hard_delete_account_with_permission(self):
+    def test_staff_hard_delete_account_with_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
@@ -692,7 +630,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert not User.objects.filter(id=user2.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_superuser_cannot_hard_delete_with_active_option(self):
+    def test_superuser_cannot_hard_delete_with_active_option(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 

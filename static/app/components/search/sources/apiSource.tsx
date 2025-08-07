@@ -14,7 +14,7 @@ import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
+import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked/marked';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -76,7 +76,7 @@ async function createProjectResults(
       resultType: 'route',
       to:
         makeProjectsPathname({
-          orgSlug: organization.slug,
+          organization,
           path: `/${project.slug}/`,
         }) + `?project=${project.id}`,
       resolvedTs,

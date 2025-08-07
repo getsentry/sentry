@@ -18,6 +18,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 jest.mock('sentry/utils/analytics');
@@ -48,7 +49,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    render(<OrganizationGeneralSettings />);
+    render(<OrganizationGeneralSettings />, {
+      deprecatedRouterMocks: true,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -73,6 +76,7 @@ describe('OrganizationGeneralSettings', function () {
     });
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
+      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -96,7 +100,10 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings />, {router});
+    render(<OrganizationGeneralSettings />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -133,7 +140,10 @@ describe('OrganizationGeneralSettings', function () {
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings />, {organization: org});
+    render(<OrganizationGeneralSettings />, {
+      organization: org,
+      deprecatedRouterMocks: true,
+    });
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -152,7 +162,7 @@ describe('OrganizationGeneralSettings', function () {
         })
       );
     });
-    expect(window.location.replace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://acme.sentry.io/settings/organization/'
     );
   });
@@ -162,6 +172,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
+      deprecatedRouterMocks: true,
     });
 
     const formElements = [
@@ -186,6 +197,8 @@ describe('OrganizationGeneralSettings', function () {
       organization: OrganizationFixture({
         access: ['org:write'],
       }),
+
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -198,6 +211,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({access: ['org:admin']}),
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

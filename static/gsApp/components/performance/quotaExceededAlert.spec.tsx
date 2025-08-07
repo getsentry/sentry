@@ -1,3 +1,5 @@
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -28,22 +30,20 @@ describe('Renders QuotaExceededAlert correctly', function () {
   });
   beforeEach(function () {
     setMockDate(new Date('2024-12-14').getTime());
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '7d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [2],
         },
-        environments: [],
-        projects: [2],
-      },
-    });
+      })
+    );
 
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -96,7 +96,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
     ).toBeInTheDocument();
     expect(screen.getByText(/Dec 31, 2024/)).toBeInTheDocument();
     expect(screen.getByText(/or adjust your date range prior to/)).toBeInTheDocument();
-    expect(screen.getByText(/Dec 07, 2024/)).toBeInTheDocument();
+    expect(screen.getByText(/Dec 7, 2024/)).toBeInTheDocument();
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})

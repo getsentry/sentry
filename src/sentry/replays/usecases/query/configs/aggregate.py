@@ -13,7 +13,7 @@ acts as a validation step as must as a type coercion step.
 
 from __future__ import annotations
 
-from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
+from sentry.replays.lib.new_query.conditions import BooleanIntegerScalar, IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
@@ -117,6 +117,7 @@ search_config: dict[str, FieldProtocol] = {
     # do not understand the UUID type.
     "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
     "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
+    "is_archived": SumField("is_archived", parse_int, BooleanIntegerScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),
@@ -125,12 +126,19 @@ search_config: dict[str, FieldProtocol] = {
     "replay_type": string_field("replay_type"),
     "sdk.name": string_field("sdk_name"),
     "sdk.version": string_field("sdk_version"),
+    "ota_updates.channel": string_field("ota_updates_channel"),
+    "ota_updates.runtime_version": string_field("ota_updates_runtime_version"),
+    "ota_updates.update_id": string_field("ota_updates_update_id"),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, SumOfUUIDArray),
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
     "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
+    "user.geo.city": string_field("user_geo_city"),
+    "user.geo.country_code": string_field("user_geo_country_code"),
+    "user.geo.region": string_field("user_geo_region"),
+    "user.geo.subdivision": string_field("user_geo_subdivision"),
     "viewed_by_id": IntegerColumnField("viewed_by_id", parse_int, SumOfIntegerIdScalar),
     "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
 }

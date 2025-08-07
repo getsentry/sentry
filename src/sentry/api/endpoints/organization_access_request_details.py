@@ -12,10 +12,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return True
         return False
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get a list of requests to join org/team.
         If any requests are redundant (user already joined the team), they are not returned.
@@ -113,7 +113,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(valid_access_requests, request.user))
 
-    def put(self, request: Request, organization, request_id) -> Response:
+    def put(self, request: Request, organization: Organization, request_id: int) -> Response:
         """
         Approve or deny a request
 
@@ -145,7 +145,6 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                         organizationmember=access_request.member, team=access_request.team
                     )
             except IntegrityError:
-                incr_rollback_metrics(OrganizationMemberTeam)
                 pass
             else:
                 self.create_audit_entry(

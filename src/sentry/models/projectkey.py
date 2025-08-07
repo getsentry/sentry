@@ -126,6 +126,7 @@ class ProjectKey(Model):
         max_length=32,
         choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
+        db_default=UseCase.USER.value,
     )
 
     # support legacy project keys in API
@@ -145,7 +146,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.public_key)
 
     @classmethod
@@ -257,6 +258,18 @@ class ProjectKey(Model):
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
+
+    @property
+    def playstation_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
+
+    @property
+    def otlp_traces_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
 
     @property
     def unreal_endpoint(self):

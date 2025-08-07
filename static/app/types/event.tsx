@@ -39,7 +39,7 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
-export type VariantEvidence = {
+type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -50,13 +50,6 @@ export type VariantEvidence = {
   parent_span_hashes?: string[];
   parent_span_ids?: string[];
 };
-
-type EventGroupVariantKey =
-  | 'built-in-fingerprint'
-  | 'custom-fingerprint'
-  | 'app'
-  | 'default'
-  | 'system';
 
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
@@ -122,8 +115,6 @@ export type EventGroupVariant =
   | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
-export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
-
 /**
  * SDK Update metadata
  */
@@ -134,7 +125,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-export type UpdateSdkSuggestion = {
+type UpdateSdkSuggestion = {
   enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
@@ -210,10 +201,6 @@ export type Frame = {
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
-
-export enum FrameBadge {
-  GROUPING = 'grouping',
-}
 
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
@@ -337,7 +324,7 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export interface EntryRequestDataDefault {
+interface EntryRequestDataDefault {
   apiTarget: null;
   method: string | null;
   url: string;
@@ -405,7 +392,7 @@ export type Entry =
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-export interface BaseContext {
+interface BaseContext {
   type: string;
 }
 
@@ -527,7 +514,7 @@ type OSContext = {
   version: string;
 };
 
-export enum OtelContextKey {
+enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
@@ -561,6 +548,7 @@ export interface UnityContext {
 
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
+  TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
   HEAP_SIZE_BYTES = 'heap_size_bytes',
   HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
@@ -593,6 +581,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
   [MemoryInfoContextKey.INDEX]?: number;
   [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES]?: number;
   [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
@@ -619,7 +608,7 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-export type MetricAlertContextType = {
+type MetricAlertContextType = {
   alert_rule_id?: string;
 };
 
@@ -641,19 +630,19 @@ export interface ReplayContext {
   [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
-export interface BrowserContext {
+interface BrowserContext {
   name: string;
   version: string;
 }
 
-export interface ResponseContext {
+interface ResponseContext {
   data: unknown;
   type: 'response';
 }
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-export type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
@@ -686,17 +675,24 @@ export type EventContexts = {
 export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
+export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
-export type EventUser = {
+type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;
   username?: string | null;
 };
 
-export type PerformanceDetectorData = {
+type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
@@ -709,7 +705,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -795,8 +791,8 @@ interface EventBase {
   release?: EventRelease | null;
   resolvedWith?: string[];
   sdk?: {
-    name: string;
-    version: string;
+    name: string | null;
+    version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;

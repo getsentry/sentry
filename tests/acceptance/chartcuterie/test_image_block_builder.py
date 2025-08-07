@@ -1,6 +1,6 @@
 import uuid
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
@@ -12,11 +12,7 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
-from sentry.testutils.cases import (
-    AcceptanceTestCase,
-    MetricsEnhancedPerformanceTestCase,
-    ProfilesSnubaTestCase,
-)
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -25,7 +21,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class TestSlackImageBlockBuilder(
-    AcceptanceTestCase,
     MetricsEnhancedPerformanceTestCase,
     ProfilesSnubaTestCase,
     OccurrenceTestMixin,
@@ -62,7 +57,7 @@ class TestSlackImageBlockBuilder(
         return group
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_endpoint_regression(self):
+    def test_image_block_for_endpoint_regression(self) -> None:
         group = self._create_endpoint_regression_issue()
         image_block = ImageBlockBuilder(group=group).build_image_block()
 
@@ -70,8 +65,8 @@ class TestSlackImageBlockBuilder(
         assert "_media/" in image_block["image_url"]
 
     @with_feature("organizations:performance-use-metrics")
-    @patch("sentry.utils.performance_issues.detectors.utils.escape_transaction")
-    def test_caching(self, mock_escape_transaction):
+    @patch("sentry.performance_issues.detectors.utils.escape_transaction")
+    def test_caching(self, mock_escape_transaction: MagicMock) -> None:
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()
         image_blocks = []
@@ -88,7 +83,7 @@ class TestSlackImageBlockBuilder(
             assert image_block["image_url"] == image_url
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_function_regression(self):
+    def test_image_block_for_function_regression(self) -> None:
         hour_ago = (before_now(minutes=10) - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0
         )
@@ -135,7 +130,9 @@ class TestSlackImageBlockBuilder(
         assert "_media/" in image_block["image_url"]
 
     @patch("sentry_sdk.capture_exception")
-    def test_image_not_generated_for_unsupported_issues(self, mock_capture_exception):
+    def test_image_not_generated_for_unsupported_issues(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
         group = self.create_group()
         group.update(type=PerformanceHTTPOverheadGroupType.type_id)
         image_block = ImageBlockBuilder(group=group).build_image_block()

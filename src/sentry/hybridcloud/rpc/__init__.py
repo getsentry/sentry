@@ -5,7 +5,7 @@ import logging
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import Any, Generic, Protocol, Self, TypeVar, cast
+from typing import Any, Generic, Self, TypeVar, cast
 
 import pydantic
 from django.db import router, transaction
@@ -99,10 +99,6 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
-    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
-
-
 ServiceInterface = TypeVar("ServiceInterface")
 
 
@@ -184,7 +180,7 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
 
 
 def silo_mode_delegation(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> ServiceInterface:
     """
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
@@ -197,7 +193,7 @@ def silo_mode_delegation(
 
 
 def get_delegated_constructors(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
     """
     Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction

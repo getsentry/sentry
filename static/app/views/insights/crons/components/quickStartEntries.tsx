@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import merge from 'lodash/merge';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 
 export interface QuickStartProps {
@@ -608,6 +608,7 @@ checkinId := sentry.CaptureCheckIn(
 // 🟢 Notify Sentry your job has completed successfully:
 sentry.CaptureCheckIn(
   &sentry.CheckIn{
+    ID:          *checkinId,
     MonitorSlug: "<monitor-slug>",
     Status:      sentry.CheckInStatusOK,
   },

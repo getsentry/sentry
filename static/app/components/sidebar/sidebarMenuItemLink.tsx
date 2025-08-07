@@ -1,5 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 
 type Props = {
   // SidebarMenuItemLink content (accepted via string or components / DOM nodes)
