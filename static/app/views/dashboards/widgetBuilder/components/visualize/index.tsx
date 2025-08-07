@@ -245,7 +245,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
-  let tags = useTags();
+  const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
     fields: {selectedAggregate: decodeScalar},
@@ -269,10 +269,6 @@ function Visualize({error, setError}: VisualizeProps) {
   // chart types.
   let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
   if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
-    // Explicitly merge numeric and string tags to ensure filtering
-    // compatibility for timeseries chart types.
-    tags = {...numericSpanTags, ...stringSpanTags};
-
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
@@ -318,10 +314,26 @@ function Visualize({error, setError}: VisualizeProps) {
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
-  const fieldOptions = useMemo(
-    () => datasetConfig.getTableFieldOptions(organization, tags, customMeasurements),
-    [organization, tags, customMeasurements, datasetConfig]
-  );
+  const fieldOptions = useMemo(() => {
+    // Explicitly merge numeric and string tags to ensure filtering
+    // compatibility for timeseries chart types.
+    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+      return datasetConfig.getTableFieldOptions(
+        organization,
+        {...numericSpanTags, ...stringSpanTags},
+        customMeasurements
+      );
+    }
+    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+  }, [
+    state.dataset,
+    datasetConfig,
+    organization,
+    tags,
+    customMeasurements,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const aggregates = useMemo(
     () =>
