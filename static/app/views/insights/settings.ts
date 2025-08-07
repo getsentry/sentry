@@ -5,7 +5,7 @@ import {
   MODULE_DOC_LINK as AGENTS_MODULE_DOC_LINK,
   MODULE_FEATURES as AGENTS_MODULE_FEATURES,
   MODULE_TITLE as AGENTS_MODULE_TITLE,
-} from 'sentry/views/insights/agentMonitoring/settings';
+} from 'sentry/views/insights/agents/settings';
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
@@ -238,6 +238,11 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
   ModuleName.SESSIONS,
 ]);
+
+/**
+ * Modules that are in beta, e.g. used to show a badge on the tab.
+ */
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
 
 export const INGESTION_DELAY = 90;
 
