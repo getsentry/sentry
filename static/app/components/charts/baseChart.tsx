@@ -110,6 +110,7 @@ export interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
+  formatter?: TooltipComponentOption['formatter'];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
@@ -416,7 +417,7 @@ function BaseChart({
       (hasSinglePoints && transformSinglePointToBar
         ? (series as LineSeriesOption[] | undefined)?.map(s => ({
             ...s,
-            type: 'bar',
+            type: 'bar' as const,
             barWidth: 40,
             barGap: 0,
             itemStyle: {...s.areaStyle},
@@ -424,7 +425,7 @@ function BaseChart({
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
-              type: 'line',
+              type: 'line' as const,
               itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
@@ -567,7 +568,7 @@ function BaseChart({
     return {
       ...options,
       useUTC: utc,
-      color,
+      color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
