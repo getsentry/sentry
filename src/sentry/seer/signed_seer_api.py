@@ -71,6 +71,7 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     return auth_headers
 
 
+@sentry_sdk.trace
 def make_signed_seer_request_simple(
     url: str,
     data: str | dict[str, Any],
