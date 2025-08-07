@@ -3441,3 +3441,11 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables saving the suspectCommitStrategy on GroupOwner
+register(
+    "issues.suspect-commit-strategy",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
