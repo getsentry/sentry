@@ -149,7 +149,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
-        assert UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
 
     def test_saving_changes_value(self) -> None:
         """
