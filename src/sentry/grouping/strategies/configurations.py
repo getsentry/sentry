@@ -37,8 +37,6 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
         "normalize_message": True,
         # Platforms for which context line should be taken into account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # Stacktrace is produced in the context of this exception
-        "exception_data": None,
     },
 )
 
