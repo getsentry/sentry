@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -17,12 +17,13 @@ interface UseMetricDetectorSeriesProps {
   query: string;
   statsPeriod: TimePeriod;
   comparisonDelta?: number;
+  options?: Partial<UseApiQueryOptions<any>>;
 }
 
 interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
   isError: boolean;
-  isPending: boolean;
+  isLoading: boolean;
   series: Series[];
 }
 
@@ -38,6 +39,7 @@ export function useMetricDetectorSeries({
   projectId,
   statsPeriod,
   comparisonDelta,
+  options,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
   const organization = useOrganization();
   const datasetConfig = useMemo(() => getDatasetConfig(dataset), [dataset]);
@@ -53,11 +55,12 @@ export function useMetricDetectorSeries({
     comparisonDelta,
   });
 
-  const {data, isPending, isError} = useApiQuery<
+  const {data, isLoading, isError} = useApiQuery<
     Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
   >(seriesQueryOptions, {
     // 5 minutes
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 
   const {series, comparisonSeries} = useMemo(() => {
@@ -79,5 +82,5 @@ export function useMetricDetectorSeries({
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
-  return {series, comparisonSeries, isPending, isError};
+  return {series, comparisonSeries, isLoading, isError};
 }

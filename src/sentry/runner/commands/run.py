@@ -5,6 +5,7 @@ import os
 import random
 import signal
 import time
+from collections.abc import Mapping
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -17,6 +18,7 @@ from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
+logger = logging.getLogger("sentry.runner.commands.run")
 
 
 def _address_validate(
@@ -255,7 +257,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
-    from sentry import options as featureflags
+    from sentry import options as runtime_options
+    from sentry.conf.types.taskworker import ScheduleConfig
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
@@ -263,22 +266,21 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    logger = logging.getLogger("sentry.runner.commands.run")
-
     run_storage = RunStorage(redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        enabled_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
-        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            if key in enabled_schedules:
-                runner.add(key, schedule_data)
+        schedules: Mapping[str, ScheduleConfig] = {}
+        if runtime_options.get("taskworker.enabled"):
+            schedules = settings.TASKWORKER_SCHEDULES
+
+        for key, schedule_data in schedules.items():
+            runner.add(key, schedule_data)
 
         logger.info(
             "taskworker.scheduler.schedule_data",
             extra={
-                "enabled": enabled_schedules,
-                "available": list(settings.TASKWORKER_SCHEDULES.keys()),
+                "schedule_keys": list(schedules.keys()),
             },
         )
 
@@ -487,7 +489,7 @@ def cron(**options: Any) -> None:
     "Run periodic task dispatcher."
     from django.conf import settings
 
-    from sentry import options as featureflags
+    from sentry import options as runtime_options
 
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
@@ -496,14 +498,16 @@ def cron(**options: Any) -> None:
 
     from sentry.celery import app
 
-    old_schedule = app.conf.CELERYBEAT_SCHEDULE
-    new_schedule = {}
-    task_schedules = set(featureflags.get("taskworker.scheduler.rollout", []))
-    for key, schedule_data in old_schedule.items():
-        if key not in task_schedules:
-            new_schedule[key] = schedule_data
+    schedule = app.conf.CELERYBEAT_SCHEDULE
+    if runtime_options.get("taskworker.enabled"):
+        click.secho(
+            "You have `taskworker.enabled` active, run `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
+        )
+        click.secho("Ignoring all schedules in settings.CELERYBEAT_SCHEDULE", fg="yellow")
+        schedule = {}
 
-    app.conf.update(CELERYBEAT_SCHEDULE=new_schedule)
+    app.conf.update(CELERYBEAT_SCHEDULE=schedule)
 
     with managed_bgtasks(role="cron"):
         app.Beat(
