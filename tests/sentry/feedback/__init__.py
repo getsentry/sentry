@@ -1,5 +1,7 @@
 import time
 from datetime import UTC, datetime
+from typing import Any
+from unittest.mock import Mock
 
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
@@ -68,3 +70,26 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None):
         "breadcrumbs": [],
         "platform": "javascript",
     }
+
+
+def create_mock_response(
+    status_code: int,
+    content: bytes | None = None,
+    json: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> Mock:
+    """
+    Use for simple mocking of requests.Response objects. `content` and `json` are mutually exclusive, with `json` taking precedence.
+    When `json` is provided, response.json() is the provided JSON dict and response.content is the UTF-8 encoded byte string.
+    When `content` is provided, response.content is the provided bytes and response.json() is undefined.
+    """
+
+    if json:
+        content = json.dumps(json).encode("utf-8")
+
+    return Mock(
+        status_code=status_code,
+        headers=headers or {},
+        content=content,
+        json=lambda: json,
+    )

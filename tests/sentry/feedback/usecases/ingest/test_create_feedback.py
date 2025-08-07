@@ -19,6 +19,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
+from sentry.feedback.usecases.title_generation import SEER_GENERATE_TITLE_URL
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -978,6 +979,32 @@ def test_create_feedback_issue_title_from_seer_fallback(
         assert (
             occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
         )
+
+
+@django_db_all
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam")
+@patch("sentry.feedback.usecases.ingest.create_feedback.get_feedback_title_from_seer")
+def test_create_feedback_issue_title_from_seer_skips_if_spam(
+    default_project,
+    mock_produce_occurrence_to_kafka,
+    mock_post,
+    mock_is_spam,
+) -> None:
+    """Test title generation endpoint is not called if marked as spam."""
+    mock_is_spam.return_value = True
+
+    with Feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:user-feedback-ai-titles": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+        urls = [call.args[0] for call in mock_post.call_args_list]
+        assert SEER_GENERATE_TITLE_URL not in urls
 
 
 @django_db_all

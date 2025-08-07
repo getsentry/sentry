@@ -24,3 +24,9 @@ def llm_settings(set_sentry_option):
         ),
     ):
         yield
+
+
+@pytest.fixture
+def mock_post():
+    with mock.patch("requests.post") as mck:
+        yield mck
