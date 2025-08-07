@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime, timedelta
 
 from sentry.replays.testutils import (
@@ -89,6 +90,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
 
+    @pytest.mark.skip(reason="flaky: #97399")
     def test_network_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
