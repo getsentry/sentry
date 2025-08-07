@@ -2,17 +2,21 @@ import pytest
 import zstandard
 
 from sentry.objectstore.service import ClientBuilder, ClientError
+from sentry.testutils.skips import requires_objectstore
+
+pytestmark = [requires_objectstore]
 
 
 class Testserver:
     url = "http://localhost:8888"
+    secret = ""
 
 
 def test_stores_uncompressed():
     server = Testserver()
-    client = ClientBuilder("test", {"base_url": server.url, "jwt_secret": "TEST"}).for_organization(
-        12345
-    )
+    client = ClientBuilder(
+        "test", {"base_url": server.url, "jwt_secret": server.secret}
+    ).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo", compression="none")
@@ -26,9 +30,9 @@ def test_stores_uncompressed():
 
 def test_uses_zstd_by_default():
     server = Testserver()
-    client = ClientBuilder("test", {"base_url": server.url, "jwt_secret": "TEST"}).for_organization(
-        12345
-    )
+    client = ClientBuilder(
+        "test", {"base_url": server.url, "jwt_secret": server.secret}
+    ).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")
@@ -49,9 +53,9 @@ def test_uses_zstd_by_default():
 
 def test_deletes_stored_stuff():
     server = Testserver()
-    client = ClientBuilder("test", {"base_url": server.url, "jwt_secret": "TEST"}).for_organization(
-        12345
-    )
+    client = ClientBuilder(
+        "test", {"base_url": server.url, "jwt_secret": server.secret}
+    ).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")
