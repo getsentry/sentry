@@ -39,7 +39,7 @@ function WidgetBuilderGroupBySelector({
     }
 
     if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
-      datasetConfig.getGroupByFieldOptions(organization, {
+      return datasetConfig.getGroupByFieldOptions(organization, {
         ...numericSpanTags,
         ...stringSpanTags,
       });
