@@ -32,6 +32,12 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable logs to be sent to Sentry
+  'enable_logs' => true,`
+      : ''
   }
 ]);`;
 

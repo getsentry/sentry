@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -38,7 +39,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
+import {
+  TraceLinkNavigationButton,
+  TraceLinkNavigationButtonPlaceHolder,
+} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
@@ -142,7 +146,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const {timestamp} = useTraceQueryParams();
 
-  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
+  const showLinkedTraces =
+    organization?.features.includes('trace-view-linked-traces') &&
+    // Don't show the linked traces buttons when the waterfall is embedded in the replay
+    // detail page, as it already contains all traces of the replay session.
+    props.source !== 'replay';
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -820,27 +828,29 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      {showLinkedTraces && !isTraceItemDetailsResponse(props.rootEventResults.data) && (
+      {showLinkedTraces && (
         <TraceLinksNavigationContainer>
-          <TraceLinkNavigationButton
-            direction={'previous'}
-            isLoading={props.rootEventResults.isLoading}
-            traceContext={props.rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
-            }}
-          />
-          <TraceLinkNavigationButton
-            direction={'next'}
-            isLoading={props.rootEventResults.isLoading}
-            projectID={props.rootEventResults.data?.projectID ?? ''}
-            traceContext={props.rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
-            }}
-          />
+          {isTraceItemDetailsResponse(props.rootEventResults.data) &&
+          props.rootEventResults.data.timestamp ? (
+            <Fragment>
+              <TraceLinkNavigationButton
+                direction={'previous'}
+                attributes={props.rootEventResults.data.attributes}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
+                }
+              />
+              <TraceLinkNavigationButton
+                direction={'next'}
+                attributes={props.rootEventResults.data.attributes}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
+                }
+              />
+            </Fragment>
+          ) : (
+            <TraceLinkNavigationButtonPlaceHolder />
+          )}
         </TraceLinksNavigationContainer>
       )}
     </Flex>

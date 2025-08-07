@@ -326,6 +326,18 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         for instance in event_data.events.values():
             assert instance.timestamp == timezone.now()
 
+    @override_options(
+        {"delayed_processing.batch_size": 1, "delayed_workflow.use_workflow_engine_pool": True}
+    )
+    @patch(
+        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows_shim.apply_async"
+    )
+    def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
+        self._push_base_events()
+
+        process_in_batches(self.project.id, "delayed_workflow")
+        assert mock_process_delayed.call_count == 2
+
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
     def setUp(self) -> None:
@@ -926,12 +938,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert first_call_kwargs["detector_id"] == self.detector.id
         assert first_call_kwargs["event_id"] == self.event1.event_id
         assert first_call_kwargs["group_id"] == self.group1.id
+        assert first_call_kwargs["workflow_id"] == self.workflow1.id
 
         # Second call should be for workflow2/group2
         second_call_kwargs = mock_trigger.call_args_list[1].kwargs["kwargs"]
         assert second_call_kwargs["detector_id"] == self.detector.id
         assert second_call_kwargs["event_id"] == self.event2.event_id
         assert second_call_kwargs["group_id"] == self.group2.id
+        assert second_call_kwargs["workflow_id"] == self.workflow2.id
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
