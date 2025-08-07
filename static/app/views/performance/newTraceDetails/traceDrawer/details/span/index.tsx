@@ -195,10 +195,6 @@ export function SpanNodeDetails(
 
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
 
-  if (!project) {
-    return null;
-  }
-
   const content = isEAPSpanNode(node) ? (
     <EAPSpanNodeDetails
       {...props}
@@ -222,7 +218,7 @@ export function SpanNodeDetails(
   return (
     <ProfilesProvider
       orgSlug={organization.slug}
-      projectSlug={project.slug}
+      projectSlug={project?.slug ?? ''}
       profileMeta={profileMeta}
     >
       <ProfileContext.Consumer>
@@ -236,7 +232,7 @@ export function SpanNodeDetails(
               isTableFrozen
               limitToTraceId={props.traceId}
               limitToSpanId={spanId}
-              limitToProjectIds={[Number(project.id)]}
+              limitToProjectIds={project ? [Number(project.id)] : undefined}
               analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
             >
               <LogsPageDataProvider>{content}</LogsPageDataProvider>
