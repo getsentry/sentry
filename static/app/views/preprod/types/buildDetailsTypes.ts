@@ -21,11 +21,15 @@ export interface BuildDetailsAppInfo {
   // icon?: string | null; // Uncomment when available
 }
 
-interface BuildDetailsVcsInfo {
-  commit_id: string | null;
-  // repo?: string; // Uncomment when available
-  // provider?: string; // Uncomment when available
-  // branch?: string; // Uncomment when available
+export interface BuildDetailsVcsInfo {
+  base_ref?: string;
+  base_repo_name?: string;
+  base_sha?: string;
+  head_ref?: string;
+  head_repo_name?: string;
+  head_sha?: string;
+  pr_number?: number;
+  provider?: 'github' | 'github_enterprise' | 'gitlab' | 'bitbucket' | 'bitbucket_server';
 }
 
 export interface BuildDetailsSizeInfo {
