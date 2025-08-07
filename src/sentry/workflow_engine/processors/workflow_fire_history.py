@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.utils import metrics
+from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -47,7 +48,9 @@ def create_workflow_fire_histories(
         else event_data.event.id
     )
 
-    fire_latency_seconds = (datetime.now() - event_data.event.datetime).total_seconds()
+    fire_latency_seconds = (
+        datetime.now(timezone.utc) - ensure_aware(event_data.event.datetime)
+    ).total_seconds()
     for _ in workflow_ids:
         metrics.timing(
             "workflow_fire_history.latency",

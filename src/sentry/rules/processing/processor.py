@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 from random import randrange
 from typing import Any
 
@@ -28,6 +28,7 @@ from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -416,7 +417,7 @@ class RuleProcessor:
         notification_uuid = str(uuid.uuid4())
         metrics.timing(
             "rule_fire_history.latency",
-            (datetime.now() - self.event.datetime).total_seconds(),
+            (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
             tags={"delayed": False},
         )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)

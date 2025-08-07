@@ -50,6 +50,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
@@ -575,7 +576,9 @@ def fire_rules(
                     groupevent = group_to_groupevent[group]
                     metrics.timing(
                         "rule_fire_history.latency",
-                        (datetime.now() - groupevent.datetime).total_seconds(),
+                        (
+                            datetime.now(tz=timezone.utc) - ensure_aware(groupevent.datetime)
+                        ).total_seconds(),
                         tags={"delayed": True},
                     )
                     rule_fire_history = history.record(
