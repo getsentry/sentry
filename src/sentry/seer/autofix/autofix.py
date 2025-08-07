@@ -465,6 +465,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
             )
             profile_id = event_data.get("contexts", {}).get("profile", {}).get("profile_id")
+            is_continuous = event_data.get("contexts", {}).get("profile", {}).get("is_continuous")
+            precise_start_ts = event_data.get("precise_start_ts")
+            precise_finish_ts = event_data.get("precise_finish_ts")
 
             # Store all span IDs from this transaction for later relationship building
             spans = event_data.get("spans", [])
@@ -489,6 +492,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
                     "spans": selected_spans_tree,
+                    "is_continuous": is_continuous,
+                    "precise_start_ts": precise_start_ts,
+                    "precise_finish_ts": precise_finish_ts,
                 }
             )
 
