@@ -155,12 +155,7 @@ def check_test(request: pytest.FixtureRequest):
     except AssertionError:
         scope = get_sentry_scope()
         with sentry_sdk.scope.use_scope(scope):
-            scope.update_from_kwargs(
-                extras={
-                    "test": request.node.nodeid,
-                    "test_file": request.node.fspath,
-                },
-            )
+            scope.set_extra("test", request.node.nodeid)
             scope.capture_exception()
             scope.client.flush()
 
