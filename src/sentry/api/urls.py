@@ -101,6 +101,13 @@ from sentry.core.endpoints.project_team_details import ProjectTeamDetailsEndpoin
 from sentry.core.endpoints.project_teams import ProjectTeamsEndpoint
 from sentry.core.endpoints.project_transfer import ProjectTransferEndpoint
 from sentry.core.endpoints.project_users import ProjectUsersEndpoint
+from sentry.core.endpoints.team_details import TeamDetailsEndpoint
+from sentry.core.endpoints.team_members import TeamMembersEndpoint
+from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
+from sentry.core.endpoints.team_release_count import TeamReleaseCountEndpoint
+from sentry.core.endpoints.team_stats import TeamStatsEndpoint
+from sentry.core.endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
+from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
@@ -751,14 +758,7 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
-from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
-from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_projects import TeamProjectsEndpoint
-from .endpoints.team_release_count import TeamReleaseCountEndpoint
-from .endpoints.team_stats import TeamStatsEndpoint
-from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
-from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
