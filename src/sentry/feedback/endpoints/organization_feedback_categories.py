@@ -178,7 +178,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             limit=10,
         )
 
-        # Guaranteed to be non-empty since there are definitely feedbacks with AI labels
+        # Guaranteed to be non-empty since recent_feedbacks is non-empty
         top_10_labels = [result["label"] for result in top_10_labels_result]
 
         seer_request = LabelGroupsRequest(
