@@ -915,7 +915,7 @@ register(
 register(
     "issues.severity.seer-timout",
     type=Float,
-    default=0.2,
+    default=0.5,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

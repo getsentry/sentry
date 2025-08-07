@@ -1940,13 +1940,13 @@ def _process_existing_aggregate(
 severity_connection_pool = connection_from_url(
     settings.SEER_SEVERITY_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 500 milliseconds
 )
 
 severity_connection_pool_gpu = connection_from_url(
     settings.SEER_GROUPING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 500 milliseconds
 )
 
 
@@ -2168,7 +2168,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT,
                 )
 
                 if in_random_rollout("issues.severity.gpu-rollout-rate"):
