@@ -98,9 +98,8 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
 def track_event_since_received(
     step: str,
     event_data: MutableMapping[str, Any] | None,
-    platform: str,
-    tags: dict = None,
-):
+    tags: dict[str, str] | None = None,
+) -> None:
     """
     Helper function to track event timing metrics.
     """
