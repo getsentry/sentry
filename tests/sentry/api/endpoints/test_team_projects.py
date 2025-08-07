@@ -1,5 +1,5 @@
 from unittest import TestCase, mock
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
@@ -438,7 +438,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert symbol_sources == ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"]
 
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
-    def test_create_project_with_origin(self, create_audit_entry):
+    def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
         project_created.connect(signal_handler)
 

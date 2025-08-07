@@ -51,7 +51,6 @@ interface LogsPageParams {
   /** In the 'aggregates' table, if you GROUP BY, there can be many rows. This is the 'sort by' for that table. */
   readonly aggregateSortBys: Sort[];
   readonly analyticsPageSource: LogsAnalyticsPageSource;
-  readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
@@ -92,10 +91,10 @@ interface LogsPageParams {
 
   /**
    * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page
+   * Used in embedded views like error page and trace page.
+   * Can be an array of trace IDs on some pages (eg. replays)
    */
-  readonly limitToTraceId?: string;
-
+  readonly limitToTraceId?: string | string[];
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
@@ -120,11 +119,10 @@ interface LogsPageParamsProviderProps {
     autoRefresh?: AutoRefreshState;
     refreshInterval?: number;
   };
-  blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
-  limitToTraceId?: string;
+  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
@@ -132,7 +130,6 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
-  blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
   _testContext,
@@ -146,14 +143,22 @@ export function LogsPageParamsProvider({
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
-  if (limitToSpanId && limitToTraceId) {
+
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
+
+  if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
-    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-  } else if (limitToTraceId) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    const traceIdValue = `[${traceIds.join(',')}]`;
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+    if (limitToSpanId) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+    }
   }
+
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -200,11 +205,10 @@ export function LogsPageParamsProvider({
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
-        limitToTraceId,
+        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,
@@ -361,11 +365,6 @@ export function useLogsGroupBy() {
   return groupBy;
 }
 
-export function useLogsIsFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -384,16 +383,6 @@ export function useSetLogsCursor() {
     },
     [isTableFrozen, setCursorForFrozenPages, setPageParams]
   );
-}
-
-export function useLogsIsTableFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
-}
-
-export function useLogsBlockRowExpanding() {
-  const {blockRowExpanding} = useLogsPageParams();
-  return !!blockRowExpanding;
 }
 
 export function usePersistedLogsPageParams() {
@@ -489,21 +478,6 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
-}
-
-export function useLogsMode() {
-  const {mode} = useLogsPageParams();
-  return mode;
-}
-
-export function useSetLogsMode() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (mode: Mode) => {
-      setPageParams({mode});
-    },
-    [setPageParams]
-  );
 }
 
 function getLogCursorFromLocation(location: Location): string {

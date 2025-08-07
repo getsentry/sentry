@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
+import {ALL_BRANCHES} from 'sentry/components/codecov/branchSelector/branchSelector';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {
   fetchDataQuery,
@@ -74,6 +75,8 @@ export function useInfiniteTestResults({
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
+  const filterBranch = branch === ALL_BRANCHES ? null : branch;
+
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
 
@@ -98,7 +101,7 @@ export function useInfiniteTestResults({
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
       {
         query: {
-          branch,
+          branch: filterBranch,
           codecovPeriod,
           signedSortBy,
           mappedFilterBy,
@@ -125,8 +128,8 @@ export function useInfiniteTestResults({
                   codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
                 ],
               sortBy: signedSortBy,
-              branch,
               term,
+              branch: filterBranch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
               ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
@@ -141,12 +144,12 @@ export function useInfiniteTestResults({
 
       return result as ApiResult<TestResults>;
     },
-    getNextPageParam: ([lastPage]) => {
-      return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    getNextPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasNextPage ? pageData.pageInfo.endCursor : undefined;
     },
-    getPreviousPageParam: ([firstPage]) => {
-      return firstPage.pageInfo?.hasPreviousPage
-        ? firstPage.pageInfo.startCursor
+    getPreviousPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasPreviousPage
+        ? pageData.pageInfo.startCursor
         : undefined;
     },
     initialPageParam: null,

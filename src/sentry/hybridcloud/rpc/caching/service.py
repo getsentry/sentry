@@ -162,7 +162,14 @@ class SiloCacheBackedListCallable(Generic[_R]):
             try:
                 metrics.incr("hybridcloud.caching.list.cached", tags={"base_key": self.base_key})
                 return [self.type_(**item) for item in json.loads(value)]
-            except (pydantic.ValidationError, JSONDecodeError, TypeError):
+            except (pydantic.ValidationError, JSONDecodeError, TypeError) as err:
+                metrics.incr(
+                    "hybridcloud.caching.list.failed_read",
+                    tags={
+                        "base_key": self.base_key,
+                        "err": type(err).__name__,
+                    },
+                )
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
@@ -170,7 +177,7 @@ class SiloCacheBackedListCallable(Generic[_R]):
         metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
         result = self.cb(object_id)
         if result is not None:
-            cache_value = json.dumps([item.json() for item in result])
+            cache_value = json.dumps([item.dict() for item in result])
             _consume_generator(_set_cache(key, cache_value, version, self.timeout))
         return result
 

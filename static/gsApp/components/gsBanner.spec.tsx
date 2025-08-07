@@ -943,6 +943,40 @@ describe('GSBanner', function () {
     expect(openForcedTrialModal).toHaveBeenCalled();
   });
 
+  it('does not automatically start forced trial if already on a trial', async function () {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am1_f',
+      organization,
+      totalLicenses: 1,
+      usedLicenses: 2,
+      isTrial: true,
+      isForcedTrial: false,
+    });
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const mockForceTrial = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
+      body: {},
+    });
+
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    // wait for requests to finish
+    await act(tick);
+    expect(container).toBeEmptyDOMElement();
+
+    expect(mockForceTrial).not.toHaveBeenCalled();
+    expect(openForcedTrialModal).not.toHaveBeenCalled();
+  });
+
   it('automatically starts forced trial for restricted integration', async function () {
     const organization = OrganizationFixture({
       access: ['org:billing'],
@@ -2093,13 +2127,20 @@ describe('GSBanner Overage Alerts', function () {
       'profile_duration',
       'profile_duration_ui',
       'uptime',
+      'log_bytes',
       'seer_autofix',
       'seer_scanner',
     ]) {
       overagePrompts.push(`${category}_overage_alert`);
       warningPrompts.push(`${category}_warning_alert`);
       if (
-        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
+        [
+          'profile_duration',
+          'replays',
+          'spans',
+          'profile_duration_ui',
+          'log_bytes',
+        ].includes(category)
       ) {
         productTrialPrompts.push(`${category}_product_trial_alert`);
       }

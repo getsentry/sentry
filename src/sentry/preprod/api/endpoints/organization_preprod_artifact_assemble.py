@@ -135,18 +135,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             set_assemble_status(
                 AssembleTask.PREPROD_ARTIFACT, project.id, checksum, ChunkFileState.CREATED
             )
-
             assemble_preprod_artifact.apply_async(
                 kwargs={
                     "org_id": project.organization_id,
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "git_sha": data.get("git_sha"),
-                    "build_configuration": data.get("build_configuration"),
                 }
             )
-
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 

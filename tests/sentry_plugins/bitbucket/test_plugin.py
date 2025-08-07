@@ -23,11 +23,11 @@ class BitbucketPluginTest(PluginTestCase):
     def request(self):
         return RequestFactory()
 
-    def test_get_issue_label(self):
+    def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert self.plugin.get_issue_label(group, 1) == "Bitbucket-1"
 
-    def test_get_issue_url(self):
+    def test_get_issue_url(self) -> None:
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert (
@@ -35,13 +35,13 @@ class BitbucketPluginTest(PluginTestCase):
             == "https://bitbucket.org/maxbittker/newsdiffs/issue/1/"
         )
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(
             responses.POST,
             "https://api.bitbucket.org/1.0/repositories/maxbittker/newsdiffs/issues",
@@ -82,7 +82,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert request.headers["Authorization"].startswith("OAuth ")
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/1.0/repositories/maxbittker/newsdiffs/issues/1",

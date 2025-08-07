@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -65,25 +65,19 @@ export default function ScreenshotModal({
   const currentAttachmentIndex = screenshots.findIndex(
     attachment => attachment.id === currentEventAttachment.id
   );
-  const paginateItems = useCallback(
-    (delta: number) => {
-      if (screenshots.length) {
-        const newIndex = currentAttachmentIndex + delta;
-        if (newIndex >= 0 && newIndex < screenshots.length) {
-          setCurrentAttachment(screenshots[newIndex]!);
-        }
+  const paginateItems = (delta: number) => {
+    if (screenshots.length) {
+      const newIndex = currentAttachmentIndex + delta;
+      if (newIndex >= 0 && newIndex < screenshots.length) {
+        setCurrentAttachment(screenshots[newIndex]!);
       }
-    },
-    [screenshots, currentAttachmentIndex]
-  );
+    }
+  };
 
-  const paginateHotkeys = useMemo(() => {
-    return [
-      {match: 'right', callback: () => paginateItems(1)},
-      {match: 'left', callback: () => paginateItems(-1)},
-    ];
-  }, [paginateItems]);
-  useHotkeys(paginateHotkeys);
+  useHotkeys([
+    {match: 'right', callback: () => paginateItems(1)},
+    {match: 'left', callback: () => paginateItems(-1)},
+  ]);
 
   const {dateCreated, size, mimetype} = currentEventAttachment;
 

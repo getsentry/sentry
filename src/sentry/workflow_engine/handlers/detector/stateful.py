@@ -340,6 +340,37 @@ class StatefulDetectorHandler(
         """
         return []
 
+    def build_detector_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[DataPacketType],
+        priority: DetectorPriorityLevel,
+    ) -> dict[str, Any]:
+        """
+        Build detector-specific evidence data.
+        A detector handler can implement this to add its own evidence data in addition to the workflow engine evidence data.
+        """
+        return {}
+
+    def _build_workflow_engine_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[DataPacketType],
+        evaluation_value: DataPacketEvaluationType,
+    ) -> dict[str, Any]:
+        """
+        Build the workflow engine specific evidence data.
+        This is data that is common to all detectors.
+        """
+        return {
+            "detector_id": self.detector.id,
+            "value": evaluation_value,
+            "data_packet_source_id": str(data_packet.source_id),
+            "conditions": [
+                result.condition.get_snapshot() for result in evaluation_result.condition_results
+            ],
+        }
+
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
@@ -423,12 +454,18 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
-        evidence_data = self._build_evidence_data(
-            detector_occurrence=None,
-            evaluation_result=condition_results,
-            data_packet=data_packet,
-            evaluation_value=evaluation_value,
-        )
+        evidence_data = {
+            **self._build_workflow_engine_evidence_data(
+                evaluation_result=condition_results,
+                data_packet=data_packet,
+                evaluation_value=evaluation_value,
+            ),
+            **self.build_detector_evidence_data(
+                condition_results,
+                data_packet,
+                DetectorPriorityLevel.OK,
+            ),
+        }
 
         return StatusChangeMessage(
             fingerprint=fingerprint,
@@ -527,45 +564,8 @@ class StatefulDetectorHandler(
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
-
-        if self.detector.workflow_condition_group is None:
-            return []
-
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
-        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-            condition_result__in=priority_levels
-        ).values_list("condition_result", flat=True)
-
-        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
-
-    def _build_evidence_data(
-        self,
-        detector_occurrence: DetectorOccurrence | None,
-        evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> dict[str, Any]:
-
-        evidence_data: dict[str, Any] = {}
-
-        if detector_occurrence:
-            evidence_data.update(detector_occurrence.evidence_data)
-
-        evidence_data.update(
-            {
-                "detector_id": self.detector.id,
-                "value": evaluation_value,
-                "data_packet_source_id": str(data_packet.source_id),
-                "conditions": [
-                    result.condition.get_snapshot()
-                    for result in evaluation_result.condition_results
-                ],
-            }
-        )
-
-        return evidence_data
+        conditions = self.detector.get_conditions()
+        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
 
     def _create_decorated_issue_occurrence(
         self,
@@ -579,8 +579,7 @@ class StatefulDetectorHandler(
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
-        evidence_data = self._build_evidence_data(
-            detector_occurrence,
+        evidence_data = self._build_workflow_engine_evidence_data(
             evaluation_result,
             data_packet,
             data_value,
@@ -613,7 +612,17 @@ class StatefulDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None, new_priority
 
-        condition_evaluation, _ = process_data_condition_group(self.condition_group, value)
+        condition_evaluation, remaining_slow_conditions = process_data_condition_group(
+            self.condition_group, value
+        )
+        if remaining_slow_conditions:
+            logger.warning(
+                "Slow conditions present for detector",
+                extra={
+                    "detector_id": self.detector.id,
+                    "condition_group_id": self.condition_group.id,
+                },
+            )
 
         if condition_evaluation.logic_result:
             validated_condition_results: list[DetectorPriorityLevel] = [

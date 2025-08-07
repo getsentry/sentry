@@ -10,7 +10,7 @@ from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
-from sentry.db.models.fields import PickledObjectField
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
@@ -38,6 +38,7 @@ OPTION_KEYS = frozenset(
         "sentry:blacklisted_ips",
         "sentry:releases",
         "sentry:error_messages",
+        "sentry:log_messages",
         "sentry:scrape_javascript",
         "sentry:replay_hydration_error_issues",
         "sentry:replay_rage_click_issues",
@@ -208,7 +209,7 @@ class ProjectOption(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = PickledObjectField(null=True)
+    value = LegacyTextJSONField(null=True)
 
     objects: ClassVar[ProjectOptionManager] = ProjectOptionManager()
 

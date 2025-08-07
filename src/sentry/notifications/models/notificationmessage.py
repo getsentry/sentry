@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
 
-from django.db.models import DateTimeField, Field, IntegerField, Q, Value
+from django.db.models import DateTimeField, IntegerField, Q, Value
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    CharField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
 
 @region_silo_model
@@ -42,7 +35,7 @@ class NotificationMessage(Model):
 
     # Related information regarding failed notifications.
     # Leveraged to help give the user visibility into notifications that are consistently failing.
-    error_details: Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    error_details = LegacyTextJSONField(null=True)
     error_code = IntegerField(null=True, db_index=True)
 
     # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.

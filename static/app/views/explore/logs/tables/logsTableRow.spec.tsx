@@ -14,10 +14,8 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
-  type TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -45,6 +43,7 @@ describe('logsTableRow', () => {
 
   // These are the values in the actual row - e.g., the ones loaded before you click the row
   const rowData = LogFixture({
+    [OurLogKnownFieldKey.ID]: '1',
     [OurLogKnownFieldKey.PROJECT_ID]: project.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
@@ -72,6 +71,7 @@ describe('logsTableRow', () => {
   );
 
   const rowDataWithCodeFilePath = LogFixture({
+    [OurLogKnownFieldKey.ID]: '2',
     [OurLogKnownFieldKey.PROJECT_ID]: project.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     // Code file path fields
@@ -147,6 +147,26 @@ describe('logsTableRow', () => {
         meta: {},
         timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
         attributes: rowDetails,
+      },
+    });
+
+    // Mock for rowDataWithCodeFilePath
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithCodeFilePath[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowDataWithCodeFilePath[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowDataWithCodeFilePath[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: Object.entries(rowDataWithCodeFilePath).map(
+          ([k, v]) =>
+            ({
+              name: k,
+              value: v,
+              type: typeof v === 'string' ? 'str' : 'float',
+            }) as TraceItemResponseAttribute
+        ),
       },
     });
   });

@@ -17,7 +17,6 @@ import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -336,6 +335,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/stories/view/index')),
       withOrgPath: true,
     },
+    {
+      path: '/debug/notifications/',
+      component: make(() => import('sentry/debug/notifications/views/index')),
+      withOrgPath: true,
+    },
   ];
   const rootRoutes: SentryRouteObject = {
     component: errorHandler(AppBodyContent),
@@ -384,6 +388,11 @@ function buildRoutes(): RouteObject[] {
       path: 'emails/',
       name: t('Emails'),
       component: make(() => import('sentry/views/settings/account/accountEmails')),
+    },
+    {
+      path: 'merge-accounts/',
+      name: t('Merge Accounts'),
+      component: make(() => import('sentry/views/settings/account/mergeAccounts')),
     },
     {
       path: 'authorizations/',
@@ -482,7 +491,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/account/apiTokenDetails')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -680,13 +688,13 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'source-maps/',
@@ -959,12 +967,6 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-    },
-    {
-      path: 'rate-limits/',
-      name: t('Rate Limits'),
-      component: make(() => import('sentry/views/settings/organizationRateLimits')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'relay/',
@@ -1727,14 +1729,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(
-        () => import('sentry/views/replays/deadRageClick/deadRageClickList')
-      ),
+      component: make(() => import('sentry/views/replays/selectors')),
     },
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
@@ -1742,7 +1741,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
-    deprecatedRouteProps: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -1828,16 +1826,17 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  // Redirects for old LLM monitoring routes
   const llmMonitoringRedirects: SentryRouteObject = {
     children: [
       {
         path: '/llm-monitoring/',
-        redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+        redirectTo: `/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
         customerDomainOnlyRoute: true,
       },
       {
         path: '/organizations/:orgId/llm-monitoring/',
-        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
       },
     ],
   };
@@ -2041,26 +2040,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: `${MODULE_BASE_URLS[ModuleName.AI]}/`,
-      children: [
-        {
-          index: true,
-          component: make(
-            () =>
-              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
-          ),
-        },
-        {
-          path: 'pipeline-type/:groupId/',
-          component: make(
-            () =>
-              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
-          ),
-          deprecatedRouteProps: true,
-        },
-      ],
-    },
-    {
       path: `${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`,
       children: [
         {
@@ -2074,9 +2053,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(
-            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
-          ),
+          component: make(() => import('sentry/views/insights/agents/views/overview')),
         },
       ],
     },
@@ -2150,10 +2127,6 @@ function buildRoutes(): RouteObject[] {
         traceView,
         ...moduleRoutes,
       ],
-    },
-    {
-      path: `${AI_LANDING_SUB_PATH}/`,
-      children: [traceView, ...moduleRoutes],
     },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
@@ -2486,6 +2459,22 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'prevent-ai/',
+      children: [
+        // Render prevent AI onboarding with layout wrapper
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/preventAI/wrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/preventAI/onboarding')),
+            },
+          ],
+        },
+      ],
+    },
+    {
       path: 'tokens/',
       children: [
         {
@@ -2658,7 +2647,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      deprecatedRouteProps: true,
       children: [
         ...issueTabs,
         {

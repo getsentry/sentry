@@ -96,7 +96,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         "get_trigger_types",
         return_value=[(0, "teacher"), (1, "watcher"), (2, "beast")],
     )
-    def test_get_with_queries(self, mock_trigger_types):
+    def test_get_with_queries(self, mock_trigger_types: MagicMock) -> None:
         project = self.create_project(name="deepnest", organization=self.organization)
         no_team_project = self.create_project(
             name="waterways", organization=self.organization, teams=[]
@@ -296,7 +296,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         body={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
     )
     @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
-    def test_post_with_slack_validation(self, mock_delete, mock_schedule):
+    def test_post_with_slack_validation(self, mock_delete, mock_schedule) -> None:
         class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
