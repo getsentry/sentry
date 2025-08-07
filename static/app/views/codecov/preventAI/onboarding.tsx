@@ -78,13 +78,11 @@ export default function PreventAIOnboarding() {
         <Flex direction="column" gap="2xl" maxWidth="600px">
           <Flex
             direction="column"
-            gap="md"
+            gap="lg"
             padding="0 0 xl 0"
             style={{borderBottom: `1px solid ${theme.border}`}}
           >
-            <Heading as="h1" style={{marginBottom: theme.space.md}}>
-              {t('Setup Prevent AI')}
-            </Heading>
+            <Heading as="h1">{t('Setup Prevent AI')}</Heading>
             <Text variant="primary" size="sm">
               {t(
                 `These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation.`
