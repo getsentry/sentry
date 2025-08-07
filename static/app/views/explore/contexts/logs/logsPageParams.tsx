@@ -91,10 +91,10 @@ interface LogsPageParams {
 
   /**
    * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page
+   * Used in embedded views like error page and trace page.
+   * Can be an array of trace IDs on some pages (eg. replays)
    */
-  readonly limitToTraceId?: string;
-
+  readonly limitToTraceId?: string | string[];
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
@@ -122,7 +122,7 @@ interface LogsPageParamsProviderProps {
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
-  limitToTraceId?: string;
+  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
@@ -143,14 +143,22 @@ export function LogsPageParamsProvider({
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
-  if (limitToSpanId && limitToTraceId) {
+
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
+
+  if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
-    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-  } else if (limitToTraceId) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    const traceIdValue = `[${traceIds.join(',')}]`;
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+    if (limitToSpanId) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+    }
   }
+
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -200,7 +208,7 @@ export function LogsPageParamsProvider({
         baseSearch,
         projectIds,
         analyticsPageSource,
-        limitToTraceId,
+        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,

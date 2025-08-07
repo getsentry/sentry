@@ -25,7 +25,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -40,10 +39,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {
-  TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -55,7 +51,6 @@ import {
   useLogsGroupBy,
   useLogsSearch,
   useSetLogsFields,
-  useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -93,6 +88,7 @@ import {
   getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
 } from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
@@ -101,9 +97,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -122,15 +116,12 @@ export function LogsTabContent({
   const sortBys = useLogsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
-  const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
-
-  const oldLogsSearch = usePrevious(logsSearch);
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
@@ -204,43 +195,17 @@ export function LogsTabContent({
     source: LogsAnalyticsPageSource.EXPLORE_LOGS,
   });
 
-  const onSearch = useCallback(
-    (newQuery: string) => {
-      const newSearch = new MutableSearch(newQuery);
-      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
-        numberAttributes,
-        stringAttributes,
-      });
-
-      const existingFields = new Set(fields);
-      const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
-
-      setLogsPageParams({
-        search: newSearch,
-        fields: newColumns.length ? [...fields, ...newColumns] : undefined,
-      });
-    },
-    [oldLogsSearch, numberAttributes, stringAttributes, fields, setLogsPageParams]
-  );
-
-  const tracesItemSearchQueryBuilderProps = {
-    initialQuery: logsSearch.formatString(),
-    searchSource: 'ourlogs',
-    onSearch,
-    numberAttributes,
-    stringAttributes,
-    itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-  };
+  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
+    useLogsSearchQueryBuilderProps({
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+    });
 
   const supportedAggregates = useMemo(() => {
     return [];
   }, []);
-
-  const searchQueryBuilderProps = useSearchQueryBuilderProps(
-    tracesItemSearchQueryBuilderProps
-  );
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -285,7 +250,7 @@ export function LogsTabContent({
   });
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
