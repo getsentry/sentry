@@ -132,7 +132,7 @@ def _create_api_access_log(
         metrics.incr("middleware.access_log.created")
 
         if in_random_rollout("issues.log-access-logs"):
-            sentry_sdk.capture_exception(level="info")
+            sentry_sdk.capture_exception(level="debug")
 
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
