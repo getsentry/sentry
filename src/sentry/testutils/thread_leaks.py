@@ -7,6 +7,7 @@ proved essential when working to fix these things.
 """
 
 import difflib
+import functools
 import os
 import sys
 import threading
@@ -19,16 +20,46 @@ from typing import Any
 from unittest import mock
 
 import pytest
-import sentry_sdk
+import sentry_sdk.scope
 
 _CWD = os.getcwd() + "/"
 log = getLogger(__name__)
-SENTRY_DSN = "https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760"  # proj-thread-leaks
-SENTRY_SCOPE = sentry_sdk.get_current_scope().fork()
-SENTRY_SCOPE.set_client(sentry_sdk.Client(dsn=SENTRY_DSN))
+
 
 # a set of "not our code" directories, suitable for str.startswith()
 _STDLIB_PATH = getattr(sys, "_stdlib_dir", None)
+
+
+@functools.cache
+def get_sentry_scope():
+    """Create a Sentry Scope to be used for logging thread leaks."""
+    from os import environ
+
+    if environ.get("CI") == "true":
+        sha = environ["GITHUB_SHA"]
+        branch = environ.get("GITHUB_HEAD_REF")
+        if branch:
+            environment = "PR"
+        else:
+            environment = "master"
+            branch = environ["GITHUB_REF_NAME"]
+    else:
+        sha = branch = None
+        environment = "local"
+
+    client = sentry_sdk.Client(
+        # proj-thread-leaks
+        dsn="https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760",
+        environment=environment,
+    )
+
+    scope = sentry_sdk.get_current_scope().fork()
+    scope.set_client(client)
+    scope.update_from_kwargs(
+        level="warning",
+        extras={"git-branch": branch, "git-sha": sha},
+    )
+    return scope
 
 
 def _relevant_frames(stack: StackSummary) -> StackSummary:
@@ -122,14 +153,19 @@ def check_test(request: pytest.FixtureRequest):
         with assert_none():
             yield
     except AssertionError:
-        SENTRY_SCOPE.capture_exception(
-            level="warning",
-            extra={
-                "test": request.node.nodeid,
-                "test_file": request.node.fspath,
-            },
-        )
-        # TODO(DI-1067): strict mode: raise
+        scope = get_sentry_scope()
+        with sentry_sdk.scope.use_scope(scope):
+            scope.update_from_kwargs(
+                extras={
+                    "test": request.node.nodeid,
+                    "test_file": request.node.fspath,
+                },
+            )
+            scope.capture_exception()
+            scope.client.flush()
+
+        # TODO(DI-1067): strict mode:
+        # raise
 
 
 def allowlist(reason: str | None = None, *, issue: int):
