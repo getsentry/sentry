@@ -771,7 +771,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
         """
         if features.has(
-            "organizations:workflow-engine-metric-detector-limits", organization, actor=request.user
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_count = (
                 AlertRule.objects.filter(
