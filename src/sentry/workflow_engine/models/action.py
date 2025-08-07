@@ -14,6 +14,7 @@ from jsonschema import ValidationError, validate
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
@@ -82,7 +83,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
-    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
+    status = BoundedPositiveIntegerField(
+        db_default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
 
     def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
