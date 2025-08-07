@@ -46,7 +46,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
   }, [feedbackItem.id, overflowRef]);
 
   const tagsWithoutAi = useMemo(
-    () => eventData?.tags.filter(tag => tag.key !== 'ai_categorization') ?? [],
+    () => eventData?.tags.filter(tag => !tag.key.startsWith('ai_categorization.')) ?? [],
     [eventData?.tags]
   );
 
