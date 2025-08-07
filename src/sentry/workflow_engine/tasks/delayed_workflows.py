@@ -70,7 +70,7 @@ from sentry.workflow_engine.tasks.actions import build_trigger_action_task_param
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
-logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workflow")
+logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows")
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
