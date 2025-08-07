@@ -1,14 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {EventOrGroupType} from 'sentry/types/event';
-import {
-  type Group,
-  GroupStatus,
-  GroupUnresolved,
-  IssueCategory,
-  IssueType,
-  PriorityLevel,
-} from 'sentry/types/group';
+import type {Group, GroupUnresolved, SimpleGroup} from 'sentry/types/group';
+import {GroupStatus, IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
 
 export function GroupFixture(params: Partial<Group> = {}): Group {
   const unresolvedGroup: GroupUnresolved = {
@@ -66,4 +60,31 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
   };
 
   return {...unresolvedGroup, ...params} as Group;
+}
+
+export function SimpleGroupFixture(params: Partial<SimpleGroup> = {}): SimpleGroup {
+  return {
+    id: '1',
+    culprit: 'fetchData(app/components/group/suggestedOwners/suggestedOwners)',
+    metadata: {
+      function: 'fetchData',
+      type: 'RequestError',
+    },
+    project: {
+      id: '1',
+      slug: 'project-slug',
+      platform: 'javascript',
+    },
+    shortId: 'JAVASCRIPT-6QS',
+    status: GroupStatus.UNRESOLVED,
+    lastSeen: '2019-04-11T01:08:59Z',
+    firstSeen: '2019-04-05T19:44:05.963Z',
+    level: 'warning',
+    type: EventOrGroupType.ERROR,
+    issueType: IssueType.ERROR,
+    issueCategory: IssueCategory.ERROR,
+    substatus: null,
+    title: 'RequestError: GET /issues/ 404',
+    ...params,
+  };
 }

@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -116,7 +116,7 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export const ButtonWrapper = styled(Column)`
+export const ButtonWrapper = styled('span')`
   display: flex;
   gap: ${space(1)};
 `;

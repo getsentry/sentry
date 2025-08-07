@@ -4,6 +4,7 @@ import uuid
 from hashlib import sha256
 from typing import Any, ClassVar
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry.constants import (
     SentryAppStatus,
 )
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -39,14 +39,14 @@ from sentry.utils import metrics
 # specific events are for each resource.
 EVENT_EXPANSION = {
     "issue": [
-        "issue.created",
-        "issue.resolved",
-        "issue.ignored",
         "issue.assigned",
+        "issue.created",
+        "issue.ignored",
+        "issue.resolved",
         "issue.unresolved",
     ],
     "error": ["error.created"],
-    "comment": ["comment.created", "comment.updated", "comment.deleted"],
+    "comment": ["comment.created", "comment.deleted", "comment.updated"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
@@ -141,7 +141,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # are successfully installed ?
     verify_install = models.BooleanField(default=True)
 
-    events = ArrayField(of=models.TextField, null=True)
+    events = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
     schema = JSONField(default=dict)

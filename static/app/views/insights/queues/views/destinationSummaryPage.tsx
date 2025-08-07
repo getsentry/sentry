@@ -15,12 +15,13 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
+import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
-import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
@@ -30,6 +31,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 function DestinationSummaryPage() {
+  const moduleTitle = useModuleTitle(ModuleName.QUEUE);
+  const moduleURL = useModuleURL(ModuleName.QUEUE);
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -54,10 +57,15 @@ function DestinationSummaryPage() {
         headerTitle={destination}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: DESTINATION_TITLE,
           },
         ]}
         module={ModuleName.QUEUE}
+        hideDefaultTabs
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
         <Layout.Body>
@@ -69,7 +77,12 @@ function DestinationSummaryPage() {
                     <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
                   </ToolRibbon>
 
-                  {!onboardingProject && (
+                  {onboardingProject ? (
+                    <LegacyOnboarding
+                      organization={organization}
+                      project={onboardingProject}
+                    />
+                  ) : (
                     <ReadoutRibbon>
                       <MetricReadout
                         title={t('Avg Time In Queue')}
@@ -79,7 +92,9 @@ function DestinationSummaryPage() {
                       />
                       <MetricReadout
                         title={t('Avg Processing Time')}
-                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        value={
+                          data[0]?.['avg_if(span.duration,span.op,equals,queue.process)']
+                        }
                         unit={DurationUnit.MILLISECOND}
                         isLoading={isPending}
                       />
@@ -105,9 +120,6 @@ function DestinationSummaryPage() {
                         title={t('Time Spent')}
                         value={data[0]?.['sum(span.duration)']}
                         unit={DurationUnit.MILLISECOND}
-                        tooltip={getTimeSpentExplanation(
-                          data[0]?.['time_spent_percentage(span.duration)'] || 0
-                        )}
                         isLoading={isPending}
                       />
                     </ReadoutRibbon>
@@ -115,27 +127,14 @@ function DestinationSummaryPage() {
                 </HeaderContainer>
               </ModuleLayout.Full>
 
-              {onboardingProject && (
-                <LegacyOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                />
-              )}
-
               {!onboardingProject && (
                 <Fragment>
                   <ModuleLayout.Half>
-                    <LatencyChart
-                      destination={destination}
-                      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
-                    />
+                    <QueuesSummaryLatencyChartWidget />
                   </ModuleLayout.Half>
 
                   <ModuleLayout.Half>
-                    <ThroughputChart
-                      destination={destination}
-                      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
-                    />
+                    <QueuesSummaryThroughputChartWidget />
                   </ModuleLayout.Half>
 
                   <ModuleLayout.Full>

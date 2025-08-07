@@ -1,30 +1,25 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import type {SubregionCode} from 'sentry/views/insights/types';
+import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 type Props = {
-  browserTypes?: BrowserType[];
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
-  subregions?: SubregionCode[];
-  transaction?: string;
   webVital?: WebVitals | null;
 };
 
@@ -33,10 +28,7 @@ export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 export function PerformanceScoreChart({
   projectScore,
   webVital,
-  transaction,
   isProjectScoreLoading,
-  browserTypes,
-  subregions,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -47,7 +39,7 @@ export function PerformanceScoreChart({
       : projectScore.totalScore
     : undefined;
 
-  let ringSegmentColors = theme.chart.getColorPalette(3).slice() as unknown as string[];
+  let ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
@@ -101,14 +93,16 @@ export function PerformanceScoreChart({
           </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
-      <PerformanceScoreBreakdownChart
-        transaction={transaction}
-        browserTypes={browserTypes}
-        subregions={subregions}
-      />
+      <ChartContainer>
+        <PerformanceScoreBreakdownChartWidget />
+      </ChartContainer>
     </Flex>
   );
 }
+
+const ChartContainer = styled('div')`
+  flex: 1 1 0%;
+`;
 
 const Flex = styled('div')`
   display: flex;
@@ -128,21 +122,21 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-grow: 1;
   }
 `;
 
 const PerformanceScoreLabel = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;

@@ -18,7 +18,7 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
-export type RelativeUnitsMapping = Record<
+type RelativeUnitsMapping = Record<
   string,
   {
     convertToDaysMultiplier: number;
@@ -145,6 +145,8 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  // XXX: These are NOT used for display purpose but only to determine if the
+  // dates are at the start or end of the day
   const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
   const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 

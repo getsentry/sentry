@@ -5,7 +5,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 // 1 hour in milliseconds
 const ONE_HOUR = 60 * 60 * 1000;
 
-export type PerformanceStatsGroup = {
+type PerformanceStatsGroup = {
   by: {
     reason: string;
   };

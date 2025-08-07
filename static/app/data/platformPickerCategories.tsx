@@ -1,35 +1,36 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-react',
   'react-native',
+  'node',
   'php-laravel',
+  'python-fastapi',
   'flutter',
   'python-django',
-  'node',
-  'javascript',
-  'node-express',
-  'python-fastapi',
-  'php',
   'python',
-  'dotnet-maui',
-  'node-nestjs',
-  'javascript-vue',
-  'android',
-  'apple-ios',
+  'node-express',
+  'javascript',
+  'php',
   'ruby-rails',
+  'apple-ios',
+  'node-nestjs',
   'python-flask',
+  'javascript-vue',
   'dotnet-aspnetcore',
-  'javascript-angular',
-  'php-symfony',
-  'javascript-remix',
-  'java-spring-boot',
-  'javascript-sveltekit',
-  'unity',
   'javascript-nuxt',
-  'javascript-astro',
+  'dotnet-maui',
+  'javascript-angular',
+  'android',
+  'java-spring-boot',
+  'php-symfony',
+  'node-cloudflare-workers',
+  'electron',
+  'unity',
+  'javascript-remix',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
@@ -42,6 +43,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -158,6 +160,16 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
+const gaming: Set<PlatformKey> = new Set([
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
+]);
+
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
   ...browser,
@@ -182,13 +194,22 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
   {
+    id: 'gaming',
+    name: t('Gaming'),
+    platforms: gaming,
+    display: (organization?: Organization) =>
+      organization?.features.includes('project-creation-games-tab') ?? false,
+  },
+  {
     id: 'all',
     name: t('All'),
     platforms: createablePlatforms,
   },
 ];
 
-export default categoryList;
+export function getCategoryList(organization?: Organization) {
+  return categoryList.filter(({display}) => display?.(organization) ?? true);
+}
 
 // TODO(aknaus): Drop in favour of PlatformIntegration
 export type Platform = {

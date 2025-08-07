@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
-import {getHasTag} from 'sentry/components/events/searchBar';
+import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -20,7 +20,14 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
@@ -35,6 +42,7 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  useEap?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -59,7 +67,7 @@ function getSpanFieldDefinitionFunction(tags: TagCollection) {
   };
 }
 
-export function useSpanSearchQueryBuilderProps({
+function useSpanSearchQueryBuilderProps({
   initialQuery,
   searchSource,
   datetime,
@@ -150,7 +158,17 @@ export function useSpanSearchQueryBuilderProps({
   };
 }
 
-export function SpanSearchQueryBuilder({
+export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
+  const {useEap} = props;
+
+  if (useEap) {
+    return <EapSpanSearchQueryBuilderWrapper {...props} />;
+  }
+
+  return <IndexedSpanSearchQueryBuilder {...props} />;
+}
+
+function IndexedSpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
@@ -172,137 +190,82 @@ export function SpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
+export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
+
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
+      {...props}
+    />
+  );
+}
+
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberSecondaryAliases: TagCollection;
   numberTags: TagCollection;
+  stringSecondaryAliases: TagCollection;
   stringTags: TagCollection;
+  autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
   supportedAggregates?: AggregationKey[];
 }
 
-export function useEAPSpanSearchQueryBuilderProps({
-  initialQuery,
-  placeholder,
-  onSearch,
-  onBlur,
-  searchSource,
-  numberTags,
-  stringTags,
-  getFilterTokenWarning,
-  supportedAggregates = [],
-  projects,
-  portalTarget,
-  onChange,
-}: EAPSpanSearchQueryBuilderProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
-
-  const functionTags = useMemo(() => {
-    return getFunctionTags(supportedAggregates);
-  }, [supportedAggregates]);
-
-  const filterTags: TagCollection = useMemo(() => {
-    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    tags.has = getHasTag({...stringTags}); // TODO: add number tags
-    return tags;
-  }, [numberTags, stringTags, functionTags]);
-
-  const filterKeySections = useMemo(() => {
-    const predefined = new Set(
-      SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
-    );
-    return [
-      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
-        return {
-          ...section,
-          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
-        };
-      }),
-      {
-        value: 'custom_fields',
-        label: 'Custom Tags',
-        children: Object.keys(stringTags).filter(key => !predefined.has(key)),
-      },
-    ];
-  }, [stringTags]);
-
-  const getSpanFilterTagValues = useCallback(
-    async (tag: Tag, queryString: string) => {
-      if (isAggregateField(tag.key) || numberTags.hasOwnProperty(tag.key)) {
-        // We can't really auto suggest values for aggregate fields
-        // or measurements, so we simply don't
-        return Promise.resolve([]);
-      }
-
-      try {
-        const results = await fetchSpanFieldValues({
-          api,
-          orgSlug: organization.slug,
-          fieldKey: tag.key,
-          search: queryString,
-          projectIds: (projects ?? selection.projects).map(String),
-          endpointParams: normalizeDateTimeParams(selection.datetime),
-          dataset: 'spans',
-        });
-        return results.filter(({name}) => defined(name)).map(({name}) => name);
-      } catch (e) {
-        throw new Error(`Unable to fetch event field values: ${e}`);
-      }
-    },
-    [api, organization.slug, selection.projects, projects, selection.datetime, numberTags]
-  );
-
-  return {
-    placeholder: placeholderText,
-    filterKeys: filterTags,
-    initialQuery,
-    fieldDefinitionGetter: getSpanFieldDefinitionFunction(filterTags),
-    onSearch,
-    onBlur,
-    getFilterTokenWarning,
-    searchSource,
-    filterKeySections,
-    getTagValues: getSpanFilterTagValues,
-    disallowUnsupportedFilters: true,
-    recentSearches: SavedSearchType.SPAN,
-    showUnsubmittedIndicator: true,
-    portalTarget,
-    onChange,
-  };
-}
-
-export function EAPSpanSearchQueryBuilder({
-  initialQuery,
-  placeholder,
-  onSearch,
-  onBlur,
-  searchSource,
-  numberTags,
-  stringTags,
-  getFilterTokenWarning,
-  supportedAggregates = [],
-  projects,
-  portalTarget,
-  onChange,
-}: EAPSpanSearchQueryBuilderProps) {
-  const searchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
-    initialQuery,
-    placeholder,
-    onSearch,
-    onBlur,
-    searchSource,
+export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuilderProps) {
+  const {
     numberTags,
     stringTags,
-    getFilterTokenWarning,
-    supportedAggregates,
-    projects,
-    portalTarget,
-    onChange,
-  });
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest
+  } = props;
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
+  const numberAttributes = numberTags;
+  const stringAttributes = useMemo(() => {
+    if (stringTags.hasOwnProperty(SpanFields.RELEASE)) {
+      return {
+        ...stringTags,
+        ...STATIC_SEMVER_TAGS,
+      };
+    }
+    return stringTags;
+  }, [stringTags]);
+
+  return useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.SPANS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest,
+  });
+}
+
+export function EAPSpanSearchQueryBuilder(props: EAPSpanSearchQueryBuilderProps) {
+  const {
+    numberTags,
+    stringTags,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    ...rest
+  } = props;
+
+  return (
+    <TraceItemSearchQueryBuilder
+      itemType={TraceItemDataset.SPANS}
+      numberAttributes={numberTags}
+      stringAttributes={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
+      {...rest}
+    />
+  );
 }

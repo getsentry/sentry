@@ -17,7 +17,10 @@ const trackTraceMetadata = (
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string,
+  issuesCount: number,
+  eapSpansCount: number
 ) => {
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
@@ -44,6 +47,9 @@ const trackTraceMetadata = (
     project_platforms: projectPlatforms,
     organization,
     source,
+    trace_age: traceAge,
+    issues_count: issuesCount,
+    eap_spans_count: eapSpansCount,
   });
 };
 
@@ -107,14 +113,24 @@ const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
   });
-const trackViewContinuousProfile = (organization: Organization) =>
+const trackViewContinuousProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_continuous_profile', {
     organization,
   });
-const trackViewTransactionProfile = (organization: Organization) =>
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
+const trackViewTransactionProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_transaction_profile', {
     organization,
   });
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {
@@ -233,7 +249,10 @@ function trackTraceShape(
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource
+  source: TraceWaterFallSource,
+  traceAge: string,
+  issuesCount: number,
+  eapSpansCount: number
 ) {
   switch (tree.shape) {
     case TraceShape.BROKEN_SUBTRACES:
@@ -248,7 +267,10 @@ function trackTraceShape(
         projects,
         organization,
         hasExceededPerformanceUsageLimit,
-        source
+        source,
+        traceAge,
+        issuesCount,
+        eapSpansCount
       );
       break;
     default: {

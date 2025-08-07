@@ -9,6 +9,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
+import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
@@ -74,6 +75,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, errorMessage, loading}) => (
           <Fragment>{children({tableResults, errorMessage, loading})}</Fragment>
@@ -92,6 +94,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
@@ -102,7 +105,7 @@ export function WidgetCardDataLoader({
     );
   }
 
-  if (widget.widgetType === WidgetType.SPANS) {
+  if (widget.widgetType === WidgetType.SPANS || shouldForceQueryToSpans(widget)) {
     return (
       <SpansWidgetQueries
         api={api}
@@ -126,6 +129,7 @@ export function WidgetCardDataLoader({
       selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
+      onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       onWidgetSplitDecision={onWidgetSplitDecision}
     >

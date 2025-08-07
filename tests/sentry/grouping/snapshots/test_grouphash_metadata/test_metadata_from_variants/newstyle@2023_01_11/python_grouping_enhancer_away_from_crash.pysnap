@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:42.731458+00:00'
+created: '2025-04-25T21:24:40.328924+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,14 +30,14 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.web.frontend.release_webhook"
               function*
                 "post"
               context-line*
                 "hook.handle(request)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry_plugins.heroku.plugin"
               function*

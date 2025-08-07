@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
@@ -56,9 +57,9 @@ const NodeTitle = styled('span')<{focused?: boolean}>`
   cursor: pointer;
   ${({focused, theme}) =>
     focused &&
-    `
-    color: ${theme.white};
-  `}
+    css`
+      color: ${theme.white};
+    `}
 `;
 
 const IconWrapper = styled('button')<{collapsible: boolean; isExpanded: boolean}>`
@@ -72,14 +73,14 @@ const IconWrapper = styled('button')<{collapsible: boolean; isExpanded: boolean}
   margin-right: 4px;
   ${p =>
     p.isExpanded
-      ? `
+      ? css`
           background: ${p.theme.gray300};
           border: 1px solid ${p.theme.gray300};
           &:hover {
             background: ${p.theme.gray400};
           }
         `
-      : `
+      : css`
           background: ${p.theme.blue300};
           border: 1px solid ${p.theme.blue300};
           &:hover {

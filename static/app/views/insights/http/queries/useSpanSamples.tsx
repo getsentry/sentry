@@ -2,17 +2,18 @@
 
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
   DefaultSpanSampleFields,
   NonDefaultSpanSampleFields,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import {SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -35,7 +36,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     max = undefined,
   } = options;
 
-  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -50,7 +50,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   const dateConditions = getDateConditions(selection);
 
   return useApiQuery<{
-    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
+    data: Array<Pick<SpanResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
@@ -67,10 +67,11 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           secondBound: max && max * (2 / 3),
           upperBound: max,
           // TODO: transaction.span_id should be a default from the backend
-          additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
+          additionalFields: [...fields, SpanFields.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
+          sampling: SAMPLING_MODE.NORMAL,
+          dataset: DiscoverDatasets.SPANS,
           referrer,
-          useRpc: useEap ? '1' : undefined,
         },
       },
     ],

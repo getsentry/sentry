@@ -130,7 +130,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 export function getKnownData<Data, DataType>({
   data,
@@ -187,31 +187,6 @@ export function getKnownStructuredData(
       <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
     ),
   }));
-}
-
-export function getUnknownData({
-  allData,
-  knownKeys,
-  meta,
-}: {
-  allData: Record<string, any>;
-  knownKeys: string[];
-  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
-}): KeyValueListData {
-  return Object.entries(allData)
-    .filter(
-      ([key]) =>
-        key !== 'type' &&
-        key !== 'title' &&
-        !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
-    )
-    .map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: meta?.[key]?.[''],
-    }));
 }
 
 /**
@@ -313,6 +288,10 @@ export function getContextTitle({
       return t('Profile');
     case 'replay':
       return t('Replay');
+    case 'ota_updates':
+      return t('OTA Updates');
+    case 'react_native_context':
+      return t('React Native');
     default:
       return contextType;
   }
@@ -370,8 +349,8 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = theme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={iconSize} gravatar={false} />;
+      const iconSize = theme.iconSizes[contextIconProps?.size ?? 'xl'];
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);

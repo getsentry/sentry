@@ -1,10 +1,9 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import orjson
-import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
@@ -21,7 +20,6 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
@@ -48,7 +46,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     default_group_id = 4
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
@@ -120,7 +118,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
-    def test_basic_flow(self, mock_sha):
+    def test_basic_flow(self, mock_sha: MagicMock) -> None:
         sha = Mock()
         sha.hexdigest.return_value = "secret-token"
         mock_sha.return_value = sha
@@ -159,7 +157,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "refresh_token": "rrrrr-rrrrrrrrr-rrrrrrrrrr-rrrrrrrrrrrr",
         }
 
-    def test_goback_to_instructions(self):
+    def test_goback_to_instructions(self) -> None:
         # Go to instructions
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
@@ -176,7 +174,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Step 1")
 
     @responses.activate
-    def test_setup_missing_group(self):
+    def test_setup_missing_group(self) -> None:
         resp = self.client.get(self.init_path_without_guide)
         assert resp.status_code == 200
 
@@ -214,7 +212,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, f"GitLab group {group_that_does_not_exist} could not be found")
 
     @responses.activate
-    def test_get_group_id(self):
+    def test_get_group_id(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -224,7 +222,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert self.default_group_id == installation.get_group_id()
 
     @responses.activate
-    def test_get_stacktrace_link(self):
+    def test_get_stacktrace_link(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -257,7 +255,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_stacktrace_link_file_doesnt_exist(self):
+    def test_get_stacktrace_link_file_doesnt_exist(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -288,7 +286,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert not source_url
 
     @responses.activate
-    def test_get_stacktrace_link_file_identity_not_valid(self):
+    def test_get_stacktrace_link_file_identity_not_valid(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -323,13 +321,13 @@ class GitlabIntegrationTest(IntegrationTestCase):
             json={},
         )
 
-        with pytest.raises(ApiUnauthorized) as excinfo:
-            installation.get_stacktrace_link(repo, "README.md", ref, version)
-        assert excinfo.value.code == 401
+        assert installation.get_stacktrace_link(repo, "README.md", ref, version) is None
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_get_stacktrace_link_use_default_if_version_404(self, mock_record_halt):
+    def test_get_stacktrace_link_use_default_if_version_404(
+        self, mock_record_halt: MagicMock
+    ) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -368,7 +366,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         mock_record_halt.assert_called_once()
 
     @responses.activate
-    def test_get_commit_context_all_frames(self):
+    def test_get_commit_context_all_frames(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -431,7 +429,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -457,7 +455,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             assert installation.source_url_matches(source_url) == matches
 
     @responses.activate
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -484,7 +482,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             assert installation.extract_branch_from_source_url(repo, source_url) == "master"
 
     @responses.activate
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -529,7 +527,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         "include_subgroups": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
@@ -590,7 +588,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
-    def test_basic_flow(self, mock_sha):
+    def test_basic_flow(self, mock_sha: MagicMock) -> None:
         sha = Mock()
         sha.hexdigest.return_value = "secret-token"
         mock_sha.return_value = sha
@@ -629,7 +627,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         }
 
     @responses.activate
-    def test_get_group_id(self):
+    def test_get_group_id(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -660,7 +658,7 @@ class GitlabSetupApiClientTest(IntegrationTestCase):
     default_group_id = 4
 
     @responses.activate
-    def test_integration_proxy_is_active(self):
+    def test_integration_proxy_is_active(self) -> None:
         response_payload = {
             "id": self.default_group_id,
             "full_name": "Cool",
@@ -717,7 +715,7 @@ class GitlabSetupApiClientTest(IntegrationTestCase):
 )
 class GitlabApiClientTest(GitLabTestCase):
     @responses.activate
-    def test_integration_proxy_is_active(self):
+    def test_integration_proxy_is_active(self) -> None:
         gitlab_id = 123
         commit = "a" * 40
         gitlab_response = responses.add(

@@ -90,12 +90,16 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
     const containerRect = containerRef.current.getBoundingClientRect();
     const offset = e.clientX - containerRect.left;
 
-    // Selection is only activated when inside the container
+    // Selection is only activated when inside the container. Also tests that
+    // the mouse is not occluded by a overlay element.
     const isInsideContainer =
       e.clientX > containerRect.left &&
       e.clientX < containerRect.right &&
       e.clientY > containerRect.top &&
-      e.clientY < containerRect.bottom;
+      e.clientY < containerRect.bottom &&
+      !document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .some(el => el.hasAttribute('data-overlay'));
 
     if (!isInsideContainer) {
       return;
@@ -169,7 +173,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
 const Selection = styled(motion.div)`
   pointer-events: none;
-  background: ${p => p.theme.translucentBorder};
+  background: ${p => (p.theme.isChonk ? p.theme.gray200 : p.theme.translucentGray200)};
   border-left: 1px solid ${p => p.theme.purple200};
   border-right: 1px solid ${p => p.theme.purple200};
   height: 100%;

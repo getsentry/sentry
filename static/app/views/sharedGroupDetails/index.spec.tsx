@@ -67,8 +67,7 @@ describe('SharedGroupDetails', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-      />,
-      {router}
+      />
     );
     await screen.findByText('Details');
   });
@@ -84,8 +83,7 @@ describe('SharedGroupDetails', function () {
         routes={router_with_slug.routes}
         routeParams={router_with_slug.params}
         location={router_with_slug.location}
-      />,
-      {router}
+      />
     );
     await screen.findByText('Details');
     await screen.findByTestId('sgh-timestamp');

@@ -20,7 +20,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -49,7 +49,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const theme = useTheme();
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
-  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
   const prefersStackedNav = usePrefersStackedNav();
   const sidebarHeight = isScreenMedium

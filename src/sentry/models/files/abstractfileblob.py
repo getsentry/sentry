@@ -20,7 +20,6 @@ from sentry.models.files.utils import (
     nooplogger,
 )
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
@@ -256,5 +255,4 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             with transaction.atomic(using=router.db_for_write(self.__class__)):
                 self._create_blob_owner(organization_id=organization.id)
         except IntegrityError:
-            incr_rollback_metrics(name="file_blob_ensure_blob_owned")
             pass

@@ -31,7 +31,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization, request):
@@ -69,6 +69,9 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         """
         Delete a starred segment for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 

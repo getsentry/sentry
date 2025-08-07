@@ -1,4 +1,4 @@
-import type {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -6,8 +6,12 @@ import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/t
 import {DisplayModes} from 'sentry/utils/discover/types';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
+import {
+  getAlertRuleExploreUrl,
+  getAlertRuleLogsUrl,
+} from 'sentry/views/alerts/rules/utils';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PresetCta {
   /**
@@ -24,6 +28,7 @@ interface PresetCtaOpts {
   organization: Organization;
   projects: Project[];
   timePeriod: TimePeriodType;
+  traceItemType: TraceItemDataset | null;
   dataset?: DiscoverDatasets;
   openInDiscoverDataset?: SavedQueryDatasets;
   query?: string;
@@ -41,6 +46,7 @@ export function makeDefaultCta({
   query,
   dataset,
   openInDiscoverDataset,
+  traceItemType,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -49,12 +55,23 @@ export function makeDefaultCta({
     };
   }
   if (rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    if (traceItemType === TraceItemDataset.LOGS) {
+      return {
+        buttonText: t('Open in Logs'),
+        to: getAlertRuleLogsUrl({
+          rule,
+          organization,
+          timePeriod,
+          projectId: projects[0]!.id,
+        }),
+      };
+    }
     return {
       buttonText: t('Open in Explore'),
       to: getAlertRuleExploreUrl({
         rule,
         organization,
-        period: timePeriod.period,
+        timePeriod,
         projectId: projects[0]!.id,
       }),
     };

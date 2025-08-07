@@ -11,11 +11,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_events_stats import (
-    ALLOWED_EVENTS_STATS_REFERRERS,
-    METRICS_ENHANCED_REFERRERS,
-    SENTRY_BACKEND_REFERRERS,
-)
+from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
@@ -27,16 +23,13 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
-    spans_eap,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer
-from sentry.snuba.utils import DATASET_LABELS
+from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -45,7 +38,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_eap,
+    Spans,
     errors,
     transactions,
 }
@@ -74,10 +67,15 @@ class SeriesMeta(TypedDict):
     interval: float
 
 
+class GroupBy(TypedDict):
+    key: str
+    value: str
+
+
 class TimeSeries(TypedDict):
     values: list[Row]
-    yaxis: str
-    groupBy: NotRequired[list[str]]
+    yAxis: str
+    groupBy: NotRequired[list[GroupBy]]
     meta: SeriesMeta
 
 
@@ -160,7 +158,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_eap, ourlogs, uptime_checks}
+            use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -174,12 +172,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             except NoProjects:
                 return Response([], status=200)
 
-        self.validate_comparison_delta(comparison_delta, snuba_params, organization)
-        rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
-        snuba_params.granularity_secs = rollup
-        axes = request.GET.getlist("yAxis", ["count()"])
-
         with handle_query_errors():
+            self.validate_comparison_delta(comparison_delta, snuba_params, organization)
+            rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+            snuba_params.granularity_secs = rollup
+            axes = request.GET.getlist("yAxis", ["count()"])
             events_stats = self.get_event_stats(
                 request,
                 organization,
@@ -211,11 +208,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
         referrer = request.GET.get("referrer")
-        referrer = (
-            referrer
-            if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
-            else Referrer.API_ORGANIZATION_EVENT_STATS.value
-        )
+        # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+        if request.auth:
+            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+        elif referrer is None or not referrer:
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        elif not is_valid_referrer(referrer):
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
         query_source = self.get_request_querysource(request, referrer)
 
         batch_features = self.get_features(organization, request)
@@ -233,24 +232,30 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_eap:
-                return spans_rpc.run_top_events_timeseries_query(
+            raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if "timestamp" in raw_groupby:
+                raise ParseError("Cannot group by timestamp")
+            if dataset in RPC_DATASETS:
+                return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    raw_groupby=self.get_field_list(organization, request),
+                    raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                        in request.GET,
                     ),
                     sampling_mode=snuba_params.sampling_mode,
+                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
-                selected_columns=self.get_field_list(organization, request),
+                selected_columns=raw_groupby,
                 equations=self.get_equation_list(organization, request),
                 user_query=query,
                 snuba_params=snuba_params,
@@ -264,16 +269,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 include_other=include_other,
                 query_source=query_source,
                 transform_alias_to_input_format=True,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
             )
 
-        if dataset == spans_eap or dataset == ourlogs:
-            if dataset == spans_eap:
-                dataset = spans_rpc
+        if dataset in RPC_DATASETS:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
@@ -282,6 +281,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 config=SearchResolverConfig(
                     auto_fields=False,
                     use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET,
                 ),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
@@ -298,11 +298,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates=allow_metric_aggregates,
             has_metrics=use_metrics,
             query_source=query_source,
-            fallback_to_transactions=features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            ),
+            fallback_to_transactions=True,
             transform_alias_to_input_format=True,
         )
 
@@ -352,7 +348,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries = TimeSeries(
             values=[],
-            yaxis=axis,
+            yAxis=axis,
             meta=series_meta,
         )
 

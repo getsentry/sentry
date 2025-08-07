@@ -266,7 +266,7 @@ div.traceback > ul {
       .package {
         font-size: 12px;
         font-weight: bold;
-        .truncate;
+        .truncate();
         flex-basis: 120px;
         flex-grow: 0;
         flex-shrink: 0;
@@ -686,7 +686,8 @@ span.val {
 }
 
 .val-string-multiline {
-  display: block;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
 }
 

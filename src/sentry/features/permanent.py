@@ -48,8 +48,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:dynamic-sampling": False,
         # Enable attaching arbitrary files to events.
         "organizations:event-attachments": True,
-        # Enable multi project selection
-        "organizations:global-views": False,
         # Enable incidents feature
         "organizations:incidents": False,
         # Enable integration functionality to work with alert rules
@@ -124,6 +122,10 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:seer-based-priority": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
+        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
+        "organizations:integrations-scm-multi-org": True,
+        # Enable issue view endpoints and UI
+        "organizations:issue-views": False,
     }
 
     permanent_project_features = {

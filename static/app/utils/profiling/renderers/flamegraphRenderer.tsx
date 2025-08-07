@@ -122,11 +122,10 @@ export abstract class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  // @ts-expect-error TS(7010): 'setSearchResults', which lacks return-type annota... Remove this comment to see the full error message
   abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
-  );
+  ): void;
 
   abstract draw(_configViewToPhysicalSpace: mat3): void;
 }

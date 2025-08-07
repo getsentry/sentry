@@ -67,7 +67,10 @@ describe('Renders SDK Documentation corretly based on platform id and language',
           organization={organization}
           activeProductSelection={[]}
         />
-      </OnboardingContextProvider>
+      </OnboardingContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Renders main headings
@@ -114,6 +117,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
       </OnboardingContextProvider>,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 

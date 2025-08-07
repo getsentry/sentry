@@ -8,7 +8,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +32,7 @@ function IssueOwnerDebbuging() {
     event.preventDefault();
     if (!projectSlug || !stacktracePath) {
       addErrorMessage(
-        t('Requires the organization slug, the project slug and the stacktrace path.')
+        'Requires the organization slug, the project slug and the stacktrace path.'
       );
       return;
     }

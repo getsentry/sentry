@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';

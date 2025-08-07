@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
@@ -17,6 +17,8 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -187,7 +189,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Alternatively, add the [code:SentryGlobalFilter] (or [code:SentryGlobalGraphQLFilter] if you are using GraphQL) before any other exception filters to the providers of your main module.',
+            'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
@@ -223,6 +225,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const feedbackOnboardingNode: OnboardingConfig = {
@@ -283,6 +301,12 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/nestjs',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nestjs',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
+    basePackage: 'nestjs',
   }),
 };
 

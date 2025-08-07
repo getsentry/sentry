@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -82,7 +82,7 @@ const CurrentTag = styled(Tag)`
 
 const FileName = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export default PolicyRevisions;

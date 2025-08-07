@@ -1,12 +1,18 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerConsentItem,
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  RawSearchFilterHasValueItem,
+  RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -14,10 +20,15 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  getKeyLabel as getFilterKeyLabel,
+  getKeyName,
+} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -40,7 +51,7 @@ export function createRecentFilterOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_FILTER_KEY_PREFIX}${filter}`);
 }
 
-export function createRecentQueryOptionKey(filter: string) {
+function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
 }
 
@@ -59,7 +70,9 @@ export function getKeyLabel(
     return `${tag.key}()`;
   }
 
-  return tag.key;
+  // Some columns in explore can be formatted as an explicity number tag.
+  // We want to strip the explicit tag syntax before displaying where possible.
+  return prettifyTagKey(tag.key);
 }
 
 export function createSection(
@@ -136,13 +149,54 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
-export function createRecentFilterItem({filter}: {filter: string}) {
+export function createRawSearchFilterIsValueItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${escapeFilterValue(value)}`;
+
   return {
-    key: createRecentFilterOptionKey(filter),
+    key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
     value: filter,
     textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
+export function createRawSearchFilterHasValueItem(
+  key: string,
+  value: string
+): RawSearchFilterHasValueItem {
+  const escapedValue = escapeFilterValue(value);
+  const inputValue = escapedValue?.includes(' ')
+    ? `"*${escapedValue.replace(/"/g, '')}*"`
+    : `*${escapedValue}*`;
+  const filter = `${key}:${inputValue}`;
+
+  return {
+    key: getEscapedKey(`${key}:${inputValue}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-has-value',
+  };
+}
+
+export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
+  const key = getKeyName(filter.key);
+  return {
+    key: createRecentFilterOptionKey(key),
+    value: key,
+    textValue: key,
     type: 'recent-filter' as const,
-    label: filter,
+    label: getFilterKeyLabel(filter.key),
   };
 }
 
@@ -167,6 +221,28 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerItem(): AskSeerItem {
+  return {
+    key: getEscapedKey(ASK_SEER_ITEM_KEY),
+    value: ASK_SEER_ITEM_KEY,
+    textValue: 'Ask Seer',
+    type: 'ask-seer' as const,
+    label: t('Ask Seer'),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerConsentItem(): AskSeerConsentItem {
+  return {
+    key: getEscapedKey(ASK_SEER_CONSENT_ITEM_KEY),
+    value: ASK_SEER_CONSENT_ITEM_KEY,
+    textValue: 'Enable Gen AI',
+    type: 'ask-seer-consent' as const,
+    label: t('Enable Gen AI'),
     hideCheck: true,
   };
 }

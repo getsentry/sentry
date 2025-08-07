@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
+from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +31,11 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        if not request.GET.get("useRpc", False) or not request.GET.get("noPagination", False):
+        if not request.GET.get("noPagination", False):
             return Response(status=404)
 
         response = super().get(request, organization)
@@ -51,7 +52,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
                 path = match.group(2)
                 path_components = path.strip("/").split("/")
                 if not path_components or (len(path_components) == 1 and path_components[0] == ""):
-                    path_components = ["/"]  # Handle root path case
+                    path_components = []  # Handle root path case
 
             else:
                 component_type = None

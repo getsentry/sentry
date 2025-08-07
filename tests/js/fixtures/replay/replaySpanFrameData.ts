@@ -1,4 +1,4 @@
-import {RawSpanFrame} from 'sentry/utils/replays/types';
+import type {RawSpanFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -20,22 +20,6 @@ function BaseFrame<T extends RawSpanFrame['op']>(
     endTimestamp: fields.endTimestamp.getTime() / 1000,
     data: fields.data,
   } as MockFrame<T>;
-}
-
-export function ReplayWebVitalFrameFixture(
-  fields: TestableFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
->
-): MockFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
-> {
-  return BaseFrame(fields.op ?? 'largest-contentful-paint', {
-    ...fields,
-    data: {
-      nodeId: fields.data?.nodeId,
-      size: fields.data?.size ?? 0,
-      value: fields.data?.value ?? 0,
-      rating: fields.data?.rating ?? "good",
-    },
-  });
 }
 
 export function ReplayMemoryFrameFixture(
@@ -85,12 +69,6 @@ export function ReplayNavigationPushFrameFixture(
       previous: fields.data?.previous ?? '/',
     },
   });
-}
-
-export function ReplayPaintFrameFixture(
-  fields: TestableFrame<'paint'>
-): MockFrame<'paint'> {
-  return BaseFrame('paint', fields);
 }
 
 export function ReplayRequestFrameFixture(

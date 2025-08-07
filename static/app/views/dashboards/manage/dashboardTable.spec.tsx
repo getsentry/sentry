@@ -22,13 +22,7 @@ describe('Dashboards - DashboardTable', function () {
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: [
-      'global-views',
-      'dashboards-basic',
-      'dashboards-edit',
-      'discover-query',
-      'dashboards-table-view',
-    ],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const {router} = initializeOrg();
@@ -148,8 +142,7 @@ describe('Dashboards - DashboardTable', function () {
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-      />,
-      {router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -169,8 +162,7 @@ describe('Dashboards - DashboardTable', function () {
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
-      />,
-      {router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -186,8 +178,7 @@ describe('Dashboards - DashboardTable', function () {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-      />,
-      {router}
+      />
     );
     renderGlobalModal();
 
@@ -289,13 +280,7 @@ describe('Dashboards - DashboardTable', function () {
 
   it('renders access column', async function () {
     const organizationWithEditAccess = OrganizationFixture({
-      features: [
-        'global-views',
-        'dashboards-basic',
-        'dashboards-edit',
-        'discover-query',
-        'dashboards-table-view',
-      ],
+      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(
@@ -321,14 +306,7 @@ describe('Dashboards - DashboardTable', function () {
     });
 
     const organizationWithFavorite = OrganizationFixture({
-      features: [
-        'global-views',
-        'dashboards-basic',
-        'dashboards-edit',
-        'discover-query',
-        'dashboards-table-view',
-        'dashboards-favourite',
-      ],
+      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(

@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
+/* eslint-disable no-restricted-imports */
 import ReactSelect, {components} from 'react-select';
 
 // This file is a thin wrapper around react-select that removes defaultProps from functional components
@@ -23,10 +23,7 @@ const ReactSelectWrapper = (({ref, ...props}: any) => {
 }) as any as typeof ReactSelect;
 
 export {ReactSelectWrapper as ReactSelect, ReactSelectWrapper as default, components};
-
-// biome-ignore lint/performance/noBarrelFile: not really a barrel file per say
-export {createFilter, mergeStyles} from 'react-select'; // eslint-disable-line no-restricted-imports
-// eslint-disable-next-line no-restricted-imports
+export {createFilter, mergeStyles} from 'react-select';
 export type {
   Props,
   StylesConfig,

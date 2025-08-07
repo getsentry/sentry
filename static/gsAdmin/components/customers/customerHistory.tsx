@@ -7,7 +7,11 @@ import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import ResultGrid from 'admin/components/resultGrid';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {ReservedBudget, ReservedBudgetMetricHistory} from 'getsentry/types';
+import type {
+  BillingHistory,
+  ReservedBudget,
+  ReservedBudgetMetricHistory,
+} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -40,34 +44,38 @@ function CustomerHistory({orgId, ...props}: Props) {
           Usage
         </th>,
       ]}
-      columnsForRow={(row: any) => {
+      columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
-        const reservedBudgets: ReservedBudget[] = row.reservedBudgets;
+        const reservedBudgets: ReservedBudget[] = row.reservedBudgets ?? [];
         const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
 
         // in _admin, always use DS names regardless of whether DS was actually used in the period
         // if DS is available (ie. when stored spans are billed)
-        const shouldUseDynamicSamplingNames =
-          DataCategory.SPANS_INDEXED in row.planDetails.planCategories;
+        const shouldUseDynamicSamplingNames = row.planDetails
+          ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
+          : false;
 
-        if (row.hasReservedBudgets) {
-          reservedBudgets.forEach(budget => {
-            const categoryNames: string[] = [];
-            Object.entries(budget.categories).forEach(([category, history]) => {
-              reservedBudgetMetricHistories[category] = history;
-              categoryNames.push(
-                getPlanCategoryName({
-                  plan: row.planDetails,
-                  category,
-                  hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
-                })
-              );
-            });
-            reservedBudgetNameMapping[budget.id] = oxfordizeArray(categoryNames);
+        const displayOptions = {
+          capitalize: false,
+          hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+        };
+
+        reservedBudgets.forEach(budget => {
+          const categoryNames: string[] = [];
+          Object.entries(budget.categories).forEach(([category, history]) => {
+            reservedBudgetMetricHistories[category] = history;
+            categoryNames.push(
+              getPlanCategoryName({
+                plan: row.planDetails,
+                category: category as DataCategory,
+                ...displayOptions,
+              })
+            );
           });
-        }
+          reservedBudgetNameMapping[budget.id] = oxfordizeArray(categoryNames);
+        });
 
         return [
           <td key="period">
@@ -101,20 +109,19 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
                 ))}
-              {row.hasReservedBudgets &&
-                reservedBudgets.map(budget => {
-                  return (
-                    <div key={budget.id}>
-                      {displayPriceWithCents({cents: budget.reservedBudget})} for
-                      <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
-                    </div>
-                  );
-                })}
+              {reservedBudgets.map(budget => {
+                return (
+                  <div key={budget.id}>
+                    {displayPriceWithCents({cents: budget.reservedBudget})} for
+                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                  </div>
+                );
+              })}
             </UsageColumn>
           </td>,
           <td key="gifted" style={{textAlign: 'right'}}>
@@ -130,20 +137,19 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
                 ))}
-              {row.hasReservedBudgets &&
-                reservedBudgets.map(budget => {
-                  return (
-                    <div key={budget.id}>
-                      {displayPriceWithCents({cents: budget.freeBudget})} for
-                      <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
-                    </div>
-                  );
-                })}
+              {reservedBudgets.map(budget => {
+                return (
+                  <div key={budget.id}>
+                    {displayPriceWithCents({cents: budget.freeBudget})} for
+                    <DisplayName>{reservedBudgetNameMapping[budget.id]!}</DisplayName>
+                  </div>
+                );
+              })}
             </UsageColumn>
           </td>,
           <td key="usage" style={{textAlign: 'right'}}>
@@ -157,7 +163,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                     {getPlanCategoryName({
                       plan: row.planDetails,
                       category,
-                      hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                      ...displayOptions,
                     })}
                   </DisplayName>
                   {reservedBudgetMetricHistories[category] && (
@@ -187,7 +193,6 @@ const UsageColumn = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  text-transform: lowercase;
   margin-left: ${space(0.5)};
 `;
 

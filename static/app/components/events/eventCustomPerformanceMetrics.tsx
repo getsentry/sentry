@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -106,7 +106,7 @@ export function getFieldTypeFromUnit(unit: any) {
   return 'number';
 }
 
-export function EventCustomPerformanceMetric({
+function EventCustomPerformanceMetric({
   event,
   name,
   location,
@@ -307,7 +307,7 @@ const Measurements = styled('div')`
 `;
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
@@ -316,7 +316,7 @@ const TraceStyledPanel = styled(Panel)`
   display: flex;
   align-items: center;
   max-width: fit-content;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.5)};
 
   > :not(:last-child) {
@@ -330,7 +330,7 @@ const ValueRow = styled('div')`
 `;
 
 const Value = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledPanel = styled(Panel)`

@@ -1,6 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   PerformanceScore,
@@ -38,7 +37,7 @@ const mockVital: VitalItem = {
     Android: 'https://example.com/sdk-docs',
   },
   field: 'avg(measurements.app_start_cold)',
-  dataset: DiscoverDatasets.METRICS,
+  dataset: 'metrics',
   getStatus: () => mockStatus,
 };
 

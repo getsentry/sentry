@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -46,7 +47,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
           <div>{onRetry && <Button onClick={onRetry}>{t('Retry')}</Button>}</div>
 
           {!hideSupportLinks && (
-            <ButtonBar gap={1.5}>
+            <ButtonBar gap="lg">
               {lastEventId && (
                 <Button
                   priority="link"

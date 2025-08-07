@@ -1,10 +1,10 @@
 import {motion} from 'framer-motion';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
@@ -33,7 +33,7 @@ export function EncryptBackup(props: StepProps) {
           <mark>self-hosted</mark>
           {t('install when you execute it.')}
         </p>
-        <RelocationCodeBlock
+        <CodeSnippet
           dark
           language="bash"
           filename="TERMINAL"
@@ -41,7 +41,7 @@ export function EncryptBackup(props: StepProps) {
           hideCopyButton={false}
         >
           {code}
-        </RelocationCodeBlock>
+        </CodeSnippet>
         <p className="encrypt-help">
           <b>{t('Understanding the command:')}</b>
         </p>

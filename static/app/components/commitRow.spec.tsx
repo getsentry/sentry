@@ -122,8 +122,6 @@ describe('commitRow', () => {
     const prLink = screen.getByRole('link', {name: /ref\(commitRow\):/i});
     expect(prLink).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/1');
     await userEvent.click(prLink);
-
-    // XXX: Does not get called in Streamline UI, it's just a link
-    expect(handlePullRequestClick).not.toHaveBeenCalled();
+    expect(handlePullRequestClick).toHaveBeenCalled();
   });
 });

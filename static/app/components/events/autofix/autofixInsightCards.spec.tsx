@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
@@ -18,7 +18,7 @@ const sampleInsights: AutofixInsight[] = [
 ];
 
 beforeEach(() => {
-  (addSuccessMessage as jest.Mock).mockClear();
+  (addLoadingMessage as jest.Mock).mockClear();
   (addErrorMessage as jest.Mock).mockClear();
   MockApiClient.clearMockResponses();
 });
@@ -42,12 +42,6 @@ describe('AutofixInsightCards', () => {
     renderComponent();
     expect(screen.getByText('Sample insight 1')).toBeInTheDocument();
     expect(screen.getByText('User message')).toBeInTheDocument();
-  });
-
-  it('renders user messages differently', () => {
-    renderComponent();
-    const userMessage = screen.getByText('User message');
-    expect(userMessage.closest('div')).toHaveStyle('color: inherit');
   });
 
   it('toggles context expansion correctly', async () => {
@@ -110,7 +104,7 @@ describe('AutofixInsightCards', () => {
 
   it('submits edit request when form is submitted', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -121,11 +115,11 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/1/autofix/update/',
+      '/organizations/org-slug/issues/1/autofix/update/',
       expect.objectContaining({
         method: 'POST',
         data: expect.objectContaining({
@@ -141,9 +135,9 @@ describe('AutofixInsightCards', () => {
     );
   });
 
-  it('shows success message after successful edit submission', async () => {
+  it('shows loading message after successful edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -154,17 +148,17 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith('Rethinking this...');
+      expect(addLoadingMessage).toHaveBeenCalledWith('Rethinking this...');
     });
   });
 
   it('shows error message after failed edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });
@@ -176,12 +170,12 @@ describe('AutofixInsightCards', () => {
     const input = screen.getByPlaceholderText('Share your own insight here...');
     await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText('Rethink from here using your insight');
+    const submitButton = screen.getByLabelText('Redo work from here');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'Something went wrong when sending Autofix your message.'
+        'Something went wrong when sending Seer your message.'
       );
     });
   });

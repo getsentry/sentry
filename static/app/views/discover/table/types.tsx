@@ -1,5 +1,7 @@
-import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {
+  GridColumnOrder,
+  GridColumnSortBy,
+} from 'sentry/components/tables/gridEditable';
 import type {
   AggregateParameter,
   Column,
@@ -22,11 +24,6 @@ export type TableColumn<K> = GridColumnOrder<K> & {
 };
 
 export type TableColumnSort<K> = GridColumnSortBy<K>;
-
-export type TableState = {
-  columnOrder: Array<TableColumn<keyof TableDataRow>>;
-  columnSortBy: Array<TableColumnSort<keyof TableDataRow>>;
-};
 
 export enum FieldValueKind {
   TAG = 'tag',

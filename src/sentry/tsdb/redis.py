@@ -322,6 +322,9 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+        aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -528,7 +531,7 @@ class RedisTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -538,7 +541,8 @@ class RedisTSDB(BaseTSDB):
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, Any]:
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range.
         """

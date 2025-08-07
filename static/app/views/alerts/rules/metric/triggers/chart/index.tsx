@@ -34,13 +34,9 @@ import type {
   Confidence,
   EventsStats,
   MultiSeriesEventsStats,
-  NewQuery,
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -49,7 +45,6 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
@@ -60,15 +55,26 @@ import {
   TimePeriod,
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
+import {
+  AVAILABLE_TIME_PERIODS,
+  EAP_AVAILABLE_TIME_PERIODS,
+  EAP_HISTORICAL_TIME_PERIOD_MAP,
+  HISTORICAL_TIME_PERIOD_MAP,
+  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
+  TIME_PERIOD_MAP,
+  TIME_WINDOW_TO_INTERVAL,
+} from 'sentry/views/alerts/utils/timePeriods';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -94,106 +100,18 @@ type Props = {
   confidence?: Confidence;
   formattedAggregate?: string;
   header?: React.ReactNode;
-  includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
-  onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
-};
-
-type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
-
-const TIME_PERIOD_MAP: TimePeriodMap = {
-  [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
-  [TimePeriod.ONE_DAY]: t('Last 24 hours'),
-  [TimePeriod.THREE_DAYS]: t('Last 3 days'),
-  [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
-  [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
-};
-
-/**
- * Just to avoid repeating it
- */
-const MOST_TIME_PERIODS: readonly TimePeriod[] = [
-  TimePeriod.ONE_DAY,
-  TimePeriod.THREE_DAYS,
-  TimePeriod.SEVEN_DAYS,
-  TimePeriod.FOURTEEN_DAYS,
-];
-
-/**
- * TimeWindow determines data available in TimePeriod
- * If TimeWindow is small, lower TimePeriod to limit data points
- */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
-  [TimeWindow.ONE_MINUTE]: [
-    TimePeriod.SIX_HOURS,
-    TimePeriod.ONE_DAY,
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-  ],
-  [TimeWindow.FIVE_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.TEN_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.FIFTEEN_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.THIRTY_MINUTES]: MOST_TIME_PERIODS,
-  [TimeWindow.ONE_HOUR]: MOST_TIME_PERIODS,
-  [TimeWindow.TWO_HOURS]: MOST_TIME_PERIODS,
-  [TimeWindow.FOUR_HOURS]: [
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-  ],
-  [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
-};
-
-const MOST_EAP_TIME_PERIOD = [
-  TimePeriod.ONE_DAY,
-  TimePeriod.THREE_DAYS,
-  TimePeriod.SEVEN_DAYS,
-];
-
-const EAP_AVAILABLE_TIME_PERIODS = {
-  [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
-  [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.FIFTEEN_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.THIRTY_MINUTES]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.ONE_HOUR]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.TWO_HOURS]: MOST_EAP_TIME_PERIOD,
-  [TimeWindow.FOUR_HOURS]: [TimePeriod.SEVEN_DAYS],
-  [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
-};
-
-export const TIME_WINDOW_TO_INTERVAL = {
-  [TimeWindow.FIVE_MINUTES]: '5m',
-  [TimeWindow.TEN_MINUTES]: '10m',
-  [TimeWindow.FIFTEEN_MINUTES]: '15m',
-  [TimeWindow.THIRTY_MINUTES]: '30m',
-  [TimeWindow.ONE_HOUR]: '1h',
-  [TimeWindow.TWO_HOURS]: '2h',
-  [TimeWindow.FOUR_HOURS]: '4h',
-  [TimeWindow.ONE_DAY]: '1d',
+  traceItemType?: TraceItemDataset;
 };
 
 const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
-};
-
-const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
-  [TimePeriod.SIX_HOURS]: '678h',
-  [TimePeriod.ONE_DAY]: '29d',
-  [TimePeriod.THREE_DAYS]: '31d',
-  [TimePeriod.SEVEN_DAYS]: '35d',
-  [TimePeriod.FOURTEEN_DAYS]: '42d',
-};
-
-const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
-  ...HISTORICAL_TIME_PERIOD_MAP,
-  [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
-  [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
 };
 
 const noop: any = () => {};
@@ -243,9 +161,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      this.fetchExtrapolationSampleCount();
-    } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+    if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
     }
   }
@@ -261,9 +177,7 @@ class TriggersChart extends PureComponent<Props, State> {
       !isEqual(prevProps.timeWindow, timeWindow) ||
       !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-        this.fetchExtrapolationSampleCount();
-      } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+      if (showTotalCount && !isSessionAggregate(aggregate)) {
         this.fetchTotalCount();
       }
     }
@@ -271,7 +185,6 @@ class TriggersChart extends PureComponent<Props, State> {
 
   // Create new API Client so that historical requests aren't automatically deduplicated
   historicalAPI = new Client();
-  confidenceAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -321,6 +234,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      traceItemType,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -330,6 +244,7 @@ class TriggersChart extends PureComponent<Props, State> {
       location,
       dataset,
       newAlertOrQuery,
+      traceItemType,
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
@@ -352,49 +267,6 @@ class TriggersChart extends PureComponent<Props, State> {
     } catch (e) {
       this.setState({totalCount: null});
     }
-  }
-
-  async fetchExtrapolationSampleCount() {
-    const {location, api, organization, environment, projects, query} = this.props;
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Alerts - Extrapolation Meta',
-      fields: ['count_sample()', 'min(sampling_rate)'],
-      query: search.formatString(),
-      version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-    };
-
-    const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, {
-      datetime: {
-        period: TimePeriod.SEVEN_DAYS,
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: environment ? [environment] : [],
-      projects: projects.map(({id}) => Number(id)),
-    });
-
-    const response = await doDiscoverQuery<TableData>(
-      api,
-      `/organizations/${organization.slug}/events/`,
-      eventView.getEventsAPIPayload(location)
-    );
-
-    const extrapolationSampleCount = response[0]?.data?.[0]?.['count_sample()'];
-    this.setState({
-      extrapolationSampleCount: extrapolationSampleCount
-        ? Number(extrapolationSampleCount)
-        : null,
-    });
   }
 
   renderChart({
@@ -433,10 +305,12 @@ class TriggersChart extends PureComponent<Props, State> {
       organization,
       showTotalCount,
       anomalies = [],
-      confidence,
       dataset,
+      confidence,
+      seriesSamplingInfo,
+      traceItemType,
     } = this.props;
-    const {statsPeriod, totalCount, extrapolationSampleCount} = this.state;
+    const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
 
@@ -491,10 +365,13 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+              traceItemType === TraceItemDataset.SPANS ? (
                 <ConfidenceFooter
-                  sampleCount={extrapolationSampleCount ?? undefined}
+                  sampleCount={seriesSamplingInfo?.sampleCount}
+                  isSampled={seriesSamplingInfo?.isSampled}
                   confidence={confidence}
+                  dataScanned={seriesSamplingInfo?.dataScanned}
                 />
               ) : (
                 <React.Fragment>
@@ -513,8 +390,7 @@ class TriggersChart extends PureComponent<Props, State> {
               size="sm"
               options={statsPeriodOptions.map(timePeriod => ({
                 value: timePeriod,
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                label: TIME_PERIOD_MAP[timePeriod],
+                label: TIME_PERIOD_MAP[timePeriod as keyof typeof TIME_PERIOD_MAP],
               }))}
               value={period}
               onChange={opt => this.handleStatsPeriodChange(opt.value)}
@@ -551,7 +427,7 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
-      onConfidenceDataLoaded,
+      traceItemType,
     } = this.props;
 
     const period = this.getStatsPeriod()!;
@@ -565,6 +441,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       query,
       newAlertOrQuery,
+      traceItemType,
     });
 
     if (isOnDemandMetricAlert) {
@@ -597,10 +474,12 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    HISTORICAL_TIME_PERIOD_MAP[period]!
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+                    ]
+                  : HISTORICAL_TIME_PERIOD_MAP[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP
+                    ]
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -676,8 +555,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 data: getCrashFreeRateSeries(
                   groups,
                   intervals,
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]!
                 ),
               },
             ];
@@ -698,8 +576,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -714,7 +590,6 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
 
     return (
@@ -724,23 +599,19 @@ class TriggersChart extends PureComponent<Props, State> {
             {...baseProps}
             api={this.historicalAPI}
             period={
-              timeWindow === 5
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  HISTORICAL_TIME_PERIOD_MAP[period]!
+              dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+                ? EAP_HISTORICAL_TIME_PERIOD_MAP[
+                    period as keyof typeof EAP_HISTORICAL_TIME_PERIOD_MAP
+                  ]
+                : timeWindow === 5
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+                    ]
+                  : HISTORICAL_TIME_PERIOD_MAP[
+                      period as keyof typeof HISTORICAL_TIME_PERIOD_MAP
+                    ]
             }
             dataLoadedCallback={onHistoricalDataLoaded}
-          >
-            {noop}
-          </EventsRequest>
-        ) : null}
-        {this.props.includeConfidence ? (
-          <EventsRequest
-            {...baseProps}
-            api={this.confidenceAPI}
-            period={TimePeriod.SEVEN_DAYS}
-            dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}
           </EventsRequest>
@@ -749,13 +620,10 @@ class TriggersChart extends PureComponent<Props, State> {
           {...baseProps}
           period={period}
           dataLoadedCallback={onDataLoaded}
-          // Span alerts only need to do a best effort request and do not need
-          // preflight requests. A user needs to see the highest fidelity data possible
-          // to set up the alert.
           sampling={
-            organization.features.includes('visibility-explore-progressive-loading') &&
-            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-              ? SAMPLING_MODE.BEST_EFFORT
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+            this.props.traceItemType === TraceItemDataset.SPANS
+              ? SAMPLING_MODE.NORMAL
               : undefined
           }
         >
@@ -821,7 +689,18 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}: any) {
+interface ErrorChartProps extends React.ComponentProps<'div'> {
+  isAllowIndexed: boolean;
+  isQueryValid: boolean;
+  errorMessage?: React.ReactNode;
+}
+
+export function ErrorChart({
+  isAllowIndexed,
+  isQueryValid,
+  errorMessage,
+  ...props
+}: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
       <PanelAlert type="error">

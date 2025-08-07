@@ -3,29 +3,26 @@ import styled from '@emotion/styled';
 
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import {Link} from 'sentry/components/core/link';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-export default storyBook('Confirm', story => {
+export default Storybook.story('Confirm', story => {
   story('Triggers', () => {
     const [state, setState] = useState('empty');
 
     return (
       <Fragment>
         <p>
-          There are two ways to use <JSXNode name="Confirm" />, either as a wrapper around
-          a trigger, or by calling <code>openConfirmModal()</code> in a callback.
+          There are two ways to use <Storybook.JSXNode name="Confirm" />, either as a
+          wrapper around a trigger, or by calling <code>openConfirmModal()</code> in a
+          callback.
         </p>
         <p>
           It's recommended to call <code>openConfirmModal()</code>.
         </p>
         <p>Current state is: {state}.</p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <Button
             onClick={() =>
               openConfirmModal({
@@ -45,10 +42,10 @@ export default storyBook('Confirm', story => {
             onCancel={() => setState('cancelled')}
           >
             <Button>
-              Button is wrapped with <JSXNode name="Confirm" />
+              Button is wrapped with <Storybook.JSXNode name="Confirm" />
             </Button>
           </Confirm>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -56,11 +53,12 @@ export default storyBook('Confirm', story => {
   story('Labels', () => (
     <Fragment>
       <p>
-        You must implement at least <JSXProperty name="message" value={String} />, but
-        have the option of implementing{' '}
-        <JSXProperty name="renderMessage" value={Function} /> instead.
+        You must implement at least{' '}
+        <Storybook.JSXProperty name="message" value={String} />, but have the option of
+        implementing <Storybook.JSXProperty name="renderMessage" value={Function} />{' '}
+        instead.
       </p>
-      <SideBySide>
+      <Storybook.SideBySide>
         <Button
           onClick={() =>
             openConfirmModal({
@@ -101,21 +99,55 @@ export default storyBook('Confirm', story => {
         >
           With ReactNode Labels
         </Button>
-      </SideBySide>
+      </Storybook.SideBySide>
     </Fragment>
   ));
+
+  story('Async Confirmations', () => {
+    return (
+      <Fragment>
+        <p>
+          If you pass a promise to{' '}
+          <Storybook.JSXProperty name="onConfirm" value={Function} />, the modal will not
+          close until the promise is resolved. This is useful if you have actions that
+          require a endpoint to respond before the modal can be closed, such as when
+          confirming the deletion of the page you are on.
+        </p>
+        <Confirm
+          onConfirm={() => new Promise(resolve => setTimeout(resolve, 1000))}
+          header="Are you sure?"
+          message="This confirmation takes 1 second to complete"
+        >
+          <Button>This confirmation takes 1 second to complete</Button>
+        </Confirm>
+        <p>
+          This also allows you to respond to display errors in the modal in the case of
+          network errors.
+        </p>
+        <Confirm
+          onConfirm={() => new Promise((_, reject) => setTimeout(reject, 1000))}
+          header="Are you sure?"
+          message="This confirmation will error"
+          errorMessage="Custom error message"
+        >
+          <Button>This confirmation will error</Button>
+        </Confirm>
+      </Fragment>
+    );
+  });
 
   story('Callbacks & bypass={true}', () => {
     const [callbacks, setCallbacks] = useState<string[]>([]);
     return (
       <Fragment>
         <p>
-          There is also a prop called <JSXProperty name="bypass" value={Boolean} />. This
-          can help to skip the Confirm dialog, for example if not enough items are
-          selected in a bulk-change operation, and directly run the{' '}
-          <JSXProperty name="onConfirm" value={Function} /> callback.
+          There is also a prop called{' '}
+          <Storybook.JSXProperty name="bypass" value={Boolean} />. This can help to skip
+          the Confirm dialog, for example if not enough items are selected in a
+          bulk-change operation, and directly run the{' '}
+          <Storybook.JSXProperty name="onConfirm" value={Function} /> callback.
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <Button
             onClick={() =>
               openConfirmModal({
@@ -144,7 +176,7 @@ export default storyBook('Confirm', story => {
           >
             With callbacks (bypass = true)
           </Button>
-        </SideBySide>
+        </Storybook.SideBySide>
         <p>
           <label>
             Callback debugger:
@@ -161,8 +193,8 @@ export default storyBook('Confirm', story => {
   story('<Confirm> child render func', () => (
     <Fragment>
       <p>
-        Here's an example where <JSXProperty name="children" value={Function} /> is a
-        render function:
+        Here's an example where <Storybook.JSXProperty name="children" value={Function} />{' '}
+        is a render function:
       </p>
       <Confirm>{({open}) => <Button onClick={open}>Open the modal</Button>}</Confirm>
     </Fragment>
@@ -174,11 +206,12 @@ export default storyBook('Confirm', story => {
     return (
       <Fragment>
         <p>
-          We can see how <JSXProperty name="disabled" value={Boolean} /> and
-          <JSXProperty name="stopPropagation" value={Boolean} /> work in combination.
+          We can see how <Storybook.JSXProperty name="disabled" value={Boolean} /> and
+          <Storybook.JSXProperty name="stopPropagation" value={Boolean} /> work in
+          combination.
         </p>
         <p>Button clicks: {clicks} </p>
-        <Matrix
+        <Storybook.PropMatrix
           propMatrix={{
             disabled: [false, true],
             stopPropagation: [false, true],

@@ -1,12 +1,13 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export function getInstallSnippet({
+function getInstallSnippet({
   params,
   packageManager,
   additionalPackages = [],
@@ -196,7 +197,18 @@ Sentry.init({
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Send structured logs to Sentry
+  enableLogs: true,`
+      : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
   });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
@@ -279,6 +291,10 @@ Sentry.init({
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });${
                 params.profilingOptions?.defaultProfilingMode === 'continuous' &&
                 profilingLifecycle === 'trace'
@@ -342,4 +358,200 @@ Sentry.profiler.stopProfiler();
       ),
     },
   ],
+});
+
+export const getNodeAgentMonitoringOnboarding = ({
+  basePackage = 'node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  introduction: () => (
+    <Alert type="info" showIcon={false}>
+      {tct(
+        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
+        {
+          vercelai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+          ),
+          openai: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+          manual: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+          ),
+        }
+      )}
+    </Alert>
+  ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:9.30.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: `@sentry/${basePackage}`,
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label:
+                params.platformKey === 'javascript-nextjs'
+                  ? 'config.server.ts'
+                  : 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
+    Sentry.vercelAIIntegration(),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+              ),
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai("gpt-4o"),
+  prompt: "Tell me a joke",
+  experimental_telemetry: {
+    isEnabled: true,
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+});
+
+export const getNodeMcpOnboarding = ({
+  basePackage = 'node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  introduction: () => (
+    <Alert type="info" showIcon={false}>
+      {tct(
+        'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
+        {
+          mcp: (
+            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
+          ),
+        }
+      )}
+    </Alert>
+  ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: `@sentry/${basePackage}`,
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Initialize the Sentry SDK with [code:Sentry.init()] call.', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for MCP monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+const { McpServer } = require("@modelcontextprotocol/sdk");
+
+const server = Sentry.wrapMcpServerWithSentry(new McpServer({
+    name: "my-mcp-server",
+    version: "1.0.0",
+}));
+`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
 });

@@ -17,9 +17,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.team_projects import ProjectPostSerializer
+from sentry.api.endpoints.team_projects import ProjectPostSerializer, apply_default_project_settings
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -142,8 +143,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 )
                 project = Project.objects.create(
                     name=project_name,
-                    # slug is set to None to avoid a duplicate slug error
-                    slug=None,
+                    # slug is *not* set so we get an automatic one
                     organization=organization,
                     platform=result.get("platform"),
                 )
@@ -200,6 +200,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 event=audit_log.get_event_id("PROJECT_ADD"),
                 data={**project.get_audit_log_data()},
             )
+
+        apply_default_project_settings(organization, project)
+
         project_created.send_robust(
             project=project,
             user=request.user,
@@ -217,7 +220,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(project, request.user)
+        serialized_response = serialize(
+            project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
+        )
         serialized_response["team_slug"] = team.slug
 
         return Response(serialized_response, status=201)

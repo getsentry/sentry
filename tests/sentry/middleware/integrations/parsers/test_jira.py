@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
@@ -39,7 +40,7 @@ class JiraRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
         assert parser.get_integration_from_request() is None
@@ -53,7 +54,7 @@ class JiraRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_response_routing_to_control(self):
+    def test_get_response_routing_to_control(self) -> None:
         paths = [
             "/ui-hook/",
             "/descriptor/",
@@ -75,7 +76,7 @@ class JiraRequestParserTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_response_routing_to_region_sync(self):
+    def test_get_response_routing_to_region_sync(self) -> None:
         responses.add(
             responses.POST,
             region.to_url("/extensions/jira/issue/LR-123/"),
@@ -97,7 +98,7 @@ class JiraRequestParserTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_response_routing_to_region_sync_retry_errors(self):
+    def test_get_response_routing_to_region_sync_retry_errors(self) -> None:
         responses.add(
             responses.POST,
             region.to_url("/extensions/jira/issue/LR-123/"),
@@ -121,7 +122,7 @@ class JiraRequestParserTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_response_routing_to_region_async(self):
+    def test_get_response_routing_to_region_async(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
@@ -143,7 +144,7 @@ class JiraRequestParserTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_response_missing_org_integration(self):
+    def test_get_response_missing_org_integration(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
@@ -166,7 +167,7 @@ class JiraRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_get_response_invalid_path(self):
+    def test_get_response_invalid_path(self) -> None:
         # Invalid path
         request = self.factory.post(path="/new-route/for/no/reason/")
         parser = JiraRequestParser(request, self.get_response)
@@ -184,7 +185,7 @@ class JiraRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_get_response_multiple_regions(self):
+    def test_get_response_multiple_regions(self) -> None:
         responses.add(
             responses.POST,
             eu_region.to_url("/extensions/jira/issue/LR-123/"),
@@ -201,11 +202,8 @@ class JiraRequestParserTest(TestCase):
 
         with patch.object(parser, "get_integration_from_request") as method:
             method.return_value = integration
-            response = parser.get_response()
+            # assert ValueError is raised if the integration is not valid
+            with pytest.raises(ValueError):
+                parser.get_response()
 
-        # Response should go to first region
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.content == b"region response"
-        assert len(responses.calls) == 1
         assert_no_webhook_payloads()

@@ -33,7 +33,9 @@ describe('SsoForm', function () {
       serverHostname: 'testserver',
     };
 
-    render(<SsoForm authConfig={authConfig} />);
+    render(<SsoForm authConfig={authConfig} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
@@ -48,7 +50,9 @@ describe('SsoForm', function () {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />);
+    render(<SsoForm authConfig={emptyAuthConfig} />, {
+      deprecatedRouterMocks: true,
+    });
     await doSso(mockRequest);
 
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
@@ -65,7 +69,10 @@ describe('SsoForm', function () {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />, {router});
+    render(<SsoForm authConfig={emptyAuthConfig} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await doSso(mockRequest);
 
     await waitFor(() => expect(router.push).toHaveBeenCalledWith({pathname: '/next/'}));

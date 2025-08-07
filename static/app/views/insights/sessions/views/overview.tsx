@@ -7,10 +7,10 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -26,12 +26,12 @@ import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/rele
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function SessionsOverview() {
+function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
-  const {hasSessionData, projects} = useProjectHasSessions();
+  const {hasSessionData} = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
 
   return (
@@ -41,23 +41,20 @@ export function SessionsOverview() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ToolRibbon>
+                <PageFilterBar>
+                  <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                  <DatePageFilter />
+                </PageFilterBar>
+              </ToolRibbon>
             </ModuleLayout.Full>
             {showOnboarding ? (
               <ModuleLayout.Full>
                 <ModulesOnboardingPanel moduleName={ModuleName.SESSIONS} />
               </ModuleLayout.Full>
             ) : (
-              <ViewSpecificCharts
-                view={view}
-                filters={filters}
-                setFilters={setFilters}
-                projects={projects}
-              />
+              <ViewSpecificCharts view={view} filters={filters} setFilters={setFilters} />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -81,36 +78,30 @@ function ViewSpecificCharts({
   view,
   filters,
   setFilters,
-  projects,
 }: {
   filters: string[];
-  projects: Project[];
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
-  const chartProps = {
-    project: projects[0]!,
-  };
-
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH: {
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -119,20 +110,20 @@ function ViewSpecificCharts({
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -165,7 +156,7 @@ const FilterWrapper = styled('div')`
   gap: ${space(1)};
   display: grid;
   grid-template-columns: auto 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-rows: auto auto;
   }
 `;

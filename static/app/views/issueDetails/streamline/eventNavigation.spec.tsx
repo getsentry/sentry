@@ -73,7 +73,10 @@ describe('EventNavigation', () => {
         }),
       });
 
-      render(<IssueEventNavigation {...defaultProps} />, {router: allEventsRouter});
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
       expect(discoverButton).toBeInTheDocument();
@@ -89,11 +92,60 @@ describe('EventNavigation', () => {
         expect.stringContaining(`/organizations/${organization.slug}/issues/${group.id}/`)
       );
     });
+
+    it('supplies the default timestamp sort when no sort is set in the query params', () => {
+      const allEventsRouter = RouterFixture({
+        params: {groupId: group.id},
+        routes: [{path: TabPaths[Tab.EVENTS]}],
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+        }),
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
+
+      const discoverButton = screen.getByLabelText('Open in Discover');
+      expect(discoverButton).toBeInTheDocument();
+      const url = new URL(
+        discoverButton.getAttribute('href') ?? '',
+        'https://www.example.com'
+      );
+      expect(url.searchParams.get('sort')).toBe('-timestamp');
+    });
+
+    it('supplies the sort when it is set in the query params', () => {
+      const allEventsRouter = RouterFixture({
+        params: {groupId: group.id},
+        routes: [{path: TabPaths[Tab.EVENTS]}],
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+          query: {sort: '-title'},
+        }),
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
+
+      const discoverButton = screen.getByLabelText('Open in Discover');
+      expect(discoverButton).toBeInTheDocument();
+      const url = new URL(
+        discoverButton.getAttribute('href') ?? '',
+        'https://www.example.com'
+      );
+      expect(url.searchParams.get('sort')).toBe('-title');
+    });
   });
 
   describe('counts', () => {
     it('renders default counts', async () => {
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -110,7 +162,9 @@ describe('EventNavigation', () => {
         body: [EventAttachmentFixture()],
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -128,7 +182,9 @@ describe('EventNavigation', () => {
         },
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(

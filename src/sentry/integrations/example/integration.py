@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.http import HttpResponse
@@ -18,20 +18,21 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
 from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class ExampleSetupView(PipelineView):
+class ExampleSetupView:
     TEMPLATE = """
         <form method="POST">
             <p>This is an example integration configuration page.</p>
@@ -41,7 +42,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -218,7 +219,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [ExampleSetupView()]
 
     def get_config(self):

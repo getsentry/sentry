@@ -1,17 +1,16 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
@@ -52,10 +51,11 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
           />
           <KeyValueTableRow
             keyName={
-              <Flex gap={space(0.75)} align="center">
+              <Flex gap="sm" align="center">
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
+                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -91,8 +91,8 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                         )
                     )}
                   >
-                    <Button
-                      size="xs"
+                    <FinalizeButton
+                      size="zero"
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {
@@ -102,7 +102,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                       }}
                     >
                       {t('Finalize')}
-                    </Button>
+                    </FinalizeButton>
                   </Tooltip>
                 </ButtonContainer>
               )
@@ -177,6 +177,11 @@ const ButtonContainer = styled('div')`
     position: absolute;
     right: 0;
   }
+`;
+
+const FinalizeButton = styled(Button)`
+  font-size: ${p => p.theme.fontSize.sm};
+  padding-inline: ${space(0.5)};
 `;
 
 export default ProjectReleaseDetails;

@@ -6,8 +6,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {QueryClient} from 'sentry/utils/queryClient';
+import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   type DashboardDetails,
   type DashboardListItem,
@@ -103,13 +106,14 @@ export function updateDashboardVisit(
 
 export async function updateDashboardFavorite(
   api: Client,
-  orgId: string,
+  queryClient: QueryClient,
+  organization: Organization,
   dashboardId: string | string[],
   isFavorited: boolean
 ): Promise<void> {
   try {
     await api.requestPromise(
-      `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
+      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
       {
         method: 'PUT',
         data: {
@@ -117,6 +121,9 @@ export async function updateDashboardFavorite(
         },
       }
     );
+    queryClient.invalidateQueries({
+      queryKey: getQueryKey(organization),
+    });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse = response?.responseJSON ?? null;

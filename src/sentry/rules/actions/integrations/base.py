@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable, Sequence
+from typing import Any, override
+
+import sentry_sdk
 
 from sentry import analytics
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.services.integration import (
     RpcIntegration,
@@ -12,6 +17,8 @@ from sentry.integrations.services.integration import (
 from sentry.models.organization import OrganizationStatus
 from sentry.models.rule import Rule
 from sentry.rules.actions import EventAction
+from sentry.rules.base import CallbackFuture
+from sentry.types.rules import RuleFuture
 
 INTEGRATION_KEY = "integration"
 
@@ -33,6 +40,22 @@ class IntegrationEventAction(EventAction, abc.ABC):
     @abc.abstractmethod
     def integration_key(self) -> str:
         pass
+
+    @override
+    def future(
+        self,
+        callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
+        key: str | None = None,
+        **kwargs: Any,
+    ) -> CallbackFuture:
+        def wrapped_callback(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
+            with sentry_sdk.start_span(
+                op="IntegrationEventAction.future",
+                name=type(self).__name__,
+            ):
+                callback(event, futures)
+
+        return super().future(wrapped_callback, key, **kwargs)
 
     def is_enabled(self) -> bool:
         enabled: bool = bool(self.get_integrations())
@@ -98,13 +121,18 @@ class IntegrationEventAction(EventAction, abc.ABC):
             notification_uuid=notification_uuid if notification_uuid else "",
             alert_id=rule.id if rule else None,
         )
-        analytics.record(
-            "alert.sent",
-            provider=self.provider,
-            alert_id=rule.id if rule else "",
-            alert_type="issue_alert",
-            organization_id=event.organization.id,
-            project_id=event.project_id,
-            external_id=external_id,
-            notification_uuid=notification_uuid if notification_uuid else "",
-        )
+
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    provider=self.provider,
+                    alert_id=rule.id if rule else "",
+                    alert_type="issue_alert",
+                    organization_id=event.organization.id,
+                    project_id=event.project_id,
+                    external_id=external_id,
+                    notification_uuid=notification_uuid if notification_uuid else "",
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

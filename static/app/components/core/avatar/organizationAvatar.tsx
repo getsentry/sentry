@@ -1,24 +1,24 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-export interface OrganizationAvatarProps extends BaseAvatarProps {
-  organization?: OrganizationSummary;
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
+interface OrganizationAvatarProps extends BaseAvatarProps {
+  organization: OrganizationSummary | undefined;
+  ref?: React.Ref<HTMLSpanElement>;
 }
 
 export function OrganizationAvatar({
   ref,
   organization,
   ...props
-}: OrganizationAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
-}) {
+}: OrganizationAvatarProps) {
   if (!organization) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;
   }
 
-  const slug = organization?.slug || '';
+  const slug = organization.slug || '';
   const title = explodeSlug(slug);
 
   return (

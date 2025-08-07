@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 
 type Props = ModalRenderProps & {
@@ -41,7 +42,6 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props
 }
 
 export default NavigateToExternalLinkModal;
-export {NavigateToExternalLinkModal};
 
 const ButtonContainer = styled('div')`
   display: flex;

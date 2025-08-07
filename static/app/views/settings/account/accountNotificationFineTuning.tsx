@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -27,7 +28,6 @@ import {useParams} from 'sentry/utils/useParams';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {
   getNotificationTypeFromPathname,
@@ -44,17 +44,6 @@ const PanelBodyLineItem = styled(PanelBody)`
   }
 `;
 
-const accountNotifications = [
-  'alerts',
-  'deploy',
-  'workflow',
-  'approval',
-  'quota',
-  'spikeProtection',
-  'reports',
-  'brokenMonitors',
-];
-
 type ANBPProps = {
   field: FineTuneField;
   projects: Project[];
@@ -63,8 +52,7 @@ type ANBPProps = {
 function AccountNotificationsByProject({projects, field}: ANBPProps) {
   const projectsByOrg = groupByOrganization(projects);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {title, description, ...fieldConfig} = field;
+  const {title: _title, description: _description, ...fieldConfig} = field;
 
   // Display as select box in this view regardless of the type specified in the config
   const data = Object.values(projectsByOrg).map(org => ({
@@ -112,8 +100,7 @@ type ANBOProps = {
 function AccountNotificationsByOrganization({field}: ANBOProps) {
   const {organizations} = useLegacyStore(OrganizationsStore);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {title, description, ...fieldConfig} = field;
+  const {title: _title, description: _description, ...fieldConfig} = field;
 
   // Display as select box in this view regardless of the type specified in the config
   const data = organizations.map(org => ({
@@ -161,7 +148,7 @@ function AccountNotificationFineTuning({
   const organizationId =
     (location?.query?.organizationId as string | undefined) ??
     organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
-    organizations[0]?.id;
+    (organizations.length === 1 ? organizations[0]?.id : undefined);
 
   const {
     data: notifications,
@@ -187,7 +174,7 @@ function AccountNotificationFineTuning({
     ],
     {
       staleTime: 0,
-      enabled: projectsEnabled,
+      enabled: Boolean(projectsEnabled && organizationId),
     }
   );
   const isLoadingProjects = projectsEnabled ? isPendingProjects : false;
@@ -213,10 +200,6 @@ function AccountNotificationFineTuning({
     placeholderData: keepPreviousData,
   });
 
-  if (accountNotifications.includes(fineTuneType)) {
-    return <NotificationSettingsByType notificationType={fineTuneType} />;
-  }
-
   const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
   const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType]!;
   // TODO(isabella): once GA, remove this
@@ -231,7 +214,7 @@ function AccountNotificationFineTuning({
   }
 
   if (isEmail) {
-    // Vrified email addresses
+    // Verified email addresses
     const emailChoices: UserEmail[] = emails
       .filter(({isVerified}) => isVerified)
       .sort((a, b) => {
@@ -321,21 +304,27 @@ function AccountNotificationFineTuning({
           )}
         </StyledPanelHeader>
         <PanelBody>
-          {/* Only email needs the form to change the emmail */}
-          {fineTuneType === 'email' && emailsByProject && !isPendingEmailsByProject ? (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/email/"
-              initialData={emailsByProject}
-              onSubmitSuccess={() => {
-                refetchEmailsByProject();
-              }}
-            >
-              {mainContent}
-            </Form>
+          {/* Only email needs the form to change the email */}
+          {organizationId ? (
+            fineTuneType === 'email' && emailsByProject && !isPendingEmailsByProject ? (
+              <Form
+                saveOnBlur
+                apiMethod="PUT"
+                apiEndpoint="/users/me/notifications/email/"
+                initialData={emailsByProject}
+                onSubmitSuccess={() => {
+                  refetchEmailsByProject();
+                }}
+              >
+                {mainContent}
+              </Form>
+            ) : (
+              mainContent
+            )
           ) : (
-            mainContent
+            <EmptyStateWarning withIcon={false}>
+              {t('Select an organization to continue')}
+            </EmptyStateWarning>
           )}
         </PanelBody>
       </Panel>

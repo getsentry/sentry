@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Link} from 'sentry/components/core/link';
 import type {StylesConfig} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -267,9 +267,11 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects, allowAllProjectsSelection} = this.props;
+    const {projects, allowAllProjectsSelection} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
+
+    const {organization} = OrganizationStore.getState();
 
     const projectOptions = [
       {
@@ -290,14 +292,12 @@ class ContextPickerModal extends Component<Props> {
       },
     ];
 
-    if (!projects.length) {
+    if (!projects.length && organization) {
       return (
         <div>
           {tct('You have no projects. Click [link] to make one.', {
             link: (
-              <Link
-                to={makeProjectsPathname({path: '/new/', orgSlug: organization ?? ''})}
-              >
+              <Link to={makeProjectsPathname({path: '/new/', organization})}>
                 {t('here')}
               </Link>
             ),

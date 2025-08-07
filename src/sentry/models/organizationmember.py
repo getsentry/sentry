@@ -234,13 +234,10 @@ class OrganizationMember(ReplicatedRegionModel):
 
     # These attributes are replicated via USER_UPDATE category outboxes for the user object associated with the user_id
     # when it exists.
-    user_is_active = models.BooleanField(
-        null=False,
-        default=True,
-    )
+    user_is_active = models.BooleanField(null=False, default=True, db_default=True)
     # Note, this is the email of the user that may or may not be associated with the member, not the email used to
     # invite the user.
-    user_email = models.CharField(max_length=75, null=True, blank=True)
+    user_email = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import {DataCategory} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
@@ -13,8 +13,11 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -39,26 +42,15 @@ export function parseOnDemandBudgets(
   onDemandBudgets: SubscriptionOnDemandBudgets | PendingOnDemandBudgets
 ): OnDemandBudgets {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    const parsedBudgets: Partial<Record<DataCategory, number>> = {};
+    for (const category in onDemandBudgets.budgets) {
+      parsedBudgets[category as DataCategory] =
+        onDemandBudgets.budgets[category as DataCategory] ?? 0;
+    }
+
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget: onDemandBudgets.budgets.errors ?? 0,
-      transactionsBudget: onDemandBudgets.budgets.transactions ?? 0,
-      attachmentsBudget: onDemandBudgets.budgets.attachments ?? 0,
-      replaysBudget: onDemandBudgets.budgets.replays ?? 0,
-      monitorSeatsBudget: onDemandBudgets.budgets.monitorSeats ?? 0,
-      uptimeBudget: onDemandBudgets.budgets.uptime ?? 0,
-      profileDurationBudget: onDemandBudgets.budgets.profileDuration ?? 0,
-      profileDurationUIBudget: onDemandBudgets.budgets.profileDurationUI ?? 0,
-      budgets: {
-        errors: onDemandBudgets.budgets.errors,
-        transactions: onDemandBudgets.budgets.transactions,
-        attachments: onDemandBudgets.budgets.attachments,
-        replays: onDemandBudgets.budgets.replays,
-        monitorSeats: onDemandBudgets.budgets.monitorSeats,
-        uptime: onDemandBudgets.budgets.uptime,
-        profileDuration: onDemandBudgets.budgets.profileDuration,
-        profileDurationUI: onDemandBudgets.budgets.profileDurationUI,
-      },
+      budgets: parsedBudgets,
     };
   }
   return {
@@ -69,23 +61,9 @@ export function parseOnDemandBudgets(
 
 export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    const errorsBudget = onDemandBudgets.budgets.errors ?? 0;
-    const transactionsBudget = onDemandBudgets.budgets.transactions ?? 0;
-    const attachmentsBudget = onDemandBudgets.budgets.attachments ?? 0;
-    const replaysBudget = onDemandBudgets.budgets.replays ?? 0;
-    const monitorSeatsBudget = onDemandBudgets.budgets.monitorSeats ?? 0;
-    const uptimeBudget = onDemandBudgets.budgets.uptime ?? 0;
-    const profileDurationBudget = onDemandBudgets.budgets.profileDuration ?? 0;
-    const profileDurationUIBudget = onDemandBudgets.budgets.profileDurationUI ?? 0;
-    return (
-      errorsBudget +
-      transactionsBudget +
-      attachmentsBudget +
-      replaysBudget +
-      monitorSeatsBudget +
-      uptimeBudget +
-      profileDurationBudget +
-      profileDurationUIBudget
+    return Object.values(onDemandBudgets.budgets).reduce(
+      (sum, budget) => sum + (budget ?? 0),
+      0
     );
   }
 
@@ -101,14 +79,13 @@ export function isOnDemandBudgetsEqual(
 
 type DisplayNameProps = {
   budget: PerCategoryOnDemandBudget;
-  categories: string[];
+  categories: DataCategory[];
   plan: Plan;
 };
 
 function listBudgets({plan, categories, budget}: DisplayNameProps) {
   const categoryNames = categories.map(category => {
     const displayName = getPlanCategoryName({plan, category, capitalize: false});
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const formattedBudget = formatCurrency(budget.budgets[category] ?? 0);
     return `${displayName} at ${formattedBudget}`;
   });
@@ -118,18 +95,16 @@ function listBudgets({plan, categories, budget}: DisplayNameProps) {
 export function formatOnDemandBudget(
   plan: Plan,
   budget: OnDemandBudgets,
-  categories: string[] = [
-    'errors',
-    'transactions',
-    'attachments',
-    'replays',
-    'monitorSeats',
-    'uptime',
-    'profileDuration',
-    'profileDurationUI',
-  ]
+  categories: DataCategory[] = []
 ): React.ReactNode {
+  if (categories.length === 0) {
+    categories = plan.onDemandCategories.map(category => category);
+  }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    categories = getOnDemandCategories({
+      plan,
+      budgetMode: budget.budgetMode,
+    });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,
@@ -153,42 +128,9 @@ export function hasOnDemandBudgetsFeature(
   );
 }
 
-function getBudgetMode(budget: OnDemandBudgets) {
-  return budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ? 'per_category'
-    : 'shared';
-}
-
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    switch (dataCategory) {
-      case DataCategory.ERRORS: {
-        return budget.budgets.errors ?? 0;
-      }
-      case DataCategory.TRANSACTIONS: {
-        return budget.budgets.transactions ?? 0;
-      }
-      case DataCategory.ATTACHMENTS: {
-        return budget.budgets.attachments ?? 0;
-      }
-      case DataCategory.REPLAYS: {
-        return budget.budgets.replays ?? 0;
-      }
-      case DataCategory.MONITOR_SEATS: {
-        return budget.budgets.monitorSeats ?? 0;
-      }
-      case DataCategory.UPTIME: {
-        return budget.budgets.uptime ?? 0;
-      }
-      case DataCategory.PROFILE_DURATION: {
-        return budget.budgets.profileDuration ?? 0;
-      }
-      case DataCategory.PROFILE_DURATION_UI: {
-        return budget.budgets.profileDurationUI ?? 0;
-      }
-      default:
-        return getTotalBudget(budget);
-    }
+    return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
 }
@@ -233,29 +175,44 @@ export function trackOnDemandBudgetAnalytics(
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
+  const previousBudgetMode = previousBudget.budgetMode;
+  const newBudgetMode = newBudget.budgetMode;
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
+    const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};
+    const previousBudgets: Partial<
+      Record<`previous_${DataCategoryExact}_budget`, number>
+    > = {};
+
+    if (previousBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(previousBudget.budgets).forEach(([category, budget]) => {
+        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+        if (categoryInfo) {
+          previousBudgets[`previous_${categoryInfo.name}_budget`] = budget ?? 0;
+        }
+      });
+    }
+
+    if (newBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(newBudget.budgets).forEach(([category, budget]) => {
+        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+        if (categoryInfo) {
+          newBudgets[`${categoryInfo.name}_budget`] = budget ?? 0;
+        }
+      });
+    }
+
     trackGetsentryAnalytics(`${prefix}.ondemand_budget.update`, {
       organization,
 
       // new budget
-      strategy: getBudgetMode(newBudget),
+      strategy: newBudgetMode,
       total_budget: totalBudget,
-      error_budget: getOnDemandBudget(newBudget, DataCategory.ERRORS),
-      transaction_budget: getOnDemandBudget(newBudget, DataCategory.TRANSACTIONS),
-      attachment_budget: getOnDemandBudget(newBudget, DataCategory.ATTACHMENTS),
+      ...newBudgets,
 
       // previous budget
-      previous_strategy: getBudgetMode(previousBudget),
-      previous_total_budget: getTotalBudget(previousBudget),
-      previous_error_budget: getOnDemandBudget(previousBudget, DataCategory.ERRORS),
-      previous_transaction_budget: getOnDemandBudget(
-        previousBudget,
-        DataCategory.TRANSACTIONS
-      ),
-      previous_attachment_budget: getOnDemandBudget(
-        previousBudget,
-        DataCategory.ATTACHMENTS
-      ),
+      previous_strategy: previousBudgetMode,
+      previous_total_budget: previousTotalBudget,
+      ...previousBudgets,
     });
     return;
   }
@@ -280,50 +237,33 @@ export function convertOnDemandBudget(
   nextMode: OnDemandBudgetMode
 ): OnDemandBudgets {
   if (nextMode === OnDemandBudgetMode.PER_CATEGORY) {
-    let errorsBudget = 0;
-    let transactionsBudget = 0;
-    let attachmentsBudget = 0;
-    let replaysBudget = 0;
-    let monitorSeatsBudget = 0;
-    let uptimeBudget = 0;
-    let profileDurationBudget = 0;
-    let profileDurationUIBudget = 0;
+    const newBudgets: Partial<Record<DataCategory, number>> = {
+      // TODO: refactor this out later in the future.
+      errors: 0,
+      transactions: 0,
+      attachments: 0,
+      replays: 0,
+      monitorSeats: 0,
+      uptime: 0,
+      profileDuration: 0,
+      profileDurationUI: 0,
+      logBytes: 0,
+    };
+
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-      errorsBudget = currentOnDemandBudget.budgets.errors ?? 0;
-      transactionsBudget = currentOnDemandBudget.budgets.transactions ?? 0;
-      attachmentsBudget = currentOnDemandBudget.budgets.attachments ?? 0;
-      replaysBudget = currentOnDemandBudget.budgets.replays ?? 0;
-      monitorSeatsBudget = currentOnDemandBudget.budgets.monitorSeats ?? 0;
-      uptimeBudget = currentOnDemandBudget.budgets.uptime ?? 0;
-      profileDurationBudget = currentOnDemandBudget.budgets.profileDuration ?? 0;
-      profileDurationUIBudget = currentOnDemandBudget.budgets.profileDurationUI ?? 0;
+      Object.assign(newBudgets, currentOnDemandBudget.budgets);
     } else {
       // should split 50:50 between transactions and errors (whole dollars, remainder added to errors)
       const total = getTotalBudget(currentOnDemandBudget);
-      errorsBudget = Math.ceil(total / 100 / 2) * 100;
-      transactionsBudget = Math.max(total - errorsBudget, 0);
+      const errorsBudget = Math.ceil(total / 100 / 2) * 100;
+      const transactionsBudget = Math.max(total - errorsBudget, 0);
+      newBudgets.errors = errorsBudget;
+      newBudgets.transactions = transactionsBudget;
     }
 
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      errorsBudget,
-      transactionsBudget,
-      attachmentsBudget,
-      replaysBudget,
-      monitorSeatsBudget,
-      uptimeBudget,
-      profileDurationBudget,
-      profileDurationUIBudget,
-      budgets: {
-        errors: errorsBudget,
-        transactions: transactionsBudget,
-        attachments: attachmentsBudget,
-        replays: replaysBudget,
-        monitorSeats: monitorSeatsBudget,
-        uptime: uptimeBudget,
-        profileDuration: profileDurationBudget,
-        profileDurationUI: profileDurationUIBudget,
-      },
+      budgets: newBudgets,
     };
   }
 

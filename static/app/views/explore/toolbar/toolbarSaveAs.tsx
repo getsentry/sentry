@@ -9,8 +9,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,11 +26,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
   useExploreFields,
   useExploreGroupBys,
   useExploreId,
-  useExploreMode,
   useExploreQuery,
   useExploreSortBys,
   useExploreVisualizes,
@@ -39,7 +40,7 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -56,9 +57,15 @@ export function ToolbarSaveAs() {
   const visualizes = useExploreVisualizes();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const id = useExploreId();
-  const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
+  const visualizeYAxes = useMemo(
+    () =>
+      dedupeArray(
+        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
+      ),
+    [visualizes]
+  );
 
   const [interval] = useChartInterval();
 
@@ -66,6 +73,8 @@ export function ToolbarSaveAs() {
     projects.length === 1
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+
+  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -94,9 +103,11 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
-  if (defined(id)) {
+  // Explicitly check for false to account for loading state
+  if (defined(id) && savedQuery?.isPrebuilt === false) {
     items.push({
       key: 'update-query',
+      textValue: t('Existing Query'),
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
@@ -118,37 +129,44 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'save-query',
     label: <span>{t('A New Query')}</span>,
+    textValue: t('A New Query'),
     onAction: () => {
+      trackAnalytics('trace_explorer.save_query_modal', {
+        action: 'open',
+        save_type: 'save_new_query',
+        ui_source: 'toolbar',
+        organization,
+      });
       openSaveQueryModal({
         organization,
         saveQuery,
+        source: 'toolbar',
       });
     },
   });
 
-  if (organization.features.includes('alerts-eap')) {
-    items.push({
-      key: 'create-alert',
-      label: t('An Alert for'),
-      children: alertsUrls ?? [],
-      disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
-    });
-  }
+  items.push({
+    key: 'create-alert',
+    label: t('An Alert for'),
+    textValue: t('An Alert for'),
+    children: alertsUrls ?? [],
+    disabled: !alertsUrls || alertsUrls.length === 0,
+    isSubmenu: true,
+  });
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
-    const chartOptions = visualizes.map((chart, index) => {
-      const dedupedYAxes = dedupeArray(chart.yAxes);
+  const chartOptions = useMemo(() => {
+    return visualizeYAxes.map((yAxis, index) => {
+      const dedupedYAxes = [yAxis];
       const formattedYAxes = dedupedYAxes.map(yaxis => {
         const func = parseFunction(yaxis);
         return func ? prettifyParsedFunction(func) : undefined;
       });
 
       return {
-        key: chart.label,
-        label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
+        key: String(index),
+        label: formattedYAxes.filter(Boolean).join(', '),
         onAction: () => {
           if (disableAddToDashboard) {
             return undefined;
@@ -163,40 +181,39 @@ export function ToolbarSaveAs() {
         },
       };
     });
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('A Dashboard widget'),
-      isSubmenu: chartOptions.length > 1 ? true : false,
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
-        >
-          {t('A Dashboard widget')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      children: chartOptions.length > 1 ? chartOptions : undefined,
-      onAction: () => {
-        if (disableAddToDashboard || chartOptions.length > 1) {
-          return undefined;
-        }
+  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
 
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'toolbar',
-          organization,
-        });
-        return addToDashboard(0);
-      },
-    });
-  }
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('A Dashboard widget'),
+    isSubmenu: chartOptions.length > 1 ? true : false,
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+      >
+        {t('A Dashboard widget')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    children: chartOptions.length > 1 ? chartOptions : undefined,
+    onAction: () => {
+      if (disableAddToDashboard || chartOptions.length > 1) {
+        return undefined;
+      }
 
-  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'toolbar',
+        organization,
+      });
+      return addToDashboard(0);
+    },
+  });
 
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined) {
+    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query
@@ -206,11 +223,14 @@ export function ToolbarSaveAs() {
     // Compares editable fields from saved query with location params to check for changes
     const hasChangesArray = [
       !valueIsEqual(query, singleQuery?.query),
-      !valueIsEqual(groupBys, singleQuery?.groupby),
+      !valueIsEqual(
+        groupBys,
+        (singleQuery?.groupby?.length ?? 0) === 0 ? [''] : singleQuery?.groupby
+      ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        visualizes.map(visualize => visualize.toJSON()),
         singleQuery?.visualize,
         true
       ),
@@ -248,7 +268,7 @@ export function ToolbarSaveAs() {
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
@@ -267,26 +287,30 @@ export function ToolbarSaveAs() {
             </SaveAsButton>
           )}
         />
-        {organization.features.includes('explore-multi-query') && (
-          <LinkButton
-            aria-label={t('Compare')}
-            onClick={() =>
-              trackAnalytics('trace_explorer.compare', {
-                organization,
-              })
-            }
-            to={generateExploreCompareRoute({
+        <LinkButton
+          aria-label={t('Compare')}
+          onClick={() =>
+            trackAnalytics('trace_explorer.compare', {
               organization,
-              mode,
-              location,
-              query,
-              yAxes: [visualizeYAxes[0]!],
-              groupBys,
-              fields,
-              sortBys,
-            })}
-          >{`${t('Compare Queries')}`}</LinkButton>
-        )}
+            })
+          }
+          to={generateExploreCompareRoute({
+            organization,
+            mode,
+            location,
+            queries: [
+              {
+                query,
+                groupBys,
+                sortBys,
+                yAxes: [visualizeYAxes[0]!],
+                chartType: visualizes[0]!.chartType,
+              },
+            ],
+          })}
+        >
+          {`${t('Compare Queries')}`}
+        </LinkButton>
       </ButtonBar>
     </StyledToolbarSection>
   );
@@ -298,7 +322,7 @@ const DisabledText = styled('span')`
 
 const StyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
 `;
 
 const SaveAsButton = styled(Button)`

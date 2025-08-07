@@ -7,8 +7,8 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -39,12 +39,16 @@ import {
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDatasetFromLocationOrDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -65,6 +69,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
@@ -144,7 +149,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -218,7 +223,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -235,7 +240,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
 };
 
 const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query || !location.query.team) {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -245,7 +250,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 
@@ -480,7 +485,9 @@ class EventView {
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
-      dataset: saved.dataset,
+      dataset:
+        saved.dataset ||
+        getDatasetFromLocationOrSavedQueryDataset(undefined, saved.queryDataset),
       multiSort: saved.multiSort,
     });
   }
@@ -785,7 +792,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<string | number>> {
+  getColumns(): Array<TableColumn<string>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1216,16 +1223,9 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
         dataset:
-          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
-            ? DiscoverDatasets.SPANS_EAP
-            : this.dataset,
-        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
+          this.dataset === DiscoverDatasets.SPANS ? DiscoverDatasets.SPANS : this.dataset,
       }
     ) as EventQuery & LocationQuery;
-
-    if (eventQuery.useRpc !== '1') {
-      delete eventQuery.useRpc;
-    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
@@ -1381,8 +1381,9 @@ class EventView {
         // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter(
           (field: Field) =>
-            isLegalYAxisType(aggregateOutputType(field.field)) ||
-            isAggregateEquation(field.field)
+            isAggregateEquation(field.field) ||
+            (isLegalYAxisType(aggregateOutputType(field.field)) &&
+              !field.field.startsWith(`${AggregationKey.ANY}(`)) // hide AggregationKey.ANY from y axis
         )
         .map((field: Field) => ({
           label: isEquation(field.field) ? getEquation(field.field) : field.field,

@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
-import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,9 +16,11 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 interface Props {
-  event: Readonly<EventTransaction>;
+  category: string | undefined;
+  group: string | undefined;
+  op: string | undefined;
   organization: Organization;
-  span: SpanType;
+  project_id: string | undefined;
 }
 
 function SpanSummaryLink(props: Props) {
@@ -28,17 +28,14 @@ function SpanSummaryLink(props: Props) {
   const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
   const queryBaseUrl = useModuleURL(ModuleName.DB);
 
-  const {event, organization, span} = props;
-
-  const sentryTags = span.sentry_tags;
-  if (!sentryTags || !sentryTags.group) {
+  if (!props.group) {
     return null;
   }
 
-  const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
+  const resolvedModule = resolveSpanModule(props.op, props.category);
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insights-initial-modules') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -46,12 +43,12 @@ function SpanSummaryLink(props: Props) {
         to={querySummaryRouteWithQuery({
           base: queryBaseUrl,
           query: location.query,
-          group: sentryTags.group,
-          projectID: event.projectID,
+          group: props.group,
+          projectID: props.project_id,
         })}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
-            organization,
+            organization: props.organization,
             module: ModuleName.DB,
           });
         }}
@@ -63,21 +60,21 @@ function SpanSummaryLink(props: Props) {
   }
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insights-initial-modules') &&
     resolvedModule === ModuleName.RESOURCE &&
-    resourceSummaryAvailable(sentryTags.op)
+    resourceSummaryAvailable(props.op)
   ) {
     return (
       <Link
         to={resourceSummaryRouteWithQuery({
           baseUrl: resourceBaseUrl,
           query: location.query,
-          group: sentryTags.group,
-          projectID: event.projectID,
+          group: props.group,
+          projectID: props.project_id,
         })}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
-            organization,
+            organization: props.organization,
             module: ModuleName.RESOURCE,
           });
         }}

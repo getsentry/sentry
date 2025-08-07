@@ -14,16 +14,19 @@ interface ReplayClipPreviewProps
     durationBeforeMs: number;
   };
   eventTimestampMs: number;
+  orgSlug: string;
   replaySlug: string;
+  overlayContent?: React.ReactNode;
 }
 
-function ReplayClipPreview({
+export default function ReplayClipPreview({
   analyticsContext,
   clipOffsets,
   eventTimestampMs,
+  fullReplayButtonProps,
   orgSlug,
   replaySlug,
-  ...props
+  overlayContent,
 }: ReplayClipPreviewProps) {
   const clipWindow = useMemo(
     () => ({
@@ -33,28 +36,27 @@ function ReplayClipPreview({
     [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
-  const replayReaderResult = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,
     eventTimestampMs,
   });
 
-  const {fetching, replay} = replayReaderResult;
+  const {status, replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext={analyticsContext}
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
     >
       <ReplayClipPreviewPlayer
-        replayReaderResult={replayReaderResult}
+        replayReaderResult={readerResult}
         analyticsContext={analyticsContext}
-        orgSlug={orgSlug}
-        {...props}
+        overlayContent={overlayContent}
+        fullReplayButtonProps={fullReplayButtonProps}
       />
     </ReplayContextProvider>
   );
 }
-export default ReplayClipPreview;

@@ -7,7 +7,6 @@ from sentry.interfaces.base import Interface
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
@@ -28,22 +27,18 @@ def test_conf_key() -> None:
     assert VictorOpsPlugin().conf_key == "victorops"
 
 
-def test_entry_point() -> None:
-    assert_plugin_installed("victorops", VictorOpsPlugin())
-
-
 class VictorOpsPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return VictorOpsPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("api_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(
             "POST",
             "https://alert.victorops.com/integrations/generic/20131114/alert/secret-api-key/everyone",
@@ -94,7 +89,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "project_id": group.project.id,
         } == payload
 
-    def test_build_description_unicode(self):
+    def test_build_description_unicode(self) -> None:
         event = self.store_event(
             data={"message": "abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
             project_id=self.project.id,

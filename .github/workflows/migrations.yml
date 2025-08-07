@@ -37,9 +37,6 @@ jobs:
     name: Generate SQL
     runs-on: ubuntu-24.04
     timeout-minutes: 8
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
@@ -72,7 +69,7 @@ jobs:
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
-        uses: getsentry/action-migrations@4d8ed0388dfc0774302bbfd5204e518f9ac4f066 # main
+        uses: getsentry/action-migrations@9f4400077fa0d5216d2f251d3228380e5a774d7d # v1.3.0
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:

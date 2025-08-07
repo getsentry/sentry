@@ -17,6 +17,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.release import Release
@@ -24,7 +25,6 @@ from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -94,8 +94,11 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 source = ArtifactSource(dist, files, query, checksums)
                 data_sources.append(source)
 
-        def on_results(r):
-            return serialize(load_dist(r), request.user)
+        def on_results(release_files: list[ReleaseFile]):
+            # this should filter out all the "pseudo-ReleaseFile"s
+            maybe_renew_releasefiles([rf for rf in release_files if rf.id])
+
+            return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,
         # (i.e. per index file), but not overall
@@ -125,21 +128,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 {"detail": "File name must not contain special whitespace characters"}, status=400
             )
 
-        dist_name = request.data.get("dist")
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
-
-        # Quickly check for the presence of this file before continuing with
-        # the costly file upload process.
-        if ReleaseFile.objects.filter(
-            organization_id=release.organization_id,
-            release_id=release.id,
-            name=full_name,
-            dist_id=dist.id if dist else dist,
-        ).exists():
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
-
         headers = {"Content-Type": fileobj.content_type}
         for headerval in request.data.getlist("header") or ():
             try:
@@ -153,6 +141,22 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                         status=400,
                     )
                 headers[k] = v.strip()
+
+        dist_name = request.data.get("dist")
+
+        dist = None
+        if dist_name:
+            dist = release.add_dist(dist_name)
+
+        # Quickly check for the presence of this file before continuing with
+        # the costly file upload process.
+        if ReleaseFile.objects.filter(
+            organization_id=release.organization_id,
+            release_id=release.id,
+            name=full_name,
+            dist_id=dist.id if dist else dist,
+        ).exists():
+            return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         file = File.objects.create(name=name, type="release.file", headers=headers)
         file.putfile(fileobj, logger=logger)
@@ -169,7 +173,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                     dist_id=dist.id if dist else dist,
                 )
         except IntegrityError:
-            incr_rollback_metrics(ReleaseFile)
             file.delete()
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
@@ -202,7 +205,7 @@ class ArtifactSource:
 
         return files
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sorted_and_filtered_files)
 
     def __getitem__(self, range):

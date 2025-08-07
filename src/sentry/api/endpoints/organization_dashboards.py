@@ -1,12 +1,25 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import features, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -30,10 +43,9 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MAX_RETRIES = 2
 
@@ -76,7 +88,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
@@ -93,25 +105,33 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARDS_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            filter_by = request.query_params.get("filter")
-            if filter_by == "onlyFavorites":
-                dashboards = Dashboard.objects.filter(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            elif filter_by == "excludeFavorites":
-                dashboards = Dashboard.objects.exclude(
-                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
-                )
-            else:
-                dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        filter_by = request.query_params.get("filter")
+        if filter_by == "onlyFavorites":
+            dashboards = Dashboard.objects.filter(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
+        elif filter_by == "excludeFavorites":
+            dashboards = Dashboard.objects.exclude(
+                organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+            )
+        elif filter_by == "owned":
+            dashboards = Dashboard.objects.filter(
+                created_by_id=request.user.id, organization_id=organization.id
+            )
+        elif filter_by == "shared":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                created_by_id=request.user.id
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -126,7 +146,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
-        order_by: list[Case | str]
+        order_by: list[Case | str | OrderBy]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -143,46 +163,55 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
-
-        elif sort_by == "mydashboards":
             if features.has(
-                "organizations:dashboards-table-view", organization, actor=request.user
+                "organizations:dashboards-starred-reordering", organization, actor=request.user
             ):
-                user_name_dict = {
-                    user.id: user.name
-                    for user in user_service.get_many_by_id(
-                        ids=list(dashboards.values_list("created_by_id", flat=True))
-                    )
-                }
                 dashboards = dashboards.annotate(
-                    user_name=Case(
-                        *[
-                            When(created_by_id=user_id, then=Value(user_name))
-                            for user_id, user_name in user_name_dict.items()
-                        ],
-                        default=Value(""),
-                        output_field=CharField(),
+                    user_last_visited=Subquery(
+                        DashboardLastVisited.objects.filter(
+                            dashboard=OuterRef("pk"),
+                            member__user_id=request.user.id,
+                            member__organization=organization,
+                        ).values("last_visited")
                     )
                 )
                 order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default=1,
-                        output_field=IntegerField(),
+                    (
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
                     ),
-                    "-user_name" if desc else "user_name",
                     "-date_added",
                 ]
             else:
-                order_by = [
-                    Case(
-                        When(created_by_id=request.user.id, then=-1),
-                        default="created_by_id",
-                        output_field=IntegerField(),
-                    ),
-                    "-date_added",
-                ]
+                order_by = ["last_visited" if desc else "-last_visited"]
+
+        elif sort_by == "mydashboards":
+            user_name_dict = {
+                user.id: user.name
+                for user in user_service.get_many_by_id(
+                    ids=list(dashboards.values_list("created_by_id", flat=True))
+                )
+            }
+            dashboards = dashboards.annotate(
+                user_name=Case(
+                    *[
+                        When(created_by_id=user_id, then=Value(user_name))
+                        for user_id, user_name in user_name_dict.items()
+                    ],
+                    default=Value(""),
+                    output_field=CharField(),
+                )
+            )
+            order_by = [
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                ),
+                "-user_name" if desc else "user_name",
+                "-date_added",
+            ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             order_by = [
@@ -190,26 +219,34 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "-last_visited",
             ]
 
+        elif sort_by == "mostFavorited" and features.has(
+            "organizations:dashboards-starred-reordering", organization, actor=request.user
+        ):
+            dashboards = dashboards.annotate(
+                favorites_count=Count("dashboardfavoriteuser", distinct=True)
+            )
+            order_by = [
+                "favorites_count" if desc else "-favorites_count",
+                "-date_added",
+            ]
+
         else:
             order_by = ["title"]
 
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            pin_by = request.query_params.get("pin")
-            if pin_by == "favorites":
-                favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                    dashboard=OuterRef("pk"), user_id=request.user.id
-                )
+        pin_by = request.query_params.get("pin")
+        if pin_by == "favorites":
+            favorited_by_subquery = DashboardFavoriteUser.objects.filter(
+                dashboard=OuterRef("pk"), user_id=request.user.id
+            )
 
-                order_by_favorites = [
-                    Case(
-                        When(Exists(favorited_by_subquery), then=-1),
-                        default=1,
-                        output_field=IntegerField(),
-                    )
-                ]
-                dashboards = dashboards.order_by(*order_by_favorites, *order_by)
-            else:
-                dashboards = dashboards.order_by(*order_by)
+            order_by_favorites = [
+                Case(
+                    When(Exists(favorited_by_subquery), then=-1),
+                    default=1,
+                    output_field=IntegerField(),
+                )
+            ]
+            dashboards = dashboards.order_by(*order_by_favorites, *order_by)
         else:
             dashboards = dashboards.order_by(*order_by)
 
@@ -230,13 +267,24 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 else:
                     dashboards.append(item)
 
-            serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
+            serialized.extend(
+                serialize(
+                    dashboards,
+                    request.user,
+                    serializer=list_serializer,
+                    context={"organization": organization},
+                )
+            )
             return serialized
 
         render_pre_built_dashboard = True
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
-                render_pre_built_dashboard = False
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned"}
+            or pin_by
+            and pin_by == "favorites"
+        ):
+            render_pre_built_dashboard = False
 
         return self.paginate(
             request=request,
@@ -262,8 +310,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Create a new dashboard for the given Organization
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
+
+        if features.has("organizations:dashboards-plan-limits", organization, actor=request.user):
+            dashboard_count = Dashboard.objects.filter(organization=organization).count()
+            dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+
+            if dashboard_limit >= 0 and dashboard_count >= dashboard_limit:
+                return Response(
+                    f"You may not exceed {dashboard_limit} dashboards on your current plan.",
+                    status=400,
+                )
 
         serializer = DashboardSerializer(
             data=request.data,
@@ -281,9 +342,24 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
+
+                if features.has(
+                    "organizations:dashboards-starred-reordering",
+                    organization,
+                    actor=request.user,
+                ):
+                    if serializer.validated_data.get("is_favorited"):
+                        try:
+                            DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                                organization=organization,
+                                user_id=request.user.id,
+                                dashboard=dashboard,
+                            )
+                        except Exception as e:
+                            sentry_sdk.capture_exception(e)
+
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            incr_rollback_metrics(Dashboard)
             duplicate = request.data.get("duplicate", False)
 
             if not duplicate or retry >= MAX_RETRIES:

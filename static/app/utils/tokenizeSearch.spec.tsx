@@ -194,6 +194,15 @@ describe('utils/tokenizeSearch', function () {
           ],
         },
       },
+      {
+        name: 'should handle explicit tags keys containing colons when quoted',
+        string: 'tags["foo:bar",string]:asdf',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags["foo:bar",string]', value: 'asdf'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -518,6 +527,58 @@ describe('utils/tokenizeSearch', function () {
         name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
         object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
         string: 'transaction:["this has a space",thisdoesnot]',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[filtered]"']),
+        string: 'message:"[filtered]"',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[Filtered]"']),
+        string: 'message:"[Filtered]"',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[Test]']),
+        string: 'message:[Test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test]']),
+        string: 'message:[test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test,[test2]]']),
+        string: 'message:[test,[test2]]',
+      },
+      {
+        name: 'should preserve brackets within quoted strings when flattening',
+        object: new MutableSearch(['message:["[test]",test,[test2]]']),
+        string: 'message:["[test]",test,[test2]]',
+      },
+      {
+        name: 'should correctly handle nested brackets with quoted brackets inside',
+        object: new MutableSearch(['message:[test,"[nested]",other]']),
+        string: 'message:[test,"[nested]",other]',
+      },
+      {
+        name: 'should handle escaped quotes in array syntax correctly',
+        object: new MutableSearch(['message:["value with \\" escaped quote",other]']),
+        string: 'message:["value with \\" escaped quote",other]',
+      },
+      {
+        name: 'should handle complex escape sequences in array syntax correctly',
+        object: new MutableSearch([
+          'message:["value with \\\\\\" complex escape",other]',
+        ]),
+        string: 'message:["value with \\\\\\" complex escape",other]',
+      },
+      {
+        name: 'should leave escaped brackets as is',
+        object: new MutableSearch(['message:"[test, "[Filtered]"]"']),
+        string: 'message:"[test, "[Filtered]"]"',
       },
     ];
 

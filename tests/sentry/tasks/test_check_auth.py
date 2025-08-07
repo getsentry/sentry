@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -22,7 +22,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 @control_silo_test
 class CheckAuthTest(TestCase):
     @patch("sentry.tasks.auth.check_auth.check_auth_identities")
-    def test_simple(self, mock_check_auth_identities):
+    def test_simple(self, mock_check_auth_identities: MagicMock) -> None:
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
         auth_provider = AuthProvider.objects.create(
@@ -46,7 +46,7 @@ class CheckAuthTest(TestCase):
             expires=AUTH_CHECK_INTERVAL - AUTH_CHECK_SKEW,
         )
 
-    def test_processes_recursively(self):
+    def test_processes_recursively(self) -> None:
         organization = self.create_organization(name="Test")
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
@@ -82,7 +82,7 @@ class CheckAuthTest(TestCase):
 @control_silo_test
 class CheckAuthIdentityTest(TestCase):
     @patch("sentry.tasks.auth.check_auth.check_auth_identity")
-    def test_simple(self, mock_check_auth_identity):
+    def test_simple(self, mock_check_auth_identity: MagicMock) -> None:
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
         auth_provider = AuthProvider.objects.create(
@@ -111,7 +111,7 @@ class CheckAuthIdentityTest(TestCase):
         assert updated_ai.last_synced != ai.last_synced
         assert updated_ai.last_verified != ai.last_verified
 
-    def test_skips_provider_that_does_not_require_refresh(self):
+    def test_skips_provider_that_does_not_require_refresh(self) -> None:
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
         auth_provider = AuthProvider.objects.create(

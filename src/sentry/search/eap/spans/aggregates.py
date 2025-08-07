@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
@@ -51,16 +52,30 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
 def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
-    value = cast(str, args[2])
+    operator = cast(str, args[2])
+    value = cast(str, args[3])
+    attr_value = AttributeValue(val_str=value)
 
-    filter = TraceItemFilter(
+    if key.type == AttributeKey.TYPE_BOOLEAN:
+        lower_value = value.lower()
+        if lower_value not in ["true", "false"]:
+            raise InvalidSearchQuery(
+                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
+            )
+        attr_value = AttributeValue(val_bool=value == "true")
+
+    trace_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,
-            op=ComparisonFilter.OP_EQUALS,
-            value=AttributeValue(val_str=value),
+            op=(
+                ComparisonFilter.OP_EQUALS
+                if operator == "equals"
+                else ComparisonFilter.OP_NOT_EQUALS
+            ),
+            value=attr_value,
         )
     )
-    return (aggregate_key, filter)
+    return (aggregate_key, trace_filter)
 
 
 def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -147,6 +162,30 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         arguments=[ValueArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
     ),
+    "count_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="span.self_time",
+                field_allowlist={"is_transaction"},
+            ),
+            AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
     "avg_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
@@ -161,6 +200,142 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p50_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P50,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p75_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P75,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p90_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P90,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p95_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P95,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p99_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P99,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "sum_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_SUM,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -234,6 +409,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -250,6 +426,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "integer",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -265,6 +442,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
@@ -284,6 +462,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -301,6 +481,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -317,6 +498,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -332,6 +515,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -348,6 +532,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -363,6 +549,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -378,6 +566,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -393,6 +583,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -408,6 +600,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -423,6 +617,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
@@ -439,6 +634,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
@@ -458,23 +654,6 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
-    "performance_score": AggregateDefinition(
-        internal_function=Function.FUNCTION_AVG,
-        default_search_type="integer",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-            ),
-        ],
-        attribute_resolver=transform_vital_score_to_ratio,
-    ),
 }
 
 LOG_AGGREGATE_DEFINITIONS = {
@@ -482,7 +661,7 @@ LOG_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         processor=count_processor,
-        default_search_type="string",
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -491,6 +670,17 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "integer",
                 },
                 default_arg="log.body",
+            )
+        ],
+    ),
+    "count_unique": AggregateDefinition(
+        internal_function=Function.FUNCTION_UNIQ,
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
+        processor=count_processor,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
             )
         ],
     ),
@@ -534,6 +724,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -549,6 +740,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -564,6 +756,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -579,6 +772,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -594,6 +788,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },

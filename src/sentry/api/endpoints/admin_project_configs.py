@@ -80,6 +80,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
             for key, config in generated_configs.items():
                 configs[key] = config
+            projectconfig_cache.backend.set_many(configs)
 
         return Response({"configs": configs}, status=200)
 

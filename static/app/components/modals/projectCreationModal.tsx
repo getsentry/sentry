@@ -10,14 +10,18 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalRenderProps,
+  openConsoleModal,
+  openProjectCreationModal,
+} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {
   type Category,
   type Platform,
 } from 'sentry/components/platformPicker';
+import type {TeamOption} from 'sentry/components/teamSelector';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -25,11 +29,14 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueAlertFragment} from 'sentry/views/projectInstall/createProject';
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  getRequestDataFragment,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
   defaultCategory?: Category;
@@ -42,35 +49,51 @@ export default function ProjectCreationModal({
 }: Props) {
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
-  const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
-    undefined
-  );
   const [projectName, setProjectName] = useState('');
-  const [team, setTeam] = useState<Team | undefined>(undefined);
+  const [team, setTeam] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState(false);
+  const [alertForm, setAlertForm] = useState<Partial<AlertRuleOptions>>();
+
   const api = useApi();
   const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
-    if (selectedPlatform) {
-      setPlatform({
-        ...omit(selectedPlatform, 'id'),
-        key: selectedPlatform.id,
-      });
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
     }
+
+    if (
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
+        organization,
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
+      });
+      return;
+    }
+
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
   }
 
   const createProject = useCallback(async () => {
     const {slug} = organization;
-    const {
-      shouldCreateCustomRule,
-      name,
-      conditions,
-      actions,
-      actionMatch,
-      frequency,
-      defaultRules,
-    } = alertRuleConfig || {};
+
+    const alertRuleConfig = getRequestDataFragment(alertForm);
 
     if (platform === undefined) {
       return;
@@ -87,23 +110,23 @@ export default function ProjectCreationModal({
         data: {
           name: projectName,
           platform: platform.key,
-          default_rules: defaultRules ?? true,
+          default_rules: alertRuleConfig.defaultRules ?? true,
           origin: 'ui',
         },
       });
 
       let ruleId: string | undefined;
-      if (shouldCreateCustomRule) {
+      if (alertRuleConfig.shouldCreateCustomRule) {
         const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
             data: {
-              name,
-              conditions,
-              actions,
-              actionMatch,
-              frequency,
+              name: alertRuleConfig.name,
+              conditions: alertRuleConfig.conditions,
+              actions: alertRuleConfig.actions,
+              actionMatch: alertRuleConfig.actionMatch,
+              frequency: alertRuleConfig.frequency,
             },
           }
         );
@@ -114,9 +137,9 @@ export default function ProjectCreationModal({
       clearIndicators();
       trackAnalytics('project_modal.created', {
         organization,
-        issue_alert: defaultRules
+        issue_alert: alertRuleConfig.defaultRules
           ? 'Default'
-          : shouldCreateCustomRule
+          : alertRuleConfig.shouldCreateCustomRule
             ? 'Custom'
             : 'No Rule',
         project_id: projectData.id,
@@ -129,7 +152,7 @@ export default function ProjectCreationModal({
       setCreating(false);
       addErrorMessage(`Failed to create project ${projectName}`);
     }
-  }, [api, alertRuleConfig, organization, platform, projectName, team, closeModal]);
+  }, [api, organization, platform, projectName, team, closeModal, alertForm]);
 
   return (
     <Fragment>
@@ -138,15 +161,12 @@ export default function ProjectCreationModal({
       </Header>
       {step === 0 && (
         <Fragment>
-          <Subtitle>Choose a Platform</Subtitle>
+          <Subtitle>{t('Choose a Platform')}</Subtitle>
           <PlatformPicker
-            defaultCategory={defaultCategory}
+            defaultCategory={platform?.category ?? defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}
-            showFilterBar={false}
-            navClassName="centered"
-            listClassName="centered"
           />
         </Fragment>
       )}
@@ -154,8 +174,16 @@ export default function ProjectCreationModal({
         <Fragment>
           <Subtitle>{t('Set your alert frequency')}</Subtitle>
           <IssueAlertOptions
-            platformLanguage={platform?.language as SupportedLanguages}
-            onChange={updatedData => setAlertRuleConfig(updatedData)}
+            alertSetting={alertForm?.alertSetting}
+            interval={alertForm?.interval}
+            metric={alertForm?.metric}
+            threshold={alertForm?.threshold}
+            onFieldChange={(field, value) => {
+              setAlertForm(prev => ({
+                ...prev,
+                [field]: value,
+              }));
+            }}
           />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
           <ProjectNameTeamSection>
@@ -183,7 +211,7 @@ export default function ProjectCreationModal({
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}
-                onChange={(choice: any) => setTeam(choice.value)}
+                onChange={(choice: TeamOption) => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>
@@ -208,7 +236,7 @@ export default function ProjectCreationModal({
               setCreating(true);
               createProject();
             }}
-            disabled={!projectName || !team || !alertRuleConfig || !platform || creating}
+            disabled={!projectName || !team || !platform || creating}
           >
             {t('Create Project')}
           </Button>
@@ -252,7 +280,7 @@ const ProjectNameTeamSection = styled('div')`
 `;
 
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
 `;
 
@@ -262,6 +290,6 @@ const TeamInput = styled(TeamSelector)`
 
 const Subtitle = styled('p')`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

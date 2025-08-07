@@ -25,7 +25,7 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
-        transaction = sentry_sdk.Scope.get_current_scope().transaction
+        transaction = sentry_sdk.get_current_scope().transaction
         if transaction is not None:
             transaction.set_tag("http.status_code", status_code)
         super().__init__({"schemas": [SCIM_API_ERROR], "detail": detail})
@@ -84,7 +84,7 @@ class SCIMQueryParamSerializer(serializers.Serializer):
     excludedAttributes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        default=[],
+        default=list,
         source="excluded_attributes",
         help_text="Fields that should be left off of return values. Right now the only supported field for this query is members.",
     )

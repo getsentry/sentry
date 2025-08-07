@@ -39,8 +39,8 @@ const numericStyle = (
         ? css`
             width: 24px;
             height: 24px;
-            font-weight: ${theme.fontWeightNormal};
-            font-size: ${theme.fontSizeSmall};
+            font-weight: ${theme.fontWeight.normal};
+            font-size: ${theme.fontSize.sm};
             background-color: ${isChonkTheme(theme)
               ? theme.colors.chonk.yellow400
               : theme.yellow300};
@@ -50,7 +50,7 @@ const numericStyle = (
             top: 3px;
             width: 18px;
             height: 18px;
-            font-weight: ${theme.fontWeightBold};
+            font-weight: ${theme.fontWeight.bold};
             font-size: 10px;
             border: 1px solid ${theme.border};
           `}

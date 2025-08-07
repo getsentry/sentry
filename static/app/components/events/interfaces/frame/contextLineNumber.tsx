@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types/integrations';
@@ -48,7 +48,7 @@ const Wrapper = styled('div')`
   width: 58px;
   display: inline-block;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${space(1)};
 
   .line-number {

@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
-import {LinkButton} from 'sentry/components/core/button';
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -109,7 +109,7 @@ type Props = {
     isPending: boolean;
     pageEventsCount: number;
     pageLinks: string | null;
-    totalEventsCount: ReactNode;
+    totalEventsCount: string | number;
   }) => ReactNode;
 };
 
@@ -201,7 +201,7 @@ function EventsTable({
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableData || !tableData.meta) {
+      if (!tableData?.meta) {
         return dataRow[column.key];
       }
       const tableMeta = tableData.meta;
@@ -220,6 +220,7 @@ function EventsTable({
         Actions.EXCLUDE,
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
+        Actions.OPEN_EXTERNAL_LINK,
       ];
 
       if (['attachments', 'minidump'].includes(field)) {
@@ -241,12 +242,10 @@ function EventsTable({
           if (field === 'id') {
             target = generateLinkToEventInTraceView({
               traceSlug: dataRow.trace?.toString()!,
-              projectSlug: dataRow['project.name']?.toString()!,
               eventId: dataRow.id,
               timestamp: dataRow.timestamp!,
               location: locationWithTab,
               organization,
-              transactionName,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
               view: domainViewFilters?.view,
             });

@@ -43,7 +43,9 @@ describe('EventOrGroupHeader', function () {
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        deprecatedRouterMocks: true,
+      });
     });
 
     it('renders with `type = csp`', function () {
@@ -54,7 +56,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -70,7 +75,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -82,7 +90,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -95,7 +106,9 @@ describe('EventOrGroupHeader', function () {
         body: group,
       });
 
-      render(<EventOrGroupHeader data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        deprecatedRouterMocks: true,
+      });
 
       const groupLink = screen.getByRole('link');
 
@@ -118,7 +131,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           })}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -130,7 +146,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -146,7 +165,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -162,7 +184,10 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -185,6 +210,8 @@ describe('EventOrGroupHeader', function () {
               },
             },
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -210,6 +237,8 @@ describe('EventOrGroupHeader', function () {
               query: {},
             },
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -238,9 +267,13 @@ describe('EventOrGroupHeader', function () {
           },
           actor: UserFixture(),
           isTombstone: true,
+          dateAdded: '2025-06-25T00:00:00Z',
         }}
         {...router}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();

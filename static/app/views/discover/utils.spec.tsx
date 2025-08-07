@@ -7,7 +7,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
@@ -928,7 +928,7 @@ describe('constructAddQueryToDashboardLink', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
       location = LocationFixture();
     });
@@ -1036,7 +1036,7 @@ describe('handleAddQueryToDashboard', function () {
   let router: InjectedRouter;
   let mockedOpenAddToDashboardModal: jest.Mock;
   beforeEach(() => {
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
     location = LocationFixture();
     router = RouterFixture();
     mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
@@ -1065,7 +1065,7 @@ describe('handleAddQueryToDashboard', function () {
           queries: [
             {
               name: '',
-              fields: ['count()'],
+              fields: [],
               aggregates: ['count()'],
               columns: [],
               orderby: '',
@@ -1106,7 +1106,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()'],
               columns: ['transaction'],
-              fields: ['transaction', 'count()'],
+              fields: ['transaction'],
               orderby: '',
               conditions: '',
             },
@@ -1144,7 +1144,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()', 'count_unique(user)'],
               columns: [],
-              fields: ['count()', 'count_unique(user)'],
+              fields: [],
               orderby: '',
               conditions: '',
             },
@@ -1160,7 +1160,7 @@ describe('handleAddQueryToDashboard', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
     });
 
@@ -1198,9 +1198,7 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          widgetAsQueryParams: expect.objectContaining({
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
+          source: DashboardWidgetSource.DISCOVERV2,
         })
       );
     });
@@ -1240,9 +1238,7 @@ describe('handleAddQueryToDashboard', function () {
             limit: 5,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          widgetAsQueryParams: expect.objectContaining({
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
+          source: DashboardWidgetSource.DISCOVERV2,
         })
       );
     });
@@ -1281,9 +1277,7 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          widgetAsQueryParams: expect.objectContaining({
-            source: DashboardWidgetSource.DISCOVERV2,
-          }),
+          source: DashboardWidgetSource.DISCOVERV2,
         })
       );
     });

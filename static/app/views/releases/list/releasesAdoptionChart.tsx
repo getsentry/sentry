@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import compact from 'lodash/compact';
@@ -122,6 +123,11 @@ class ReleasesAdoptionChart extends Component<Props> {
     const {organization, router, selection, location} = this.props;
 
     const project = selection.projects[0];
+
+    if (!params.seriesId) {
+      Sentry.logger.warn('Releases: Adoption Chart clicked with no seriesId');
+      return;
+    }
 
     router.push(
       normalizeUrl({

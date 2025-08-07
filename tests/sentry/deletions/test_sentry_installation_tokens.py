@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestSentryInstallationTokenDeletionTask(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.create_project(organization=self.org)
@@ -20,7 +20,7 @@ class TestSentryInstallationTokenDeletionTask(TestCase):
             install=self.sentry_app_installation, user=self.user
         )
 
-    def test_delete_token_without_audit(self):
+    def test_delete_token_without_audit(self) -> None:
         deletions.exec_sync(SentryAppInstallationToken.objects.get(api_token=self.api_token))
 
         assert not ApiToken.objects.filter(id=self.api_token.id).exists()

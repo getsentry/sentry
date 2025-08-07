@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
+from sentry.integrations.analytics import (
+    IntegrationAddedEvent,
+    IntegrationIssueCreatedEvent,
+    IntegrationIssueLinkedEvent,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.group import Group
@@ -51,6 +58,8 @@ from sentry.signals import (
 )
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
+
+UNKNOWN_DEFAULT_USER_ID = "unknown"
 
 DEFAULT_TAGS = frozenset(
     [
@@ -196,7 +205,7 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
     analytics.record(
         "issue.assigned",
         user_id=user_id,
@@ -227,19 +236,23 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
-    analytics.record(
-        "issue.resolved",
-        user_id=user_id,
-        project_id=project.id,
-        default_user_id=default_user_id,
-        organization_id=organization_id,
-        group_id=group.id,
-        resolution_type=resolution_type,
-        issue_type=group.issue_type.slug,
-        issue_category=group.issue_category.name.lower(),
-    )
+    try:
+        analytics.record(
+            IssueResolvedEvent(
+                user_id=user_id,
+                project_id=project.id,
+                default_user_id=default_user_id,
+                organization_id=organization_id,
+                group_id=group.id,
+                resolution_type=resolution_type,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @issue_unresolved.connect(weak=False)
@@ -248,7 +261,7 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
         "issue.unresolved",
@@ -641,12 +654,13 @@ def record_integration_added(
         default_user_id = organization.get_default_owner().id
 
     analytics.record(
-        "integration.added",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationAddedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
     metrics.incr(
         "integration.added",
@@ -663,12 +677,13 @@ def record_integration_issue_created(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        "integration.issue.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationIssueCreatedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
 
 
@@ -680,12 +695,13 @@ def record_integration_issue_linked(integration, organization, user, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
     analytics.record(
-        "integration.issue.linked",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
-        provider=integration.provider,
-        id=integration.id,
+        IntegrationIssueLinkedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+            provider=integration.provider,
+            id=integration.id,
+        )
     )
 
 

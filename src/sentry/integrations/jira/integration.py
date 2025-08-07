@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
@@ -23,10 +24,17 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.integrations.jira.tasks import migrate_issues
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.mixins.issues import (
+    MAX_CHAR,
+    IntegrationSyncTargetNotFound,
+    IssueSyncIntegration,
+    ResolveSyncAction,
+)
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -35,6 +43,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
@@ -42,6 +51,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
@@ -63,7 +73,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from a Sentry bug to tracked ticket.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -162,6 +172,7 @@ class JiraIntegration(IssueSyncIntegration):
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_projects=False, include_teams=False
         )
+        assert context, "organizationcontext must exist to get org"
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -180,17 +191,11 @@ class JiraIntegration(IssueSyncIntegration):
         """
         Set the status choices in the provided organization config.
         This will mutate the provided config object and replace the existing
-        mappedSelectors field with the status choices.
-
-        Optionally, if the organization has the feature flag
-        organizations:jira-per-project-statuses enabled, we will set the status
-        choices per-project for the organization.
+        mappedSelectors field with the status choices. We will set the status choices per-project for the organization=
         """
         client = self.get_client()
 
-        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES and features.has(
-            "organizations:jira-per-project-statuses", self.organization
-        ):
+        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES:
             # If we have less projects than the max query limit, and the feature
             # flag is enabled for the organization, we can query the statuses
             # for each project. This ensures we don't display statuses that are
@@ -366,7 +371,7 @@ class JiraIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def _filter_active_projects(self, project_mappings: Sequence[IntegrationExternalProject]):
+    def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
         project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
 
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
@@ -378,8 +383,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         sync_status_forward = {}
 
-        if features.has("organizations:jira-per-project-statuses", self.organization):
-            project_mappings = self._filter_active_projects(project_mappings)
+        project_mappings = self._filter_active_projects(project_mappings)
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
@@ -403,16 +407,19 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        self.model.name = server_info["serverTitle"]
+        metadata = self.model.metadata.copy()
+        name = server_info["serverTitle"]
 
         # There is no Jira instance icon (there is a favicon, but it doesn't seem
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
             avatar = projects[0]["avatarUrls"]["48x48"]
-            self.model.metadata.update({"icon": avatar})
+            metadata.update({"icon": avatar})
 
-        self.model.save()
+        integration_service.update_integration(
+            integration_id=self.model.id, name=name, metadata=metadata
+        )
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super().get_link_issue_config(group, **kwargs)
@@ -528,7 +535,9 @@ class JiraIntegration(IssueSyncIntegration):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = user_service.get_user(user_id=user_id)
-        attribution = f"{user.name} wrote:\n\n"
+        username = "Unknown User" if user is None else user.name
+
+        attribution = f"{username} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
@@ -639,14 +648,7 @@ class JiraIntegration(IssueSyncIntegration):
             or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
-            organization = (
-                group.organization
-                if group
-                else organization_service.get_organization_by_id(
-                    id=self.organization_id, include_projects=False, include_teams=False
-                ).organization
-            )
-            fkwargs["url"] = self.search_url(organization.slug)
+            fkwargs["url"] = self.search_url(self.organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
             # TODO: Implement timetracking (currently unsupported altogether)
@@ -761,7 +763,7 @@ class JiraIntegration(IssueSyncIntegration):
         return meta
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -789,7 +791,13 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = client.get_projects_list()
+            jira_projects = (
+                client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
+                if features.has(
+                    "organizations:jira-paginated-projects", self.organization, actor=user
+                )
+                else client.get_projects_list()
+            )
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -822,15 +830,23 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
+        projects_form_field = {
+            "name": "project",
+            "label": "Jira Project",
+            "choices": [(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
+            "default": meta["id"],
+            "type": "select",
+            "updatesForm": True,
+            "required": True,
+        }
+        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
+            paginated_projects_url = reverse(
+                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+            )
+            projects_form_field["url"] = paginated_projects_url
+
         fields = [
-            {
-                "name": "project",
-                "label": "Jira Project",
-                "choices": [(p["id"], p["key"]) for p in jira_projects],
-                "default": meta["id"],
-                "type": "select",
-                "updatesForm": True,
-            },
+            projects_form_field,
             *fields,
             {
                 "name": "issuetype",
@@ -989,17 +1005,31 @@ class JiraIntegration(IssueSyncIntegration):
                     extra={
                         "integration_id": external_issue.integration_id,
                         "user_id": user.id,
+                        "user_emails": user.emails,
                         "issue_key": external_issue.key,
+                        "organization_id": external_issue.organization_id,
                     },
                 )
-                return
+                if not user.emails:
+                    raise IntegrationSyncTargetNotFound(
+                        {
+                            "email": "User must have a verified email on Sentry to sync assignee in Jira",
+                            "help": "https://sentry.io/settings/account/emails",
+                        }
+                    )
+                raise IntegrationSyncTargetNotFound("No matching Jira user found.")
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except (ApiUnauthorized, ApiError):
+        except ApiUnauthorized as e:
+            raise IntegrationInstallationConfigurationError(
+                "Insufficient permissions to assign user to the Jira issue."
+            ) from e
+        except ApiError as e:
             # TODO(jess): do we want to email people about these types of failures?
             logger.info(
                 "jira.failed-to-assign",
+                exc_info=e,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
@@ -1007,6 +1037,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "issue_key": external_issue.key,
                 },
             )
+            raise IntegrationError("There was an error assigning the issue.") from e
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -1052,7 +1083,10 @@ class JiraIntegration(IssueSyncIntegration):
             logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
-        client.transition_issue(external_issue.key, transition["id"])
+        try:
+            client.transition_issue(external_issue.key, transition["id"])
+        except ApiInvalidRequestError as e:
+            self.raise_error(e)
 
     def _get_done_statuses(self):
         client = self.get_client()
@@ -1087,7 +1121,7 @@ class JiraIntegration(IssueSyncIntegration):
 
 
 class JiraIntegrationProvider(IntegrationProvider):
-    key = "jira"
+    key = IntegrationProviderSlug.JIRA.value
     name = "Jira"
     metadata = metadata
     integration_cls = JiraIntegration
@@ -1107,7 +1141,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return []
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -1116,9 +1150,9 @@ class JiraIntegrationProvider(IntegrationProvider):
         # yet, we can't make API calls for more details like the server name or
         # Icon.
         # two ways build_integration can be called
-        if state.get("jira"):
-            metadata = state["jira"]["metadata"]
-            external_id = state["jira"]["external_id"]
+        if state.get(IntegrationProviderSlug.JIRA.value):
+            metadata = state[IntegrationProviderSlug.JIRA.value]["metadata"]
+            external_id = state[IntegrationProviderSlug.JIRA.value]["external_id"]
         else:
             external_id = state["clientKey"]
             metadata = {
@@ -1131,7 +1165,7 @@ class JiraIntegrationProvider(IntegrationProvider):
             }
         return {
             "external_id": external_id,
-            "provider": "jira",
+            "provider": IntegrationProviderSlug.JIRA.value,
             "name": "JIRA",
             "metadata": metadata,
         }

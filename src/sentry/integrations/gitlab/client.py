@@ -9,7 +9,6 @@ from django.urls import reverse
 from requests import PreparedRequest
 
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.source_code_management.commit_context import (
@@ -18,6 +17,8 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -75,7 +76,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
-        self.integration_name = "gitlab"
+        self.integration_name = IntegrationProviderSlug.GITLAB
 
         super().__init__(
             integration_id=installation.model.id,
@@ -87,7 +88,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
     def identity(self) -> RpcIdentity:
         if self.refreshed_identity:
             return self.refreshed_identity
-        return self.installation.get_default_identity()
+        return self.installation.default_identity
 
     @property
     def metadata(self):
@@ -232,7 +233,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
         return self.post(
-            GitLabApiClientPath.create_note.format(project=repo, issue_id=issue_id), data=data
+            GitLabApiClientPath.create_issue_note.format(project=repo, issue_id=issue_id), data=data
         )
 
     def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
@@ -241,11 +242,29 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
         """
         return self.put(
-            GitLabApiClientPath.update_note.format(
+            GitLabApiClientPath.update_issue_note.format(
                 project=repo, issue_id=issue_id, note_id=comment_id
             ),
             data=data,
         )
+
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.create_pr_note.format(project=project_id, pr_key=pr.key)
+        return self.post(url, data=data)
+
+    def update_pr_comment(
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
+    ) -> Any:
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.update_pr_note.format(
+            project=project_id, pr_key=pr.key, note_id=pr_comment.external_id
+        )
+        return self.put(url, data=data)
 
     def search_project_issues(self, project_id, query, iids=None):
         """Search issues in a project
@@ -310,7 +329,26 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
-        raise IntegrationFeatureNotImplementedError
+        """
+        Get the merge commit sha from a commit sha
+        See https://docs.gitlab.com/api/commits/#list-merge-requests-associated-with-a-commit
+        """
+        project_id = repo.config["project_id"]
+        path = GitLabApiClientPath.commit_merge_requests.format(project=project_id, sha=sha)
+        response = self.get(path)
+
+        # Filter out non-merged merge requests
+        merge_requests = []
+        for merge_request in response:
+            if merge_request["state"] == "merged":
+                merge_requests.append(merge_request)
+
+        if len(merge_requests) != 1:
+            # the response should return a single merged PR, returning None if multiple
+            return None
+
+        merge_request = merge_requests[0]
+        return merge_request["merge_commit_sha"] or merge_request["squash_commit_sha"]
 
     def compare_commits(self, project_id, start_sha, end_sha):
         """Compare commits between two SHAs
@@ -371,7 +409,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             files,
             extra={
                 **extra,
-                "provider": "gitlab",
+                "provider": IntegrationProviderSlug.GITLAB.value,
                 "org_integration_id": self.org_integration_id,
             },
         )
+
+    def get_pr_diffs(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
+        project_id = repo.config["project_id"]
+        path = GitLabApiClientPath.build_pr_diffs(project=project_id, pr_key=pr.key, unidiff=True)
+        return self.get(path)

@@ -8,6 +8,9 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
+    AlertRuleUiComponentWebhookSentEvent,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
@@ -172,6 +175,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         has_grace_period: bool | None = None,
         grace_period_expired: bool | None = None,
         limit: int | None = None,
+        name: str | None = None,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -191,6 +195,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if grace_period_expired:
             # Used by getsentry
             oi_kwargs["grace_period_end__lte"] = timezone.now()
+        if name is not None:
+            oi_kwargs["integration__name"] = name
 
         if not oi_kwargs:
             return []
@@ -418,12 +424,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
         alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
 
         if alert_rule_action_ui_component:
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=organization_id,
-                sentry_app_id=sentry_app.id,
-                event=f"{app_platform_event.resource}.{app_platform_event.action}",
-            )
+            try:
+                analytics.record(
+                    AlertRuleUiComponentWebhookSentEvent(
+                        organization_id=organization_id,
+                        sentry_app_id=sentry_app.id,
+                        event=f"{app_platform_event.resource}.{app_platform_event.action}",
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
         return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(

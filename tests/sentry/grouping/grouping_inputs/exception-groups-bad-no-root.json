@@ -1,0 +1,26 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "InnermostException",
+        "value": "Whoops",
+        "mechanism": {
+          "type": "chained",
+          "handled": false,
+          "exception_id": 3,
+          "parent_id": 2
+        }
+      },
+      {
+        "type": "InnerException",
+        "value": "Nope",
+        "mechanism": {
+          "type": "chained",
+          "handled": false,
+          "exception_id": 2,
+          "parent_id": 1
+        }
+      }
+    ]
+  }
+}

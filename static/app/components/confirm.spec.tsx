@@ -1,16 +1,21 @@
 import {
+  act,
   createEvent,
   fireEvent,
   render,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import Confirm from 'sentry/components/confirm';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('Confirm', function () {
+  beforeEach(() => {
+    jest.useRealTimers();
+  });
   afterEach(() => {
     ModalStore.reset();
   });
@@ -125,5 +130,82 @@ describe('Confirm', function () {
 
     fireEvent(button, clickEvent);
     expect(clickEvent.stopPropagation).toHaveBeenCalled();
+  });
+
+  describe('async onConfirm', function () {
+    it('should not close the modal until the promise is resolved', async function () {
+      jest.useFakeTimers();
+      const onConfirmAsync = jest.fn().mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(resolve, 1000);
+          })
+      );
+
+      render(
+        <Confirm message="Are you sure?" onConfirm={onConfirmAsync}>
+          <button>Confirm?</button>
+        </Confirm>
+      );
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm?'}), {
+        delay: null,
+      });
+
+      await screen.findByRole('dialog');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
+        delay: null,
+      });
+
+      // Should keep modal in view until the promise is resolved
+      expect(onConfirmAsync).toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      act(() => jest.runAllTimers());
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('displays an error message if the promise is rejected', async function () {
+      jest.useFakeTimers();
+      const onConfirmAsync = jest.fn().mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(reject, 1000);
+          })
+      );
+
+      render(
+        <Confirm message="Are you sure?" onConfirm={onConfirmAsync}>
+          <button>Confirm?</button>
+        </Confirm>
+      );
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm?'}), {
+        delay: null,
+      });
+
+      await screen.findByRole('dialog');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
+        delay: null,
+      });
+
+      // Should keep modal in view until the promise is resolved
+      expect(onConfirmAsync).toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      act(() => jest.runAllTimers());
+
+      // Should show error message and not close the modal
+      await screen.findByText(/something went wrong/i);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
+    });
   });
 });

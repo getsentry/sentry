@@ -27,6 +27,7 @@ from sentry.monitors.models import Monitor
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.users.models.user import User
@@ -262,8 +263,16 @@ class AlertRuleSerializer(Serializer):
         )
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(
-            obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
+            obj.snuba_query.aggregate,
+            reverse=True,
+            allow_mri=allow_mri,
+            allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
         )
+
+        # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
+        # This hides the internal upsampling implementation from users
+        if aggregate == "upsampled_count()":
+            aggregate = "count()"
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),

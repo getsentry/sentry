@@ -2,12 +2,13 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +19,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 
 function coerceValue(value: number): number {
@@ -117,7 +118,10 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {activePlan.onDemandCategories.map(category => {
+          {getOnDemandCategories({
+            plan: activePlan,
+            budgetMode: displayBudgetMode,
+          }).map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
             return (
@@ -141,7 +145,6 @@ class OnDemandBudgetEdit extends Component<Props> {
                         pattern="[0-9]*"
                         maxLength={7}
                         placeholder="e.g. 50"
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const inputValue = parseInputValue(e);
@@ -151,7 +154,6 @@ class OnDemandBudgetEdit extends Component<Props> {
                           };
                           setOnDemandBudget({
                             ...onDemandBudget,
-                            ...{[categoryBudgetKey]: inputValue},
                             budgets: updatedBudgets,
                           });
                         }}
@@ -168,6 +170,15 @@ class OnDemandBudgetEdit extends Component<Props> {
             organization={organization}
             subscription={subscription}
           />
+          {organization.features.includes('seer-billing') && (
+            <Alert.Container>
+              <Alert type="warning">
+                {t(
+                  "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
         </InputFields>
       );
     }
@@ -189,7 +200,10 @@ class OnDemandBudgetEdit extends Component<Props> {
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const oxfordCategories = listDisplayNames({
       plan: activePlan,
-      categories: activePlan.onDemandCategories,
+      categories: getOnDemandCategories({
+        plan: activePlan,
+        budgetMode: selectedBudgetMode,
+      }),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
@@ -320,7 +334,7 @@ const BudgetContainer = styled('div')`
 
 const InputFields = styled('div')`
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 1px;
 `;
 
@@ -331,7 +345,7 @@ const StyledRadio = styled(Radio)`
 const BudgetDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
@@ -343,7 +357,7 @@ const Title = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
@@ -355,7 +369,7 @@ const Currency = styled('div')`
     content: '$';
     color: ${p => p.theme.subText};
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -371,7 +385,7 @@ const OnDemandType = styled('div')`
 `;
 
 const MediumTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const InputDiv = styled('div')`

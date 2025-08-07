@@ -4,6 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {logout} from 'sentry/actionCreators/account';
 import ConfigStore from 'sentry/stores/configStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');
@@ -48,7 +49,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -63,7 +63,7 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(window.location.href).toBe('/org-slug/');
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('can accept invitation on customer-domains', async function () {
@@ -87,7 +87,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -102,7 +101,7 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(window.location.href).toBe('/org-slug/');
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('renders error message', async function () {
@@ -114,7 +113,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/accept-invite/1/abc/',
@@ -139,7 +137,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -167,7 +164,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -196,7 +192,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -225,7 +220,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -254,7 +248,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -275,7 +268,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -294,7 +286,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -314,7 +305,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      enableRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 

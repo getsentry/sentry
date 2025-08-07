@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -21,7 +22,6 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -117,6 +117,7 @@ export default function ExternalIssueForm({
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnMount: 'always',
     }
   );
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
@@ -156,7 +157,6 @@ export default function ExternalIssueForm({
           setIsDynamicallyRefetching(false);
         },
         error: (err: any) => {
-          // This behavior comes from the DeprecatedAsyncComponent
           if (err?.responseText) {
             Sentry.addBreadcrumb({
               message: err.responseText,
@@ -310,7 +310,16 @@ export default function ExternalIssueForm({
   }, [formFields]);
 
   if (isPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <Header closeButton>
+          <h4>{title}</h4>
+        </Header>
+        <Body>
+          <LoadingIndicator />
+        </Body>
+      </Fragment>
+    );
   }
 
   if (isError) {
@@ -319,7 +328,16 @@ export default function ExternalIssueForm({
       typeof errorDetail === 'string'
         ? errorDetail
         : t('An error occurred loading the issue form');
-    return <LoadingError message={errorMessage} />;
+    return (
+      <Fragment>
+        <Header closeButton>
+          <h4>{title}</h4>
+        </Header>
+        <Body>
+          <LoadingError message={errorMessage} />
+        </Body>
+      </Fragment>
+    );
   }
 
   return (

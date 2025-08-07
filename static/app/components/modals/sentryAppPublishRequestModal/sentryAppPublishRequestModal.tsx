@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import intersection from 'lodash/intersection';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -8,44 +7,11 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
-import type {PermissionChoice} from 'sentry/constants';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {safeURL} from 'sentry/utils/url/safeURL';
-
-/**
- * Given an array of scopes, return the choices the user has picked for each option
- * @param scopes {Array}
- */
-export const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
-  const permissions: string[] = [];
-  for (const permObj of SENTRY_APP_PERMISSIONS) {
-    let highestChoice: PermissionChoice | undefined;
-    for (const perm in permObj.choices) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const choice = permObj.choices[perm];
-      const scopesIntersection = intersection(choice.scopes, scopes);
-      if (
-        scopesIntersection.length > 0 &&
-        scopesIntersection.length === choice.scopes.length
-      ) {
-        if (!highestChoice || scopesIntersection.length > highestChoice.scopes.length) {
-          highestChoice = choice;
-        }
-      }
-    }
-    if (highestChoice) {
-      // we can remove the read part of "Read & Write"
-      const label = highestChoice.label.replace('Read & Write', 'Write');
-      permissions.push(`${permObj.resource} ${label}`);
-    }
-  }
-  return permissions;
-};
 
 function transformData(data: Record<string, any>, model: FormModel) {
   // map object to list of questions
@@ -248,11 +214,11 @@ export function SentryAppPublishRequestModal(props: Props) {
 
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Footer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const FooterParagraph = styled(`p`)`

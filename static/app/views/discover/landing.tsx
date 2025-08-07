@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Switch} from 'sentry/components/core/switch';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -46,7 +46,9 @@ function NoAccess() {
   return (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert type="warning" showIcon={false}>
+          {t("You don't have access to this feature")}
+        </Alert>
       </Alert.Container>
     </Layout.Page>
   );
@@ -81,11 +83,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
       const needleSearch = searchQuery.toLowerCase();
 
       const numOfPrebuiltQueries = views.reduce((sum, view) => {
-        const newQuery = organization.features.includes(
-          'performance-discover-dataset-selector'
-        )
-          ? (getSavedQueryWithDataset(view) as NewQuery)
-          : view;
+        const newQuery = getSavedQueryWithDataset(view) as NewQuery;
         const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
         // if a search is performed on the list of queries, we filter
@@ -145,6 +143,7 @@ function DiscoverLanding() {
     error,
     data: savedQueries = [],
     getResponseHeader,
+    refetch: refreshSavedQueries,
   } = useDiscoverLandingQuery(renderPrebuilt);
 
   const savedQueriesPageLinks = getResponseHeader?.('Link');
@@ -256,6 +255,7 @@ function DiscoverLanding() {
                   location={location}
                   organization={organization}
                   router={router}
+                  refetchSavedQueries={refreshSavedQueries}
                 />
               )}
             </Layout.Main>
@@ -270,7 +270,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 
@@ -285,7 +285,7 @@ const StyledActions = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;

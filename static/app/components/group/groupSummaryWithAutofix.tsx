@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
+  getAutofixRunExists,
   getCodeChangesDescription,
   getCodeChangesIsLoading,
   getRootCauseCopyText,
@@ -22,10 +23,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -43,6 +45,8 @@ interface InsightCardObject {
   id: string;
   insight: string | null | undefined;
   title: string;
+  copyAnalyticsEventKey?: string;
+  copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
   icon?: React.ReactNode;
@@ -57,14 +61,12 @@ export function GroupSummaryWithAutofix({
   project,
   preview = false,
 }: {
-  event: Event | undefined;
+  event: Event;
   group: Group;
   project: Project;
   preview?: boolean;
 }) {
   const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
-
-  const openSeerDrawer = useOpenSeerDrawer(group, project, event);
 
   const rootCauseDescription = useMemo(
     () => (autofixData ? getRootCauseDescription(autofixData) : null),
@@ -101,7 +103,7 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
-  if (isPending) {
+  if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
   }
 
@@ -114,7 +116,6 @@ export function GroupSummaryWithAutofix({
         solutionIsLoading={solutionIsLoading}
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
-        openSeerDrawer={openSeerDrawer}
         rootCauseCopyText={rootCauseCopyText}
         solutionCopyText={solutionCopyText}
       />
@@ -131,14 +132,12 @@ function AutofixSummary({
   solutionIsLoading,
   codeChangesDescription,
   codeChangesIsLoading,
-  openSeerDrawer,
   rootCauseCopyText,
   solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
   group: Group;
-  openSeerDrawer: () => void;
   rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
   solutionCopyText: string | null;
@@ -146,6 +145,16 @@ function AutofixSummary({
   solutionIsLoading: boolean;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const seerLink = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
 
   const insightCards: InsightCardObject[] = [
     {
@@ -158,10 +167,18 @@ function AutofixSummary({
           organization,
           group_id: group.id,
         });
-        openSeerDrawer();
+        navigate({
+          ...seerLink,
+          query: {
+            ...seerLink.query,
+            scrollTo: 'root_cause',
+          },
+        });
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
+      copyAnalyticsEventName: 'Autofix: Copy Root Cause as Markdown',
+      copyAnalyticsEventKey: 'autofix.root_cause.copy',
     },
 
     ...(solutionDescription || solutionIsLoading
@@ -177,10 +194,18 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              openSeerDrawer();
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'solution',
+                },
+              });
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
+            copyAnalyticsEventName: 'Autofix: Copy Solution as Markdown',
+            copyAnalyticsEventKey: 'autofix.solution.copy',
           },
         ]
       : []),
@@ -198,7 +223,13 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              openSeerDrawer();
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'code_changes',
+                },
+              });
             },
           },
         ]
@@ -231,6 +262,8 @@ function AutofixSummary({
                         onClick={e => {
                           e.stopPropagation();
                         }}
+                        analyticsEventName={card.copyAnalyticsEventName}
+                        analyticsEventKey={card.copyAnalyticsEventKey}
                       />
                     )}
                   </CardTitle>
@@ -247,20 +280,18 @@ function AutofixSummary({
                       <React.Fragment>
                         {card.insightElement}
                         {card.insight && (
-                          <div
+                          <MarkedText
                             onClick={e => {
                               // Stop propagation if the click is directly on a link
                               if ((e.target as HTMLElement).tagName === 'A') {
                                 e.stopPropagation();
                               }
                             }}
-                            dangerouslySetInnerHTML={{
-                              __html: marked(
-                                card.isLoading
-                                  ? card.insight.replace(/\*\*/g, '')
-                                  : card.insight
-                              ),
-                            }}
+                            text={
+                              card.isLoading
+                                ? card.insight.replace(/\*\*/g, '')
+                                : card.insight
+                            }
                           />
                         )}
                       </React.Fragment>
@@ -334,8 +365,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
 
@@ -348,8 +378,8 @@ const CardTitleSpacer = styled('div')`
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 1px;
 `;
 
@@ -362,7 +392,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1)};
+  padding: ${space(0.5)} ${space(1)} ${space(1)} ${space(1)};
   text-align: left;
   flex: 1;
 

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import builtins
+import logging
+from dataclasses import asdict
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -9,14 +12,20 @@ from django.dispatch import receiver
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
+
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -44,13 +53,25 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         GITHUB_ENTERPRISE = "github_enterprise"
         JIRA = "jira"
         JIRA_SERVER = "jira_server"
-        AZURE_DEVOPS = "azure_devops"
+        AZURE_DEVOPS = "vsts"
 
         EMAIL = "email"
         SENTRY_APP = "sentry_app"
 
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
+
+        def is_integration(self) -> bool:
+            """
+            Returns True if the action is an integration action.
+            For those, the value should correspond to the integration key.
+            """
+            return self not in [
+                Action.Type.EMAIL,
+                Action.Type.SENTRY_APP,
+                Action.Type.PLUGIN,
+                Action.Type.WEBHOOK,
+            ]
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
@@ -62,14 +83,32 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
-    def get_handler(self) -> ActionHandler:
+    status = BoundedPositiveIntegerField(
+        db_default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
+
+    def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        # get the handler for the action type
         handler = self.get_handler()
         handler.execute(event_data, self, detector)
+
+        metrics.incr(
+            "workflow_engine.action.trigger",
+            tags={"action_type": self.type, "detector_type": detector.type},
+            sample_rate=1.0,
+        )
+
+        logger.info(
+            "workflow_engine.action.trigger",
+            extra={
+                "detector_id": detector.id,
+                "action_id": self.id,
+                "event_data": asdict(event_data),
+            },
+        )
 
 
 @receiver(pre_save, sender=Action)

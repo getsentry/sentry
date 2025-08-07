@@ -131,7 +131,7 @@ class Team(ReplicatedRegionModel):
         ),
         default=TeamStatus.ACTIVE,
     )
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
@@ -146,7 +146,7 @@ class Team(ReplicatedRegionModel):
     def class_name(self):
         return "Team"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:

@@ -2,12 +2,12 @@ import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getFormattedDate} from 'sentry/utils/dates';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -122,7 +122,9 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             <PlanLabel isTotal />
             <PlanValue isTotal>
               <EffectiveDate>
-                {tct('Effective on [date]', {date: getFormattedDate(effectiveAt, 'll')})}
+                {tct('Effective on [date]', {
+                  date: <DateTime timeOnly date={effectiveAt} />,
+                })}
               </EffectiveDate>
             </PlanValue>
           </Fragment>
@@ -187,7 +189,7 @@ const PlanValue = styled(PlanLabel)`
 `;
 
 const EffectiveDate = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-align: right;
 `;
 

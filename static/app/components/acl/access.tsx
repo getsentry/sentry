@@ -1,7 +1,6 @@
 import type {Scope} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -73,7 +72,7 @@ function Access({
     project,
   });
 
-  if (isRenderFunc(children)) {
+  if (typeof children === 'function') {
     return children({
       hasAccess,
       hasSuperuser,

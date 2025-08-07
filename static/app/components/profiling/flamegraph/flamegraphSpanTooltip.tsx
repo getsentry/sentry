@@ -16,14 +16,11 @@ import {
   FlamegraphTooltipTimelineInfo,
 } from './flamegraphTooltip';
 
-export function formatWeightToTransactionDuration(
-  span: SpanChartNode,
-  spanChart: SpanChart
-) {
+function formatWeightToTransactionDuration(span: SpanChartNode, spanChart: SpanChart) {
   return `(${Math.round((span.duration / spanChart.root.duration) * 100)}%)`;
 }
 
-export interface FlamegraphSpanTooltipProps {
+interface FlamegraphSpanTooltipProps {
   configSpaceCursor: vec2;
   hoveredNode: SpanChartNode;
   spanChart: SpanChart;

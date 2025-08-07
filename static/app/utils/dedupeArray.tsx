@@ -1,4 +1,4 @@
-export function dedupeArray(values: string[]): string[] {
+export function dedupeArray(values: readonly string[]): string[] {
   const deduped: string[] = [];
   const seen = new Set();
   values.forEach(s => {

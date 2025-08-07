@@ -8,10 +8,10 @@ import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Chevron} from 'sentry/components/chevron';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Link} from 'sentry/components/core/link';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import type SidebarMenuItemLink from 'sentry/components/sidebar/sidebarMenuItemLink';
@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -153,7 +154,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                       {t('User settings')}
                     </SidebarMenuItem>
                     <SidebarMenuItem to="/settings/account/api/">
-                      {t('User auth tokens')}
+                      {t('Personal Tokens')}
                     </SidebarMenuItem>
                     {hasOrganization && (
                       <Hook
@@ -210,16 +211,17 @@ const OrgAndUserWrapper = styled('div')`
   text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.white};
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0);
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
+  text-shadow: ${p =>
+    isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0)'};
   transition: 0.15s text-shadow linear;
 `;
 
 const UserNameOrEmail = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 16px;
   transition: 0.15s color linear;
 `;
@@ -235,10 +237,11 @@ const SidebarDropdownActor = styled('button')`
 
   &:hover {
     ${OrgOrUserName} {
-      text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+      text-shadow: ${p =>
+        isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0.1)'};
     }
     ${UserNameOrEmail} {
-      color: ${p => p.theme.white};
+      color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
     }
   }
 `;
@@ -246,10 +249,10 @@ const SidebarDropdownActor = styled('button')`
 const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   margin: ${space(0.25)} 0;
   margin-right: ${p.collapsed ? '0' : space(1.5)};
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: ${isChonkTheme(p.theme) ? 'none' : '0 2px 0 rgba(0, 0, 0, 0.08)'};
   border-radius: 6px; /* Fixes background bleeding on corners */
 
-  @media (max-width: ${p.theme.breakpoints.medium}) {
+  @media (max-width: ${p.theme.breakpoints.md}) {
     margin-right: 0;
   }
 `;

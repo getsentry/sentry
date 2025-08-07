@@ -29,7 +29,7 @@ class InMemoryCache:
         del self.data[key]
 
 
-def test_meta_basic():
+def test_meta_basic() -> None:
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
 
     # Regression test to verify that we do not add additional attributes. Note
@@ -43,7 +43,7 @@ def test_meta_basic():
     }
 
 
-def test_meta_rate_limited():
+def test_meta_rate_limited() -> None:
     att = CachedAttachment(
         key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3, rate_limited=True
     )
@@ -58,7 +58,7 @@ def test_meta_rate_limited():
     }
 
 
-def test_basic_chunked():
+def test_basic_chunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
@@ -79,7 +79,7 @@ def test_basic_chunked():
     assert not list(cache.get("c:foo"))
 
 
-def test_basic_unchunked():
+def test_basic_unchunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
@@ -96,7 +96,7 @@ def test_basic_unchunked():
     assert not list(cache.get("c:foo"))
 
 
-def test_zstd_chunks():
+def test_zstd_chunks() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
@@ -114,7 +114,7 @@ def test_zstd_chunks():
     assert not_chunked.data == b"Hello World! Bye."
 
 
-def test_basic_rate_limited():
+def test_basic_rate_limited() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 

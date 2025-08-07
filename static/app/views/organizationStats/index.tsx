@@ -7,10 +7,10 @@ import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
+  DataCategory,
   DataCategoryExact,
   type DataCategoryInfo,
   type PageFilters,
@@ -34,10 +35,12 @@ import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -45,6 +48,9 @@ import UsageStatsOrg from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+const HookOrgStatsProfilingBanner = HookOrDefault({
+  hookName: 'component:org-stats-profiling-banner',
+});
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -84,7 +90,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     ) {
       return {
         ...info,
-        apiName: 'span_indexed',
+        name: DataCategoryExact.SPAN_INDEXED,
       };
     }
 
@@ -98,6 +104,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   get dataCategoryName() {
     return this.dataCategoryInfo.titleName;
+  }
+
+  get dataCategoryApiName() {
+    return this.dataCategoryInfo.name;
   }
 
   get dataDatetime(): DateTimeObject {
@@ -197,7 +207,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         ...nextLocation,
         pathname: makeProjectsPathname({
           path: `/${project.slug}/`,
-          orgSlug: organization.slug,
+          organization,
         }),
       },
       issueList: {
@@ -217,7 +227,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     nextState: {
       clientDiscard?: boolean;
       cursor?: string;
-      dataCategory?: DataCategoryInfo['plural'];
+      dataCategory?: DataCategory;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -251,38 +261,49 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
+    const hasProfiling = organization.features.includes('continuous-profiling');
+    const hasProfilingStats = organization.features.includes(
+      'continuous-profiling-stats'
+    );
+
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
-        return opt.value === DATA_CATEGORY_INFO.error.plural;
+        return opt.value === DataCategory.ERRORS;
       }
-      if (DATA_CATEGORY_INFO.replay.plural === opt.value) {
+      if (opt.value === DataCategory.REPLAYS) {
         return organization.features.includes('session-replay');
       }
-      if (DATA_CATEGORY_INFO.span.plural === opt.value) {
+      if (opt.value === DataCategory.SPANS) {
         return organization.features.includes('span-stats');
       }
-      if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
+      if (opt.value === DataCategory.TRANSACTIONS) {
         return !organization.features.includes('spans-usage-tracking');
       }
-      if (
-        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
-        DATA_CATEGORY_INFO.logByte.plural === opt.value
-      ) {
+      if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
+        return organization.features.includes('seer-billing');
+      }
+      if ([DataCategory.LOG_BYTE].includes(opt.value)) {
+        return organization.features.includes('ourlogs-enabled');
+      }
+      if ([DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
       if (
-        DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
-        DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
+        [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
+          opt.value
+        )
       ) {
-        return (
-          organization.features.includes('continuous-profiling-stats') ||
-          organization.features.includes('continuous-profiling')
-        );
+        return hasProfiling || hasProfilingStats;
       }
-      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
-        return !organization.features.includes('continuous-profiling-stats');
+      if (opt.value === DataCategory.PROFILES) {
+        return !hasProfilingStats;
       }
       return true;
+    }).map(opt => {
+      if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
+        return {...opt, label: `${opt.label} (legacy)`};
+      }
+      return opt;
     });
 
     return (
@@ -293,7 +314,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
+            onChange={opt =>
+              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
+            }
           />
           <DatePageFilter />
         </PageFilterBar>
@@ -305,31 +328,26 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    * This method is replaced by the hook "component:enhanced-org-stats"
    */
   renderUsageStatsOrg() {
-    const {organization, router, location, params, routes} = this.props;
+    const {organization} = this.props;
     return (
       <UsageStatsOrg
-        isSingleProject={this.isSingleProject}
         projectIds={this.projectIds}
         organization={organization}
         dataCategory={this.dataCategory}
-        dataCategoryName={this.dataCategoryInfo.titleName}
-        dataCategoryApiName={this.dataCategoryInfo.apiName}
+        dataCategoryName={this.dataCategoryName}
+        dataCategoryApiName={this.dataCategoryApiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
         clientDiscard={this.clientDiscard}
         handleChangeState={this.setStateOnUrl}
-        router={router}
-        location={location}
-        params={params}
-        routes={routes}
       />
     );
   }
 
   renderEstimationDisclaimer() {
     if (
-      this.dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
-      this.dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural
+      this.dataCategory === DATA_CATEGORY_INFO.profile_duration.plural ||
+      this.dataCategory === DATA_CATEGORY_INFO.profile_duration_ui.plural
     ) {
       return (
         <EstimationText data-test-id="estimation-text">
@@ -338,7 +356,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {
               estimateLink: (
                 <ExternalLink
-                  href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)} // TODO(continuous profiling): update link when docs are ready
+                  href={`${getPricingDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}#how-can-i-estimate-usage-for-continuous-profiling-on-the-backend`}
                 />
               ),
             }
@@ -352,6 +370,32 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
+    const showProfilingBanner = this.dataCategory === 'profiles';
+    const newLayout = prefersStackedNav(organization);
+
+    const BodyWrapper = newLayout ? NewLayoutBody : Body;
+    const noTeamInsightsHeader = newLayout ? (
+      <SettingsPageHeader
+        title={t('Stats & Usage')}
+        subtitle={t(
+          'A view of the usage data that Sentry has received across your entire organization.'
+        )}
+      />
+    ) : (
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
+          <HeadingSubtitle>
+            {tct(
+              'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/product/stats/" />,
+              }
+            )}
+          </HeadingSubtitle>
+        </Layout.HeaderContent>
+      </Layout.Header>
+    );
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -360,29 +404,16 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {hasTeamInsights ? (
               <HeaderTabs organization={organization} activeTab="stats" />
             ) : (
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
-                  <HeadingSubtitle>
-                    {tct(
-                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
-                        ),
-                      }
-                    )}
-                  </HeadingSubtitle>
-                </Layout.HeaderContent>
-              </Layout.Header>
+              noTeamInsightsHeader
             )}
-            <Body>
+            <BodyWrapper>
               <Layout.Main fullWidth>
                 <HookHeader organization={organization} />
                 <ControlsWrapper>
                   {this.renderProjectPageControl()}
                   {this.renderEstimationDisclaimer()}
                 </ControlsWrapper>
+                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
@@ -401,7 +432,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   />
                 </ErrorBoundary>
               </Layout.Main>
-            </Body>
+            </BodyWrapper>
           </PageFiltersContainer>
         </NoProjectMessage>
       </SentryDocumentTitle>
@@ -426,28 +457,18 @@ const DropdownDataCategory = styled(CompactSelect)`
     height: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: auto / span 2;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
+const NewLayoutBody = styled('div')``;
+
 const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
@@ -470,13 +491,13 @@ const PageControl = styled('div')`
 
   margin-bottom: 0;
   grid-template-columns: minmax(0, max-content);
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const EstimationText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;

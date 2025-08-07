@@ -14,6 +14,7 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +32,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
+import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -49,7 +50,7 @@ interface Options<Fields> {
 }
 
 export const useSortedTimeSeries = <
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
+  Fields extends SpanFields[] | SpanFunctions[] | string[],
 >(
   options: Options<Fields> = {},
   referrer: string,
@@ -77,7 +78,7 @@ export const useSortedTimeSeries = <
     pageFilters.selection,
     yAxis,
     topEvents,
-    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    dataset ?? DiscoverDatasets.SPANS,
     orderby
   );
 
@@ -111,6 +112,9 @@ export const useSortedTimeSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       sampling: samplingMode,
+      // Timeseries requests do not support cursors, overwrite it to undefined so
+      // pagination does not cause extra requests
+      cursor: undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -172,7 +176,8 @@ export function transformToSeriesMap(
         return convertEventsStatsToTimeSeriesData(
           hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
           result[seriesOrGroupName]!,
-          hasMultipleYAxes ? undefined : seriesOrGroupName
+          hasMultipleYAxes ? undefined : seriesOrGroupName,
+          hasMultipleYAxes ? undefined : result[seriesOrGroupName]!.order
         );
       }
     );
@@ -188,7 +193,7 @@ export function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        acc[series.field] = [series];
+        acc[series.yAxis] = [series];
         return acc;
       }, {} as SeriesMap);
   }
@@ -208,12 +213,13 @@ export function transformToSeriesMap(
 
   return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [groupName, , groupData]) => {
+    .reduce((acc, [groupName, groupOrder, groupData]) => {
       Object.keys(groupData).forEach(seriesName => {
         const [, series] = convertEventsStatsToTimeSeriesData(
           seriesName,
           groupData[seriesName]!,
-          groupName
+          groupName,
+          groupOrder
         );
 
         if (acc[seriesName]) {
@@ -229,25 +235,35 @@ export function transformToSeriesMap(
 export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
-  alias?: string
+  alias?: string,
+  order?: number
 ): [number, TimeSeries] {
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
+  const values = seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+    timestamp: timestamp * 1000,
+    value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+  }));
+
+  const interval = getTimeSeriesInterval(values);
+
   const serie: TimeSeries = {
-    field: label,
-    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      timestamp: new Date(timestamp * 1000).toISOString(),
-      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-    })),
+    yAxis: label,
+    values,
     meta: {
-      type: seriesData.meta?.fields?.[seriesName]!,
-      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      valueType: seriesData.meta?.fields?.[seriesName]!,
+      valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      interval,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,
     samplingRate: seriesData.meta?.accuracy?.samplingRate,
     dataScanned: seriesData.meta?.dataScanned,
   };
+
+  if (defined(order)) {
+    serie.meta.order = order;
+  }
 
   return [seriesData.order ?? 0, serie];
 }

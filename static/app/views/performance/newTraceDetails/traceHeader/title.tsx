@@ -1,41 +1,43 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type EventTransaction, ReplayContextKey} from 'sentry/types/event';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {ReplayContextKey} from 'sentry/types/event';
+import {FieldKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {
+  isTraceItemDetailsResponse,
+  type RepresentativeTraceEvent,
+} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
-  representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  representativeEvent: RepresentativeTraceEvent;
+  rootEventResults: TraceRootEventQueryResults;
 }
 
-function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
+function getTitle(representativeEvent: RepresentativeTraceEvent): {
   subtitle: string | undefined;
   title: string;
 } | null {
+  const {event} = representativeEvent;
   if (!event) {
     return null;
   }
 
   // Handle log events
-  if (OurLogKnownFieldKey.SEVERITY_TEXT in event) {
+  if (OurLogKnownFieldKey.SEVERITY in event) {
     return {
       title: t('Trace'),
       subtitle: event[OurLogKnownFieldKey.MESSAGE],
@@ -73,7 +75,10 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
     return null;
   }
 
-  const replayId = rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+  const replayId = isTraceItemDetailsResponse(rootEventResults.data)
+    ? findSpanAttributeValue(rootEventResults.data.attributes, FieldKey.REPLAY_ID)
+    : rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+
   if (!replayId) {
     return null;
   }
@@ -134,13 +139,13 @@ const TitleWrapper = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xl};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const SubtitleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   display: flex;
   align-items: center;

@@ -348,12 +348,10 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
 function isValidRegressionEvent(event: Event, group: Group): boolean {
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       const evidenceData = event.occurrence?.evidenceData;
       return defined(evidenceData?.transaction) && defined(evidenceData?.breakpoint);
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
     case IssueType.PROFILE_FUNCTION_REGRESSION: {
       const evidenceData = event.occurrence?.evidenceData;
       return defined(evidenceData?.fingerprint) && defined(evidenceData?.breakpoint);
@@ -365,10 +363,8 @@ function isValidRegressionEvent(event: Event, group: Group): boolean {
 
 function getStatsType(group: Group): 'transactions' | 'functions' | null {
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION:
       return 'transactions';
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
     case IssueType.PROFILE_FUNCTION_REGRESSION:
       return 'functions';
     default:
@@ -377,7 +373,7 @@ function getStatsType(group: Group): 'transactions' | 'functions' | null {
 }
 
 const CurrentLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`

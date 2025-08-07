@@ -16,6 +16,8 @@ class _TemporaryRegionDirectoryState:
 
 
 class TestEnvRegionDirectory(RegionDirectory):
+    __test__ = False
+
     def __init__(self, regions: Collection[Region]) -> None:
         super().__init__(regions)
         self._tmp_state = _TemporaryRegionDirectoryState(

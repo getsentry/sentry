@@ -47,7 +47,7 @@ function makeBadgeTheme(
   }
 }
 
-export type BadgeType =
+type BadgeType =
   | 'alpha'
   | 'beta'
   | 'new'
@@ -70,20 +70,21 @@ export function Badge({children, ...props}: BadgeProps) {
 const StyledBadge = styled('span')<BadgeProps>`
   ${p => ({...makeBadgeTheme(p, p.theme)})};
 
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 20px;
   min-width: 20px;
   line-height: 20px;
   border-radius: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-align: center;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.xs};
+  padding: 0 ${space(0.75)};
 
   /* @TODO(jonasbadalic) can we standardize this transition? */
   transition: background 100ms linear;
 
   /* @TODO(jonasbadalic) why are these needed? */
-  font-size: 75%;
-  padding: 0 5px;
   margin-left: ${space(0.5)};
   position: relative;
 `;

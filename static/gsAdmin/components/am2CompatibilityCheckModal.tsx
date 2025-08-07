@@ -6,13 +6,13 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {ModalBody} from 'sentry/components/globalModal/components';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconRefresh} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
@@ -157,7 +157,6 @@ function ErrorBox({errors}: {errors: string[]}) {
     <Alert.Container>
       <Alert
         type="error"
-        showIcon
         expand={
           <List>
             {errors.map((error, index) => (
@@ -179,9 +178,7 @@ function InfoBox({numOfIssues}: {numOfIssues: number}) {
 
   return (
     <Alert.Container>
-      <Alert showIcon type={numOfIssues ? 'warning' : 'success'}>
-        {message}
-      </Alert>
+      <Alert type={numOfIssues ? 'warning' : 'success'}>{message}</Alert>
     </Alert.Container>
   );
 }
@@ -193,7 +190,7 @@ function OnDemandBanner({onDemandWidgetCount}: {onDemandWidgetCount: number}) {
 
   return (
     <Alert.Container>
-      <Alert showIcon type="info">
+      <Alert type="info">
         On-demand widgets fix support for many of the AM2 incompatible widgets. They are
         listed here so they can be checked for consistency with AM1 data.
       </Alert>
@@ -305,7 +302,7 @@ function SDKPanel({sdks}: {sdks: AM2CompatibilityReport['sdks']}) {
       <StyledExternalLink href={sdks.url}>View in Discover</StyledExternalLink>
       <TabPanelTable headers={['SDK', 'Version', 'Required version']}>
         {sdks.projects.map(project => (
-          <Fragment key={`project-${project.project}`}>
+          <Fragment key={project.project}>
             <GroupHeader>Project {project.project}</GroupHeader>
             {project.unsupported.map(sdk => {
               const foundSdkVersions = sdk.sdk_versions
@@ -319,7 +316,7 @@ function SDKPanel({sdks}: {sdks: AM2CompatibilityReport['sdks']}) {
                   : '';
 
               return (
-                <Fragment key={`sdk-${project}`}>
+                <Fragment key={sdk.sdk_name}>
                   <div>{sdk.sdk_name}</div>
                   <div>
                     {foundSdkVersions[0]} {foundSdkVersionsSuffix}

@@ -4,13 +4,12 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.user_2 = self.create_user()
@@ -58,7 +57,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
-    def star_views(self, view_ids: list[int]):
+    def star_views(self, view_ids: list[int]) -> None:
         for idx, view_id in enumerate(view_ids):
             GroupSearchViewStarred.objects.create(
                 organization=self.organization,
@@ -67,8 +66,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 position=idx,
             )
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_simple_reordering(self):
+    def test_simple_reordering(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
 
         new_order = [self.views[2].id, self.views[0].id, self.views[1].id]
@@ -91,8 +89,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[2].group_search_view_id == self.views[1].id
         assert starred_views[2].position == 2
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_same_order_reordering(self):
+    def test_same_order_reordering(self) -> None:
         original_order = [self.views[0].id, self.views[1].id, self.views[2].id]
 
         self.star_views(original_order)
@@ -115,8 +112,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[2].group_search_view_id == self.views[2].id
         assert starred_views[2].position == 2
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def reordering_with_shared_views(self):
+    def reordering_with_shared_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id, self.shared_view.id])
 
         new_order = [self.shared_view.id, self.views[2].id, self.views[0].id, self.views[1].id]
@@ -142,8 +138,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[3].group_search_view_id == self.views[1].id
         assert starred_views[3].position == 3
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_empty_starred_list(self):
+    def test_empty_starred_list(self) -> None:
         response = self.client.put(self.url, data={"view_ids": []}, format="json")
 
         assert response.status_code == 204
@@ -153,8 +148,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user.id,
         ).exists()
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_error_on_fewer_views_than_starred_views(self):
+    def test_error_on_fewer_views_than_starred_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
 
         response = self.client.put(
@@ -163,8 +157,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_error_on_more_views_than_starred_views(self):
+    def test_error_on_more_views_than_starred_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id])
 
         response = self.client.put(
@@ -175,8 +168,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_error_on_duplicate_view_ids(self):
+    def test_error_on_duplicate_view_ids(self) -> None:
         view_ids = [self.views[0].id, self.views[1].id, self.views[1].id]
 
         response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
@@ -192,7 +184,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -208,8 +200,7 @@ class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase
             query_sort="date",
         )
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_nonexistent_view_id(self):
+    def test_nonexistent_view_id(self) -> None:
         non_existent_id = 373737
         view_ids = [self.view.id, non_existent_id]
 

@@ -17,16 +17,16 @@ class AuthTest(AcceptanceTestCase):
             by=By.XPATH, value="//button[contains(text(), 'Continue')]"
         ).click()
 
-    def test_renders(self):
+    def test_renders(self) -> None:
         self.browser.get("/auth/login/")
 
-    def test_no_credentials(self):
+    def test_no_credentials(self) -> None:
         self.enter_auth("", "")
 
-    def test_invalid_credentials(self):
+    def test_invalid_credentials(self) -> None:
         self.enter_auth("bad-username", "bad-username")
 
-    def test_success(self):
+    def test_success(self) -> None:
         email = "dummy@example.com"
         password = "dummy"
         user = self.create_user(email=email)

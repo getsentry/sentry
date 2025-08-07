@@ -51,8 +51,11 @@ import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import type {TooltipSubLabel} from './components/tooltip';
-import {CHART_TOOLTIP_VIEWPORT_OFFSET, computeChartTooltip} from './components/tooltip';
+import {
+  CHART_TOOLTIP_VIEWPORT_OFFSET,
+  computeChartTooltip,
+  type TooltipSubLabel,
+} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -94,7 +97,7 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-interface TooltipOption
+export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
     Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
@@ -266,9 +269,9 @@ export interface BaseChartProps {
    */
   toolBox?: EChartsOption['toolbox'];
   /**
-   * Tooltip options
+   * Tooltip options. Pass `null` to disable tooltip.
    */
-  tooltip?: TooltipOption;
+  tooltip?: TooltipOption | null;
   /**
    * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
    * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
@@ -399,7 +402,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.colors[theme.chart.colors.length - 1]);
+      : theme.chart.getColorPalette(theme.chart.colors.length));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -699,7 +702,7 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-const getTooltipStyles = (p: {theme: Theme}) => css`
+export const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
@@ -708,6 +711,8 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    cursor: pointer;
+    font-size: ${p.theme.fontSize.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {
@@ -717,7 +722,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.textColor};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSizeExtraSmall};
+    font-size: ${p.theme.fontSize.xs};
     color: ${p.theme.textColor};
   }
   .tooltip-series {
@@ -732,7 +737,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeightNormal};
+    font-weight: ${p.theme.fontWeight.normal};
     color: ${p.theme.textColor};
   }
   .tooltip-label-value {
@@ -815,8 +820,8 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeightBold};
-    font-size: ${p.theme.fontSizeSmall};
+    font-weight: ${p.theme.fontWeight.bold};
+    font-size: ${p.theme.fontSize.sm};
     line-height: 1.4;
     font-family: ${p.theme.text.family};
     max-width: 230px;

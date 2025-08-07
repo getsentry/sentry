@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -60,7 +60,7 @@ function TraceNotFound({
           if (error) {
             return (
               <Alert.Container>
-                <Alert type="error" showIcon>
+                <Alert type="error">
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
@@ -74,7 +74,7 @@ function TraceNotFound({
 
           return (
             <Alert.Container>
-              <Alert type="error" showIcon>
+              <Alert type="error">
                 <ErrorLabel>
                   {t('The trace cannot be shown when all events are errors.')}
                 </ErrorLabel>

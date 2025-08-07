@@ -36,6 +36,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     // Error monitoring shall be checked and disabled by default
@@ -110,6 +111,7 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -146,6 +148,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -167,6 +170,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="python-django" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
@@ -193,6 +197,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeDisabled();
@@ -212,6 +217,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="python" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -237,11 +243,15 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 
     await userEvent.click(screen.getByRole('presentation', {name: 'Profiling'}));
-    expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
+    expect(handleChange).toHaveBeenCalledWith({
+      previousProducts: ['performance-monitoring'],
+      products: ['performance-monitoring', 'profiling'],
+    });
   });
 
   it('does not overwrite URL products if others are present', function () {
@@ -256,6 +266,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();

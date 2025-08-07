@@ -52,7 +52,10 @@ describe('Dashboards > ViewEditDashboard', function () {
       >
         <Fragment />
       </ViewEditDashboard>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(router.replace).toHaveBeenCalledWith(

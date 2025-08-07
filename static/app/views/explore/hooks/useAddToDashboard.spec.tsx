@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -9,7 +11,16 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -32,9 +43,9 @@ describe('AddToDashboardButton', () => {
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>
+      </Wrapper>
     );
 
     await userEvent.click(screen.getByText('Add to Dashboard'));
@@ -53,38 +64,13 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['count(span.duration)'],
+              fields: [],
               conditions: '',
-              orderby: '-timestamp',
+              orderby: '',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.BAR,
-          field: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-        }),
       })
     );
   });
@@ -106,10 +92,9 @@ describe('AddToDashboardButton', () => {
     'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
     async ({chartType, expectedDisplayType}) => {
       render(
-        <PageParamsProvider>
+        <Wrapper>
           <TestPage visualizeIndex={1} />
-        </PageParamsProvider>,
-        {enableRouterMocks: false}
+        </Wrapper>
       );
 
       act(() =>
@@ -141,38 +126,13 @@ describe('AddToDashboardButton', () => {
               {
                 aggregates: ['max(span.duration)'],
                 columns: [],
-                fields: ['max(span.duration)'],
+                fields: [],
                 conditions: '',
-                orderby: '-timestamp',
+                orderby: '',
                 name: '',
               },
             ],
           },
-
-          // For Open in Widget Builder
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: WidgetType.SPANS,
-            defaultTableColumns: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            defaultTitle: 'Custom Widget',
-            defaultWidgetQuery:
-              'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
-            displayType: expectedDisplayType,
-            field: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-          }),
         })
       );
     }
@@ -180,10 +140,9 @@ describe('AddToDashboardButton', () => {
 
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={1} />
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </Wrapper>
     );
 
     act(() =>
@@ -215,48 +174,22 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['max(span.duration)'],
               columns: [],
-              fields: ['max(span.duration)'],
+              fields: [],
               conditions: '',
-              orderby: '-timestamp',
+              orderby: '',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.LINE,
-          field: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-        }),
       })
     );
   });
 
   it('uses the yAxes for the aggregate mode', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -276,34 +209,22 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['count(span.duration)'],
+              fields: [],
               conditions: '',
               orderby: '-count(span.duration)',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: ['count(span.duration)'],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-count(span.duration)',
-          displayType: DisplayType.BAR,
-          field: ['count(span.duration)'],
-        }),
       })
     );
   });
 
   it('takes the first 3 yAxes', async () => {
     render(
-      <PageParamsProvider>
+      <Wrapper>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -335,33 +256,17 @@ describe('AddToDashboardButton', () => {
           queries: [
             {
               aggregates: [
+                // because the visualizes get flattend, we only take the first y axis
                 'avg(span.duration)',
-                'max(span.duration)',
-                'min(span.duration)',
               ],
               columns: [],
-              fields: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
+              fields: [],
               conditions: '',
               orderby: '-avg(span.duration)',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'avg(span.duration)',
-            'max(span.duration)',
-            'min(span.duration)',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
-          displayType: DisplayType.LINE,
-          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
-        }),
       })
     );
   });

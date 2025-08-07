@@ -43,8 +43,6 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.UI,
 ];
 
-export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
-
 type Props = {
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;

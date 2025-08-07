@@ -5,7 +5,13 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -16,7 +22,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaEndpoint(
-    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    SearchIssueTestMixin,
+    SpanTestCase,
+    OurLogTestCase,
 ):
     def setUp(self):
         super().setUp()
@@ -29,7 +39,7 @@ class OrganizationEventsMetaEndpoint(
         )
         self.features = {"organizations:discover-basic": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
 
         self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
 
@@ -39,7 +49,36 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_multiple_projects(self):
+    def test_spans_dataset(self) -> None:
+        self.store_spans([self.create_span(start_ts=self.min_ago)], is_eap=True)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "spans"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_logs_dataset(self) -> None:
+        self.store_ourlogs(
+            [
+                self.create_ourlog(
+                    {"body": "foo"},
+                    timestamp=self.min_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "bar"},
+                    timestamp=self.min_ago,
+                ),
+            ]
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"dataset": "logs"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 2
+
+    def test_multiple_projects(self) -> None:
         project2 = self.create_project()
 
         self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
@@ -56,7 +95,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2
 
-    def test_search(self):
+    def test_search(self) -> None:
         self.store_event(
             data={"timestamp": self.min_ago.isoformat(), "message": "how to make fast"},
             project_id=self.project.id,
@@ -72,7 +111,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_custom_measurements_query_uses_units(self):
+    def test_custom_measurements_query_uses_units(self) -> None:
         self.store_transaction_metric(
             33,
             metric="measurements.custom",
@@ -110,7 +149,7 @@ class OrganizationEventsMetaEndpoint(
             assert response.status_code == 200, response.content
             assert response.data["count"] == 1
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
@@ -118,7 +157,7 @@ class OrganizationEventsMetaEndpoint(
 
         assert response.status_code == 400, response.content
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         no_project_org = self.create_organization(owner=self.user)
 
         url = reverse(
@@ -131,7 +170,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 0
 
-    def test_transaction_event(self):
+    def test_transaction_event(self) -> None:
         data = {
             "event_id": "a" * 32,
             "type": "transaction",
@@ -153,7 +192,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_generic_event(self):
+    def test_generic_event(self) -> None:
         """Test that the issuePlatform dataset returns data for a generic issue's short ID"""
         _, _, group_info = self.store_search_issue(
             self.project.id,
@@ -180,7 +219,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_errors_dataset_event(self):
+    def test_errors_dataset_event(self) -> None:
         """Test that the errors dataset returns data for an issue's short ID"""
         group_1 = self.store_event(
             data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
@@ -202,7 +241,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_transaction_event_with_last_seen(self):
+    def test_transaction_event_with_last_seen(self) -> None:
         data = {
             "event_id": "a" * 32,
             "type": "transaction",
@@ -222,7 +261,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         with self.feature(self.features):
             with self.options({"system.event-retention-days": 10}):
                 response = self.client.get(
@@ -236,7 +275,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 400
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
+    def test_handling_snuba_errors(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
@@ -244,7 +283,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 400, response.content
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         mock_quantize.return_value = before_now(days=1)
         with self.feature(self.features):
             # Don't quantize short time periods
@@ -281,7 +320,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
-    def test_find_related_issue(self):
+    def test_find_related_issue(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -301,7 +340,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert response.data[0]["shortId"] == event1.group.qualified_short_id
         assert int(response.data[0]["id"]) == event1.group_id
 
-    def test_related_issues_no_transaction(self):
+    def test_related_issues_no_transaction(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -322,7 +361,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
             == "Must provide one of ['transaction'] in order to find related events"
         )
 
-    def test_related_issues_no_matching_groups(self):
+    def test_related_issues_no_matching_groups(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -340,7 +379,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_related_issues_only_issues_in_date(self):
+    def test_related_issues_only_issues_in_date(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -374,7 +413,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert response.data[0]["shortId"] == event2.group.qualified_short_id
         assert int(response.data[0]["id"]) == event2.group_id
 
-    def test_related_issues_transactions_from_different_projects(self):
+    def test_related_issues_transactions_from_different_projects(self) -> None:
         self.login_as(user=self.user)
 
         project1 = self.create_project()
@@ -411,7 +450,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert response.data[0]["shortId"] == event1.group.qualified_short_id
         assert int(response.data[0]["id"]) == event1.group_id
 
-    def test_related_issues_transactions_with_quotes(self):
+    def test_related_issues_transactions_with_quotes(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -459,7 +498,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
     url_name = "sentry-api-0-organization-spans-samples"
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
+    def test_is_segment_properly_converted_in_filter(
+        self, mock_raw_snql_query: mock.MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
@@ -486,7 +527,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             for call_args in mock_raw_snql_query.call_args_list
         )
 
-    def test_is_using_sample_rate(self):
+    def test_is_using_sample_rate(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
@@ -531,7 +572,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
                 in mock_raw_snql_query.call_args_list[0][0][0].serialize()
             )
 
-    def test_basic_query(self):
+    def test_basic_query(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
@@ -578,7 +619,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
 
-    def test_order_by(self):
+    def test_order_by(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
@@ -639,10 +680,10 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
     viewname = "sentry-api-0-organization-spans-samples"
 
     def do_request(self, query, features=None, **kwargs):
-        query["useRpc"] = "1"
+        query["dataset"] = "spans"
         return super().do_request(query, features, **kwargs)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         spans = [
             self.create_span(
                 {"description": "bar", "trace_id": "1" * 32},
@@ -706,3 +747,4 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["dataset"] == "spans"

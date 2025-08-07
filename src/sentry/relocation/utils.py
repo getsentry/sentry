@@ -405,7 +405,7 @@ class LoggingPrinter(Printer):
     and `export_*` backup methods rely on.
     """
 
-    def __init__(self, uuid: UUID):
+    def __init__(self, uuid: str):
         self.uuid = uuid
         super().__init__()
 
@@ -420,13 +420,13 @@ class LoggingPrinter(Printer):
             logger.error(
                 "Import failed: %s",
                 text,
-                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
                 "Import info: %s",
                 text,
-                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
 
 
@@ -459,7 +459,7 @@ def send_relocation_update_email(
 
 
 def start_relocation_task(
-    uuid: UUID, task: OrderedTask, allowed_task_attempts: int
+    uuid: str, task: OrderedTask, allowed_task_attempts: int
 ) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
@@ -468,7 +468,7 @@ def start_relocation_task(
     Returns a tuple of relocation model and the number of attempts remaining for this task.
     """
 
-    logger_data = {"uuid": str(uuid), "task": task.name}
+    logger_data = {"uuid": uuid, "task": task.name}
     try:
         relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
@@ -805,10 +805,3 @@ def create_cloudbuild_validation_step(
         timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )
-
-
-def uuid_to_identifier(uuid: UUID) -> int:
-    """
-    Take a UUID object and generated a unique-enough 64-bit identifier from it's final 64 bits.
-    """
-    return uuid.int & ((1 << 63) - 1)

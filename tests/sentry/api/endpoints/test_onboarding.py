@@ -1,4 +1,5 @@
 from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
@@ -9,11 +10,11 @@ class SkipOnboardingTaskTest(APITestCase):
     endpoint = "sentry-api-0-organization-onboardingtasks"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_skip_skippable_tasks(self):
+    def test_skip_skippable_tasks(self) -> None:
         """
         Test if the tasks marked as skippable in the new quick start are skipped
         """
@@ -34,7 +35,7 @@ class SkipOnboardingTaskTest(APITestCase):
             # Mark the task as skipped via API call
             self.get_success_response(
                 self.organization.slug,
-                task=OrganizationOnboardingTask.TASK_KEY_MAP.get(task_id),
+                task=OrganizationOnboardingTask.TASK_KEY_MAP.get(OnboardingTask(task_id)),
                 status="skipped",
             )
 

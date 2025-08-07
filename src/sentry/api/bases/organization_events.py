@@ -18,6 +18,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
+from sentry.api.helpers.error_upsampling import (
+    are_any_projects_error_upsampled,
+    convert_fields_for_upsampling,
+)
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -31,11 +35,12 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
 from sentry.users.services.user.serial import serialize_generic_user
@@ -62,9 +67,12 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = False
+    column: str,
+    index: int = 0,
+    transform_alias_to_input_format: bool = False,
+    use_rpc: bool = False,
 ) -> str:
-    if is_equation(column):
+    if is_equation(column) and not use_rpc:
         return f"equation[{index}]"
 
     # Function columns on input have names like `"p95(duration)"`. By default, we convert them to their aliases like `"p95_duration"`. Here, we want to preserve the original name, so we return the column as-is
@@ -75,7 +83,7 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
@@ -86,14 +94,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_equation_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
-            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+            strip_equation(field)
+            for field in request.GET.getlist(param_name)[:]
+            if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
-        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
+        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
@@ -106,7 +120,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return [team for team in teams]
 
     def get_dataset(self, request: Request) -> Any:
-        dataset_label = request.GET.get("dataset", "discover")
+        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
@@ -153,6 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
@@ -200,7 +215,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -244,21 +259,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
-            if features.has(
-                "organizations:performance-discover-dataset-selector", organization, actor=user
-            ):
-                # In the case that neither side has data, or both sides have data, default to errors.
-                decision = DashboardWidgetTypes.ERROR_EVENTS
-                source = DashboardDatasetSourcesTypes.FORCED.value
-                sentry_sdk.set_tag("discover.split_reason", "default")
-            else:
-                # This branch can be deleted once the feature flag for the discover split is removed
-                if has_errors and has_transactions_data:
-                    decision = DashboardWidgetTypes.DISCOVER
-                else:
-                    # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
-                    # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-                    decision = None
+            # In the case that neither side has data, or both sides have data, default to errors.
+            decision = DashboardWidgetTypes.ERROR_EVENTS
+            source = DashboardDatasetSourcesTypes.FORCED.value
+            sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:
@@ -316,9 +320,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()"]:
+            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
                 return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()"]:
+            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
             else:
                 return None, field_type
@@ -346,7 +350,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
-                query = meta.pop("query", None)
+                debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -369,8 +373,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     meta["dataScanned"] = "full"
 
                 # Only appears in meta when debug is passed to the endpoint
-                if query:
-                    meta["query"] = query
+                if debug_info:
+                    meta["debug_info"] = debug_info
             else:
                 meta = fields_meta
 
@@ -423,6 +427,17 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+        """
+        If the query is for error upsampled projects, we convert various functions under the hood.
+        We need to rename these fields before returning the results to the client, to hide the conversion.
+        This is done here to work around a limitation in how aliases are handled in the SnQL parser.
+        """
+        if are_any_projects_error_upsampled(project_ids):
+            data = results.get("data", [])
+            fields_meta = results.get("meta", {}).get("fields", {})
+            convert_fields_for_upsampling(data, fields_meta)
+
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
     ) -> None:
@@ -456,6 +471,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
         # If the user sends an invalid interval, use the default instead
         except InvalidSearchQuery:
+            # on RPC don't use default interval on error
+            if use_rpc:
+                raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
@@ -514,6 +532,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
+                if use_rpc and snuba_params.date_range.total_seconds() < min(VALID_GRANULARITIES):
+                    raise InvalidSearchQuery(
+                        f"Timeseries queries must be for periods of at least {min(VALID_GRANULARITIES)} seconds"
+                    )
                 rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
                 snuba_params.granularity_secs = rollup
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -547,6 +569,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                             transform_alias_to_input_format=transform_alias_to_input_format,
+                            use_rpc=use_rpc,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -554,7 +577,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format
+                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
                         )
                         results[key] = serializer.serialize(
                             event_result,
@@ -587,6 +610,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -594,7 +618,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
-                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
+                column = resolve_axis_column(
+                    query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                )
                 serialized_result = serializer.serialize(
                     result,
                     column=column,
@@ -644,6 +670,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
@@ -659,15 +686,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                resolve_axis_column(
+                    query_column, equations, transform_alias_to_input_format, use_rpc
+                ),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,
             )
             if is_equation(query_column):
                 equations += 1
-            self.update_meta_with_accuracy(meta, event_result, query_column)
-            result[columns[index]]["meta"] = meta
+            column_meta = meta.copy()
+            self.update_meta_with_accuracy(column_meta, event_result, query_column)
+            result[columns[index]]["meta"] = column_meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]

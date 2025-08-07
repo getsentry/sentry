@@ -83,7 +83,7 @@ export function makeColorBufferForNodes(
   return colorBuffer;
 }
 
-export function makeColorBuffer(
+function makeColorBuffer(
   frames: readonly FlamegraphFrame[],
   colorMap: Map<any, ColorChannels>,
   fallbackColor: ColorChannels
@@ -132,7 +132,7 @@ export const makeStackToColor = (
   };
 };
 
-export function isNumber(input: unknown): input is number {
+function isNumber(input: unknown): input is number {
   return typeof input === 'number' && !isNaN(input);
 }
 
@@ -168,7 +168,7 @@ function frameLibraryKey(frame: FlamegraphFrame): string {
   return frame.frame.package ?? frame.frame.module ?? '';
 }
 
-export function defaultFrameKey(frame: FlamegraphFrame): string {
+function defaultFrameKey(frame: FlamegraphFrame): string {
   return `${frame.frame.name}:${frame.frame.package}:${frame.frame.module}`;
 }
 

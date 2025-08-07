@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -164,7 +164,7 @@ function TimeSince({
     fixed: options?.clock24Hours
       ? 'November 3, 2020 08:57 UTC'
       : 'November 3, 2020 8:58 AM UTC',
-    value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    value: moment(dateObj).format(format),
   });
 
   return (
@@ -191,7 +191,7 @@ function TimeSince({
 
 export default TimeSince;
 
-function getRelativeDate(
+export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   prefix?: string,

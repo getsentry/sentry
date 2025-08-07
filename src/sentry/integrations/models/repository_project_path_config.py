@@ -28,14 +28,14 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
-    automatically_generated = models.BooleanField(default=False)
+    automatically_generated = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
 
-    def __repr__(self) -> str:  # type: ignore[override]
+    def __repr__(self) -> str:
         return (
             f"RepositoryProjectPathConfig(repo={self.repository.name}, "
             + f"branch={self.default_branch}, "

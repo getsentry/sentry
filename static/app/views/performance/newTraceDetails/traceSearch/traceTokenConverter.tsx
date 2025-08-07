@@ -118,7 +118,7 @@ const BOOLEAN_KEYS = new Set([
   ...withPrefixedPermutation('span', SPAN_BOOLEAN_KEYS),
 ]);
 
-export const TRACE_SEARCH_CONFIG: SearchConfig = {
+const TRACE_SEARCH_CONFIG: SearchConfig = {
   ...defaultConfig,
   textOperatorKeys: TEXT_KEYS,
   durationKeys: DURATION_KEYS,

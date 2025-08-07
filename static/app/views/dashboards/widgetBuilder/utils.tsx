@@ -5,11 +5,9 @@ import trimStart from 'lodash/trimStart';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
-  aggregateFunctionOutputType,
   aggregateOutputType,
   AGGREGATIONS,
   getEquationAliasIndex,
@@ -17,12 +15,10 @@ import {
   isEquationAlias,
   isLegalYAxisType,
   type QueryFieldValue,
-  SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {FlatValidationError, ValidationError} from 'sentry/views/dashboards/utils';
@@ -32,7 +28,6 @@ import {
   type FieldValueOption,
 } from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
@@ -52,6 +47,7 @@ export enum DataSet {
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
+  LOGS = 'ourlogs',
 }
 
 export enum SortDirection {
@@ -333,88 +329,6 @@ export function getFields(fieldsString: string): string[] {
   return fieldsString.split(/,(?![^(]*\))/g);
 }
 
-export function getAmendedFieldOptions({
-  measurements,
-  organization,
-  tags,
-}: {
-  measurements: MeasurementCollection;
-  organization: OrganizationSummary;
-  tags: TagCollection;
-}) {
-  return generateFieldOptions({
-    organization,
-    tagKeys: Object.values(tags).map(({key}) => key),
-    measurementKeys: Object.values(measurements).map(({key}) => key),
-    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-  });
-}
-
-// Extract metric names from aggregation functions present in the widget queries
-export function getMetricFields(queries: WidgetQuery[]) {
-  return queries.reduce<string[]>((acc, query) => {
-    for (const field of [...query.aggregates, ...query.columns]) {
-      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
-      if (fieldParameter && !acc.includes(fieldParameter)) {
-        acc.push(fieldParameter);
-      }
-    }
-
-    return acc;
-  }, []);
-}
-
-// Used to limit the number of results of the "filter your results" fields dropdown
-export const MAX_SEARCH_ITEMS = 5;
-
-// Used to set the max height of the smartSearchBar menu
-export const MAX_MENU_HEIGHT = 250;
-
-// Any function/field choice for Big Number widgets is legal since the
-// data source is from an endpoint that is not timeseries-based.
-// The function/field choice for World Map widget will need to be numeric-like.
-// Column builder for Table widget is already handled above.
-export function doNotValidateYAxis(displayType: DisplayType) {
-  return displayType === DisplayType.BIG_NUMBER;
-}
-
-export function filterPrimaryOptions({
-  option,
-  widgetType,
-  displayType,
-}: {
-  displayType: DisplayType;
-  option: FieldValueOption;
-  widgetType?: WidgetType;
-}) {
-  if (widgetType === WidgetType.RELEASE) {
-    if (displayType === DisplayType.TABLE) {
-      return [
-        FieldValueKind.FUNCTION,
-        FieldValueKind.FIELD,
-        FieldValueKind.NUMERIC_METRICS,
-      ].includes(option.value.kind);
-    }
-    if (displayType === DisplayType.TOP_N) {
-      return option.value.kind === FieldValueKind.TAG;
-    }
-  }
-
-  // Only validate function names for timeseries widgets and
-  // world map widgets.
-  if (!doNotValidateYAxis(displayType) && option.value.kind === FieldValueKind.FUNCTION) {
-    const primaryOutput = aggregateFunctionOutputType(option.value.meta.name, undefined);
-    if (primaryOutput) {
-      // If a function returns a specific type, then validate it.
-      return isLegalYAxisType(primaryOutput);
-    }
-  }
-
-  return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
-    option.value.kind
-  );
-}
-
 export function getResultsLimit(numQueries: number, numYAxes: number) {
   if (numQueries === 0 || numYAxes === 0) {
     return DEFAULT_RESULTS_LIMIT;
@@ -429,9 +343,7 @@ export function getIsTimeseriesChart(displayType: DisplayType) {
 
 // Handle adding functions to the field options
 // Field and equations are already compatible
-export function getFieldOptionFormat(
-  field: QueryFieldValue
-): [string, FieldValueOption] | null {
+function getFieldOptionFormat(field: QueryFieldValue): [string, FieldValueOption] | null {
   if (field.kind === 'function') {
     // Show the ellipsis if there are parameters that actually have values
     const ellipsis = field.function.slice(1).some(Boolean) ? '\u2026' : '';

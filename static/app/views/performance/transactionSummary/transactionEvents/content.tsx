@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -26,10 +26,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
@@ -56,7 +59,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: readonly string[] = [
+const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -159,20 +162,32 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
+  const table = shouldUseOTelFriendlyUI ? (
+    <OverviewSpansTable
+      eventView={eventView}
+      totalValues={null}
+      transactionName={transactionName}
+    />
+  ) : (
+    <EventsTable
+      theme={theme}
+      eventView={eventView}
+      organization={organization}
+      routes={routes}
+      location={location}
+      setError={setError}
+      columnTitles={titles}
+      transactionName={transactionName}
+      domainViewFilters={domainViewFilters}
+    />
+  );
+
   return (
     <Layout.Main fullWidth>
       <Search {...props} eventView={eventView} />
-      <EventsTable
-        theme={theme}
-        eventView={eventView}
-        organization={organization}
-        routes={routes}
-        location={location}
-        setError={setError}
-        columnTitles={titles}
-        transactionName={transactionName}
-        domainViewFilters={domainViewFilters}
-      />
+      {table}
     </Layout.Main>
   );
 }
@@ -187,6 +202,7 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
+    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -220,14 +236,19 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   return (
     <FilterActions>
-      <Filter
-        organization={organization}
-        currentFilter={spanOperationBreakdownFilter}
-        onChangeFilter={onChangeSpanOperationBreakdownFilter}
-      />
+      {shouldUseOTelFriendlyUI ? (
+        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+      ) : (
+        <Filter
+          organization={organization}
+          currentFilter={spanOperationBreakdownFilter}
+          onChangeFilter={onChangeSpanOperationBreakdownFilter}
+        />
+      )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
@@ -268,22 +289,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(4, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

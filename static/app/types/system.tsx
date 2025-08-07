@@ -11,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
-  U2F_SIGN = 'U2fSign',
+  WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
@@ -335,7 +335,7 @@ export type StatusPageServiceStatus =
   | 'major_outage'
   | 'partial_outage';
 
-export interface StatusPageIncidentComponent {
+interface StatusPageIncidentComponent {
   /**
    * ISO 8601 component creation time
    */
@@ -360,7 +360,7 @@ export interface StatusPageIncidentComponent {
   updated_at: string;
 }
 
-export interface StatusPageAffectedComponent {
+interface StatusPageAffectedComponent {
   code: StatusPageComponent;
   name: string;
   new_status: StatusPageServiceStatus;
@@ -457,8 +457,3 @@ export interface StatuspageIncident {
    */
   updated_at: string | undefined;
 }
-
-export type PromptActivity = {
-  dismissedTime?: number;
-  snoozedTime?: number;
-};

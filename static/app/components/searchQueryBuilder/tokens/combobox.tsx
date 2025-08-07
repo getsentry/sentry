@@ -9,13 +9,14 @@ import {
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
-import type {AriaListBoxOptions} from '@react-aria/listbox';
+import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
+import Feature from 'sentry/components/acl/feature';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
@@ -25,9 +26,14 @@ import {
   getDisabledOptions,
   getHiddenOptions,
 } from 'sentry/components/core/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
+import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
   findItemInSections,
   itemIsSection,
@@ -167,20 +173,48 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   filterValue,
   maxOptions,
   shouldFilterResults,
+  showAskSeerOption,
 }: {
   filterValue: string;
   items: T[];
+  showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
+  const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
-  }, [items, shouldFilterResults, filterValue, maxOptions]);
+    const options = getHiddenOptions(
+      items,
+      shouldFilterResults ? filterValue : '',
+      maxOptions
+    );
 
-  const disabledKeys = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions],
-    [hiddenOptions, items]
-  );
+    if (showAskSeerOption) {
+      if (gaveSeerConsent) {
+        options.add(ASK_SEER_ITEM_KEY);
+      } else {
+        options.add(ASK_SEER_CONSENT_ITEM_KEY);
+      }
+    }
+
+    return options;
+  }, [
+    filterValue,
+    gaveSeerConsent,
+    items,
+    maxOptions,
+    shouldFilterResults,
+    showAskSeerOption,
+  ]);
+
+  const disabledKeys = useMemo(() => {
+    const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
+    return showAskSeerOption
+      ? baseDisabledKeys.filter(
+          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
+        )
+      : baseDisabledKeys;
+  }, [hiddenOptions, items, showAskSeerOption]);
 
   return {
     hiddenOptions,
@@ -259,6 +293,8 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu?: CustomComboboxMenu<T>;
   portalTarget?: HTMLElement | null;
 }) {
+  const {enableAISearch} = useSearchQueryBuilder();
+
   if (customMenu) {
     return customMenu({
       popoverRef,
@@ -286,6 +322,11 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           overlayIsOpen={isOpen}
           size="sm"
         />
+        {enableAISearch ? (
+          <Feature features="organizations:gen-ai-explore-traces">
+            <AskSeer state={state} />
+          </Feature>
+        ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -327,7 +368,7 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget} = useSearchQueryBuilder();
+  const {disabled, portalTarget, enableAISearch, wrapperRef} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -338,6 +379,7 @@ export function SearchQueryBuilderCombobox<
     filterValue,
     maxOptions,
     shouldFilterResults,
+    showAskSeerOption: enableAISearch,
   });
 
   const onSelectionChange = useCallback(
@@ -374,7 +416,7 @@ export function SearchQueryBuilderCombobox<
     ...comboBoxProps,
   });
 
-  const {inputProps, listBoxProps} = useComboBox<T>(
+  const {inputProps, listBoxProps} = useSearchTokenCombobox<T>(
     {
       ...comboBoxProps,
       'aria-label': inputLabel,
@@ -455,7 +497,7 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el)) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 
@@ -514,12 +556,18 @@ export function SearchQueryBuilderCombobox<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
+  const autosizeInput = useAutosizeInput({value: inputValue});
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
+        ref={mergeRefs(
+          ref,
+          inputRef,
+          autosizeInput,
+          triggerProps.ref as React.Ref<HTMLInputElement>
+        )}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
@@ -566,7 +614,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const UnstyledInput = styled(GrowingInput)`
+const UnstyledInput = styled(Input)`
   background: transparent;
   border: none;
   box-shadow: none;
@@ -594,7 +642,7 @@ const ListBoxOverlay = styled(Overlay)`
   max-height: 400px;
   min-width: 200px;
   width: 600px;
-  max-width: min-content;
+  max-width: fit-content;
   overflow-y: auto;
 `;
 

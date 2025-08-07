@@ -6,6 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
@@ -16,7 +17,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -162,12 +162,11 @@ export function InviteMissingMembersModal({
 
       // Use the email error message if available. This inconsistently is
       // returned as either a list of errors for the field, or a single error.
-      const emailError =
-        !errorResponse || !errorResponse.email
-          ? false
-          : Array.isArray(errorResponse.email)
-            ? errorResponse.email[0]
-            : errorResponse.email;
+      const emailError = errorResponse?.email
+        ? Array.isArray(errorResponse.email)
+          ? errorResponse.email[0]
+          : errorResponse.email
+        : false;
 
       const error = emailError || t('Could not invite user');
 
@@ -291,7 +290,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Footer>
         <div>{renderStatusMessage()}</div>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             size="sm"
             onClick={() => {
@@ -354,15 +353,15 @@ const Footer = styled('div')`
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.75)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 150px;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;

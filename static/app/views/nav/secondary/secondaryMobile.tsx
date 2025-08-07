@@ -4,8 +4,8 @@ import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
+import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 type Props = {
@@ -13,7 +13,6 @@ type Props = {
 };
 
 export function SecondaryMobile({handleClickBack}: Props) {
-  const {setSecondaryNavEl} = useNavContext();
   const activeGroup = useActiveNavGroup();
 
   return (
@@ -30,7 +29,9 @@ export function SecondaryMobile({handleClickBack}: Props) {
           {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}
         </HeaderLabel>
       </GroupHeader>
-      <ContentWrapper ref={setSecondaryNavEl} />
+      <MobileSecondaryNav>
+        <SecondaryNavContent group={activeGroup} />
+      </MobileSecondaryNav>
     </SecondaryMobileWrapper>
   );
 }
@@ -59,7 +60,7 @@ const GroupHeader = styled('h2')`
   margin: 0;
 `;
 
-const ContentWrapper = styled('div')`
+const MobileSecondaryNav = styled('div')`
   grid-area: content;
   display: flex;
   align-items: stretch;
@@ -69,6 +70,6 @@ const ContentWrapper = styled('div')`
 `;
 
 const HeaderLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

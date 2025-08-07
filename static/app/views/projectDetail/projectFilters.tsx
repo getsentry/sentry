@@ -48,7 +48,6 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
         filterKeys={SUPPORTED_TAGS}
         onSearch={onSearch}
         getTagValues={getTagValues}
-        showUnsubmittedIndicator
       />
     </FiltersWrapper>
   );
@@ -59,7 +58,7 @@ const FiltersWrapper = styled('div')`
   grid-template-columns: minmax(0, max-content) 1fr;
   gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

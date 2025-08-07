@@ -7,23 +7,23 @@ from sudo.utils import grant_sudo_privileges, has_sudo_privileges
 
 
 class SignalsTestCase(BaseTestCase):
-    def test_grant(self):
+    def test_grant(self) -> None:
         self.login()
         grant(User, self.request)
         self.assertTrue(has_sudo_privileges(self.request))
 
-    def test_revoke(self):
+    def test_revoke(self) -> None:
         self.login()
         grant(User, self.request)
         revoke(User, self.request)
         self.assertFalse(has_sudo_privileges(self.request))
 
-    def test_user_logged_in(self):
+    def test_user_logged_in(self) -> None:
         self.login()
         user_logged_in.send_robust(sender=User, request=self.request)
         self.assertTrue(has_sudo_privileges(self.request))
 
-    def test_user_logged_out(self):
+    def test_user_logged_out(self) -> None:
         self.login()
         grant_sudo_privileges(self.request)
         self.assertTrue(has_sudo_privileges(self.request))

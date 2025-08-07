@@ -2,9 +2,11 @@ import logging
 from datetime import timedelta
 from typing import cast
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -12,6 +14,9 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -104,16 +109,20 @@ def _process_suspect_commits(
                                             "project": project_id,
                                         },
                                     )
-                            analytics.record(
-                                "groupowner.assignment",
-                                organization_id=project.organization_id,
-                                project_id=project.id,
-                                group_id=group_id,
-                                new_assignment=created,
-                                user_id=go.user_id,
-                                group_owner_type=go.type,
-                                method="release_commit",
-                            )
+                            try:
+                                analytics.record(
+                                    GroupOwnerAssignment(
+                                        organization_id=project.organization_id,
+                                        project_id=project.id,
+                                        group_id=group_id,
+                                        new_assignment=created,
+                                        user_id=go.user_id,
+                                        group_owner_type=go.type,
+                                        method="release_commit",
+                                    )
+                                )
+                            except Exception as e:
+                                sentry_sdk.capture_exception(e)
 
                     except GroupOwner.MultipleObjectsReturned:
                         GroupOwner.objects.filter(
@@ -156,6 +165,14 @@ def _process_suspect_commits(
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=90,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @retry
 def process_suspect_commits(

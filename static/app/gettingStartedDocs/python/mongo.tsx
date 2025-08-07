@@ -1,13 +1,16 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  agentMonitoringOnboarding,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -30,8 +33,6 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )`;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[pymongo]'`;
-
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
@@ -40,7 +41,7 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://www.mongodb.com/docs/drivers/pymongo/" />,
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -49,21 +50,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[pymongo]'}),
     },
   ],
   configure: (params: Params) => [
@@ -91,6 +78,7 @@ const docs: Docs = {
   onboarding,
 
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

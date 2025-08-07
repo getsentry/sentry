@@ -1,10 +1,9 @@
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
-import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineListLayoutProps {
+interface WorkflowEngineListLayoutProps {
+  actions: React.ReactNode;
   /** The main content for this page */
   children: React.ReactNode;
 }
@@ -13,19 +12,19 @@ export interface WorkflowEngineListLayoutProps {
  * Precomposed full-width layout for Automations / Monitors index pages.
  * The `children` are rendered as the main body content.
  */
-function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
+function WorkflowEngineListLayout({children, actions}: WorkflowEngineListLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
-      <Layout.Header>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>
-        <ActionsFromContext />
+        <Layout.HeaderActions>{actions}</Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Flex column gap={space(1.5)}>
+          <Flex direction="column" gap="lg">
             {children}
           </Flex>
         </Layout.Main>

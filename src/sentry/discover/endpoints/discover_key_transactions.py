@@ -18,9 +18,9 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -41,7 +41,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     }
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -111,7 +111,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     return Response(status=201)
                 # Even though we tried to avoid it, the TeamKeyTransaction was created already
                 except IntegrityError:
-                    incr_rollback_metrics(TeamKeyTransaction)
                     return Response(status=409)
 
         return Response(serializer.errors, status=400)
@@ -152,7 +151,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
     }
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

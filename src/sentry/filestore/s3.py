@@ -255,28 +255,28 @@ class S3Boto3Storage(Storage):
     connection_response_error = ClientError
     file_class = S3Boto3StorageFile
     # If config provided in init, signature_version and addressing_style settings/args are ignored.
-    config = None
+    config: Config | None = None
 
     # used for looking up the access and secret key from env vars
     access_key_names = ["AWS_S3_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"]
     secret_key_names = ["AWS_S3_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"]
 
-    access_key = None
-    secret_key = None
+    access_key: str | None = None
+    secret_key: str | None = None
     file_overwrite = True
     object_parameters: dict[str, str] = {}
-    bucket_name = None
+    bucket_name: str | None = None
     auto_create_bucket = False
     default_acl = "public-read"
     bucket_acl = default_acl
     querystring_auth = True
     querystring_expire = 3600
-    signature_version = None
+    signature_version: str | None = None
     reduced_redundancy = False
     location = ""
     encryption = False
     custom_domain: str | None = None
-    addressing_style = None
+    addressing_style: str | None = None
     secure_urls = True
     file_name_charset = "utf-8"
     gzip = False
@@ -289,8 +289,8 @@ class S3Boto3Storage(Storage):
         "image/svg+xml",
     )
     url_protocol = "https:"
-    endpoint_url = None
-    region_name = None
+    endpoint_url: str | None = None
+    region_name: str | None = None
     use_ssl = True
 
     def __init__(self, acl=None, bucket=None, **settings):

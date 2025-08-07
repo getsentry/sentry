@@ -80,7 +80,7 @@ class Chartcuterie(ChartRenderer):
 
             if resp.status_code == 503 and settings.DEBUG:
                 logger.info(
-                    "You may need to build the chartcuterie config using `yarn build-chartcuterie-config`"
+                    "You may need to build the chartcuterie config using `pnpm build-chartcuterie-config`"
                 )
 
             if resp.status_code != 200:

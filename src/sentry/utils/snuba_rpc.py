@@ -50,7 +50,6 @@ SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
 SNUBA_INFO = (
     os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
 )
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 @dataclass(frozen=True)
@@ -59,7 +58,7 @@ class MultiRpcResponse:
     timeseries_response: list[TimeSeriesResponse]
 
 
-def log_snuba_info(content):
+def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
@@ -122,20 +121,21 @@ def _make_rpc_requests(
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    response = [
-        result
-        for result in _query_thread_pool.map(
-            partial_request,
-            endpoint_names,
-            # Currently assuming everything is v1
-            ["v1"] * len(referrers),
-            referrers,
-            requests,
-        )
-    ]
+    with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10) as query_thread_pool:
+        response = [
+            result
+            for result in query_thread_pool.map(
+                partial_request,
+                endpoint_names,
+                # Currently assuming everything is v1
+                ["v1"] * len(referrers),
+                referrers,
+                requests,
+            )
+        ]
 
     # Split the results back up, the thread pool will return them back in order so we can use the type in the
     # requests list to determine which request goes where
@@ -248,14 +248,12 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
     thread_isolation_scope = (
-        sentry_sdk.Scope.get_isolation_scope()
+        sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None
         else thread_isolation_scope
     )
     thread_current_scope = (
-        sentry_sdk.Scope.get_current_scope()
-        if thread_current_scope is None
-        else thread_current_scope
+        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson

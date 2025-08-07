@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -15,24 +16,22 @@ describe('messageSpanSamplesPanel', () => {
   let eventsRequestMock: jest.Mock;
   let eventsStatsRequestMock: jest.Mock;
   let samplesRequestMock: jest.Mock;
-  let spanFieldTagsMock: jest.Mock;
+  let traceItemAttributesMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -50,7 +49,14 @@ describe('messageSpanSamplesPanel', () => {
       method: 'GET',
       body: {
         data: [[1699907700, [{count: 7810}]]],
-        meta: {},
+        meta: {
+          fields: {
+            count: 'number',
+          },
+          units: {
+            count: 'millisecond',
+          },
+        },
       },
     });
 
@@ -64,8 +70,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': 0.8,
             'count_op(queue.publish)': 222,
             'count_op(queue.process)': 333,
-            'avg_if(span.duration,span.op,queue.publish)': 3.0,
-            'avg_if(span.duration,span.op,queue.process)': 4.0,
+            'avg_if(span.duration,span.op,equals,queue.publish)': 3.0,
+            'avg_if(span.duration,span.op,equals,queue.process)': 4.0,
             'count()': 555,
             'avg(messaging.message.receive.latency)': 2.0,
             'avg(span.duration)': 3.5,
@@ -77,8 +83,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': 'percentage',
             'count_op(queue.publish)': 'integer',
             'count_op(queue.process)': 'integer',
-            'avg_if(span.duration,span.op,queue.publish)': 'duration',
-            'avg_if(span.duration,span.op,queue.process)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.publish)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.process)': 'duration',
             'count()': 'integer',
             'avg(messaging.message.receive.latency)': 'number',
             'avg(span.duration)': 'duration',
@@ -88,8 +94,8 @@ describe('messageSpanSamplesPanel', () => {
             'trace_status_rate(ok)': null,
             'count_op(queue.publish)': null,
             'count_op(queue.process)': null,
-            'avg_if(span.duration,span.op,queue.publish)': 'millisecond',
-            'avg_if(span.duration,span.op,queue.process)': 'millisecond',
+            'avg_if(span.duration,span.op,equals,queue.publish)': 'millisecond',
+            'avg_if(span.duration,span.op,equals,queue.process)': 'millisecond',
             'count()': null,
             'avg(messaging.message.receive.latency)': null,
             'avg(span.duration)': 'millisecond',
@@ -111,11 +117,15 @@ describe('messageSpanSamplesPanel', () => {
             'span.duration': 320.300102,
           },
         ],
+        meta: {
+          fields: {},
+          units: {},
+        },
       },
     });
 
-    spanFieldTagsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+    traceItemAttributesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
         {
@@ -131,6 +141,11 @@ describe('messageSpanSamplesPanel', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
   });
@@ -161,7 +176,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',
@@ -169,11 +184,10 @@ describe('messageSpanSamplesPanel', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -188,10 +202,11 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
-            'measurements.messaging.message.receive.latency',
+            'messaging.message.receive.latency',
             'measurements.messaging.message.retry.count',
             'messaging.message.id',
             'trace.status',
@@ -210,15 +225,31 @@ describe('messageSpanSamplesPanel', () => {
         }),
       })
     );
-    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
         query: {
+          attributeType: 'number',
+          itemType: 'spans',
           project: [],
-          environment: [],
-          statsPeriod: '1h',
+          statsPeriod: '10d',
+          substringMatch: undefined,
+        },
+      })
+    );
+    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          attributeType: 'string',
+          itemType: 'spans',
+          project: [],
+          statsPeriod: '10d',
+          substringMatch: undefined,
         },
       })
     );
@@ -257,7 +288,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'count()',
@@ -265,11 +296,10 @@ describe('messageSpanSamplesPanel', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -284,10 +314,11 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
-            'measurements.messaging.message.receive.latency',
+            'messaging.message.receive.latency',
             'measurements.messaging.message.retry.count',
             'messaging.message.id',
             'trace.status',
@@ -306,14 +337,31 @@ describe('messageSpanSamplesPanel', () => {
         }),
       })
     );
-    expect(spanFieldTagsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
         query: {
+          attributeType: 'number',
+          itemType: 'spans',
           project: [],
-          environment: [],
-          statsPeriod: '1h',
+          statsPeriod: '10d',
+          substringMatch: undefined,
+        },
+      })
+    );
+    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          attributeType: 'string',
+          itemType: 'spans',
+          project: [],
+          statsPeriod: '10d',
+          substringMatch: undefined,
         },
       })
     );

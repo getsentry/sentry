@@ -116,6 +116,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       organization,
     });
     traceDispatch({type: 'clear query'});
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
@@ -227,9 +231,9 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={traceState.search.query}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        defaultValue={traceState.search.query}
         onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
@@ -343,7 +347,7 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 
 const StyledTrailingText = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledSearchBar = styled(InputGroup)`

@@ -18,7 +18,8 @@ function AutofixFeedback() {
       size="xs"
       onClick={() =>
         openForm({
-          messagePlaceholder: t('How can we make Autofix better for you?'),
+          formTitle: t('Give feedback to the devs'),
+          messagePlaceholder: t('How can we make Seer better for you?'),
           tags: {
             ['feedback.source']: 'issue_details_ai_autofix',
             ['feedback.owner']: 'ml-ai',
@@ -26,7 +27,7 @@ function AutofixFeedback() {
         })
       }
     >
-      {t('Give Feedback')}
+      {t('Give Us Feedback')}
     </Button>
   );
 }

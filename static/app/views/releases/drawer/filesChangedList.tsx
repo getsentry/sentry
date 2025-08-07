@@ -10,12 +10,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import FileChange from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
 import RepositorySwitcher from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
 import {getFilesByRepository, getReposToRender} from 'sentry/views/releases/detail/utils';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {useReleaseCommitFiles} from 'sentry/views/releases/utils/useReleaseCommitFiles';
 
 interface FilesChangedProps {
@@ -24,10 +26,18 @@ interface FilesChangedProps {
 }
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
-  const location = useLocation();
   const navigate = useNavigate();
+  const {
+    [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
+    [ReleasesDrawerFields.FILES_CURSOR]: rdFilesCursor,
+  } = useLocationQuery({
+    fields: {
+      [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
+      [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
+    },
+  });
   const activeReleaseRepo =
-    releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
+    releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
   const {
     data: fileList = [],
@@ -38,7 +48,7 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   } = useReleaseCommitFiles({
     release,
     activeRepository: activeReleaseRepo,
-    cursor: location.query.fileCursor,
+    cursor: rdFilesCursor,
   });
 
   const filesByRepository = getFilesByRepository(fileList);
@@ -90,7 +100,7 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
               onCursor={(cursor, path, searchQuery) => {
                 navigate({
                   pathname: path,
-                  query: {...searchQuery, fileCursor: cursor},
+                  query: {...searchQuery, [ReleasesDrawerFields.FILES_CURSOR]: cursor},
                 });
               }}
             />

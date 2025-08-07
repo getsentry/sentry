@@ -2,14 +2,15 @@
  * Given a timeseries and a delay in seconds, goes through the timeseries data, and marks each point as either delayed (data bucket ended before the delay threshold) or not
  */
 
+import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export function markDelayedData(timeSeries: TimeSeries, delay: number) {
+export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeries {
   if (delay === 0) {
     return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesBucketSize(timeSeries);
+  const bucketSize = timeSeries.meta.interval;
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
@@ -18,28 +19,22 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number) {
   // backwards and immediately stopping once we see the first complete point
   return {
     ...timeSeries,
-    data: timeSeries.data.map(datum => {
+    values: timeSeries.values.map(datum => {
       const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
       const delayed = bucketEndTimestamp >= ingestionDelayTimestamp;
 
+      if (defined(datum.incomplete)) {
+        return datum;
+      }
+
+      if (!delayed) {
+        return datum;
+      }
+
       return {
         ...datum,
-        delayed,
+        incomplete: true,
       };
     }),
   };
-}
-
-function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
-  const penultimateDatum = timeSeries.data.at(-2);
-  const finalDatum = timeSeries.data.at(-1);
-
-  let bucketSize = 0;
-  if (penultimateDatum && finalDatum) {
-    bucketSize =
-      new Date(finalDatum.timestamp).getTime() -
-      new Date(penultimateDatum.timestamp).getTime();
-  }
-
-  return bucketSize;
 }

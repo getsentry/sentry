@@ -6,8 +6,8 @@ from sentry.integrations.slack.message_builder.types import SLACK_URL_FORMAT
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.utils.http import absolute_uri
 
 

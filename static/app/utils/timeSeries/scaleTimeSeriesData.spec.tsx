@@ -6,16 +6,17 @@ import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 describe('scaleTimeSeriesData', () => {
   describe('does not scale unscalable types', () => {
     const timeSeries: TimeSeries = {
-      field: 'user',
-      data: [
+      yAxis: 'user',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
       meta: {
-        type: 'string',
-        unit: null,
+        valueType: 'string',
+        valueUnit: null,
+        interval: 800,
       },
     };
 
@@ -29,16 +30,17 @@ describe('scaleTimeSeriesData', () => {
 
   it('does not scale duration units from second to gigabyte', () => {
     const timeSeries: TimeSeries = {
-      field: 'transaction.duration',
-      data: [
+      yAxis: 'transaction.duration',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
+        interval: 800,
       },
     };
 
@@ -47,60 +49,64 @@ describe('scaleTimeSeriesData', () => {
 
   it('scales duration units from second to millisecond', () => {
     const timeSeries: TimeSeries = {
-      field: 'transaction.duration',
-      data: [
+      yAxis: 'transaction.duration',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
+        interval: 800,
       },
     };
 
     expect(scaleTimeSeriesData(timeSeries, DurationUnit.MILLISECOND)).toEqual({
-      field: 'transaction.duration',
-      data: [
+      yAxis: 'transaction.duration',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17000,
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
+        interval: 800,
       },
     });
   });
 
   it('scales size units from mebibyte to byte', () => {
     const timeSeries: TimeSeries = {
-      field: 'file.size',
-      data: [
+      yAxis: 'file.size',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
       meta: {
-        type: 'size',
-        unit: SizeUnit.MEBIBYTE,
+        valueType: 'size',
+        valueUnit: SizeUnit.MEBIBYTE,
+        interval: 800,
       },
     };
 
     expect(scaleTimeSeriesData(timeSeries, SizeUnit.BYTE)).toEqual({
-      field: 'file.size',
-      data: [
+      yAxis: 'file.size',
+      values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17825792,
         },
       ],
       meta: {
-        type: 'size',
-        unit: SizeUnit.BYTE,
+        valueType: 'size',
+        valueUnit: SizeUnit.BYTE,
+        interval: 800,
       },
     });
   });

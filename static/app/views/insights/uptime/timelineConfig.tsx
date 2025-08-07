@@ -33,23 +33,23 @@ export const reasonToText: Record<
   [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
 };
 
-export const tickStyle: Record<CheckStatus, TickStyle> = {
+export const tickStyle: TickStyle<CheckStatus> = theme => ({
   [CheckStatus.SUCCESS]: {
-    labelColor: 'green400',
-    tickColor: 'green300',
+    labelColor: theme.green400,
+    tickColor: theme.green300,
   },
   [CheckStatus.FAILURE]: {
-    labelColor: 'red400',
-    tickColor: 'red300',
-    hatchTick: 'red200',
+    labelColor: theme.red400,
+    tickColor: theme.red300,
+    hatchTick: theme.red200,
   },
   [CheckStatus.FAILURE_INCIDENT]: {
-    labelColor: 'red400',
-    tickColor: 'red300',
+    labelColor: theme.red400,
+    tickColor: theme.red300,
   },
   [CheckStatus.MISSED_WINDOW]: {
-    labelColor: 'gray400',
-    tickColor: 'gray300',
-    hatchTick: 'gray200',
+    labelColor: theme.gray400,
+    tickColor: theme.gray300,
+    hatchTick: theme.gray200,
   },
-};
+});

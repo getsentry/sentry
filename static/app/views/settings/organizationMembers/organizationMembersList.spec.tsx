@@ -166,7 +166,11 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList />, {organization, router});
+    render(<OrganizationMembersList />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal({router});
 
     // The organization member row
@@ -191,7 +195,11 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList />, {organization, router});
+    render(<OrganizationMembersList />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal({router});
 
     // The organization member row
@@ -215,7 +223,11 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList />, {organization, router});
+    render(<OrganizationMembersList />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
@@ -242,7 +254,11 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    render(<OrganizationMembersList />, {organization, router});
+    render(<OrganizationMembersList />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
@@ -265,7 +281,11 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList />, {organization, router});
+    render(<OrganizationMembersList />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
@@ -287,7 +307,10 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList />, {organization});
+    render(<OrganizationMembersList />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -304,7 +327,10 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList />, {organization});
+    render(<OrganizationMembersList />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -321,6 +347,7 @@ describe('OrganizationMembersList', function () {
 
     const {rerender} = render(<OrganizationMembersList />, {
       router: filterRouter,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.type(await screen.findByPlaceholderText('Search Members'), 'member');
@@ -354,6 +381,7 @@ describe('OrganizationMembersList', function () {
     const filterRouter = RouterFixture();
     const {rerender} = render(<OrganizationMembersList />, {
       router: filterRouter,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
@@ -453,7 +481,10 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList />, {organization: org});
+      render(<OrganizationMembersList />, {
+        organization: org,
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -477,7 +508,11 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList />, {organization, router});
+      render(<OrganizationMembersList />, {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
 
@@ -513,7 +548,10 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationMembersList />, {organization});
+      render(<OrganizationMembersList />, {
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
 
@@ -547,7 +585,11 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList />, {organization: org, router});
+      render(<OrganizationMembersList />, {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Role: Member'}), [
@@ -577,7 +619,11 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: inviteOrg, router});
+      render(<OrganizationMembersList />, {
+        organization: inviteOrg,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
@@ -594,7 +640,11 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: org, router});
+      render(<OrganizationMembersList />, {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       expect(await screen.findByRole('button', {name: 'Invite Members'})).toBeDisabled();
@@ -611,7 +661,11 @@ describe('OrganizationMembersList', function () {
         requiresSso: true,
       });
 
-      render(<OrganizationMembersList />, {organization: org, router});
+      render(<OrganizationMembersList />, {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
@@ -628,7 +682,11 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: org, router});
+      render(<OrganizationMembersList />, {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
@@ -646,7 +704,11 @@ describe('OrganizationMembersList', function () {
         method: 'GET',
         body: {},
       });
-      render(<OrganizationMembersList />, {organization, router});
+      render(<OrganizationMembersList />, {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       expect(await screen.findByText('Members')).toBeInTheDocument();
@@ -656,7 +718,11 @@ describe('OrganizationMembersList', function () {
     it('renders only current user in demo mode', async function () {
       (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
-      render(<OrganizationMembersList />, {organization, router});
+      render(<OrganizationMembersList />, {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       expect(await screen.findByText('Members')).toBeInTheDocument();
@@ -680,7 +746,11 @@ describe('OrganizationMembersList', function () {
         match: [MockApiClient.matchQuery({query: 'role:owner isInvited:false'})],
       });
       const searchRouter = RouterFixture({location: {query: {query: currentUser.name}}});
-      render(<OrganizationMembersList />, {organization, router: searchRouter});
+      render(<OrganizationMembersList />, {
+        organization,
+        router: searchRouter,
+        deprecatedRouterMocks: true,
+      });
       renderGlobalModal({router});
 
       expect(await screen.findByText('Members')).toBeInTheDocument();

@@ -2,6 +2,8 @@ import subprocess
 import sys
 
 modules = [
+    "django.contrib.messages.storage.fallback",
+    "django.contrib.sessions.serializers",
     "django.db.models.sql.compiler",
     "sentry.identity.services.identity.impl",
     "sentry.integrations.services.integration.impl",
@@ -34,7 +36,7 @@ for lang, _ in settings.LANGUAGES:
 """
 
 
-def test_wsgi_init():
+def test_wsgi_init() -> None:
     """
     This test ensures that the wsgi.py file correctly pre-loads the application and
     various resources we want to be "warm"

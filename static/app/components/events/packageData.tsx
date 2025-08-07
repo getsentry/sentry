@@ -87,16 +87,16 @@ export function EventPackageData({event}: Props) {
   );
 }
 
-export const ColumnsContainer = styled('div')<{columnCount: number}>`
+const ColumnsContainer = styled('div')<{columnCount: number}>`
   display: grid;
   align-items: start;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
 `;
 
-export const Column = styled('div')`
+const Column = styled('div')`
   display: grid;
   grid-template-columns: fit-content(65%) 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   &:first-child {
     margin-left: -${space(1)};
   }

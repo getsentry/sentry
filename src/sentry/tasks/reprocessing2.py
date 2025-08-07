@@ -1,6 +1,4 @@
 import time
-from collections.abc import Sequence
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sentry_sdk
@@ -14,9 +12,12 @@ from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.query import celery_run_batch_query
+from sentry.utils.query import CeleryBulkQueryState, celery_run_batch_query
 
 
 @instrumented_task(
@@ -25,13 +26,17 @@ from sentry.utils.query import celery_run_batch_query
     time_limit=120,
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=120,
+    ),
 )
 def reprocess_group(
     project_id: int,
     group_id: int,
     remaining_events: str = "delete",
     new_group_id: int | None = None,
-    query_state: str | None = None,
+    query_state: CeleryBulkQueryState | None = None,
     start_time: float | None = None,
     max_events: int | None = None,
     acting_user_id: int | None = None,
@@ -100,7 +105,7 @@ def reprocess_group(
                         start_time=start_time,
                     )
                 except CannotReprocess as e:
-                    logger.error("reprocessing2.%s", str(e))
+                    logger.warning("reprocessing2.%s", str(e))
                 except Exception:
                     sentry_sdk.capture_exception()
                 else:
@@ -141,19 +146,21 @@ def reprocess_group(
     time_limit=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60 * 5,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 @retry
 def handle_remaining_events(
     project_id: int,
     new_group_id: int,
     remaining_events: str,
-    # TODO(markus): Should be mandatory arguments.
-    event_ids_redis_key: str | None = None,
-    old_group_id: int | None = None,
-    # TODO(markus): Deprecated arguments, can remove in next version.
-    event_ids: Sequence[str] | None = None,
-    from_timestamp: datetime | None = None,
-    to_timestamp: datetime | None = None,
+    event_ids_redis_key: str,
+    old_group_id: int,
 ) -> None:
     """
     Delete or merge/move associated per-event data: nodestore, event
@@ -230,6 +237,10 @@ def handle_remaining_events(
     queue="events.reprocessing.process_event",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=(60 * 5) + 5,
+    ),
 )
 def finish_reprocessing(project_id: int, group_id: int) -> None:
     from sentry.models.activity import Activity

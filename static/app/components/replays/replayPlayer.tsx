@@ -11,8 +11,8 @@ import {
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 import UnmaskAlert from './unmaskAlert';
 
@@ -41,50 +41,13 @@ interface Props {
   overlayContent?: React.ReactNode;
 }
 
-function useVideoSizeLogger({
-  videoDimensions,
-  windowDimensions,
-}: {
-  videoDimensions: Dimensions;
-  windowDimensions: Dimensions;
-}) {
-  const organization = useOrganization();
-  const [didLog, setDidLog] = useState<boolean>(false);
-  const {analyticsContext} = useReplayContext();
-
-  useEffect(() => {
-    if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
-      return;
-    }
-
-    const aspect_ratio =
-      videoDimensions.width > videoDimensions.height ? 'landscape' : 'portrait';
-
-    const scale = Math.min(
-      windowDimensions.width / videoDimensions.width,
-      windowDimensions.height / videoDimensions.height,
-      1
-    );
-    const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
-      typeof trackAnalytics<'replay.render-player'>
-    >[1]['scale_bucket'];
-
-    trackAnalytics('replay.render-player', {
-      organization,
-      aspect_ratio,
-      context: analyticsContext,
-      scale_bucket,
-    });
-    setDidLog(true);
-  }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
-}
-
 function BasePlayerRoot({
   className,
   overlayContent,
   isPreview = false,
   inspectable,
 }: Props) {
+  const replay = useReplayReader();
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -94,7 +57,6 @@ function BasePlayerRoot({
     isFetching,
     isFinished,
     isVideoReplay,
-    replay,
   } = useReplayContext();
 
   const sdkOptions = replay?.getSDKOptions();
@@ -112,8 +74,6 @@ function BasePlayerRoot({
     width: 0,
     height: 0,
   });
-
-  useVideoSizeLogger({videoDimensions, windowDimensions});
 
   // Sets the parent element where the player
   // instance will use as root (i.e. where it will
@@ -155,6 +115,8 @@ function BasePlayerRoot({
     updateWindowDimensions();
   }, [updateWindowDimensions]);
 
+  const [, setViewSize] = useReplayPlayerSize();
+
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
@@ -166,6 +128,11 @@ function BasePlayerRoot({
         1.5
       );
       if (scale) {
+        setViewSize({
+          width: windowDimensions.width,
+          height: windowDimensions.height,
+          scale,
+        });
         // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
@@ -173,7 +140,7 @@ function BasePlayerRoot({
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [windowDimensions, videoDimensions, setViewSize]);
 
   return (
     <Fragment>

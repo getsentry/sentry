@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:38.609666+00:00'
+created: '2025-04-25T21:24:35.815206+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,62 +30,62 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "TableView.layoutSubviews"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "AnyTableViewController.tableView"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "anytableviewcontroller.swift"
               function*
                 "AnyTableViewController.tableView"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "dailydigesttableviewsection.swift"
               function*
                 "DailyDigestTableViewSection.photoCell"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "MediaSlideshow.toSources"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mediaslideshow+extensions.swift"
               function*
                 "MediaSlideshow.toSources"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "Sequence.compactMap<T>"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mediaslideshow+extensions.swift"
               function*
                 "MediaSlideshow.toSources"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mediaslideshow+extensions.swift"
               function*
                 "MediaSlideshow.toSource"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<compiler-generated>"
               function*
                 "CurrentUserProfile.isVideoAutoplay.getter"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "currentuserprofile.swift"
               function*
                 "CurrentUserProfile.isVideoAutoplay.getter"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "currentuserprofile.swift"
               function*

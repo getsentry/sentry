@@ -18,9 +18,9 @@ from google.api_core.exceptions import TooManyRequests
 from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger()
 
@@ -146,7 +146,6 @@ class FilestoreBlob(Blob):
                 size=len(value),
             )
         except IntegrityError:
-            incr_rollback_metrics(ReplayRecordingSegment)
             logger.warning(
                 "Recording-segment has already been processed.",
                 extra={
@@ -208,7 +207,8 @@ class SimpleStorageBlob:
     def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
-            storage.save(key, BytesIO(value))
+            with measure_storage_put(len(value), "replays", "gzip"):
+                storage.save(key, BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")

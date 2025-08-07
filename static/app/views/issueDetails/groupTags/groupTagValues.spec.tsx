@@ -4,13 +4,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {GroupTagValues} from 'sentry/views/issueDetails/groupTags/groupTagValues';
@@ -58,7 +52,10 @@ describe('GroupTagValues', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<GroupTagValues />, {router});
+    render(<GroupTagValues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     // Special case for user tag - column title changes to Affected Users
     expect(await screen.findByText('Affected Users')).toBeInTheDocument();
@@ -83,7 +80,10 @@ describe('GroupTagValues', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(<GroupTagValues />, {router});
+    render(<GroupTagValues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
@@ -106,13 +106,12 @@ describe('GroupTagValues', () => {
     });
     render(<GroupTagValues />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'More'}));
     await userEvent.click(
-      within(
-        screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
-      ).getByRole('link')
+      screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
     );
 
     expect(router.push).toHaveBeenCalledWith({
@@ -129,7 +128,10 @@ describe('GroupTagValues', () => {
       statusCode: 500,
     });
 
-    render(<GroupTagValues />, {router});
+    render(<GroupTagValues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There was an error loading tag details')
@@ -144,7 +146,10 @@ describe('GroupTagValues', () => {
       body: [],
     });
 
-    render(<GroupTagValues />, {router});
+    render(<GroupTagValues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText(

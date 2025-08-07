@@ -1,23 +1,51 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/laravel/durationWidget';
-import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
+import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
+import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
+import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
+import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
+import {CommandsTable} from 'sentry/views/insights/pages/platform/laravel/commandsTable';
+import {JobsTable} from 'sentry/views/insights/pages/platform/laravel/jobsTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
-import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
-import {RequestsWidget} from 'sentry/views/insights/pages/platform/laravel/requestsWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
+
+enum TableType {
+  PATHS = 'paths',
+  COMMANDS = 'commands',
+  QUEUES = 'queues',
+}
+
+function isTableType(value: any): value is TableType {
+  return Object.values(TableType).includes(value as TableType);
+}
+
+const decodeTableType = (value: any): TableType => {
+  if (isTableType(value)) {
+    return value;
+  }
+  return TableType.PATHS;
+};
+
+const TableControl = SegmentedControl<TableType>;
+const TableControlItem = SegmentedControl.Item<TableType>;
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const currentView = decodeTableType(location.query.view);
 
   useEffect(() => {
     trackAnalytics('laravel-insights.page-view', {
@@ -26,117 +54,70 @@ export function LaravelOverviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
+  function handleViewChange(view: TableType) {
+    trackAnalytics('laravel-insights.table_view_change', {
+      organization,
+      view,
+    });
+
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          // Reset cursors when view changes
+          pathsCursor: undefined,
+          commandsCursor: undefined,
+          jobsCursor: undefined,
+          // Reset sort parameters when view changes
+          field: undefined,
+          order: undefined,
+          view,
+        },
+      },
+      {
+        replace: true,
+        preventScrollReset: true,
+      }
+    );
+  }
 
   return (
-    <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
+    <PlatformLandingPageLayout performanceType={'backend'}>
       <WidgetGrid>
-        <RequestsContainer>
-          <RequestsWidget query={query} />
-        </RequestsContainer>
-        <IssuesContainer>
-          <IssuesWidget query={query} />
-        </IssuesContainer>
-        <DurationContainer>
-          <DurationWidget query={query} />
-        </DurationContainer>
-        <JobsContainer>
-          <JobsWidget query={query} />
-        </JobsContainer>
-        <QueriesContainer>
-          <QueriesWidget query={query} />
-        </QueriesContainer>
-        <CachesContainer>
-          <CachesWidget query={query} />
-        </CachesContainer>
+        <WidgetGrid.Position1>
+          <OverviewRequestsChartWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <OverviewApiLatencyChartWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <IssuesWidget />
+        </WidgetGrid.Position3>
+        <WidgetGrid.Position4>
+          <OverviewJobsChartWidget />
+        </WidgetGrid.Position4>
+        <WidgetGrid.Position5>
+          <OverviewSlowQueriesChartWidget />
+        </WidgetGrid.Position5>
+        <WidgetGrid.Position6>
+          <OverviewCacheMissChartWidget />
+        </WidgetGrid.Position6>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <ControlsWrapper>
+        <TableControl value={currentView} onChange={handleViewChange} size="sm">
+          <TableControlItem key={TableType.PATHS}>{t('Paths')}</TableControlItem>
+          <TableControlItem key={TableType.COMMANDS}>{t('Commands')}</TableControlItem>
+          <TableControlItem key={TableType.QUEUES}>{t('Jobs')}</TableControlItem>
+        </TableControl>
+      </ControlsWrapper>
+      {currentView === TableType.QUEUES && <JobsTable />}
+      {currentView === TableType.PATHS && <PathsTable />}
+      {currentView === TableType.COMMANDS && <CommandsTable />}
     </PlatformLandingPageLayout>
   );
 }
 
-const WidgetGrid = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
-
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 240px 300px 300px;
-  grid-template-areas:
-    'requests'
-    'duration'
-    'issues'
-    'jobs'
-    'queries'
-    'caches';
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 240px 300px;
-    grid-template-areas:
-      'requests duration'
-      'issues issues'
-      'jobs jobs'
-      'queries caches';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 180px 300px;
-    grid-template-areas:
-      'requests issues issues'
-      'duration issues issues'
-      'jobs queries caches';
-  }
-`;
-
-const RequestsContainer = styled('div')`
-  grid-area: requests;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
-`;
-
-// TODO(aknaus): Remove css hacks and build custom IssuesWidget
-const IssuesContainer = styled('div')`
-  grid-area: issues;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  & > * {
-    min-width: 0;
-    overflow-y: auto;
-    margin-bottom: 0 !important;
-  }
-
-  & ${PanelHeader} {
-    position: sticky;
-    top: 0;
-    z-index: ${p => p.theme.zIndex.header};
-  }
-`;
-
-const DurationContainer = styled('div')`
-  grid-area: duration;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
-`;
-
-const JobsContainer = styled('div')`
-  grid-area: jobs;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
-`;
-
-const QueriesContainer = styled('div')`
-  grid-area: queries;
-`;
-
-const CachesContainer = styled('div')`
-  grid-area: caches;
+const ControlsWrapper = styled('div')`
+  padding: ${space(2)} 0;
 `;

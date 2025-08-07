@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
@@ -16,7 +16,7 @@ type Params = DocsParams;
 
 const getCurlSnippet = (params: Params) => `
 curl -X POST \
-'${params.dsn.public}' \
+'${params.dsn.minidump}' \
 -F upload_file_minidump=@mini.dmp`;
 
 const onboarding: OnboardingConfig = {

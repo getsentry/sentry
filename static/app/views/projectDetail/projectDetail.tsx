@@ -7,12 +7,11 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -32,7 +31,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -159,7 +158,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Breadcrumbs
                   crumbs={[
                     {
-                      to: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+                      to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
                     {label: t('Project Details')},
@@ -180,7 +179,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
-                <ButtonBar gap={1}>
+                <ButtonBar>
                   <FeedbackWidgetButton />
                   <LinkButton
                     size="sm"
@@ -210,9 +209,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
             </Layout.Header>
 
             <Layout.Body noRowGap>
-              <ErrorBoundary customComponent={null}>
-                {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              </ErrorBoundary>
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
@@ -298,10 +294,4 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-  }
 `;

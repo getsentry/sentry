@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from django.core.files.storage import Storage
@@ -103,7 +103,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 
 class RelocationTaskTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Create a collision with the org slug we'll be requesting.
@@ -136,7 +136,7 @@ class RelocationTaskTestCase(TestCase):
             file=self.file,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
         )
-        self.uuid = UUID(str(self.relocation.uuid))
+        self.uuid = str(self.relocation.uuid)
 
     @cached_property
     def file(self):
@@ -221,7 +221,7 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
@@ -251,7 +251,7 @@ class UploadingStartTest(RelocationTaskTestCase):
                 latest_task=OrderedTask.UPLOADING_START.name,
                 provenance=Relocation.Provenance.SAAS_TO_SAAS,
             )
-            self.uuid = UUID(str(self.relocation.uuid))
+            self.uuid = str(self.relocation.uuid)
 
     @override_settings(
         SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
@@ -458,7 +458,7 @@ class UploadingStartTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = OrderedTask.UPLOADING_START.name
@@ -526,7 +526,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -882,7 +882,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_baseline_config.apply_async")
 class PreprocessingTransferTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
@@ -943,7 +943,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_TRANSFER.name
@@ -1046,7 +1046,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
@@ -1145,7 +1145,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.validating_start.apply_async")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COLLIDING_USERS.name
@@ -1290,7 +1290,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COMPLETE.name
@@ -1437,7 +1437,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 @patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 class ValidatingPollTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_START.name
@@ -1468,7 +1468,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_message_builder(fake_message_builder)
 
-        validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+        validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_cloudbuild_client.return_value.get_build.call_count == 1
         assert fake_message_builder.call_count == 0
@@ -1495,7 +1495,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.mock_message_builder(fake_message_builder)
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
 
-            validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
             assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
@@ -1528,7 +1528,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
             self.mock_message_builder(fake_message_builder)
 
-            validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
             assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
@@ -1560,7 +1560,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
             self.mock_message_builder(fake_message_builder)
 
-            validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
             assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
@@ -1593,7 +1593,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_cloudbuild_client.return_value.get_build.call_count == 1
         assert fake_message_builder.call_count == 0
@@ -1620,7 +1620,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(Exception):
-            validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_cloudbuild_client.return_value.get_build.call_count == 1
 
@@ -1638,7 +1638,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
-def mock_invalid_finding(storage: Storage, uuid: UUID):
+def mock_invalid_finding(storage: Storage, uuid: str):
     storage.save(
         f"runs/{uuid}/findings/import-baseline-config.json",
         BytesIO(
@@ -1664,7 +1664,7 @@ def mock_invalid_finding(storage: Storage, uuid: UUID):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.importing.apply_async")
 class ValidatingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
@@ -1710,7 +1710,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     ):
         self.mock_message_builder(fake_message_builder)
 
-        validating_complete(self.uuid, self.relocation_validation_attempt.build_id)
+        validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_message_builder.call_count == 0
         assert importing_mock.call_count == 1
@@ -1731,7 +1731,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         mock_invalid_finding(self.storage, self.uuid)
 
-        validating_complete(self.uuid, self.relocation_validation_attempt.build_id)
+        validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -1767,7 +1767,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            validating_complete(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
@@ -1786,7 +1786,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         self.storage.save(f"runs/{self.uuid}/findings/null.json", BytesIO(b"invalid-json"))
 
         with pytest.raises(Exception):
-            validating_complete(self.uuid, self.relocation_validation_attempt.build_id)
+            validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -1805,7 +1805,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.tasks.process.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.VALIDATING.value
@@ -1813,7 +1813,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.save()
         self.storage = get_relocation_storage()
 
-    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
@@ -1848,7 +1848,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
-    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         org_count = Organization.objects.filter(slug__startswith="testing").count()
         with assume_test_silo_mode(SiloMode.CONTROL):
             user_count = User.objects.all().count()
@@ -1944,7 +1944,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 # We don't overwrite `sentry.useremail`, retaining the existing value instead.
             ]
 
-    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.relocation.scheduled_pause_at_step = Relocation.Step.IMPORTING.value
         self.relocation.save()
@@ -1968,7 +1968,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @patch("sentry.relocation.tasks.process.notifying_unhide.apply_async")
 @patch("sentry.analytics.record")
 class PostprocessingTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.IMPORTING.value
@@ -1979,7 +1979,7 @@ class PostprocessingTest(RelocationTaskTestCase):
             import_in_organization_scope(
                 fp,
                 flags=ImportFlags(
-                    import_uuid=str(self.uuid),
+                    import_uuid=self.uuid,
                     hide_organizations=True,
                     merge_users=False,
                     overwrite_configs=False,
@@ -2165,7 +2165,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.notifying_users.apply_async")
 class NotifyingUnhideTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
@@ -2249,7 +2249,7 @@ class NotifyingUnhideTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.notifying_owner.apply_async")
 class NotifyingUsersTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
@@ -2392,7 +2392,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.completed.apply_async")
 class NotifyingOwnerTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
@@ -2504,14 +2504,14 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
 
 class CompletedTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
         self.relocation.latest_task = OrderedTask.NOTIFYING_OWNER.name
         self.relocation.save()
 
-    def test_success(self):
+    def test_success(self) -> None:
         completed(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
@@ -2526,7 +2526,7 @@ class CompletedTest(RelocationTaskTestCase):
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
 @patch("sentry.analytics.record")
 class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
 
@@ -2614,7 +2614,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         analytics_record_mock.assert_called_with(
             "relocation.organization_imported",
             organization_id=imported_org_id,
-            relocation_uuid=str(self.uuid),
+            relocation_uuid=self.uuid,
             slug=imported_org_slug,
             owner_id=self.owner.id,
         )
@@ -2634,7 +2634,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_start(self.relocation.uuid, None, None)
+            uploading_start(str(self.relocation.uuid), None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2683,7 +2683,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_start(self.relocation.uuid, None, None)
+            uploading_start(str(self.relocation.uuid), None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2735,7 +2735,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_start(self.relocation.uuid, None, None)
+            uploading_start(str(self.relocation.uuid), None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2785,7 +2785,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_start(self.relocation.uuid, None, None)
+            uploading_start(str(self.relocation.uuid), None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"

@@ -12,7 +12,7 @@ export const MessageRow = styled(Row)`
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
   outline: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   z-index: ${p => p.theme.zIndex.traceView.rowInfoMessage};
 

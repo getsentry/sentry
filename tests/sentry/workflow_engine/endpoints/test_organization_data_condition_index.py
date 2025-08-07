@@ -11,10 +11,10 @@ from sentry.workflow_engine.types import DataConditionHandler
 class OrganizationDataConditionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-data-condition-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.registry = Registry[DataConditionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[DataConditionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_data_condition_index.condition_handler_registry",
             new=self.registry,
@@ -48,7 +48,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
             comparison_json_schema = {"type": "boolean"}
 
         # This legacy condition should not be included in the response
-        @self.registry.register(Condition.EVERY_EVENT)
+        @self.registry.register(Condition.EXISTING_HIGH_PRIORITY_ISSUE)
         @dataclass(frozen=True)
         class TestIgnoredCondition(DataConditionHandler):
             group = DataConditionHandler.Group.WORKFLOW_TRIGGER
@@ -61,7 +61,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCase):
-    def test_group_filter(self):
+    def test_group_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
@@ -92,8 +92,8 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
             },
         }
 
-    def test_invalid_group(self):
+    def test_invalid_group(self) -> None:
         self.get_error_response(self.organization.slug, group="invalid", status_code=400)
 
-    def test_no_group(self):
+    def test_no_group(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)

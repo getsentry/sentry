@@ -11,7 +11,7 @@ Account: foo@example.com
 IP: <IP_ADDRESS>
 When: Jan. 20, 2017, 9:39 p.m. UTC
 
-Authenticator: U2F (Universal 2nd Factor)
+Authenticator: Passkey / Biometric / Security Key
 Device: Home computer
 
 

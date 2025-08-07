@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q
-from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -27,7 +26,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
-from sentry.issues.streamline import apply_streamline_rollout_group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectplatform import ProjectPlatform
@@ -99,7 +97,7 @@ class OrganizationIndexEndpoint(Endpoint):
         """
         owner_only = request.GET.get("owner") in ("1", "true")
 
-        queryset: QuerySet[Organization] = Organization.objects.distinct()
+        queryset = Organization.objects.distinct()
 
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
@@ -107,7 +105,7 @@ class OrganizationIndexEndpoint(Endpoint):
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(id=request.auth.organization_id)
 
-        elif owner_only:
+        elif owner_only and request.user.is_authenticated:
             # This is used when closing an account
 
             # also fetches organizations in which you are a member of an owner team
@@ -307,6 +305,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 organization_id=org.id,
             )
 
-        apply_streamline_rollout_group(organization=org)
+        # New organizations should not see the legacy UI
+        org.update_option("sentry:streamline_ui_only", True)
 
         return Response(serialize(org, request.user), status=201)

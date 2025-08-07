@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def view(request: HttpRequest, reason: str = "") -> HttpResponse:
     context = {"no_referer": reason == REASON_NO_REFERER}
     extras = {"reason": reason, "referer": request.META.get("HTTP_REFERER")}
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # Emit a sentry request that the incoming request is rejected by the CSRF protection.
     if hasattr(request, "user") and request.user.is_authenticated:

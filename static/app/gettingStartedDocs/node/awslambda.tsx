@@ -1,11 +1,11 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -16,6 +16,8 @@ import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambdaArnSelector'
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -110,7 +112,6 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ],
       },
       getUploadSourceMapsStep({
-        title: t('Upload Source Maps (Optional)'),
         description: tct(
           'If you want to upload source maps for your Lambda function, you can do so by running the following command and following the instructions. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
           {
@@ -203,6 +204,22 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     moduleFormatOnboarding[params.platformOptions.moduleFormat].configure(params),
   verify: (params: Params) =>
     moduleFormatOnboarding[params.platformOptions.moduleFormat].verify(params),
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -224,6 +241,12 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/aws-serverless',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'aws-serverless',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
+    basePackage: 'aws-serverless',
   }),
   platformOptions,
 };

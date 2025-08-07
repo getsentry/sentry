@@ -41,7 +41,7 @@ describe('ErrorsConfig', function () {
     it('links trace ids to performance', async function () {
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('trace', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {trace: 'abcd'},
           {
             organization,
@@ -53,7 +53,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(await screen.findByText('abcd'));
       expect(router.push).toHaveBeenCalledWith({
@@ -70,7 +73,7 @@ describe('ErrorsConfig', function () {
       const project = ProjectFixture();
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('id', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
@@ -83,7 +86,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('defg'));

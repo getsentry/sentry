@@ -19,20 +19,17 @@ import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegra
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 
-export const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
+const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
   notation: 'compact',
 });
 
-export function formatWeightToProfileDuration(
-  frame: CallTreeNode,
-  flamegraph: Flamegraph
-) {
+function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
   const weight = (frame.totalWeight / flamegraph.profile.duration) * 100;
 
   return `${Math.round(weight * 100) / 100}%`;
 }
 
-export interface FlamegraphTooltipProps {
+interface FlamegraphTooltipProps {
   configSpaceCursor: vec2;
   flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphCanvas: FlamegraphCanvas;
@@ -215,7 +212,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
 const FlamegraphInlineIndicator = styled('span')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(0.25)};
   line-height: 12px;
   margin: 0 ${space(0.5)};

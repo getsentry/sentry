@@ -21,7 +21,7 @@ from celery import Task
 from django.apps import apps
 from django.db import connections, router
 from django.db.models import Max, Min
-from django.db.models.manager import BaseManager
+from django.db.models.manager import Manager
 from django.utils import timezone
 
 from sentry import options
@@ -82,7 +82,7 @@ def set_watermark(
 def _chunk_watermark_batch(
     prefix: str,
     field: HybridCloudForeignKey[Any, Any],
-    manager: BaseManager[Any],
+    manager: Manager[Any],
     *,
     batch_size: int,
     model: type[Model],
@@ -270,7 +270,7 @@ def _process_tombstone_reconciliation(
     from sentry import deletions
 
     prefix = "tombstone"
-    watermark_manager: BaseManager[Any] = tombstone_cls.objects
+    watermark_manager: Manager[Any] = tombstone_cls.objects
     if row_after_tombstone:
         prefix = "row"
         watermark_manager = field.model.objects

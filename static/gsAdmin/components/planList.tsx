@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import InputField from 'sentry/components/forms/fields/inputField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -8,12 +9,13 @@ import Form from 'sentry/components/forms/form';
 import type FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Plan, Subscription} from 'getsentry/types';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
+import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -24,6 +26,7 @@ type Props = {
   onSubmit: OnSubmitCallback;
   onSubmitError: (error: any) => void;
   onSubmitSuccess: (data: Data) => void;
+  organization: Organization;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
 };
@@ -31,6 +34,7 @@ type Props = {
 function PlanList({
   activePlan,
   subscription,
+  organization,
   onSubmit,
   onCancel,
   onSubmitSuccess,
@@ -48,13 +52,13 @@ function PlanList({
       // Get the category data using type assertion to allow string indexing
       const categories = subscription.categories as Record<string, {reserved?: number}>;
 
-      if (categories[category] && categories[category].reserved !== undefined) {
+      if (categories[category]?.reserved !== undefined) {
         const reservedValue = categories[category].reserved;
 
         return (
           <CurrentValueText>
             Current: {reservedValue.toLocaleString()}{' '}
-            {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+            {isByteCategory(category) ? 'GB' : ''}
           </CurrentValueText>
         );
       }
@@ -73,6 +77,17 @@ function PlanList({
     500000: '500k',
     100000: '100K',
   };
+
+  const availableProducts = Object.values(activePlan?.availableReservedBudgetTypes || {})
+    .filter(
+      productInfo =>
+        productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
+        productInfo.billingFlag &&
+        organization.features.includes(productInfo.billingFlag)
+    )
+    .map(productInfo => {
+      return productInfo;
+    });
 
   return (
     <Form
@@ -125,18 +140,18 @@ function PlanList({
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
             {activePlan.checkoutCategories.map(category => {
-              const titleCategory = getPlanCategoryName({plan: activePlan, category});
+              const titleCategory = getPlanCategoryName({
+                plan: activePlan,
+                category,
+              });
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
               })}`;
-              const label =
-                category === DataCategory.ATTACHMENTS
-                  ? `${titleCategory} (GB)`
-                  : titleCategory;
+              const label = isByteCategory(category)
+                ? `${titleCategory} (GB)`
+                : titleCategory;
               const fieldValue = formModel.getValue(reservedKey);
-              const currentValueDisplay = getCurrentValueDisplay(
-                category as DataCategory
-              );
+              const currentValueDisplay = getCurrentValueDisplay(category);
               return (
                 <SelectFieldWrapper key={`test-${category}`}>
                   <SelectField
@@ -145,12 +160,13 @@ function PlanList({
                     name={reservedKey}
                     label={label}
                     value={fieldValue}
-                    options={(
-                      activePlan.planCategories[category as DataCategories] || []
-                    ).map((level: {events: {toLocaleString: () => any}}) => ({
-                      label: level.events.toLocaleString(),
-                      value: level.events,
-                    }))}
+                    options={(activePlan.planCategories[category] || []).map(
+                      (level: {events: {toLocaleString: () => any}}) => ({
+                        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                        label: level.events.toLocaleString(),
+                        value: level.events,
+                      })
+                    )}
                     required
                   />
                   {currentValueDisplay}
@@ -159,6 +175,24 @@ function PlanList({
             })}
           </StyledFormSection>
         )}
+      {availableProducts.length > 0 && (
+        <StyledFormSection>
+          <h4>Available Products</h4>
+          {availableProducts.map(productInfo => {
+            return (
+              <CheckboxField
+                key={productInfo.productName}
+                data-test-id={`checkbox-${productInfo.productName}`}
+                label={toTitleCase(productInfo.productName)}
+                name={productInfo.productName}
+                onChange={(value: any) => {
+                  formModel.setValue(productInfo.productName, value.target.checked);
+                }}
+              />
+            );
+          })}
+        </StyledFormSection>
+      )}
       <AuditFields>
         <InputField
           data-test-id="url-field"

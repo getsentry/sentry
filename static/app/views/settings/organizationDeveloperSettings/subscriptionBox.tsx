@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -51,10 +51,7 @@ function SubscriptionBox({
   }
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
-    // Swap ignored for archived if the feature is enabled
-    issue: organization.features.includes('webhooks-unresolved')
-      ? `created, resolved, assigned, archived, unresolved`
-      : `created, resolved, assigned, archived`,
+    issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
   };
@@ -88,6 +85,7 @@ export default withOrganization(SubscriptionBox);
 const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   background: ${p => p.theme.backgroundSecondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   border-radius: ${p => p.theme.borderRadius};
@@ -104,13 +102,13 @@ const SubscriptionInfo = styled('div')`
 `;
 
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
   color: ${p => p.theme.subText};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
   color: ${p => p.theme.textColor};
   white-space: nowrap;

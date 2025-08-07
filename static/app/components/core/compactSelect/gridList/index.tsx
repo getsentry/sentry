@@ -15,16 +15,19 @@ import {
 } from 'sentry/components/core/compactSelect/styles';
 import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
-import type {FormSize} from 'sentry/utils/theme';
 
-import {GridListOption} from './option';
+import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
   extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     > {
   /**
    * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly
@@ -52,7 +55,7 @@ interface GridListProps
     section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
-  size?: FormSize;
+  size?: GridListOptionProps['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */

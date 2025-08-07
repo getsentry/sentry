@@ -75,17 +75,17 @@ export function PoliciesFixture(): Record<string, Policy> {
       parent: null,
       standalone: false,
     },
-    "soc-2-bridge-letter": {
+    'soc-2-bridge-letter': {
       name: 'SOC2 Bridge Letter',
       url: 'https://sentry.io/legal/privacy/2.0.0/',
       consent: null,
       version: '1.0.0',
       updatedAt: '2025-04-07T20:59:09.012253Z',
-      slug: "soc-2-bridge-letter",
+      slug: 'soc-2-bridge-letter',
       active: true,
       hasSignature: true,
       parent: 'nda',
       standalone: true,
-    }
+    },
   };
 }

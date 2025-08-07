@@ -48,7 +48,7 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
   );
 }
 
-export const DifferentialFlamegraphToolbarContainer = styled('div')`
+const DifferentialFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;

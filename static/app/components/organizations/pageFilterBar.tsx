@@ -1,3 +1,4 @@
+import {Children} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,9 +9,23 @@ import {space} from 'sentry/styles/space';
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
 // and not just for PageFilters as the name indicates.
-const PageFilterBar = styled('div')<{condensed?: boolean}>`
+interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  condensed?: boolean;
+}
+
+const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
+  return (
+    <StyledPageFilterBar listSize={Children.count(children)} {...props}>
+      {children}
+    </StyledPageFilterBar>
+  );
+})``;
+
+const StyledPageFilterBar = styled('div')<{listSize: number; condensed?: boolean}>`
   ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
 `;
+
+export default PageFilterBar;
 
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
@@ -73,7 +88,7 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
     except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
         flex-shrink: 1;
       }
     }
@@ -96,7 +111,19 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   }
 `;
 
+const getChildTransforms = (count: number) => {
+  return Array.from(
+    {length: count},
+    (_, index) => css`
+      div:nth-of-type(${index + 1}) > button {
+        transform: translateX(-${index}px);
+      }
+    `
+  );
+};
+
 const chonkPageFilterBarStyles = (p: {
+  listSize: number;
   theme: DO_NOT_USE_ChonkTheme;
   condensed?: boolean;
 }) => css`
@@ -118,7 +145,7 @@ const chonkPageFilterBarStyles = (p: {
 except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
         flex-shrink: 1;
       }
     }
@@ -153,24 +180,23 @@ except in mobile */
     display: none;
   }
 
-  & > div:first-child > button {
+  & > div > button:focus-visible {
+    z-index: 3;
+  }
+
+  & > div:first-child:not(:last-child) > button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
   }
 
   & > div:not(:first-child):not(:last-child) > button {
     border-radius: 0;
-
-    &::after {
-      border-left: none;
-      border-right: none;
-    }
   }
 
-  & > div:last-child > button {
+  & > div:last-child:not(:first-child) > button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
-`;
 
-export default PageFilterBar;
+  ${getChildTransforms(p.listSize)}
+`;

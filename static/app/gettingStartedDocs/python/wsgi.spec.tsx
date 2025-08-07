@@ -14,11 +14,6 @@ describe('wsgi onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
-    ).toBeInTheDocument();
   });
 
   it('renders without tracing', function () {

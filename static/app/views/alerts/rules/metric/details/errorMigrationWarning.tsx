@@ -7,8 +7,9 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -100,9 +101,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
     <Alert.Container>
       <Alert
         type="warning"
-        showIcon
         trailingItems={
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <LinkButton
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${

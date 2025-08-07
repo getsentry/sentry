@@ -2,7 +2,7 @@ import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type AutoComplete from 'sentry/components/autoComplete';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
 import type {Item} from './types';
@@ -95,7 +95,7 @@ const LabelWithBorder = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   :first-child {
     border-top: none;
@@ -122,7 +122,7 @@ const AutoCompleteItem = styled('div')<{
   justify-content: center;
   scroll-margin: 20px 0;
 
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};

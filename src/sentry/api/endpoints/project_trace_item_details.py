@@ -1,6 +1,8 @@
+import time
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
+import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
 from rest_framework import serializers
@@ -18,19 +20,28 @@ from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
-from sentry.search.eap.utils import PRIVATE_ATTRIBUTES, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    PRIVATE_ATTRIBUTES,
+    is_sentry_convention_replacement_attribute,
+    translate_internal_to_public_alias,
+    translate_to_sentry_conventions,
+)
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 
 
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
+    use_sentry_conventions: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
+    seen_sentry_conventions: set[str] = set()
     for attribute in attributes:
         internal_name = attribute["name"]
         if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
+            continue
+        if internal_name.startswith(constants.META_PREFIX):
             continue
         source = attribute["value"]
         if len(source) == 0:
@@ -44,12 +55,25 @@ def convert_rpc_attribute_to_json(
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
+                    if val_type == "double":
+                        val_type = "float"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
                 external_name = translate_internal_to_public_alias(
                     internal_name, column_type, trace_item_type
                 )
+
+                if use_sentry_conventions and external_name:
+                    external_name = translate_to_sentry_conventions(external_name, trace_item_type)
+                    if external_name in seen_sentry_conventions:
+                        continue
+                    seen_sentry_conventions.add(external_name)
+                else:
+                    if external_name and is_sentry_convention_replacement_attribute(
+                        external_name, trace_item_type
+                    ):
+                        continue
 
                 if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
                     "sentry."
@@ -73,6 +97,124 @@ def convert_rpc_attribute_to_json(
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
 
+def serialize_meta(
+    attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
+) -> dict:
+    internal_name = ""
+    attribute = {}
+    meta_result = {}
+    meta_attributes = {}
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name.startswith(constants.META_PREFIX):
+            meta_attributes[internal_name] = attribute
+
+    def extract_key(key: str) -> str | None:
+        if key.startswith(f"{constants.META_ATTRIBUTE_PREFIX}."):
+            return key.replace(f"{constants.META_ATTRIBUTE_PREFIX}.", "")
+        elif key.startswith(f"{constants.META_FIELD_PREFIX}."):
+            return key.replace(f"{constants.META_FIELD_PREFIX}.", "")
+        # Unknown meta field, skip for now
+        else:
+            return None
+
+    attribute_map = {item.get("name", ""): item.get("value", {}) for item in attributes}
+    for internal_name, attribute in sorted(meta_attributes.items()):
+        if "valStr" not in attribute["value"]:
+            continue
+        field_key = extract_key(internal_name)
+        if field_key is None:
+            continue
+
+        try:
+            result = json.loads(attribute["value"]["valStr"])
+            # Map the internal field key name back to its public name
+            if field_key in attribute_map:
+                item_type: Literal["string", "number"]
+                if (
+                    "valInt" in attribute_map[field_key]
+                    or "valFloat" in attribute_map[field_key]
+                    or "valDouble" in attribute_map[field_key]
+                ):
+                    item_type = "number"
+                else:
+                    item_type = "string"
+                external_name = translate_internal_to_public_alias(
+                    field_key, item_type, trace_item_type
+                )
+                if external_name:
+                    field_key = external_name
+                elif item_type == "number":
+                    field_key = f"tags[{field_key},number]"
+                meta_result[field_key] = result
+        except json.JSONDecodeError:
+            continue
+
+    return meta_result
+
+
+def serialize_links(attributes: list[dict]) -> list[dict] | None:
+    """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
+    link_attribute = None
+    for attribute in attributes:
+        internal_name = attribute["name"]
+        if internal_name == "sentry.links":
+            link_attribute = attribute
+
+    if link_attribute is None:
+        return None
+
+    try:
+        value = link_attribute.get("value", {}).get("valStr", None)
+        if value is not None:
+            links = json.loads(value)
+            return [serialize_link(link) for link in links]
+        else:
+            return None
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def serialize_link(link: dict) -> dict:
+    clean_link = {
+        "itemId": link["span_id"],
+        "traceId": link["trace_id"],
+    }
+
+    if (sampled := link.get("sampled")) is not None:
+        clean_link["sampled"] = sampled
+
+    if attributes := link.get("attributes"):
+        clean_link["attributes"] = [
+            {"name": k, "value": v, "type": infer_type(v)}
+            for k, v in attributes.items()
+            if infer_type(v) is not None
+        ]
+
+    return clean_link
+
+
+def infer_type(value: Any) -> str | None:
+    """
+    Attempt to infer the type of a link attribute value. Only supports a subset
+    of types, since realistically we only store known keys. This becomes moot
+    once we start storing span links as trace items, and they follow the same
+    attribute parsing logic as spans.
+    """
+    if isinstance(value, str):
+        return "str"
+    elif isinstance(value, bool):
+        return "bool"
+    elif isinstance(value, int):
+        return "int"
+    elif isinstance(value, float):
+        return "float"
+    else:
+        return None
+
+
 def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
     if trace_item_type == SupportedTraceItemType.SPANS:
         return item_id[-16:]
@@ -88,7 +230,7 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -100,12 +242,6 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
         """
-
-        if not features.has(
-            "organizations:discover-basic", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -128,7 +264,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         start_timestamp_proto.FromSeconds(0)
 
         end_timestamp_proto = ProtoTimestamp()
-        end_timestamp_proto.GetCurrentTime()
+
+        # due to clock drift, the end time can be in the future - add a week to be safe
+        end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
 
         trace_id = request.GET.get("trace_id")
         if not trace_id:
@@ -151,10 +289,20 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))
 
+        use_sentry_conventions = features.has(
+            "organizations:performance-sentry-conventions-fields",
+            project.organization,
+            actor=request.user,
+        )
+
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
-            "attributes": convert_rpc_attribute_to_json(resp["attributes"], item_type),
+            "attributes": convert_rpc_attribute_to_json(
+                resp["attributes"], item_type, use_sentry_conventions
+            ),
+            "meta": serialize_meta(resp["attributes"], item_type),
+            "links": serialize_links(resp["attributes"]),
         }
 
         return Response(resp_dict)

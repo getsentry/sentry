@@ -1,84 +1,68 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
+import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 
 export type TitleCellProps = {
   link: string;
   name: string;
-  project: AvatarProject;
   className?: string;
-  details?: string[];
+  details?: React.ReactNode;
   disabled?: boolean;
+  systemCreated?: boolean;
 };
 
 export function TitleCell({
   name,
-  project,
+  systemCreated,
   details,
   link,
   disabled = false,
   className,
 }: TitleCellProps) {
   return (
-    <TitleWrapper to={link} disabled={disabled} className={className}>
-      <Name disabled={disabled}>
-        <strong>{name}</strong>
+    <TitleWrapper to={link} className={className}>
+      <Name>
+        <NameText>{name}</NameText>
+        {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
-      <DetailsWrapper>
-        <StyledProjectBadge
-          css={css`
-            && img {
-              box-shadow: none;
-            }
-          `}
-          project={project}
-          avatarSize={16}
-          disableLink
-        />
-        {details?.map((detail, index) => (
-          <Fragment key={index}>
-            <Separator />
-            {detail}
-          </Fragment>
-        ))}
-      </DetailsWrapper>
+      {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </TitleWrapper>
   );
 }
 
-const Name = styled('div')<{disabled: boolean}>`
+const Name = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
-  flex-direction: row;
+  align-items: center;
   gap: ${space(0.5)};
-
-  ${p =>
-    p.disabled &&
-    `
-    color: ${p.theme.disabled};
-  `}
 `;
 
-const TitleWrapper = styled(Link)<{disabled: boolean}>`
+const NameText = styled('span')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
+
+const CreatedBySentryIcon = styled(IconSentry)`
+  flex-shrink: 0;
+`;
+
+const TitleWrapper = styled(Link)`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
   flex: 1;
+  overflow: hidden;
 
-  ${p =>
-    !p.disabled &&
-    `
-    &:hover ${Name} {
-      color: ${p.theme.textColor};
+  &:hover {
+    ${Name} {
       text-decoration: underline;
     }
-  `};
+  }
 `;
 
 const DetailsWrapper = styled('div')`
@@ -89,20 +73,4 @@ const DetailsWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   white-space: nowrap;
-  line-height: 1.2;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    line-height: 1;
-  }
-`;
-
-const StyledProjectBadge = styled(ProjectBadge)`
-  color: ${p => p.theme.subText};
-`;
-
-const Separator = styled('span')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.innerBorder};
-  border-radius: 1px;
 `;

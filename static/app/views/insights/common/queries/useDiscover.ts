@@ -5,120 +5,51 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {
-  DiscoverProperty,
-  DiscoverResponse,
-  EAPSpanProperty,
-  EAPSpanResponse,
-  MetricsProperty,
-  MetricsResponse,
-  SpanIndexedField,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
-  SpanMetricsProperty,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {
+  useWrappedDiscoverQuery,
+  useWrappedDiscoverQueryWithoutPageFilters,
+} from 'sentry/views/insights/common/queries/useSpansQuery';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+
+interface UseDiscoverQueryOptions {
+  additonalQueryKey?: string[];
+}
 
 interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
   fields?: Fields;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
   orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
-  samplingMode?: SamplingMode | 'NONE';
+  /**
+   * If true, the query will be executed without the page filters.
+   * {@link pageFilters} can still be passed and will be used to build the event view on top of the query.
+   */
+  queryWithoutPageFilters?: boolean;
+  samplingMode?: SamplingMode;
   /**
    * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
    */
   search?: MutableSearch | string;
   sorts?: Sort[];
+  useQueryOptions?: UseDiscoverQueryOptions;
 }
 
 // The default sampling mode for eap queries
-export const DEFAULT_SAMPLING_MODE: SamplingMode = 'BEST_EFFORT';
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
-export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
+export const useSpans = <Fields extends SpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  const useEap = useInsightsEap();
-  // Indexed spans dataset always returns an `id`
-  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
-    referrer
-  );
+  return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
-export const useOurlogs = <Fields extends OurLogFieldKey[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
-    options,
-    DiscoverDatasets.OURLOGS,
-    referrer
-  );
-  const castData = data as OurLogsResponseItem[];
-  return {...rest, data: castData};
-};
-
-export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  return useDiscover<Fields, EAPSpanResponse>(
-    options,
-    DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
-};
-
-export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, SpanMetricsResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
-  );
-};
-
-export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, MetricsResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer
-  );
-};
-
-export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const useEap = useInsightsEap();
-  return useDiscover<Fields, DiscoverResponse>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
-    referrer
-  );
-};
-
-export const useDiscover = <
-  T extends Array<Extract<keyof ResponseType, string>>,
-  ResponseType,
->(
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
@@ -134,10 +65,8 @@ export const useDiscover = <
     projectIds,
     orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
+    useQueryOptions,
   } = options;
-
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const pageFilters = usePageFilters();
 
@@ -151,7 +80,11 @@ export const useDiscover = <
     orderby
   );
 
-  const result = useWrappedDiscoverQuery({
+  const queryFn = options.queryWithoutPageFilters
+    ? useWrappedDiscoverQueryWithoutPageFilters
+    : useWrappedDiscoverQuery;
+
+  const result = queryFn({
     eventView,
     initialData: [],
     limit,
@@ -159,8 +92,9 @@ export const useDiscover = <
     referrer,
     cursor,
     noPagination,
-    samplingMode:
-      samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+    samplingMode,
+    additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data

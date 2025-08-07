@@ -1,15 +1,18 @@
 import {useCallback, useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {
+  EChartsOption,
+  SeriesOption,
+  ToolboxComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
@@ -20,7 +23,10 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
 import type {
+  EChartBrushEndHandler,
+  EChartBrushStartHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -31,7 +37,8 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
@@ -45,7 +52,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -55,28 +62,60 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry.logger;
+const {error, warn} = Sentry.logger;
+
+export interface BoxSelectProps {
+  /**
+   * The brush options for the chart.
+   */
+  brush: EChartsOption['brush'];
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart: EChartBrushStartHandler;
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
+}
 
 export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps> {
+  extends Partial<LoadableChartWidgetProps>,
+    Partial<BoxSelectProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
   /**
-  /**
-   * Disables navigating to release details when clicked
-   * TODO(billy): temporary until we implement route based nav
+   * Sets the range of the Y axis.
+   *
+   * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * Default: `auto`
    */
-  disableReleaseNavigation?: boolean;
+  axisRange?: 'auto' | 'dataMin';
+
+  /**
+   * Reference to the chart instance
+   */
+  chartRef?: React.Ref<ReactEchartsRef>;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
+
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -97,7 +136,17 @@ export interface TimeSeriesWidgetVisualizationProps
    *
    * Default: `auto`
    */
-  showLegend?: 'auto' | 'never';
+  showLegend?: 'auto' | 'never' | 'always';
+
+  /**
+   * Defines the X axis visibility. Note that hiding the X axis also hides release bubbles.
+   *
+   * - `auto`: Show the X axis.
+   * - `never`: Hide the X axis.
+   *
+   * Default: `auto`
+   */
+  showXAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -109,7 +158,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const chartRef = useRef<EChartsReactCore | null>(null);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
@@ -117,95 +166,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const hasReleaseBubbles =
-    organization.features.includes('release-bubbles-ui') &&
-    props.showReleaseAs === 'bubble';
-
-  // find min/max timestamp of *all* timeSeries
-  const allBoundaries = props.plottables
-    .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
-  const earliestTimeStamp = allBoundaries.at(0);
-  const latestTimeStamp = allBoundaries.at(-1);
-
-  const {
-    connectReleaseBubbleChartRef,
-    releaseBubbleSeries,
-    releaseBubbleXAxis,
-    releaseBubbleGrid,
-  } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
-      return (
-        <DrawerWidgetWrapper>
-          <TimeSeriesWidgetVisualization
-            {...props}
-            ref={chartRendererRef}
-            disableReleaseNavigation
-            onZoom={() => {}}
-            plottables={props.plottables.map(plottable =>
-              plottable.constrain(trimStart, trimEnd)
-            )}
-            showReleaseAs="line"
-          />
-        </DrawerWidgetWrapper>
-      );
-    },
-    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
-    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
-      : [],
-  });
-
-  const releaseSeries = props.releases
-    ? hasReleaseBubbles
-      ? releaseBubbleSeries
-      : ReleaseSeries(
-          theme,
-          props.releases,
-          function onReleaseClick(release: Release) {
-            if (props.disableReleaseNavigation) {
-              return;
-            }
-            navigate(
-              makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(release.version)}/`,
-              })
-            );
-          },
-          utc ?? false
-        )
-    : null;
-
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      for (const plottable of props.plottables) {
-        plottable.handleChartRef?.(e);
-      }
-
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
-      if (hasReleaseBubblesSeries) {
-        connectReleaseBubbleChartRef(e);
-      }
-    },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
-  );
+    props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
@@ -262,18 +226,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ? rightYAxisDataTypes.at(0)
         : FALLBACK_TYPE;
 
-  if (axisTypes.length > 0) {
-    info('`TimeSeriesWidgetVisualization` assigned axes', {
-      labels: props.plottables.map(plottable => plottable.label),
-      types: props.plottables.map(plottable => plottable.dataType),
-      units: props.plottables.map(plottable => plottable.dataUnit),
-      leftYAxisDataTypes,
-      rightYAxisDataTypes,
-      leftYAxisType,
-      rightYAxisType,
-    });
-  }
-
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
     uniq(plottables.map(plottable => plottable.dataUnit))
@@ -297,6 +249,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
+  const axisRangeProp = props.axisRange ?? 'auto';
+
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
@@ -305,7 +259,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       position: 'left',
     },
-    leftYAxisType
+    leftYAxisType,
+    axisRangeProp
   );
 
   const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
@@ -321,17 +276,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
           position: 'right',
         },
-        rightYAxisType
+        rightYAxisType,
+        axisRangeProp
       )
     : undefined;
 
   // Set up a fallback palette for any plottable without a color
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
-  const palette =
-    paletteSize > 0
-      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
-      : [];
+  const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
 
   // Create a lookup of series names (given to ECharts) to labels (from
   // Plottable). This makes it easier to look up alises when rendering tooltips
@@ -429,13 +382,116 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+    releaseBubbleYAxis,
+  } = useReleaseBubbles({
+    chartId: props.id,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
+    yAxisIndex: yAxes.length,
+  });
+
+  if (releaseBubbleYAxis) {
+    yAxes.push(releaseBubbleYAxis);
+  }
+
+  const releaseSeries =
+    props.releases && props.showReleaseAs !== 'none'
+      ? hasReleaseBubbles
+        ? releaseBubbleSeries
+        : ReleaseSeries(
+            theme,
+            props.releases,
+            function onReleaseClick(release: Release) {
+              navigate(
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
+                })
+              );
+            },
+            utc ?? false
+          )
+      : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        connectReleaseBubbleChartRef(e);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
+  );
+
+  const showXAxisProp = props.showXAxis ?? 'auto';
+  const showXAxis = showXAxisProp === 'auto';
+
+  const xAxis = showXAxis
+    ? {
+        animation: false,
+        axisLabel: {
+          padding: [0, 10, 0, 10],
+          width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
+          },
+        },
+        splitNumber: 5,
+        ...releaseBubbleXAxis,
+      }
+    : HIDDEN_X_AXIS;
+
+  // Hiding the X axis removes all chart elements under the X axis line. This
+  // will cut off the bottom of the lowest Y axis label. To create space for
+  // that label, add some grid padding.
+  const xAxisGrid = showXAxis ? {} : {bottom: 5};
+
   let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegendProp = props.showLegend ?? 'auto';
-  const showLegend = showLegendProp !== 'never' && visibleSeriesCount > 1;
+  const showLegend =
+    (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
@@ -508,9 +564,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
-    batch: {dataIndex: number; seriesIndex: number},
+    batch: {dataIndex: number; seriesIndex?: number},
     handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
   ): void => {
+    if (batch.seriesIndex === undefined) {
+      return;
+    }
+
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
@@ -554,7 +614,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
       series={allSeries}
       grid={{
@@ -567,6 +627,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         bottom: 0,
         containLabel: true,
         ...releaseBubbleGrid,
+        ...xAxisGrid,
       }}
       legend={
         showLegend
@@ -591,32 +652,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
+        appendToBody: true,
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
         },
         formatter: formatTooltip,
       }}
-      xAxis={{
-        animation: false,
-        axisLabel: {
-          padding: [0, 10, 0, 10],
-          width: 60,
-          formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-
-            // Adding whitespace around the label is equivalent to padding.
-            // ECharts doesn't respect padding when calculating overlaps, but it
-            // does respect whitespace. This prevents overlapping X axis labels
-            return ` ${string} `;
-          },
-        },
-        splitNumber: 5,
-        ...releaseBubbleXAxis,
-      }}
+      xAxis={xAxis}
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
+      toolBox={props.toolBox ?? chartZoomProps.toolBox}
+      brush={props.brush}
+      onBrushStart={props.onBrushStart}
+      onBrushEnd={props.onBrushEnd}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
@@ -630,11 +680,24 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 }
 
-function LoadingPanel() {
+function LoadingPanel({
+  loadingMessage,
+  expectMessage,
+}: {
+  // If we expect that a message will be provided, we can render a non-visible element that will
+  // be replaced with the message to prevent layout shift.
+  expectMessage?: boolean;
+  loadingMessage?: string;
+}) {
   return (
     <LoadingPlaceholder>
       <LoadingMask visible />
       <LoadingIndicator mini />
+      {(expectMessage || loadingMessage) && (
+        <LoadingMessage visible={Boolean(loadingMessage)}>
+          {loadingMessage}
+        </LoadingMessage>
+      )}
     </LoadingPlaceholder>
   );
 }
@@ -653,7 +716,7 @@ function getPlottableEventDataIndex(
   series: SeriesOption[],
   event: {
     dataIndex: number;
-    seriesIndex: number;
+    seriesIndex?: number;
   },
   affectedRange: Range<Plottable>
 ): number {
@@ -668,6 +731,16 @@ function getPlottableEventDataIndex(
   return dataIndexOffset + dataIndex;
 }
 
+// Hide every part of the axis so ECharts will remove those elements and also
+// remove the visual space they would take up if they were there.
+const HIDDEN_X_AXIS = {
+  show: false,
+  splitLine: {show: false},
+  axisLine: {show: false},
+  axisTick: {show: false},
+  axisLabel: {show: false},
+};
+
 const LoadingPlaceholder = styled('div')`
   position: absolute;
   inset: 0;
@@ -675,16 +748,19 @@ const LoadingPlaceholder = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
 
   padding: ${Y_GUTTER} ${X_GUTTER};
 `;
 
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
+const LoadingMessage = styled('div')<{visible: boolean}>`
+  opacity: ${p => (p.visible ? 1 : 0)};
+  height: ${p => p.theme.fontSize.sm};
 `;
 
-const DrawerWidgetWrapper = styled('div')`
-  height: 220px;
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

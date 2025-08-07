@@ -1,34 +1,74 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {initializeLogsTest} from 'sentry-fixture/log';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useLocation} from 'sentry/utils/useLocation';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
+  LogsPageParamsProvider,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
+const datePageFilterProps: PickableDays = {
+  defaultPeriod: '7d' as const,
+  maxPickableDays: 7,
+  relativeOptions: ({arbitraryOptions}) => ({
+    ...arbitraryOptions,
+    '1h': 'Last hour',
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+  }),
+};
 
 describe('LogsTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['ourlogs', 'ourlogs-graph'],
-    },
-  });
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
+
+  function ProviderWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </TraceItemAttributeProvider>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
+    );
+  }
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      query: {
+        start: '2025-04-10T14%3A37%3A55',
+        end: '2025-04-10T20%3A04%3A51',
+        project: project.id,
+        [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
+        [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
+        [LOGS_QUERY_KEY]: 'severity:error',
+      },
+    },
+    route: '/organizations/:orgId/explore/logs/',
+  };
+
+  setupPageFilters();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
-      })
-    );
+
+    // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -123,22 +163,10 @@ describe('LogsTabContent', function () {
 
   it('should call APIs as expected', async function () {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsTabContent
-            defaultPeriod="14d"
-            maxPickableDays={7}
-            relativeOptions={{
-              '1h': 'Last hour',
-              '24h': 'Last 24 hours',
-              '7d': 'Last 7 days',
-            }}
-          />
-        </LogsPageParamsProvider>
-      </TraceItemAttributeProvider>,
-      {enableRouterMocks: false, organization}
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
     );
 
     expect(eventTableMock).toHaveBeenCalledWith(
@@ -148,6 +176,9 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+          sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
         }),
       })
     );
@@ -159,6 +190,10 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
+          query:
+            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
         }),
       })
     );
@@ -167,5 +202,45 @@ describe('LogsTabContent', function () {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('should switch between modes', async function () {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Logs'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 });

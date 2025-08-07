@@ -28,10 +28,10 @@ function DisabledSelectorItems({
 }: Props) {
   let hasFeature: boolean;
 
-  if (!subscription || !subscription.planDetails) {
-    hasFeature = true;
-  } else {
+  if (subscription?.planDetails) {
     hasFeature = subscription.planDetails.retentionDays === MAX_PICKABLE_DAYS;
+  } else {
+    hasFeature = true;
   }
 
   const relativePeriods = relativePeriodsProp ?? DEFAULT_RELATIVE_PERIODS;
@@ -45,7 +45,7 @@ function DisabledSelectorItems({
     : relativePeriods;
   const omittedRelativeArr = Object.entries(omittedRelativePeriods);
 
-  const items: Item[] = [
+  const items = (onClick: () => void, canTrial: boolean): Item[] => [
     ...(shouldShowRelative
       ? omittedRelativeArr.map(([value, itemLabel], index) => ({
           index,
@@ -65,37 +65,21 @@ function DisabledSelectorItems({
                 ? relativePeriods['90d']
                 : '90d-trial',
             label: (
-              <UpsellProvider
-                source="90-day"
-                onTrialStarted={() => handleSelectRelative('90d')}
-                showConfirmation
-              >
-                {({canTrial, onClick}) => {
-                  const text = canTrial
+              <SelectorItemLabel>
+                <UpsellLabelWrap>
+                  {relativePeriods['90d']}
+                  <StyledIconBusiness gradient data-test-id="power-icon" />
+                </UpsellLabelWrap>
+
+                <UpsellMessage>
+                  {canTrial
                     ? t('Start Trial for Last 90 Days')
-                    : t('Upgrade for Last 90 Days');
-
-                  return (
-                    <SelectorItemLabel>
-                      <UpsellClickZone
-                        onClick={e => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onClick();
-                        }}
-                      />
-                      <UpsellLabelWrap>
-                        {relativePeriods['90d']}
-                        <StyledIconBusiness gradient data-test-id="power-icon" />
-                      </UpsellLabelWrap>
-
-                      <UpsellMessage>{text}</UpsellMessage>
-                    </SelectorItemLabel>
-                  );
-                }}
-              </UpsellProvider>
+                    : t('Upgrade for Last 90 Days')}
+                </UpsellMessage>
+              </SelectorItemLabel>
             ),
             'data-test-id': '90d',
+            onClick,
           },
         ]
       : []),
@@ -112,7 +96,17 @@ function DisabledSelectorItems({
       : []),
   ];
 
-  return children(items);
+  return (
+    <UpsellProvider
+      source="90-day"
+      onTrialStarted={() => handleSelectRelative('90d')}
+      showConfirmation
+    >
+      {({canTrial, onClick}) => {
+        return children(items(onClick, canTrial));
+      }}
+    </UpsellProvider>
+  );
 }
 
 const SelectorItemLabel = styled('div')`
@@ -127,18 +121,9 @@ const UpsellLabelWrap = styled('div')`
 `;
 
 const UpsellMessage = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-bottom: 0;
-`;
-
-const UpsellClickZone = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
 `;
 
 const StyledIconBusiness = styled(IconBusiness)`

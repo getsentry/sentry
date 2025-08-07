@@ -5,8 +5,8 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
@@ -264,7 +264,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <OpenInButtonBar gap={1}>
+        <OpenInButtonBar>
           <LinkButton
             data-test-id="issues-open"
             size="xs"
@@ -308,7 +308,7 @@ const ControlsWrapper = styled('div')`
 const OpenInButtonBar = styled(ButtonBar)`
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
   }
 `;

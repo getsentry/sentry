@@ -13,6 +13,7 @@ from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth import RpcAuthProvider, auth_service
+from sentry.auth.store import FLOW_SETUP_PROVIDER
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
@@ -244,7 +245,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 request=request,  # this has all our form data
                 organization=organization,
                 provider_key=provider_key,  # okta, google, onelogin, etc
-                flow=AuthHelper.FLOW_SETUP_PROVIDER,
+                flow=FLOW_SETUP_PROVIDER,
             )
 
             feature = helper.provider.required_feature

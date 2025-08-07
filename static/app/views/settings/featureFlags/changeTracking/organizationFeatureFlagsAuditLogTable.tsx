@@ -1,25 +1,17 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
-import Pagination from 'sentry/components/pagination';
+import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  getFlagActionLabel,
-  type RawFlag,
-} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
@@ -34,10 +26,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   pageSize?: number;
 }) {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const location = useLocation();
-  const analyticsArea = useAnalyticsArea();
-
   const locationQuery = useLocationQuery({
     fields: {
       cursor: decodeScalar,
@@ -49,6 +38,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
       utc: decodeScalar,
     },
   });
+
   const query = useMemo(() => {
     const filteredFields = Object.fromEntries(
       Object.entries(locationQuery).filter(([_key, val]) => val !== '')
@@ -61,7 +51,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   }, [locationQuery, pageSize]);
 
   const {
-    data: responseData,
+    data: flags,
     isPending,
     error,
     getResponseHeader,
@@ -71,33 +61,19 @@ export function OrganizationFeatureFlagsAuditLogTable({
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
-  const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+  const [activeRowKey, setActiveRowKey] = useState<number | undefined>();
 
-  const renderBodyCell = (
-    column: GridColumnOrder<ColumnKey>,
-    dataRow: RawFlag,
-    _rowIndex: number,
-    _columnIndex: number
-  ) => {
-    switch (column.key) {
-      case 'flag':
-        return <code>{dataRow.flag}</code>;
-      case 'provider':
-        return dataRow.provider || t('unknown');
-      case 'createdAt':
-        return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
-      case 'action': {
-        return getFlagActionLabel(dataRow.action);
-      }
-      default:
-        return dataRow[column.key];
-    }
-  };
-
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize<ColumnKey>({
     columns: BASE_COLUMNS,
     location,
   });
+
+  const handleMouseOver = useCallback((_dataRow: RawFlag, key: number) => {
+    setActiveRowKey(key);
+  }, []);
+  const handleMouseOut = useCallback(() => {
+    setActiveRowKey(undefined);
+  }, []);
 
   return (
     <Fragment>
@@ -107,40 +83,16 @@ export function OrganizationFeatureFlagsAuditLogTable({
           'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
         )}
       </TextBlock>
-      <GridEditable
+      <FeatureFlagsLogTable
+        columns={columns}
+        flags={flags?.data ?? []}
+        isPending={isPending}
         error={error}
-        isLoading={isPending}
-        data={responseData?.data ?? []}
-        columnOrder={columns}
-        columnSortBy={[]}
-        grid={{
-          renderBodyCell,
-          onResizeColumn: handleResizeColumn,
-        }}
-        onRowMouseOver={(_dataRow, key) => {
-          setActiveRowKey(key);
-        }}
-        onRowMouseOut={() => {
-          setActiveRowKey(undefined);
-        }}
+        onRowMouseOver={handleMouseOver}
+        onRowMouseOut={handleMouseOut}
+        onResizeColumn={handleResizeColumn}
         highlightedRowKey={activeRowKey}
-        scrollable={false}
-        data-test-id="audit-log-table"
-      />
-
-      <Pagination
         pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
-          trackAnalytics('flags.logs-paginated', {
-            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
-            organization,
-            surface: analyticsArea,
-          });
-          navigate({
-            pathname: path,
-            query: {...searchQuery, cursor},
-          });
-        }}
       />
     </Fragment>
   );

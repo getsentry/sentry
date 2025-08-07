@@ -510,7 +510,7 @@ function NewTraceView({
 }
 export default memo(NewTraceView);
 
-export const StyledTracePanel = styled(Panel)`
+const StyledTracePanel = styled(Panel)`
   height: 100%;
   overflow-x: visible;
 

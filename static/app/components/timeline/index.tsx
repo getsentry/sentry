@@ -3,6 +3,7 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import type {Color} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
@@ -11,9 +12,9 @@ export interface TimelineItemProps {
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
-    icon: string;
-    iconBorder: string;
-    title: string;
+    icon: string | Color;
+    iconBorder: string | Color;
+    title: string | Color;
   };
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -25,7 +26,7 @@ export interface TimelineItemProps {
   timestamp?: React.ReactNode;
 }
 
-export function Item({
+function Item({
   title,
   children,
   icon,
@@ -38,18 +39,22 @@ export function Item({
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
 
+  const iconBorder = theme[config.iconBorder as Color] ?? config.iconBorder;
+  const iconColor = theme[config.icon as Color] ?? config.icon;
+  const titleColor = theme[config.title as Color] ?? config.title;
+
   return (
     <Row ref={ref} {...props}>
       <IconWrapper
         style={{
-          borderColor: isActive ? config.iconBorder : 'transparent',
-          color: config.icon,
+          borderColor: isActive ? iconBorder : 'transparent',
+          color: iconColor,
         }}
         className="timeline-icon-wrapper"
       >
         {icon}
       </IconWrapper>
-      <Title style={{color: config.title}}>{title}</Title>
+      <Title style={{color: titleColor}}>{title}</Title>
       {timestamp ?? <div />}
       <Spacer />
       <Content>{children}</Content>
@@ -102,7 +107,7 @@ const Title = styled('div')`
   font-weight: bold;
   text-align: left;
   grid-column: span 1;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Spacer = styled('div')`
@@ -117,25 +122,25 @@ const Content = styled('div')`
   grid-column: span 2;
   color: ${p => p.theme.subText};
   margin: ${space(0.25)} 0 0;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-wrap: break-word;
 `;
 
-export const Text = styled('div')`
+const Text = styled('div')`
   text-align: left;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   &:only-child {
     margin-top: 0;
   }
 `;
 
-export const Data = styled('div')`
+const Data = styled('div')`
   border-radius: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border: 1px solid ${p => p.theme.translucentInnerBorder};
   margin: ${space(0.75)} 0 0 -${space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.backgroundSecondary};
   position: relative;
   &:only-child {
@@ -143,7 +148,7 @@ export const Data = styled('div')`
   }
 `;
 
-export const Container = styled('div')`
+const Container = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {

@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
@@ -106,20 +107,20 @@ export function CodeOwnerFileTable({
     >
       {codeowners.map(codeowner => (
         <Fragment key={codeowner.id}>
-          <FlexCenter>
+          <Flex align="center" gap="md">
             {getCodeOwnerIcon(codeowner.provider)}
             {codeowner.codeMapping?.repoName}
-          </FlexCenter>
-          <FlexCenter>
+          </Flex>
+          <Flex align="center" gap="md">
             <code>{codeowner.codeMapping?.stackRoot}</code>
-          </FlexCenter>
-          <FlexCenter>
+          </Flex>
+          <Flex align="center" gap="md">
             <code>{codeowner.codeMapping?.sourceRoot}</code>
-          </FlexCenter>
-          <FlexCenter>
+          </Flex>
+          <Flex align="center" gap="md">
             <TimeSince date={codeowner.dateUpdated} />
-          </FlexCenter>
-          <FlexCenter>
+          </Flex>
+          <Flex align="center" gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (
               <StyledExternalLink href={codeowner.codeOwnersUrl}>
                 <IconOpen size="xs" />
@@ -129,8 +130,8 @@ export function CodeOwnerFileTable({
                 )}
               </StyledExternalLink>
             )}
-          </FlexCenter>
-          <FlexCenter>
+          </Flex>
+          <Flex align="center" gap="md">
             <DropdownMenu
               items={[
                 {
@@ -160,7 +161,7 @@ export function CodeOwnerFileTable({
               }}
               disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
-          </FlexCenter>
+          </Flex>
         </Fragment>
       ))}
     </StyledPanelTable>
@@ -172,12 +173,6 @@ const StyledPanelTable = styled(PanelTable)`
   position: static;
   overflow: auto;
   white-space: nowrap;
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

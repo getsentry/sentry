@@ -13,7 +13,12 @@
         },
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "\"test", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "\"test",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -32,7 +37,12 @@
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "test\"", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "test\"",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -51,7 +61,12 @@
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "\"test", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "\"test",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -60,7 +75,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "transaction", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "abadcafe", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "abadcafe",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -79,7 +99,12 @@
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "te\"st", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "te\"st",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -88,7 +113,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "transaction", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "abadcafe", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "abadcafe",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

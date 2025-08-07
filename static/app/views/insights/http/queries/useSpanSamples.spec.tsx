@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -26,22 +27,20 @@ describe('useSpanSamples', () => {
     );
   }
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: ['prod'],
+        projects: [],
       },
-      environments: ['prod'],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     query: {},
@@ -134,6 +133,8 @@ describe('useSpanSamples', () => {
         query: {
           additionalFields: ['transaction.span_id'],
           project: [],
+          dataset: 'spans',
+          sampling: 'NORMAL',
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
           statsPeriod: '10d',

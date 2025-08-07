@@ -5,7 +5,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-export type DividerProps = {
+type DividerProps = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
@@ -13,7 +13,7 @@ export type DividerProps = {
   icon?: React.ReactNode;
 } & React.DOMAttributes<HTMLDivElement>;
 
-export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
+const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
 ))<DividerProps>`
   display: grid;
@@ -48,7 +48,7 @@ export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   }
 `;
 
-export const SplitPanelContext = createContext({
+const SplitPanelContext = createContext({
   isMaximized: false,
   isMinimized: false,
   maximiseSize: () => {},
@@ -196,12 +196,12 @@ const SplitPanelContainer = styled('div')<{
   orientation: 'rows' | 'columns';
   size: `${number}px` | `${number}%`;
 }>`
-  width: 100%;
-  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-grow: 1;
 
   position: relative;
   display: grid;
-  overflow: auto;
   grid-template-${p => p.orientation}: ${p => p.size} auto 1fr;
 
   /*
@@ -214,7 +214,12 @@ const SplitPanelContainer = styled('div')<{
 `;
 
 const Panel = styled('div')`
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  min-height: 0;
+  min-width: 0;
 `;
 
 export default SplitPanel;

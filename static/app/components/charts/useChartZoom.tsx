@@ -134,12 +134,6 @@ export function useChartZoom({
   const router = useRouter();
 
   /**
-   * Used to store the date update function so that we can call it after the chart
-   * animation is complete
-   */
-  const zooming = useRef<(() => void) | null>(null);
-
-  /**
    * Sets the new period due to a zoom related action
    *
    * Saves the current period to an instance property so that we
@@ -165,51 +159,56 @@ export function useChartZoom({
         end: getQueryTime(newPeriod.end),
       });
 
-      zooming.current = () => {
-        if (usePageDate) {
-          const newQuery = {
-            ...location.query,
-            pageStart: startFormatted,
-            pageEnd: endFormatted,
-            pageStatsPeriod: newPeriod.period ?? undefined,
-          };
+      if (usePageDate) {
+        const newQuery = {
+          ...location.query,
+          pageStart: startFormatted,
+          pageEnd: endFormatted,
+          pageStatsPeriod: newPeriod.period ?? undefined,
+        };
 
-          // Only push new location if query params has changed because this will cause a heavy re-render
-          if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
-            navigate({
-              pathname: location.pathname,
-              query: newQuery,
-            });
-          }
-        } else {
-          updateDateTime(
-            {
-              period: newPeriod.period,
-              start: startFormatted,
-              end: endFormatted,
-            },
-            router,
-            {save: saveOnZoom}
-          );
+        // Only push new location if query params has changed because this will cause a heavy re-render
+        if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
+          navigate({
+            pathname: location.pathname,
+            query: newQuery,
+          });
         }
-      };
+      } else {
+        updateDateTime(
+          {
+            period: newPeriod.period,
+            start: startFormatted,
+            end: endFormatted,
+          },
+          router,
+          {save: saveOnZoom}
+        );
+      }
     },
     [onZoom, navigate, location, router, saveOnZoom, usePageDate]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      const {startValue, endValue} = (evt as any).batch[0] as {
+      let {startValue, endValue} = (evt as any).batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
 
       // if `rangeStart` and `rangeEnd` are null, then we are going back
       if (startValue && endValue) {
+        // round off the bounds to the minute
+        startValue = Math.floor(startValue / 60_000) * 60_000;
+        endValue = Math.ceil(endValue / 60_000) * 60_000;
+
+        // ensure the bounds has 1 minute resolution
+        startValue = Math.min(startValue, endValue - 60_000);
+
         setPeriod({
           period: null,
-          start: startValue ? getUtcDateString(startValue) : null,
-          end: endValue ? getUtcDateString(endValue) : null,
+          start: getUtcDateString(startValue),
+          end: getUtcDateString(endValue),
         });
       }
     },
@@ -224,11 +223,6 @@ export function useChartZoom({
    * before we update URL state and re-render
    */
   const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
-    if (typeof zooming.current === 'function') {
-      zooming.current();
-      zooming.current = null;
-    }
-
     // This attempts to activate the area zoom toolbox feature
     const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
@@ -281,11 +275,3 @@ export function useChartZoom({
 
   return renderProps;
 }
-
-function ChartZoom(props: Props) {
-  const renderProps = useChartZoom(props);
-
-  return props.children(renderProps);
-}
-
-export default ChartZoom;

@@ -11,7 +11,7 @@ describe('getAlertsUrl', function () {
   const pageFilters = PageFiltersFixture();
   it('should return a url to the alert rule page prepopulated with DB params', function () {
     const aggregate = 'avg(d:spans/duration@millisecond)';
-    const query = 'span.module:db';
+    const query = 'span.category:db';
     const orgSlug = 'orgSlug';
     const url = getAlertsUrl({
       project,
@@ -21,7 +21,7 @@ describe('getAlertsUrl', function () {
       pageFilters,
     });
     expect(url).toBe(
-      '/organizations/orgSlug/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&interval=1h&project=project-slug&query=span.module%3Adb&statsPeriod=7d'
+      '/organizations/orgSlug/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&interval=1h&project=project-slug&query=span.category%3Adb&statsPeriod=7d'
     );
   });
   it('should return a url to an EAP alert rule', function () {

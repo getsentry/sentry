@@ -1,7 +1,7 @@
 import type {ComponentProps, CSSProperties} from 'react';
 
+import type {Tooltip} from 'sentry/components/core/tooltip';
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 

@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
     ComparisonFilter,
     ExistsFilter,
     TraceItemFilter,
@@ -27,6 +28,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
+from sentry.search.eap.spans.aggregates import resolve_key_eq_value_filter
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
@@ -34,7 +36,11 @@ from sentry.search.eap.spans.utils import (
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
-from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
+from sentry.search.events.constants import (
+    MISERY_ALPHA,
+    MISERY_BETA,
+    WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS,
+)
 from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
 
@@ -54,14 +60,56 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
-def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
+def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    dividend = cast(AttributeKey, args[0])
+    divisor = cast(AttributeKey, args[1])
+    key = cast(AttributeKey, args[2])
+    operator = cast(str, args[3])
+    value = cast(str, args[4])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=dividend,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=divisor,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+    )
+
+
+def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
 
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
-        left=Column(key=dividend),
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
+            )
+        ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor),
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
     )
 
 
@@ -108,13 +156,65 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
                 left=avg_second,
                 op=Column.BinaryFormula.OP_SUBTRACT,
                 right=avg_first,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=avg_first,
     )
 
     return percentage_change
+
+
+def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    key = cast(AttributeKey, args[0])
+    operator = cast(str, args[1])
+    value = cast(str, args[2])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=AttributeKey(
+                                        name="sentry.status",
+                                        type=AttributeKey.TYPE_STRING,
+                                    ),
+                                    op=ComparisonFilter.OP_NOT_IN,
+                                    value=AttributeValue(
+                                        val_str_array=StrArray(
+                                            values=["ok", "cancelled", "unknown"],
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            key_equal_value_filter,
+                        ]
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+    )
 
 
 def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -125,13 +225,13 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
-                    name="sentry.trace.status",
+                    name="sentry.status",
                     type=AttributeKey.TYPE_STRING,
                 ),
                 filter=TraceItemFilter(
                     comparison_filter=ComparisonFilter(
                         key=AttributeKey(
-                            name="sentry.trace.status",
+                            name="sentry.status",
                             type=AttributeKey.TYPE_STRING,
                         ),
                         op=ComparisonFilter.OP_NOT_IN,
@@ -151,26 +251,37 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
 
 
 def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
+    cache_key = "totalvitalcounts"
+    response = None
+    vital_column = f"count_scores(measurements.score.{vital})"
 
-    snuba_params = settings["snuba_params"]
-    query_string = snuba_params.query_string
+    if cache_key in settings["query_result_cache"]:
+        response = settings["query_result_cache"][cache_key]
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
-        query_string=query_string if query_string is not None else "",
-        referrer="totalvitalcount",
-        selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
-        orderby=None,
-        offset=0,
-        limit=1,
-        sampling_mode=snuba_params.sampling_mode,
-        config=SearchResolverConfig(
-            auto_fields=True,
-        ),
-    )
+    else:
+        snuba_params = settings["snuba_params"]
+        query_string = snuba_params.query_string
 
-    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
-        return rpc_res["data"][0]["count"]
+        vital_columns = [f"count_scores({v})" for v in WEB_VITALS_MEASUREMENTS]
+
+        response = spans_rpc.Spans.run_table_query(
+            params=snuba_params,
+            query_string=query_string if query_string is not None else "",
+            referrer=cache_key,
+            selected_columns=vital_columns,
+            orderby=None,
+            offset=0,
+            limit=1,
+            sampling_mode=snuba_params.sampling_mode,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+        )
+
+        settings["query_result_cache"][cache_key] = response
+
+    if len(response["data"]) > 0 and response["data"][0][vital_column] is not None:
+        return response["data"][0][vital_column]
 
     return 0
 
@@ -185,6 +296,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
         return total_opportunity_score(args, settings)
 
     score_ratio = Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -215,6 +327,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     vital_count = get_count_of_vital(web_vital, settings)
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(formula=score_ratio),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
@@ -227,21 +340,140 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
+    opportunity_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    total_weight = 0.0
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        formula = opportunity_score([vital_score_key], settings)
+        hasVitalCount = formula.right.literal.val_double > 0
+        if hasVitalCount:
+            opportunity_score_formulas.append((formula, vital))
+            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+
+    for formula, vital in opportunity_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
         vital_score_columns.append(
             Column(
                 formula=Column.BinaryFormula(
-                    left=Column(formula=opportunity_score([vital_score_key], settings)),
+                    default_value_double=0.0,
+                    left=Column(formula=formula),
                     op=Column.BinaryFormula.OP_MULTIPLY,
                     right=Column(literal=LiteralValue(val_double=weight)),
                 )
             )
         )
 
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return opportunity_score([vital_score_key], settings)
+
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
+
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+
+
+def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    if ratio_attribute.name == "score.total":
+        return total_performance_score(args, settings)
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_AVG,
+                key=ratio_attribute,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0)),
+    )
+
+
+def total_performance_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+    vital_score_columns: list[Column] = []
+    vital_weights: list[Column] = []
+
+    performance_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    for vital in vitals:
+        vital_score = f"score.{vital}"
+        vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
+        vital_performance_score = performance_score([vital_score_key], settings)
+        performance_score_formulas.append((vital_performance_score, vital))
+
+    for formula, vital in performance_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        vital_score_columns.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    default_value_double=0.0,
+                    left=Column(formula=formula),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(literal=LiteralValue(val_double=weight)),
+                )
+            )
+        )
+        vital_score_ratio_key = AttributeKey(
+            name=f"score.ratio.{vital}", type=AttributeKey.TYPE_DOUBLE
+        )
+        # Hack to return 1.0 if any span with the vital metric exists, otherwise 0.0
+        vital_exists_formula = Column.BinaryFormula(
+            default_value_double=0.0,
+            left=Column(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_COUNT,
+                    key=vital_score_ratio_key,
+                    extrapolation_mode=extrapolation_mode,
+                )
+            ),
+            op=Column.BinaryFormula.OP_DIVIDE,
+            right=Column(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_COUNT,
+                    key=vital_score_ratio_key,
+                    extrapolation_mode=extrapolation_mode,
+                )
+            ),
+        )
+        vital_weights.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    default_value_double=0.0,
+                    left=Column(
+                        literal=LiteralValue(val_double=WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital])
+                    ),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(formula=vital_exists_formula),
+                )
+            )
+        )
+
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return performance_score([vital_score_key], settings)
+
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
+
+    return Column.BinaryFormula(
+        left=Column(
+            formula=operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(formula=operate_multiple_columns(vital_weights, Column.BinaryFormula.OP_ADD)),
+    )
 
 
 def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -425,8 +657,8 @@ def time_spent_percentage(
     if snuba_params.organization_id is None:
         raise Exception("An organization is required to resolve queries")
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
+    rpc_res = spans_rpc.Spans.run_table_query(
+        params=snuba_params,
         query_string="",
         referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
         selected_columns=[f"sum({column})"],
@@ -454,6 +686,38 @@ def time_spent_percentage(
     )
 
 
+def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_bool=True),
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=divisor / 60),
+        ),
+    )
+
+
 def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
@@ -476,6 +740,292 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
         right=Column(
             literal=LiteralValue(val_double=divisor / 60),
         ),
+    )
+
+
+def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_NOT_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=["ok", "cancelled", "unknown"],
+                            ),
+                        ),
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0)),
+    )
+
+
+def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=divisor),
+        ),
+    )
+
+
+def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate Apdex score based on response time field and threshold.
+
+    Apdex = (Satisfactory + Tolerable/2) / Total Requests
+    Where:
+    - Satisfactory: response time ≤ T
+    - Tolerable: response time > T and ≤ 4T
+    - Frustrated: response time > 4T
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    # Get the response time field and threshold
+    response_time_field = cast(AttributeKey, args[0])
+    threshold = cast(float, args[1])
+
+    # Calculate 4T for tolerable range
+    tolerable_threshold = threshold * 4
+
+    # Satisfactory requests: response time ≤ T and is_transaction = True
+    satisfactory = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Tolerable requests: response time > T and ≤ 4T and is_transaction = True
+    tolerable = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_GREATER_THAN,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=tolerable_threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Total requests: count of all requests with the response time field and is_transaction = True
+    total = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_bool=True),
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Calculate (Satisfactory + Tolerable/2) / Total
+    numerator = Column(
+        formula=Column.BinaryFormula(
+            left=satisfactory,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(
+                formula=Column.BinaryFormula(
+                    left=tolerable,
+                    op=Column.BinaryFormula.OP_DIVIDE,
+                    right=Column(literal=LiteralValue(val_double=2.0)),
+                )
+            ),
+        )
+    )
+
+    return Column.BinaryFormula(
+        left=numerator,
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=total,
+    )
+
+
+def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate User Misery score based on response time field and threshold.
+
+    User Misery = (miserable_users + α) / (total_unique_users + α + β)
+    Where:
+    - miserable_users: unique users with response time > 4T
+    - total_unique_users: total unique users with response time field
+    - α (MISERY_ALPHA) = 5.8875
+    - β (MISERY_BETA) = 111.8625
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    # Get the response time field and threshold
+    response_time_field = cast(AttributeKey, args[0])
+    threshold = cast(float, args[1])
+
+    # Calculate 4T for miserable threshold
+    miserable_threshold = threshold * 4
+
+    # Count miserable users: unique users with response time > 4T and is_transaction = True
+    miserable_users = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.user"),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_GREATER_THAN,
+                                value=AttributeValue(val_double=miserable_threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Count total unique users: unique users with response time field and is_transaction = True
+    total_unique_users = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.user"),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(key=response_time_field),
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Calculate (miserable_users + α) / (total_unique_users + α + β)
+    numerator = Column(
+        formula=Column.BinaryFormula(
+            left=miserable_users,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(literal=LiteralValue(val_double=MISERY_ALPHA)),
+        )
+    )
+
+    denominator = Column(
+        formula=Column.BinaryFormula(
+            left=total_unique_users,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(literal=LiteralValue(val_double=MISERY_ALPHA + MISERY_BETA)),
+        )
+    )
+
+    return Column.BinaryFormula(
+        left=numerator,
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=denominator,
     )
 
 
@@ -513,6 +1063,20 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=failure_rate,
         is_aggregate=True,
     ),
+    "failure_rate_if": FormulaDefinition(
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=failure_rate_if,
+        is_aggregate=True,
+    ),
     "ttfd_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
@@ -539,8 +1103,23 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
+    "performance_score": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        formula_resolver=performance_score,
+        is_aggregate=True,
+    ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -558,8 +1137,41 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=avg_compare,
         is_aggregate=True,
     ),
+    "division_if": FormulaDefinition(
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=division_if,
+        is_aggregate=True,
+    ),
     "division": FormulaDefinition(
-        default_search_type="number",
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -604,5 +1216,47 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "epm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+    ),
+    "tpm": FormulaDefinition(
+        default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+    ),
+    "failure_count": FormulaDefinition(
+        default_search_type="integer",
+        arguments=[],
+        formula_resolver=failure_count,
+        is_aggregate=True,
+    ),
+    "eps": FormulaDefinition(
+        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+    ),
+    "apdex": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ValueArgumentDefinition(argument_types={"number"}),
+        ],
+        formula_resolver=apdex,
+        is_aggregate=True,
+    ),
+    "user_misery": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ValueArgumentDefinition(argument_types={"number"}),
+        ],
+        formula_resolver=user_misery,
+        is_aggregate=True,
     ),
 }

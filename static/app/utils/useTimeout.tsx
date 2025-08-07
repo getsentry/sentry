@@ -1,25 +1,23 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-type Options = {
+interface Options {
   onTimeout: () => void;
   timeMs: number;
-};
+}
 
-function useTimeout({timeMs, onTimeout}: Options) {
-  const timeoutRef = useRef<number>(null);
+export default function useTimeout({timeMs, onTimeout}: Options) {
+  const timeoutRef = useRef<number | null>(null);
 
-  const saveTimeout = useCallback((timeout: ReturnType<typeof setTimeout> | null) => {
+  const saveTimeout = useCallback((timeout: number | null) => {
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+      window.clearTimeout(timeoutRef.current);
     }
-    // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-    // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
     timeoutRef.current = timeout;
   }, []);
 
   const start = useCallback(() => {
     saveTimeout(null);
-    saveTimeout(setTimeout(onTimeout, timeMs));
+    saveTimeout(window.setTimeout(onTimeout, timeMs));
   }, [onTimeout, saveTimeout, timeMs]);
 
   const cancel = useCallback(() => {
@@ -55,5 +53,3 @@ function useTimeout({timeMs, onTimeout}: Options) {
     end,
   };
 }
-
-export default useTimeout;

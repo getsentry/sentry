@@ -89,6 +89,7 @@ describe('getHighlightTagData', function () {
 describe('getRuntimeLabel', function () {
   it('returns null for non-JavaScript SDK events', function () {
     const event = EventFixture({
+      type: 'error',
       sdk: {name: 'python'},
     });
 
@@ -97,6 +98,7 @@ describe('getRuntimeLabel', function () {
 
   it('returns null for javascript issues without context information', function () {
     const event = EventFixture({
+      type: 'error',
       sdk: {name: 'javascript'},
     });
 
@@ -105,6 +107,7 @@ describe('getRuntimeLabel', function () {
 
   it('returns inferred runtime from browser context', function () {
     const frontendEvent = EventFixture({
+      type: 'error',
       sdk: {name: 'javascript'},
       contexts: {
         browser: {name: 'Chrome'},
@@ -127,6 +130,7 @@ describe('getRuntimeLabel', function () {
     'returns correct runtime label and tooltip for %s runtime',
     (runtimeName, expectedTooltip) => {
       const event = EventFixture({
+        type: 'error',
         sdk: {name: 'javascript'},
         contexts: {
           runtime: {name: runtimeName},
@@ -142,8 +146,21 @@ describe('getRuntimeLabel', function () {
 
   it('returns null when no runtime can be determined', function () {
     const event = EventFixture({
+      type: 'error',
       sdk: {name: 'javascript'},
       contexts: {}, // No browser or runtime context
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
+  });
+
+  it('returns null when it is not an error event', function () {
+    const event = EventFixture({
+      type: 'transaction',
+      sdk: {name: 'javascript'},
+      contexts: {
+        browser: {name: 'Chrome'},
+      },
     });
 
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();

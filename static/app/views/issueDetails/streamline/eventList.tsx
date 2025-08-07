@@ -71,9 +71,7 @@ export function EventList({group}: EventListProps) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const isRegressionIssue =
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   return (
     <EventListTable pagination={{enabled: false}}>
@@ -115,7 +113,7 @@ export function EventList({group}: EventListProps) {
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap={0.25}>
+                <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
                     borderless

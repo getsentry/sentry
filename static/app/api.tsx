@@ -217,6 +217,7 @@ function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions)
 /**
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
+ * @public used in __mocks__/api.tsx with jest.requireActual
  */
 // TODO(ts): refine this type later
 export function hasProjectBeenRenamed(response: ResponseMeta) {
@@ -419,7 +420,8 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * Consider using `requestPromise` for the async Promise version of this method.
+   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
@@ -532,6 +534,11 @@ export class Client {
     fetchRequest
       .then(
         async response => {
+          if (response === undefined) {
+            // For some reason, response is undefined? Throw to the error path.
+            throw new Error('Response is undefined');
+          }
+
           // The Response's body can only be resolved/used at most once.
           // So we clone the response so we can resolve the body content as text content.
           // Response objects need to be cloned before its body can be used.
@@ -647,7 +654,10 @@ export class Client {
       .catch(error => {
         // eslint-disable-next-line no-console
         console.error(error);
-        Sentry.captureException(error);
+
+        if (error?.name !== 'AbortError' && error?.message !== 'Response is undefined') {
+          Sentry.captureException(error);
+        }
       });
 
     const request = new Request(fetchRequest, aborter);
@@ -656,6 +666,12 @@ export class Client {
     return request;
   }
 
+  /**
+   * Initiate a request to the backend API.
+   *
+   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * See https://develop.sentry.dev/frontend/network-requests/ for more.
+   */
   requestPromise<IncludeAllArgsType extends boolean>(
     path: string,
     {
@@ -729,7 +745,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     hostname = '';
   }
 
-  // When running as yarn dev-ui we can't spread requests across domains because
+  // When running as pnpm dev-ui we can't spread requests across domains because
   // of CORS. Instead we extract the subdomain from the hostname
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.

@@ -4,11 +4,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -31,11 +31,11 @@ const IGNORE_DURATIONS = [
 
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 
-const IGNORE_WINDOWS: Array<SelectValue<number>> = [
+const IGNORE_WINDOWS = [
   {value: ONE_HOUR, label: t('per hour')},
   {value: ONE_HOUR * 24, label: t('per day')},
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
-];
+] satisfies Array<SelectValue<number>>;
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -297,7 +297,7 @@ function ArchiveActions({
   });
 
   return (
-    <ButtonBar merged>
+    <ButtonBar merged gap="0">
       <ArchiveButton
         size={size}
         className={className}
@@ -365,5 +365,5 @@ const MenuWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

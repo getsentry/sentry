@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -99,6 +100,23 @@ function InvoiceDetails({params}: Props) {
             </SenderContainer>
             <hr />
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
+            <FinePrint>
+              {tct(
+                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
+                {
+                  budgetTerm:
+                    'planDetails' in invoice.customer
+                      ? invoice.customer.planDetails.budgetTerm
+                      : 'pay-as-you-go',
+                  period:
+                    'billingInterval' in invoice.customer &&
+                    invoice.customer.billingInterval === 'annual'
+                      ? 'year'
+                      : 'month',
+                  here: <ExternalLink href="/settings/billing/cancel" />,
+                }
+              )}
+            </FinePrint>
           </PanelBody>
         )}
       </Panel>
@@ -123,7 +141,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
-  const taxNumber = invoice?.taxNumber || billingDetails?.taxNumber;
+  const taxNumber = invoice?.taxNumber;
   const countryCode = invoice?.countryCode || billingDetails?.countryCode;
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
@@ -254,7 +272,7 @@ const SenderContainer = styled('div')`
   padding-left: ${space(1)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -266,7 +284,7 @@ const AttributeGroup = styled('div')`
   gap: ${space(2)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -322,4 +340,10 @@ const RefundRow = styled('tr')`
   th {
     background: ${p => p.theme.alert.warning.backgroundLight};
   }
+`;
+
+const FinePrint = styled('div')`
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.gray300};
 `;

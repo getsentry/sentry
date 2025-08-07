@@ -1,16 +1,30 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-const aggregateFunctions = [{name: 'avg'}, {name: 'sum'}, {name: 'count'}];
+const aggregations = ['avg', 'sum', 'count', 'count_unique'];
 
-const functionArguments = [{name: 'span.duration'}, {name: 'span.self_time'}];
+const functionArguments = [
+  {name: 'span.duration', kind: FieldKind.MEASUREMENT},
+  {name: 'span.self_time', kind: FieldKind.MEASUREMENT},
+  {name: 'span.op', kind: FieldKind.TAG},
+  {name: 'span.description', kind: FieldKind.TAG},
+];
+
+const getSpanFieldDefinition = (key: string) => {
+  const argument = functionArguments.find(
+    functionArgument => functionArgument.name === key
+  );
+  return getFieldDefinition(key, 'span', argument?.kind);
+};
 
 function ArithmeticBuilderWrapper({expression}: {expression: string}) {
   return (
     <ArithmeticBuilder
-      aggregateFunctions={aggregateFunctions}
+      aggregations={aggregations}
       functionArguments={functionArguments}
+      getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
     />
   );
@@ -72,8 +86,8 @@ describe('ArithmeticBuilder', function () {
       await waitFor(focus);
     }
 
-    expect(screen.queryAllByRole('row')).toHaveLength(1);
-  });
+    await waitFor(() => expect(screen.queryAllByRole('row')).toHaveLength(1));
+  }, 20_000);
 
   it('can delete tokens with backspace', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';

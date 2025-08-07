@@ -1,4 +1,4 @@
-import type { AutofixRootCauseData } from 'sentry/components/events/autofix/types';
+import type {AutofixRootCauseData} from 'sentry/components/events/autofix/types';
 
 export function AutofixRootCauseData(
   params: Partial<AutofixRootCauseData> = {}
@@ -7,7 +7,8 @@ export function AutofixRootCauseData(
     id: '100',
     root_cause_reproduction: [
       {
-        code_snippet_and_analysis: 'This is the code snippet and analysis of a root cause.',
+        code_snippet_and_analysis:
+          'This is the code snippet and analysis of a root cause.',
         relevant_code_file: {
           file_path: 'src/file.py',
           repo_name: 'owner/repo',

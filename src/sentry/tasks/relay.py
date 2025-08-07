@@ -8,6 +8,8 @@ from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
 
@@ -22,6 +24,11 @@ logger = logging.getLogger(__name__)
     soft_time_limit=25,
     time_limit=30,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay query timeout (https://github.com/getsentry/relay/blob/eba85e3130adb43208ce4547807c0aeb92e1cde2/relay-config/src/config.rs#L599)
+    taskworker_config=TaskworkerConfig(
+        namespace=relay_tasks,
+        expires=30,
+        processing_deadline_duration=30,
+    ),
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -198,9 +205,18 @@ def compute_projectkey_config(key):
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relay_tasks,
+        processing_deadline_duration=25 * 60 + 5,
+    ),
 )
 def invalidate_project_config(
-    organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
+    organization_id=None,
+    project_id=None,
+    public_key=None,
+    trigger="invalidated",
+    trigger_details=None,
+    **kwargs,
 ):
     """Task which re-computes an invalidated project config.
 
@@ -236,6 +252,7 @@ def invalidate_project_config(
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
+    sentry_sdk.set_tag("trigger_details", trigger_details)
     sentry_sdk.set_context("kwargs", kwargs)
 
     updated_configs = compute_configs(
@@ -248,9 +265,11 @@ def invalidate_project_config(
 def schedule_invalidate_project_config(
     *,
     trigger,
+    trigger_details=None,
     organization_id=None,
     project_id=None,
     public_key=None,
+    countdown=5,
     transaction_db=None,
 ):
     """Schedules the :func:`invalidate_project_config` task.
@@ -276,12 +295,17 @@ def schedule_invalidate_project_config(
     >>>     )
 
     If there is no active database transaction open for the provided ``transaction_db``,
-    the project config task is scheduled immediately.
+    the project config task is executed immediately.
 
     :param trigger: The reason for the invalidation.  This is used to tag metrics.
+    :param trigger_details: Additional information about what triggered the invalidation.
+        This is used to tag metrics.
     :param organization_id: Invalidates all project keys for all projects in an organization.
     :param project_id: Invalidates all project keys for a project.
     :param public_key: Invalidate a single public key.
+    :param countdown: The time to delay running this task in seconds.  Normally there is a
+        slight delay to increase the likelihood of deduplicating invalidations but you can
+        tweak this, like e.g. the :func:`invalidate_all` task does.
     :param transaction_db: The database currently being used by an active transaction.
         This directs the on_commit handler for the task to the correct transaction.
     """
@@ -302,9 +326,11 @@ def schedule_invalidate_project_config(
         transaction.on_commit(
             lambda: _schedule_invalidate_project_config(
                 trigger=trigger,
+                trigger_details=trigger_details,
                 organization_id=organization_id,
                 project_id=project_id,
                 public_key=public_key,
+                countdown=countdown,
             ),
             using=transaction_db,
         )
@@ -313,9 +339,11 @@ def schedule_invalidate_project_config(
 def _schedule_invalidate_project_config(
     *,
     trigger,
+    trigger_details=None,
     organization_id=None,
     project_id=None,
     public_key=None,
+    countdown=5,
 ):
     """For param docs, see :func:`schedule_invalidate_project_config`."""
     from sentry.models.project import Project
@@ -360,15 +388,21 @@ def _schedule_invalidate_project_config(
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
-        tags={"update_reason": trigger, "task": "invalidation"},
+        tags={
+            "update_reason": trigger,
+            "update_reason_details": trigger_details,
+            "task": "invalidation",
+        },
     )
 
     invalidate_project_config.apply_async(
+        countdown=countdown,
         kwargs={
             "project_id": project_id,
             "organization_id": organization_id,
             "public_key": public_key,
             "trigger": trigger,
+            "trigger_details": trigger_details,
         },
     )
 

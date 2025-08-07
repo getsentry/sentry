@@ -13,7 +13,10 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
-import {ISSUE_FIELD_TO_HEADER_MAP} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
@@ -76,7 +79,7 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   return {
     disableSort: false,
     disableSortDirection: true,
-    disableSortReason: t('Issues dataset does not yet support descending order'),
+    disableSortReason: t('Issues dataset does not yet support sorting in opposite order'),
   };
 }
 
@@ -166,7 +169,11 @@ export function transformIssuesResponseToTable(
       transformedTableResults.push(transformedTableResult);
     }
   );
-  return {data: transformedTableResults} as TableData;
+
+  return {
+    data: transformedTableResults,
+    meta: {fields: ISSUE_FIELDS},
+  };
 }
 
 function getTableRequest(

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -12,17 +13,14 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     control_silo_model,
 )
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
@@ -54,7 +52,7 @@ class IdentityProvider(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -63,7 +61,7 @@ class IdentityProvider(Model):
         db_table = "sentry_identityprovider"
         unique_together = (("type", "external_id"),)
 
-    def get_provider(self) -> IdentityProvider:
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.type)
@@ -103,14 +101,13 @@ class IdentityManager(BaseManager["Identity"]):
             if not created:
                 identity.update(**defaults)
         except IntegrityError:
-            incr_rollback_metrics(Identity)
             if not should_reattach:
                 raise
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
             "integrations.identity_linked",
-            provider="slack",
+            provider=IntegrationProviderSlug.SLACK.value,
             # Note that prior to circa March 2023 this was user.actor_id. It changed
             # when actor ids were no longer stable between regions for the same user
             actor_id=user.id,
@@ -199,9 +196,9 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = models.JSONField(default=dict)
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
-    scopes = ArrayField()
+    scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 

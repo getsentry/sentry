@@ -5,12 +5,12 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -23,15 +23,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const SCREENSHOT_NAMES = [
-  'screenshot.jpg',
-  'screenshot.png',
-  'screenshot-1.jpg',
-  'screenshot-1.png',
-  'screenshot-2.jpg',
-  'screenshot-2.png',
-];
 
 interface ScreenshotDataSectionProps {
   event: Event;
@@ -56,13 +47,17 @@ export function ScreenshotDataSection({
     },
     {enabled: !isShare}
   );
-  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots = attachments?.filter(attachment =>
+    attachment.name.includes('screenshot')
+  );
 
-  const showScreenshot = !isShare && !!screenshots.length;
+  const showScreenshot = !isShare && !!screenshots?.length;
+  if (!showScreenshot) {
+    return null;
+  }
+
   const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {

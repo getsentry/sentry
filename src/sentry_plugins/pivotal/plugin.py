@@ -37,7 +37,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         FeatureDescription(
             """
             Create and link Sentry issue groups directly to a Pivotal Tracker ticket in any of your
-            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),
@@ -54,6 +54,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-autocomplete",
             )
         ]
 

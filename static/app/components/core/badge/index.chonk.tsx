@@ -33,17 +33,14 @@ export function ChonkBadge(props: ChonkBadgeProps) {
 const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   ${p => ({...makeChonkBadgeTheme(p, p.theme)})};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   display: inline-flex;
   align-items: center;
   line-height: initial;
   height: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${p => p.theme.space.micro} ${p => p.theme.space.mini};
-
-  // @TODO(jonasbadalic): this exists on the old badge, but should be removed
-  margin-left: ${p => p.theme.space.mini};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
 function makeChonkBadgeTheme(

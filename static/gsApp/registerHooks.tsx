@@ -18,11 +18,11 @@ import DisabledCustomInboundFilters from 'getsentry/components/features/disabled
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledMetricsAlertTooltip from 'getsentry/components/features/disabledMetricsAlertTooltip';
 import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import InsightsUpsellPage from 'getsentry/components/features/insightsUpsellPage';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
@@ -32,7 +32,6 @@ import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
 import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
-import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -50,6 +49,7 @@ import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
 import FirstPartyIntegrationAdditionalCTA from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
 import FirstPartyIntegrationAlertHook from 'getsentry/hooks/firstPartyIntegrationAlertHook';
+import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
 import handleGuideUpdate from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
 import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
@@ -58,6 +58,7 @@ import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
 import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
+import OrgStatsProfilingBanner from 'getsentry/hooks/orgStatsProfilingBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
 import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
@@ -66,8 +67,6 @@ import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedI
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
-import {useExperiment} from 'getsentry/hooks/useExperiment';
-import logExperiment from 'getsentry/utils/logExperiment';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -77,9 +76,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
-  ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
@@ -115,7 +112,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': hookAnalyticsInitUser,
-  'analytics:log-experiment': logExperiment,
   'metrics:event': trackMetric,
 
   /**
@@ -181,11 +177,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
 
   /**
-   * Augment the onboarding wizard skip confirm help button
-   */
-  'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
-
-  /**
    * Get list of organization roles
    */
   'member-invite-modal:organization-roles': getOrgRoles,
@@ -218,6 +209,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:explore-date-range-query-limit-footer': () =>
+    ExploreDateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */
@@ -229,6 +222,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
+  'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => EnhancedOrganizationStats,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
@@ -239,8 +233,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
-  'component:profiling-upgrade-plan-button': () => ProfilingUpgradePlanButton,
-  'component:profiling-am1-or-mmx-upgrade': () => ProfilingAM1OrMMXUpgrade,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
@@ -248,7 +240,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
-  'react-hook:use-experiment': useExperiment,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
@@ -257,6 +248,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
+  'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces
@@ -271,15 +263,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
-  'feature-disabled:incidents-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:performance-new-project': p => (
     <PerformanceNewProjectPrompt {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PerformanceNewProjectPrompt>
   ),
-  'feature-disabled:performance-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
@@ -309,11 +297,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </DisabledAlertWizard>
-  ),
-  'feature-disabled:create-metrics-alert-tooltip': p => (
-    <DisabledMetricsAlertTooltip {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledMetricsAlertTooltip>
   ),
   'feature-disabled:codecov-integration-setting': () => (
     <PowerFeatureHovercard
@@ -369,11 +352,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </PowerFeatureHovercard>
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
-  'feature-disabled:trace-view-link': p => (
+  'feature-disabled:issue-views': p => (
     <PowerFeatureHovercard
-      // TODO(wmak): Flip back to trace-view-summary when we add it to plans
-      features={['organizations:discover-query']}
-      id="trace-view-link"
+      features={['organizations:issue-views']}
+      id="issue-views"
+      useLearnMoreLink
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>

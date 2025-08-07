@@ -19,7 +19,6 @@ from sentry.users.api.serializers.useremail import UserEmailSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.signing import sign
 
 logger = logging.getLogger("sentry.accounts")
@@ -77,7 +76,6 @@ def add_email(email: str, user: User) -> UserEmail:
         with transaction.atomic(using=router.db_for_write(UserEmail)):
             new_email = UserEmail.objects.create(user=user, email=email)
     except IntegrityError:
-        incr_rollback_metrics(UserEmail)
         raise DuplicateEmailError
 
     new_email.set_hash()

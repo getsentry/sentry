@@ -24,7 +24,7 @@ const menuItemStyles = (
   color: ${p.theme.textColor};
   cursor: pointer;
   display: flex;
-  font-size: ${p.theme.fontSizeMedium};
+  font-size: ${p.theme.fontSize.md};
   line-height: 32px;
 
   /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */

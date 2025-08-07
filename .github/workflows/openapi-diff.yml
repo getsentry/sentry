@@ -44,15 +44,14 @@ jobs:
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
         with:
-          node-version-file: '.volta.json'
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
-        # install ts-node for ts build scripts to execute properly without potentially installing
-        # conflicting deps when running scripts locally
-        # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          yarn add ts-node && make build-api-docs
+          make build-api-docs
 
       - name: Compare OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'

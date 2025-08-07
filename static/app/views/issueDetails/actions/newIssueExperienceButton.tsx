@@ -1,11 +1,14 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
+import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,10 +23,6 @@ import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {
-  IssueDetailsTourModal,
-  IssueDetailsTourModalCss,
-} from 'sentry/views/issueDetails/issueDetailsTourModal';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 /**
@@ -36,7 +35,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
  *
  * Returns a function that can be used to reset the modal.
  */
-export function useIssueDetailsPromoModal() {
+function useIssueDetailsPromoModal() {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const {mutate: mutateAssistant} = useMutateAssistant();
@@ -71,13 +70,20 @@ export function useIssueDetailsPromoModal() {
     if (isPromoVisible) {
       openModal(
         props => (
-          <IssueDetailsTourModal
-            handleDismissTour={() => {
-              handleEndTour();
-              props.closeModal();
+          <StartTourModal
+            closeModal={props.closeModal}
+            img={{
+              src: issueDetailsPreview,
+              alt: t('Preview of the issue details experience'),
             }}
-            handleStartTour={() => {
-              props.closeModal();
+            header={t('Welcome to Issue Details')}
+            description={t(
+              "New around here? Tour the issue experience - we promise you'll be less confused."
+            )}
+            onDismissTour={() => {
+              handleEndTour();
+            }}
+            onStartTour={() => {
               setLocalTourState({hasSeen: true});
               startTour();
               trackAnalytics('issue_details.tour.started', {
@@ -88,7 +94,7 @@ export function useIssueDetailsPromoModal() {
           />
         ),
         {
-          modalCss: IssueDetailsTourModalCss,
+          modalCss: startTourModalCss,
           onClose: reason => {
             if (reason) {
               handleEndTour();
@@ -276,5 +282,8 @@ const TryNewButton = styled(Button)`
   &:active,
   &:focus {
     color: ${p => p.theme.white};
+  }
+  ::after {
+    background: linear-gradient(90deg, #3468d8, #248574);
   }
 `;

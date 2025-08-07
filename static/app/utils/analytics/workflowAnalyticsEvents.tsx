@@ -177,7 +177,7 @@ export type TeamInsightsEventParameters = {
   };
 };
 
-export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
+type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_builder.filter': 'Alert Builder: Filter',

@@ -2,8 +2,9 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -171,7 +172,7 @@ function ReplayOnboardingCTAUpsell({
             'Session Replay is a video-like reproduction of user interactions including page visits, mouse movements, clicks, and scrolls on a site or web app.'
           )}
         </p>
-        <ButtonList gap={1}>
+        <ButtonList>
           <LinkButton
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
             onClick={onClickManageSubscription}
@@ -198,7 +199,7 @@ function ReplayOnboardingCTAUpsell({
             'Update to the latest version of your plan to get access to Session Replay and get video-like reproduction of user interactions including page visits, mouse movements, clicks, and scrolls on a site or web app.'
           )}
         </p>
-        <ButtonList gap={1}>
+        <ButtonList>
           {hasBillingAccess ? (
             <LinkButton
               to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
@@ -232,7 +233,7 @@ function ReplayOnboardingCTAUpsell({
       {hasBillingAccess ? null : (
         <p>{t('Notify your organization owner to start using Session Replay.')}</p>
       )}
-      <ButtonList gap={1}>
+      <ButtonList>
         {hasBillingAccess ? (
           <Button
             onClick={handleOpenModal}

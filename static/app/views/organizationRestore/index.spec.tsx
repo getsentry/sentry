@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
 describe('OrganizationRestore', function () {
@@ -34,7 +35,10 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: pendingDeleteOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const text = await screen.findByText(/currently scheduled for deletion/);
     expect(mockGet).toHaveBeenCalled();
@@ -53,13 +57,16 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: pendingDeleteOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const button = await screen.findByTestId('form-submit');
     await userEvent.click(button);
 
     expect(mockUpdate).toHaveBeenCalled();
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/issues/`
     );
   });
@@ -75,7 +82,10 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: deleteInProgressOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const text = await screen.findByText(
       /organization is currently in progress of being deleted/

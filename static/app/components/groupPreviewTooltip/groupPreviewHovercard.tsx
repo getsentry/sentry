@@ -24,8 +24,8 @@ export function GroupPreviewHovercard({
   );
 
   // No need to preview on hover for small devices
-  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.lg})`);
+  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xl})`);
 
   return (
     <StyledHovercardWithBodyClass

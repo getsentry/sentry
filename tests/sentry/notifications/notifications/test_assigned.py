@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.core import mail
@@ -41,7 +41,7 @@ class AssignedNotificationAPITest(APITestCase):
         fallback_text = mock_post.call_args_list[index].kwargs["text"]
         assert fallback_text == msg
 
-        assert group.title in blocks[1]["text"]["text"]
+        assert blocks[1]["elements"][0]["elements"][-1]["text"] == group.title
         assert project.slug in blocks[-2]["elements"][0]["text"]
         channel = mock_post.call_args_list[index].kwargs["channel"]
         assert channel == str(user_id)
@@ -56,7 +56,7 @@ class AssignedNotificationAPITest(APITestCase):
             user=user, identity_provider=self.provider, external_id=user.id
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -73,7 +73,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         self.login_as(self.user)
 
-    def test_sends_assignment_notification(self, mock_post):
+    def test_sends_assignment_notification(self, mock_post: MagicMock) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is assigned.
@@ -99,10 +99,10 @@ class AssignedNotificationAPITest(APITestCase):
         fallback_text = mock_post.call_args.kwargs["text"]
 
         assert fallback_text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert self.group.title in blocks[1]["text"]["text"]
+        assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
         assert self.project.slug in blocks[-2]["elements"][0]["text"]
 
-    def test_sends_reassignment_notification_user(self, mock_post):
+    def test_sends_reassignment_notification_user(self, mock_post: MagicMock) -> None:
         """Test that if a user is assigned to an issue and then the issue is reassigned to a different user
         that the original assignee receives an unassignment notification as well as the new assignee
         receiving an assignment notification"""
@@ -171,7 +171,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, self.group, self.project, user1.id, mock_post, index=1)
         self.validate_slack_message(msg, self.group, self.project, user2.id, mock_post, index=2)
 
-    def test_sends_reassignment_notification_team(self, mock_post):
+    def test_sends_reassignment_notification_team(self, mock_post: MagicMock) -> None:
         """Test that if a team is assigned to an issue and then the issue is reassigned to a different team
         that the originally assigned team receives an unassignment notification as well as the new assigned
         team receiving an assignment notification"""

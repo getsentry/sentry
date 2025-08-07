@@ -1,5 +1,6 @@
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -46,7 +47,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
     : t('Release Health is not yet supported on this platform.');
 
   return (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       <LinkButton
         size="sm"
         priority="primary"

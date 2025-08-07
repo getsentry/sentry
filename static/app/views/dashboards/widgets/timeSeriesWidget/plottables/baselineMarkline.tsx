@@ -25,8 +25,8 @@ export function BaselineMarkLine({theme, value, label}: Props) {
       position: 'insideEndBottom',
       formatter: () => label ?? t('Baseline'),
       fontSize: 14,
-      color: theme.chartLabel,
-      backgroundColor: theme.chartOther,
+      color: theme.tokens.content.muted,
+      backgroundColor: theme.tokens.background.primary,
     },
   });
 }

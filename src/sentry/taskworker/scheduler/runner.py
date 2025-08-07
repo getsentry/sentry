@@ -46,7 +46,8 @@ class RunStorage:
         Returns False when the key is set and a task should not be spawned.
         """
         now = timezone.now()
-        duration = next_runtime - now
+        # next_runtime & now could be the same second, and redis gets sad if ex=0
+        duration = max(int((next_runtime - now).total_seconds()), 1)
 
         result = self._redis.set(self._make_key(taskname), now.isoformat(), ex=duration, nx=True)
         return bool(result)
@@ -59,6 +60,8 @@ class RunStorage:
         result = self._redis.get(self._make_key(taskname))
         if result:
             return datetime.fromisoformat(result)
+
+        metrics.incr("taskworker.scheduler.run_storage.read.miss", tags={"taskname": taskname})
         return None
 
     def read_many(self, tasknames: list[str]) -> Mapping[str, datetime | None]:
@@ -105,6 +108,14 @@ class ScheduleEntry:
     def fullname(self) -> str:
         return self._task.fullname
 
+    @property
+    def namespace(self) -> str:
+        return self._task.namespace.name
+
+    @property
+    def taskname(self) -> str:
+        return self._task.name
+
     def set_last_run(self, last_run: datetime | None) -> None:
         self._last_run = last_run
 
@@ -118,9 +129,8 @@ class ScheduleEntry:
         return self._schedule.runtime_after(start)
 
     def delay_task(self) -> None:
-        logger.info("taskworker.scheduler.delay_task", extra={"task": self._task.fullname})
         monitor_config = self.monitor_config()
-        headers: dict[str, Any] | None = None
+        headers: dict[str, Any] = {}
         if monitor_config:
             check_in_id = capture_checkin(
                 monitor_slug=self._key,
@@ -131,6 +141,9 @@ class ScheduleEntry:
                 "sentry-monitor-check-in-id": check_in_id,
                 "sentry-monitor-slug": self._key,
             }
+
+        # We don't need every task linked back to the scheduler trace
+        headers["sentry-propagate-traces"] = False
 
         self._task.apply_async(headers=headers)
 
@@ -196,6 +209,7 @@ class ScheduleRunner:
         self._update_heap()
 
         if not self._heap:
+            logger.warning("taskworker.scheduler.no_heap")
             return 60
 
         while True:
@@ -223,14 +237,32 @@ class ScheduleRunner:
             entry.delay_task()
             entry.set_last_run(now)
 
-            logger.info("taskworker.scheduler.delay_task", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.delay_task")
+            logger.debug("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
+            metrics.incr(
+                "taskworker.scheduler.delay_task",
+                tags={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                },
+                sample_rate=1.0,
+            )
         else:
-            # sync with last_run state in storage
-            entry.set_last_run(self._run_storage.read(entry.fullname))
+            # We were not able to set a key, load last run from storage.
+            run_state = self._run_storage.read(entry.fullname)
+            entry.set_last_run(run_state)
 
-            logger.info("taskworker.scheduler.sync_with_storage", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.sync_with_storage")
+            logger.info(
+                "taskworker.scheduler.sync_with_storage",
+                extra={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                    "last_runtime": run_state.isoformat() if run_state else None,
+                },
+            )
+            metrics.incr(
+                "taskworker.scheduler.sync_with_storage",
+                tags={"taskname": entry.taskname, "namespace": entry.namespace},
+            )
 
     def _update_heap(self) -> None:
         """update the heap to reflect current remaining time"""
@@ -252,3 +284,10 @@ class ScheduleRunner:
         for item in self._entries:
             last_run = last_run_times.get(item.fullname, None)
             item.set_last_run(last_run)
+        logger.info(
+            "taskworker.scheduler.load_last_run",
+            extra={
+                "entry_count": len(self._entries),
+                "loaded_count": len(last_run_times),
+            },
+        )

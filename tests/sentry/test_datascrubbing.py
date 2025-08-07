@@ -19,7 +19,7 @@ def merge_pii_configs(prefixes_and_configs):
 
 @django_db_all
 @pytest.mark.parametrize("field", ["ooo", "oöö", "o o", "o\no", "o'o"])
-def test_scrub_data(field, default_project):
+def test_scrub_data(field, default_project) -> None:
     project = default_project
     organization = project.organization
 
@@ -80,7 +80,7 @@ def test_scrub_data(field, default_project):
     )
 
 
-def test_merge_pii_configs_simple():
+def test_merge_pii_configs_simple() -> None:
     assert merge_pii_configs([("p:", {}), ("o:", {})]) == {}
 
     assert merge_pii_configs(
@@ -88,7 +88,7 @@ def test_merge_pii_configs_simple():
     ) == {"applications": {"$string": ["@ip:remove"]}}
 
 
-def test_merge_pii_configs_rule_references():
+def test_merge_pii_configs_rule_references() -> None:
     my_rules = {
         "remove_ips_alias": {
             "type": "alias",

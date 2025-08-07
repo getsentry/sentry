@@ -71,6 +71,8 @@ export function formatMongoDBQuery(query: string, command: string) {
 
 function jsonEntryToToken(key: string, value: JSONValue, isBold?: boolean) {
   const tokenString = jsonToTokenizedString(value, key);
+
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return stringToToken(tokenString, `${key}:${value}`, isBold);
 }
 

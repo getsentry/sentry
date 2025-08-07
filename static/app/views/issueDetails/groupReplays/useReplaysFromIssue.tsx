@@ -54,7 +54,7 @@ export default function useReplaysFromIssue({
   }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
   const eventView = useMemo(() => {
-    if (!replayIds || !replayIds.length) {
+    if (!replayIds?.length) {
       return null;
     }
     return EventView.fromSavedQuery({

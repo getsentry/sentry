@@ -109,4 +109,68 @@ describe('flutter onboarding docs', function () {
       )
     ).toBeInTheDocument();
   });
+
+  it('renders replay onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dart.flutter': {
+          version: '1.99.9',
+        },
+      },
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.replay.sessionSampleRate/))
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.replay.onErrorSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration for manual installation when logs are selected', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dart.flutter': {
+          version: '1.99.9',
+        },
+      },
+      selectedProducts: [ProductSolution.LOGS],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
+    });
+
+    // Should include logs configuration
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.enableLogs = true/))
+    ).toBeInTheDocument();
+
+    // Should include logging next step
+    expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
+  });
+
+  it('renders logs configuration for auto installation when logs are selected', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dart.flutter': {
+          version: '1.99.9',
+        },
+      },
+      selectedProducts: [ProductSolution.LOGS],
+      selectedOptions: {
+        installationMode: InstallationMode.AUTO,
+      },
+    });
+
+    // Should include logging next step even in auto mode
+    expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
+  });
 });

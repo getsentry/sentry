@@ -26,7 +26,6 @@ from sentry.notifications.types import (
 )
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -68,7 +67,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                         reason=reason,
                     )
         except IntegrityError:
-            incr_rollback_metrics(name="group_subscription_create")
+            pass
         return True
 
     def subscribe_actor(
@@ -157,7 +156,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                     self.bulk_create(subscriptions)
                     return True
             except IntegrityError:
-                incr_rollback_metrics(GroupSubscription)
                 if i == 0:
                     raise
         return False

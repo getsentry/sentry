@@ -1,3 +1,5 @@
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -6,22 +8,7 @@ import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
 
 jest.mock('sentry/utils/usePageFilters');
 
-jest.mocked(usePageFilters).mockReturnValue({
-  isReady: true,
-  desyncedFilters: new Set(),
-  pinnedFilters: new Set(),
-  shouldPersist: true,
-  selection: {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  },
-});
+jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
 describe('SpanOperationTable', () => {
   it('renders and fetches the proper data', () => {
@@ -63,12 +50,12 @@ describe('SpanOperationTable', () => {
             'span.op',
             'span.group',
             'span.description',
-            'division_if(mobile.slow_frames,mobile.total_frames,release,foo)',
-            'division_if(mobile.slow_frames,mobile.total_frames,release,bar)',
-            'division_if(mobile.frozen_frames,mobile.total_frames,release,foo)',
-            'division_if(mobile.frozen_frames,mobile.total_frames,release,bar)',
-            'avg_if(mobile.frames_delay,release,foo)',
-            'avg_if(mobile.frames_delay,release,bar)',
+            'division_if(mobile.slow_frames,mobile.total_frames,release,equals,foo)',
+            'division_if(mobile.slow_frames,mobile.total_frames,release,equals,bar)',
+            'division_if(mobile.frozen_frames,mobile.total_frames,release,equals,foo)',
+            'division_if(mobile.frozen_frames,mobile.total_frames,release,equals,bar)',
+            'avg_if(mobile.frames_delay,release,equals,foo)',
+            'avg_if(mobile.frames_delay,release,equals,bar)',
             'avg_compare(mobile.frames_delay,release,foo,bar)',
           ],
         }),

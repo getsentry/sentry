@@ -37,6 +37,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
+@sentry_sdk.tracing.trace
 def should_call_seer_for_grouping(
     event: Event, variants: dict[str, BaseVariant], event_grouphash: GroupHash
 ) -> bool:
@@ -47,7 +48,8 @@ def should_call_seer_for_grouping(
 
     project = event.project
 
-    # Check both of these before returning based on either so we can gather metrics on their results
+    # Check both of these before returning based on either so we can always gather metrics on the
+    # results of both
     content_is_eligible = _event_content_is_seer_eligible(event)
     seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
     if not (content_is_eligible and seer_enabled_for_project):
@@ -249,6 +251,7 @@ def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant])
     return False
 
 
+@sentry_sdk.tracing.trace
 def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
@@ -463,6 +466,7 @@ def _should_use_seer_match_for_grouping(
     return fingerprints_match
 
 
+@sentry_sdk.tracing.trace
 def maybe_check_seer_for_matching_grouphash(
     event: Event,
     event_grouphash: GroupHash,

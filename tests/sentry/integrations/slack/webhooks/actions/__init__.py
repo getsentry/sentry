@@ -10,7 +10,7 @@ from sentry.testutils.helpers import add_identity, install_slack
 
 
 class BaseEventTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.external_id = "slack:1"
         self.integration = install_slack(self.organization)

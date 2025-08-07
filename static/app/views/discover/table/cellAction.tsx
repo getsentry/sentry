@@ -1,20 +1,22 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
+  fieldAlignment,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
 
@@ -26,6 +28,8 @@ export enum Actions {
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
+  COPY_TO_CLIPBOARD = 'copy_to_clipboard',
+  OPEN_EXTERNAL_LINK = 'open_external_link',
 }
 
 export function updateQuery(
@@ -83,6 +87,12 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
+    case Actions.COPY_TO_CLIPBOARD:
+      copyToClipboard(value);
+      break;
+    case Actions.OPEN_EXTERNAL_LINK:
+      openExternalLink(value);
+      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
@@ -132,6 +142,35 @@ export function excludeFromFilter(
 
   // Escapes the new condition if necessary
   oldFilter.addFilterValues(negation, value);
+}
+
+/**
+ * Copies the provided value to a user's clipboard.
+ * @param value
+ */
+export function copyToClipboard(value: string | number | string[]) {
+  function stringifyValue(val: string | number | string[]): string {
+    if (!val) return '';
+    if (typeof val !== 'object') {
+      return val.toString();
+    }
+    return JSON.stringify(val) ?? val.toString();
+  }
+  navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
+    addErrorMessage('Error copying to clipboard');
+  });
+}
+
+/**
+ * If provided value is a valid url, opens the url in a new tab
+ * @param value
+ */
+export function openExternalLink(value: string | number | string[]) {
+  if (typeof value === 'string' && isUrl(value)) {
+    window.open(value, '_blank', 'noopener,noreferrer');
+  } else {
+    addErrorMessage('Could not open link');
+  }
 }
 
 type CellActionsOpts = {
@@ -232,6 +271,10 @@ function makeCellActions({
     );
   }
 
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+
+  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+
   if (actions.length === 0) {
     return null;
   }
@@ -239,33 +282,54 @@ function makeCellActions({
   return actions;
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts>;
+/**
+ * Potentially temporary as design and product need more time to determine how logs table should trigger the dropdown.
+ * Currently, the agreed default for every table should be bold hover. Logs is the only table to use the ellipsis trigger.
+ */
+export enum ActionTriggerType {
+  ELLIPSIS = 'ellipsis',
+  BOLD_HOVER = 'bold_hover',
+}
 
-type State = {
-  isHovering: boolean;
-  isOpen: boolean;
+type Props = React.PropsWithoutRef<CellActionsOpts> & {
+  triggerType?: ActionTriggerType;
 };
 
-class CellAction extends Component<Props, State> {
-  render() {
-    const {children} = this.props;
-    const cellActions = makeCellActions(this.props);
+function CellAction({
+  triggerType = ActionTriggerType.BOLD_HOVER,
+  allowActions,
+  ...props
+}: Props) {
+  const organization = useOrganization();
+  const {children, column} = props;
 
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
+  let filteredActions = allowActions;
+  if (!useCellActionsV2)
+    filteredActions = filteredActions?.filter(
+      action => action !== Actions.OPEN_EXTERNAL_LINK
+    );
+
+  const cellActions = makeCellActions({...props, allowActions: filteredActions});
+  const align = fieldAlignment(column.key as string, column.type);
+
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
-        {children}
-        {cellActions?.length && (
+        {cellActions?.length ? (
           <DropdownMenu
             items={cellActions}
             usePortal
             size="sm"
             offset={4}
-            position="bottom"
+            position={align === 'left' ? 'bottom-start' : 'bottom-end'}
             preventOverflowOptions={{padding: 4}}
             flipOptions={{
               fallbackPlacements: [
+                'bottom-start',
+                'bottom-end',
                 'top',
                 'right-start',
                 'right-end',
@@ -274,19 +338,52 @@ class CellAction extends Component<Props, State> {
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTrigger
-                {...triggerProps}
-                translucentBorder
-                aria-label={t('Actions')}
-                icon={<IconEllipsis size="xs" />}
-                size="zero"
-              />
+              <ActionMenuTriggerV2 {...triggerProps} aria-label={t('Actions')}>
+                {children}
+              </ActionMenuTriggerV2>
             )}
+            // So the menu doesn't fill the entire row which can lead to extremely wide menus
+            minMenuWidth={0}
           />
+        ) : (
+          children
         )}
       </Container>
     );
-  }
+
+  return (
+    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+      {children}
+      {cellActions?.length && (
+        <DropdownMenu
+          items={cellActions}
+          usePortal
+          size="sm"
+          offset={4}
+          position="bottom"
+          preventOverflowOptions={{padding: 4}}
+          flipOptions={{
+            fallbackPlacements: [
+              'top',
+              'right-start',
+              'right-end',
+              'left-start',
+              'left-end',
+            ],
+          }}
+          trigger={triggerProps => (
+            <ActionMenuTrigger
+              {...triggerProps}
+              translucentBorder
+              aria-label={t('Actions')}
+              icon={<IconEllipsis size="xs" />}
+              size="zero"
+            />
+          )}
+        />
+      )}
+    </Container>
+  );
 }
 
 export default CellAction;
@@ -305,7 +402,7 @@ const ActionMenuTrigger = styled(Button)`
   top: 50%;
   right: -1px;
   transform: translateY(-50%);
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 
   display: flex;
   align-items: center;
@@ -316,5 +413,12 @@ const ActionMenuTrigger = styled(Button)`
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;
+  }
+`;
+
+const ActionMenuTriggerV2 = styled('div')`
+  :hover {
+    cursor: pointer;
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 `;

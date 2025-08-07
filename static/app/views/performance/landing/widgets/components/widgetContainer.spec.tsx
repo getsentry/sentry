@@ -878,7 +878,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'span.op',
@@ -892,7 +892,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.module:db transaction.op:pageload',
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -925,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'project.id',
@@ -936,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.module:http',
+          query: 'span.category:http',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -969,7 +969,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'sentry.normalized_description',
@@ -1040,7 +1040,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           cursor: '0:0:1',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: ['transaction', 'project.id', 'cache_miss_rate()'],
           noPagination: true,
@@ -1078,7 +1078,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -1097,10 +1097,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
             'count_scores(measurements.score.total)',
-            'total_opportunity_score()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -1168,7 +1167,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1209,7 +1208,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1250,7 +1249,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),

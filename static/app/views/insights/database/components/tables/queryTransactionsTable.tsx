@@ -3,11 +3,11 @@ import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -24,21 +24,20 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'transaction'
   | 'transaction.method'
   | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'transaction' | 'epm()' | 'avg(span.self_time)' | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -53,36 +52,26 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `avg(${SpanFields.SPAN_SELF_TIME})`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = [
-  'avg(span.self_time)',
-  'epm()',
-  'time_spent_percentage()',
-] as const;
-
 type ValidSort = Sort & {
-  field: (typeof SORTABLE_FIELDS)[number];
+  field: 'avg(span.self_time)' | 'epm()' | 'sum(span.self_time)';
 };
-
-export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
-}
 
 interface Props {
   data: Row[];
+  groupId: string;
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -95,7 +84,7 @@ export function QueryTransactionsTable({
   meta,
   pageLinks,
   sort,
-  span,
+  groupId,
 }: Props) {
   const theme = useTheme();
   const moduleURL = useModuleURL('db');
@@ -138,7 +127,7 @@ export function QueryTransactionsTable({
               column,
               row,
               meta,
-              span,
+              groupId,
               location,
               organization,
               theme
@@ -156,7 +145,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
+  groupId: string,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -167,7 +156,7 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(groupId)}`;
 
     const query: Record<string, string | undefined> = {
       ...location.query,
@@ -187,15 +176,12 @@ function renderBodyCell(
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
-  const rendered = renderer(
-    {...row, 'span.op': span['span.op']},
-    {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-      theme,
-    }
-  );
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+    theme,
+  });
 
   return rendered;
 }

@@ -36,6 +36,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
+from sentry.users.models.user import User
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -86,14 +87,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         try:
             return super()._get_member(
-                request, organization, member_id, invite_status=InviteStatus.APPROVED
+                request_user, organization, member_id, invite_status=InviteStatus.APPROVED
             )
         except ValueError:
             raise OrganizationMember.DoesNotExist()
@@ -150,7 +151,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     help_text=_team_roles_description,
                     required=False,
                     allow_null=True,
-                    default=[],
+                    default=list,
                     child=serializers.JSONField(),
                 ),
             },

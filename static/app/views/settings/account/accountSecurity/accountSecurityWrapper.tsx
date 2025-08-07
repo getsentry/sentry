@@ -41,7 +41,7 @@ function AccountSecurityWrapper({children}: Props) {
 
   const disableAuthenticatorMutation = useMutation({
     mutationFn: async (auth: Authenticator) => {
-      if (!auth || !auth.authId) {
+      if (!auth?.authId) {
         return;
       }
 

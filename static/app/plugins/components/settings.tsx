@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -184,7 +184,9 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert.Container>
-            <Alert type="warning">{data.config_error}</Alert>
+            <Alert type="warning" showIcon={false}>
+              {data.config_error}
+            </Alert>
           </Alert.Container>
           <LinkButton priority="primary" href={authUrl}>
             {t('Associate Identity')}
@@ -196,7 +198,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {
@@ -223,11 +225,11 @@ class PluginSettings<
       >
         <Flex>
           {this.state.errors.__all__ && (
-            <div className="alert alert-block alert-error">
+            <Alert type="error" showIcon={false}>
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>
-            </div>
+            </Alert>
           )}
           {this.state.fieldList?.map(f =>
             this.renderField({

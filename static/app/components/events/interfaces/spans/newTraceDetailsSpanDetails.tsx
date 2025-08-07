@@ -6,13 +6,13 @@ import * as qs from 'query-string';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
@@ -289,7 +289,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
           )}
@@ -345,7 +345,16 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return <SpanProfileDetails span={props.node.value} event={props.event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: props.node.value.span_id,
+          start_timestamp: props.node.value.start_timestamp,
+          end_timestamp: props.node.value.timestamp,
+        }}
+        event={props.event}
+      />
+    );
   }
 
   function renderSpanDetails() {
@@ -664,7 +673,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} 0;
 `;
 
@@ -687,7 +696,7 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-export function Row({
+function Row({
   title,
   keep,
   children,
@@ -727,7 +736,7 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
+function Tags({span}: {span: RawSpanType}) {
   const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
@@ -765,13 +774,13 @@ const Flex = styled('div')`
   display: flex;
   align-items: center;
 `;
-export const ButtonGroup = styled('div')`
+const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
 `;
 
-export const ValueRow = styled('div')`
+const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -786,7 +795,7 @@ const StyledPre = styled('pre')`
   background-color: transparent !important;
 `;
 
-export const ButtonContainer = styled('div')`
+const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 

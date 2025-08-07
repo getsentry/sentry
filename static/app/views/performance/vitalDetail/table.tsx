@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -116,7 +116,7 @@ class Table extends Component<Props, State> {
     const {eventView, organization, projects, location, summaryConditions, theme} =
       this.props;
 
-    if (!tableData || !tableData.meta?.fields) {
+    if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta?.fields;

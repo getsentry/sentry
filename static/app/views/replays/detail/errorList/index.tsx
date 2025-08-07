@@ -3,12 +3,14 @@ import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
 import ErrorHeaderCell, {
@@ -17,7 +19,6 @@ import ErrorHeaderCell, {
 import ErrorTableCell from 'sentry/views/replays/detail/errorList/errorTableCell';
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
@@ -30,8 +31,9 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function ErrorList() {
-  const {currentTime, replay} = useReplayContext();
+export default function ErrorList() {
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
@@ -124,7 +126,7 @@ function ErrorList() {
   };
 
   return (
-    <FluidHeight>
+    <Flex direction="column" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
@@ -177,7 +179,7 @@ function ErrorList() {
           <Placeholder height="100%" />
         )}
       </ErrorTable>
-    </FluidHeight>
+    </Flex>
   );
 }
 
@@ -188,7 +190,14 @@ const OverflowHidden = styled('div')`
   display: grid;
 `;
 
-const ErrorTable = styled(FluidHeight)`
+const ErrorTable = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 
@@ -228,5 +237,3 @@ const ErrorTable = styled(FluidHeight)`
     width: 999999999%;
   }
 `;
-
-export default ErrorList;

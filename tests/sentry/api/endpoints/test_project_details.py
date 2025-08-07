@@ -47,29 +47,29 @@ def first_symbol_source_id(sources_json):
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
 
-    def test_superuser_simple(self):
+    def test_superuser_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
 
-    def test_staff_simple(self):
+    def test_staff_simple(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
 
-    def test_numeric_org_slug(self):
+    def test_numeric_org_slug(self) -> None:
         # Regression test for https://github.com/getsentry/sentry/issues/2236
         project = self.create_project(name="Bar", slug="bar", teams=[self.team])
 
@@ -79,7 +79,7 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(project.id)
 
-    def test_with_stats(self):
+    def test_with_stats(self) -> None:
         self.create_group(project=self.project)
 
         response = self.get_success_response(
@@ -87,7 +87,7 @@ class ProjectDetailsTest(APITestCase):
         )
         assert response.data["stats"]["unresolved"] == 1
 
-    def test_has_alert_integration(self):
+    def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(self.organization)
@@ -101,7 +101,7 @@ class ProjectDetailsTest(APITestCase):
         )
         assert response.data["hasAlertIntegrationInstalled"]
 
-    def test_no_alert_integration(self):
+    def test_no_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="jira")
             integration.add_organization(self.organization)
@@ -115,7 +115,7 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
-    def test_filters_disabled_plugins(self):
+    def test_filters_disabled_plugins(self) -> None:
         from sentry.plugins.base import plugins
 
         self.create_group(project=self.project)
@@ -136,7 +136,7 @@ class ProjectDetailsTest(APITestCase):
         assert len(response.data["plugins"]) == 1
         assert response.data["plugins"][0]["slug"] == asana_plugin.slug
 
-    def test_project_renamed_302(self):
+    def test_project_renamed_302(self) -> None:
         # Rename the project
         self.get_success_response(
             self.project.organization.slug, self.project.slug, method="put", slug="foobar"
@@ -171,7 +171,7 @@ class ProjectDetailsTest(APITestCase):
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
 
-    def test_non_org_rename_403(self):
+    def test_non_org_rename_403(self) -> None:
         org = self.create_organization()
         team = self.create_team(organization=org, name="foo", slug="foo")
         user = self.create_user(is_superuser=False)
@@ -184,7 +184,7 @@ class ProjectDetailsTest(APITestCase):
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
-    def test_highlight_preset(self):
+    def test_highlight_preset(self) -> None:
         assert self.project.get_option("sentry:highlight_context") is None
         assert self.project.get_option("sentry:highlight_tags") is None
         resp = self.get_success_response(self.project.organization.slug, self.project.slug)
@@ -193,7 +193,7 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["highlightContext"] == expected_preset["context"]
         assert resp.data["highlightTags"] == expected_preset["tags"]
 
-    def test_is_dynamically_sampled_pan_rate(self):
+    def test_is_dynamically_sampled_pan_rate(self) -> None:
         # test with feature flags disabled
         with self.feature("organizations:dynamic-sampling"):
             with mock.patch(
@@ -217,7 +217,7 @@ class ProjectDetailsTest(APITestCase):
                 resp = self.get_success_response(self.project.organization.slug, self.project.slug)
                 assert not resp.data["isDynamicallySampled"]
 
-    def test_is_dynamically_sampled(self):
+    def test_is_dynamically_sampled(self) -> None:
         # test with feature flags disabled
         with self.feature(
             {
@@ -267,7 +267,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
@@ -281,7 +281,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
 
         self.platforms = ["rust", "java"]
 
-    def test_member_can_update_limited_project_details(self):
+    def test_member_can_update_limited_project_details(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -299,7 +299,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
 
-    def test_admin_update_allowed_with_correct_token_scope(self):
+    def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -321,7 +321,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             assert response.data["platform"] == platform
 
     @with_feature("organizations:team-roles")
-    def test_team_admin_update_allowed_with_correct_token_scope(self):
+    def test_team_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -342,7 +342,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             assert response.status_code == 200
             assert response.data["platform"] == platform
 
-    def test_manager_update_allowed_with_correct_token_scope(self):
+    def test_manager_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -363,7 +363,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             assert response.status_code == 200
             assert response.data["platform"] == platform
 
-    def test_owner_update_allowed_with_correct_token_scope(self):
+    def test_owner_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -384,7 +384,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             assert response.status_code == 200
             assert response.data["platform"] == platform
 
-    def test_member_update_denied_with_token(self):
+    def test_member_update_denied_with_token(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -403,7 +403,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_admin_update_denied_with_token(self):
+    def test_admin_update_denied_with_token(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -422,7 +422,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_empty_token_scopes_denied(self):
+    def test_empty_token_scopes_denied(self) -> None:
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -445,13 +445,13 @@ class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
 
-    def test_superuser_simple(self):
+    def test_superuser_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -459,7 +459,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "native"
 
-    def test_staff_simple(self):
+    def test_staff_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -467,7 +467,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "native"
 
-    def test_blank_subject_prefix(self):
+    def test_blank_subject_prefix(self) -> None:
         project = Project.objects.get(id=self.project.id)
         options = {"mail:subject_prefix": "[Sentry]"}
 
@@ -478,7 +478,7 @@ class ProjectUpdateTest(APITestCase):
         self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
 
-    def test_simple_member_restriction(self):
+    def test_simple_member_restriction(self) -> None:
         project = self.create_project()
         user = self.create_user("bar@example.com")
         self.create_member(
@@ -500,7 +500,7 @@ class ProjectUpdateTest(APITestCase):
             user_id=user.id, project_id=self.project.id
         ).exists()
 
-    def test_member_changes_permission_denied(self):
+    def test_member_changes_permission_denied(self) -> None:
         project = self.create_project()
         user = self.create_user("bar@example.com")
         self.create_member(
@@ -523,7 +523,7 @@ class ProjectUpdateTest(APITestCase):
         assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     @with_feature("organizations:team-roles")
-    def test_member_with_team_role(self):
+    def test_member_with_team_role(self) -> None:
         user = self.create_user("bar@example.com")
         self.create_member(
             user=user,
@@ -547,12 +547,12 @@ class ProjectUpdateTest(APITestCase):
         assert Project.objects.get(id=project.id).slug == "zzz"
         assert ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
-    def test_name(self):
+    def test_name(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
         project = Project.objects.get(id=self.project.id)
         assert project.name == "hello world"
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         with outbox_runner():
             self.get_success_response(self.org_slug, self.proj_slug, slug="foobar")
         project = Project.objects.get(id=self.project.id)
@@ -564,7 +564,7 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
 
-    def test_invalid_slug(self):
+    def test_invalid_slug(self) -> None:
         new_project = self.create_project()
         self.get_error_response(
             self.org_slug,
@@ -575,7 +575,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         response = self.get_error_response(
             self.org_slug,
             self.proj_slug,
@@ -584,7 +584,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_reserved_slug(self):
+    def test_reserved_slug(self) -> None:
         self.get_error_response(
             self.org_slug,
             self.proj_slug,
@@ -592,15 +592,15 @@ class ProjectUpdateTest(APITestCase):
             status_code=400,
         )
 
-    def test_platform(self):
+    def test_platform(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, platform="python")
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "python"
 
-    def test_platform_invalid(self):
+    def test_platform_invalid(self) -> None:
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
-    def test_options(self):
+    def test_options(self) -> None:
         options: dict[str, Any] = {
             "sentry:resolve_age": 1,
             "sentry:scrub_data": False,
@@ -615,6 +615,7 @@ class ProjectUpdateTest(APITestCase):
             "filters:blacklisted_ips": "127.0.0.1\n198.51.100.0",
             "filters:releases": "1.*\n2.1.*",
             "filters:error_messages": "TypeError*\n*: integer division by modulo or zero",
+            "filters:log_messages": "Updated*\n*.sentry.io",
             "mail:subject_prefix": "[Sentry]",
             "sentry:scrub_ip_address": False,
             "sentry:origins": "*",
@@ -631,7 +632,10 @@ class ProjectUpdateTest(APITestCase):
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
         }
-        with self.feature("projects:custom-inbound-filters"), outbox_runner():
+        with (
+            self.feature(["projects:custom-inbound-filters", "organizations:ourlogs-ingestion"]),
+            outbox_runner(),
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)
@@ -684,6 +688,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:error_messages") == [
             "TypeError*",
             "*: integer division by modulo or zero",
+        ]
+        assert project.get_option("sentry:log_messages") == [
+            "Updated*",
+            "*.sentry.io",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -773,13 +781,13 @@ class ProjectUpdateTest(APITestCase):
             ],
         )
 
-    def test_bookmarks(self):
+    def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user_id=self.user.id
         ).exists()
 
-    def test_security_token(self):
+    def test_security_token(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
         assert self.project.get_security_token() == "fizzbuzz"
         assert resp.data["securityToken"] == "fizzbuzz"
@@ -789,7 +797,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_security_token() == ""
         assert resp.data["securityToken"] == ""
 
-    def test_security_token_header(self):
+    def test_security_token_header(self) -> None:
         value = "X-Hello-World"
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
         assert self.project.get_option("sentry:token_header") == "X-Hello-World"
@@ -800,12 +808,12 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
 
-    def test_verify_ssl(self):
+    def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)
         assert self.project.get_option("sentry:verify_ssl") is False
         assert resp.data["verifySSL"] is False
 
-    def test_scrub_ip_address(self):
+    def test_scrub_ip_address(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrubIPAddresses=True)
         assert self.project.get_option("sentry:scrub_ip_address") is True
         assert resp.data["scrubIPAddresses"] is True
@@ -814,12 +822,12 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
-    def test_scrape_javascript(self):
+    def test_scrape_javascript(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
 
-    def test_default_environment(self):
+    def test_default_environment(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
         assert self.project.get_option("sentry:default_environment") == "dev"
         assert resp.data["defaultEnvironment"] == "dev"
@@ -828,7 +836,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:default_environment") == ""
         assert resp.data["defaultEnvironment"] == ""
 
-    def test_resolve_age(self):
+    def test_resolve_age(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, resolveAge=5)
         assert self.project.get_option("sentry:resolve_age") == 5
         assert resp.data["resolveAge"] == 5
@@ -838,7 +846,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:resolve_age") == 0
         assert resp.data["resolveAge"] == 0
 
-    def test_allowed_domains(self):
+    def test_allowed_domains(self) -> None:
         value = ["foobar.com", "https://example.com"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, allowedDomains=value)
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
@@ -861,7 +869,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:origins") == ["*"]
         assert resp.data["allowedDomains"] == ["*"]
 
-    def test_safe_fields(self):
+    def test_safe_fields(self) -> None:
         value = ["foobar", "extra.fields.**"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
@@ -876,7 +884,7 @@ class ProjectUpdateTest(APITestCase):
             'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
         ]
 
-    def test_highlight_tags(self):
+    def test_highlight_tags(self) -> None:
         # Unrelated change returns presets
         resp = self.get_success_response(self.org_slug, self.proj_slug)
         assert self.project.get_option("sentry:highlight_tags") is None
@@ -885,7 +893,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightPreset"] == preset
 
         # Set to custom
-        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        highlight_tags = ["bears", "beets", "battlestar_galactica", "blue bugs"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -904,7 +912,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightTags"] == []
         assert resp.data["highlightPreset"] == preset
 
-    def test_highlight_context(self):
+    def test_highlight_context(self) -> None:
         # Unrelated change returns presets
         resp = self.get_success_response(self.org_slug, self.proj_slug)
         preset = get_highlight_preset_for_project(self.project)
@@ -912,26 +920,36 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightContext"] == preset["context"]
         assert resp.data["highlightPreset"] == preset
 
-        # Set to custom
-        highlight_context_type = "bird-words"
-        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightContext=highlight_context,
-        )
-        option_result = self.project.get_option("sentry:highlight_context")
-        resp_result = resp.data["highlightContext"]
-        for highlight_context_key in highlight_context[highlight_context_type]:
-            assert highlight_context_key in option_result[highlight_context_type]
-            assert highlight_context_key in resp_result[highlight_context_type]
+        # Set to custom with different separators
+        highlight_context_types = ["birdwords", "bird-words", "bird words"]
+        for highlight_context_type in highlight_context_types:
+            highlight_context_value = [
+                "red",
+                "robin",
+                "blue",
+                "jay",
+                "red",
+                "blue",
+                "canadian goose",
+            ]
+            highlight_context = {highlight_context_type: highlight_context_value}
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+            )
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
 
-        # Filters duplicates
-        assert (
-            len(option_result[highlight_context_type])
-            == len(resp_result[highlight_context_type])
-            == 4
-        )
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 5
+            )
 
         # Set to empty
         resp = self.get_success_response(
@@ -959,16 +977,28 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
+            highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
+        )
+        assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird \n words": ["empty", "context", "type"]},
+        )
+        assert "Key 'bird \n words' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
             highlightContext={"bird-words": ["invalid", 123, "integer"]},
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
 
-    def test_store_crash_reports(self):
+    def test_store_crash_reports(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
 
-    def test_store_crash_reports_exceeded(self):
+    def test_store_crash_reports_exceeded(self) -> None:
         # NB: Align with test_organization_details.py
         data = {"storeCrashReports": 101}
 
@@ -976,12 +1006,12 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_store_crash_reports_inherit_organization_settings(self):
+    def test_store_crash_reports_inherit_organization_settings(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=None)
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert resp.data["storeCrashReports"] is None
 
-    def test_react_hydration_errors(self):
+    def test_react_hydration_errors(self) -> None:
         options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert self.project.get_option("filters:react-hydration-errors") == "0"
@@ -992,7 +1022,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("filters:react-hydration-errors") == "1"
         assert resp.data["options"]["filters:react-hydration-errors"] is True
 
-    def test_chunk_load_error(self):
+    def test_chunk_load_error(self) -> None:
         options = {"filters:chunk-load-error": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert self.project.get_option("filters:chunk-load-error") == "0"
@@ -1003,13 +1033,13 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("filters:chunk-load-error") == "1"
         assert resp.data["options"]["filters:chunk-load-error"] is True
 
-    def test_relay_pii_config(self):
+    def test_relay_pii_config(self) -> None:
         value = '{"applications": {"freeform": []}}'
         resp = self.get_success_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
         assert self.project.get_option("sentry:relay_pii_config") == value
         assert resp.data["relayPiiConfig"] == value
 
-    def test_sensitive_fields(self):
+    def test_sensitive_fields(self) -> None:
         value = ["foobar.com", "https://example.com"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, sensitiveFields=value)
         assert self.project.get_option("sentry:sensitive_fields") == [
@@ -1018,22 +1048,22 @@ class ProjectUpdateTest(APITestCase):
         ]
         assert resp.data["sensitiveFields"] == ["foobar.com", "https://example.com"]
 
-    def test_sensitive_fields_too_long(self):
+    def test_sensitive_fields_too_long(self) -> None:
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.org_slug, self.proj_slug, sensitiveFields=value)
         assert resp.status_code == 400
 
-    def test_data_scrubber(self):
+    def test_data_scrubber(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubber=False)
         assert self.project.get_option("sentry:scrub_data") is False
         assert resp.data["dataScrubber"] is False
 
-    def test_data_scrubber_defaults(self):
+    def test_data_scrubber_defaults(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubberDefaults=False)
         assert self.project.get_option("sentry:scrub_defaults") is False
         assert resp.data["dataScrubberDefaults"] is False
 
-    def test_digests_delay(self):
+    def test_digests_delay(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
         assert self.project.get_option("digests:mail:minimum_delay") == 1000
 
@@ -1046,15 +1076,15 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == 300
         assert self.project.get_option("digests:mail:maximum_delay") == 600
 
-    def test_digests_min_without_max(self):
+    def test_digests_min_without_max(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1200)
         assert self.project.get_option("digests:mail:minimum_delay") == 1200
 
-    def test_digests_max_without_min(self):
+    def test_digests_max_without_min(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
         assert self.project.get_option("digests:mail:maximum_delay") == 1200
 
-    def test_invalid_digests_min_delay(self):
+    def test_invalid_digests_min_delay(self) -> None:
         min_delay = 120
 
         self.project.update_option("digests:mail:minimum_delay", min_delay)
@@ -1066,7 +1096,7 @@ class ProjectUpdateTest(APITestCase):
 
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
 
-    def test_invalid_digests_max_delay(self):
+    def test_invalid_digests_max_delay(self) -> None:
         min_delay = 120
         max_delay = 360
 
@@ -1091,34 +1121,8 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
-    def test_cap_secondary_grouping_expiry(self):
-        now = time()
-
-        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
-        assert response.status_code == 400
-
-        expiry = int(now + 3600 * 24 * 1)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        expiry = int(now + 3600 * 24 * 89)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        # Larger timestamps are capped to 91 days:
-        expiry = int(now + 3600 * 24 * 365)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        expiry = response.data["secondaryGroupingExpiry"]
-        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
-
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1171,7 +1175,9 @@ class ProjectUpdateTest(APITestCase):
             )
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets_unknown_secret(
+        self, create_audit_entry: mock.MagicMock
+    ) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1239,7 +1245,7 @@ class ProjectUpdateTest(APITestCase):
         project.update_option("sentry:symbol_sources", orjson.dumps([source1, source2]).decode())
         return [source1, source2]
 
-    def test_symbol_sources_no_modification(self):
+    def test_symbol_sources_no_modification(self) -> None:
         source1, source2 = self.symbol_sources()
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
@@ -1254,7 +1260,7 @@ class ProjectUpdateTest(APITestCase):
                 "sentry:symbol_sources", orjson.dumps([source1, source2]).decode()
             )
 
-    def test_symbol_sources_deletion(self):
+    def test_symbol_sources_deletion(self) -> None:
         source1, source2 = self.symbol_sources()
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
@@ -1266,7 +1272,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
     @with_feature({"organizations:dynamic-sampling-custom": False})
-    def test_target_sample_rate_without_feature(self):
+    def test_target_sample_rate_without_feature(self) -> None:
         self.project.update_option("sentry:target_sample_rate", 1.0)
         self.get_error_response(
             self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
@@ -1274,7 +1280,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
     @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_automatic_mode(self):
+    def test_target_sample_rate_automatic_mode(self) -> None:
         self.project.update_option("sentry:target_sample_rate", 1.0)
         # automatic mode is called "organization" in code
         self.organization.update_option(
@@ -1286,7 +1292,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
     @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_invalid(self):
+    def test_target_sample_rate_invalid(self) -> None:
         self.project.update_option("sentry:target_sample_rate", 1.0)
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         self.get_error_response(
@@ -1295,18 +1301,34 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
     @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate(self):
+    def test_target_sample_rate(self) -> None:
         self.project.update_option("sentry:target_sample_rate", 1.0)
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
         assert self.project.get_option("sentry:target_sample_rate") == 0.1
+
+    def test_no_setting_grouping_configs(self) -> None:
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, groupingConfig="some config", status_code=400
+        )
+        assert "Grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingConfig="another config", status_code=400
+        )
+        assert "Secondary grouping config cannot be manually set" in response.text
+
+        response = self.get_error_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=12311121, status_code=400
+        )
+        assert "Secondary grouping expiry cannot be manually set" in response.text
 
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1380,7 +1402,7 @@ class CopyProjectSettingsTest(APITestCase):
         assert len(rules) == 1
         assert rules[0].label == "Send a notification for high priority issues"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         self.get_success_response(
             project.organization.slug, project.slug, copy_from_project=self.other_project.id
@@ -1388,7 +1410,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    def test_additional_params_in_payload(self):
+    def test_additional_params_in_payload(self) -> None:
         # Right now these are overwritten with the copied project's settings
         project = self.create_project()
         data = {
@@ -1401,7 +1423,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    def test_project_from_another_org(self):
+    def test_project_from_another_org(self) -> None:
         project = self.create_project(fire_project_created=True)
         other_project = self.create_project(
             organization=self.create_organization(), fire_project_created=True
@@ -1416,7 +1438,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(project)
         self.assert_settings_not_copied(other_project)
 
-    def test_project_does_not_exist(self):
+    def test_project_does_not_exist(self) -> None:
         project = self.create_project(fire_project_created=True)
         resp = self.get_error_response(
             project.organization.slug, project.slug, copy_from_project=1234567890, status_code=400
@@ -1424,7 +1446,7 @@ class CopyProjectSettingsTest(APITestCase):
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
         self.assert_settings_not_copied(project)
 
-    def test_user_does_not_have_access_to_copy_from_project(self):
+    def test_user_does_not_have_access_to_copy_from_project(self) -> None:
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
@@ -1451,7 +1473,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
         self.assert_settings_not_copied(project, teams=[team])
 
-    def test_project_coping_from_has_team_user_lacks_write_access(self):
+    def test_project_coping_from_has_team_user_lacks_write_access(self) -> None:
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
@@ -1486,7 +1508,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(project, teams=[team])
 
     @mock.patch("sentry.models.project.Project.copy_settings_from")
-    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+    def test_copy_project_settings_fails(self, mock_copy_settings_from: mock.MagicMock) -> None:
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
         resp = self.get_error_response(
@@ -1504,7 +1526,7 @@ class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1531,22 +1553,22 @@ class ProjectDeleteTest(APITestCase):
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self._delete_project_and_assert_deleted()
 
-    def test_superuser(self):
+    def test_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
         self._delete_project_and_assert_deleted()
 
-    def test_staff(self):
+    def test_staff(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
         self._delete_project_and_assert_deleted()
 
-    def test_internal_project(self):
+    def test_internal_project(self) -> None:
         with self.settings(SENTRY_PROJECT=self.project.id):
             self.get_error_response(
                 self.project.organization.slug, self.project.slug, status_code=403
@@ -1567,15 +1589,14 @@ class ProjectDeleteTest(APITestCase):
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 
 
-class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
+class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        self.new_ds_flag = "organizations:dynamic-sampling"
         self._apply_old_date_to_project_and_org()
 
     def _apply_old_date_to_project_and_org(self):
@@ -1590,11 +1611,12 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
+class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
+        self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -1607,7 +1629,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    def test_get_dynamic_sampling_default_biases(self):
+    def test_get_dynamic_sampling_default_biases(self) -> None:
         """
         Tests the case when organization on AM2 plan, but haven't manipulated the bias toggles
         yet, so they get the default biases.
@@ -1622,13 +1644,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert response.data["dynamicSamplingBiases"] == DEFAULT_BIASES
 
-    def test_get_dynamic_sampling_biases_manually_set_biases(self):
+    def test_get_dynamic_sampling_biases_manually_set_biases(self) -> None:
         """
         Tests the case when an organization on AM2 plan, and have manipulated the bias toggles,
         so they should get their actual bias preferences.
         """
 
-        new_biases = [{"id": "boostEnvironments", "active": False}]
+        new_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
@@ -1639,22 +1661,20 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
-    def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
+    def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self) -> None:
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [{"id": "boostEnvironments", "active": False}],
+            [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}],
         )
 
         with Feature(
@@ -1666,19 +1686,17 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 self.organization.slug, self.project.slug, method="get"
             )
             assert response.data["dynamicSamplingBiases"] == [
-                {"id": "boostEnvironments", "active": False},
-                {
-                    "id": "boostLatestRelease",
-                    "active": True,
-                },
-                {"id": "ignoreHealthChecks", "active": True},
-                {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": True},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
                 {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
+                {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
             ]
 
-    def test_dynamic_sampling_bias_activation(self):
+    def test_dynamic_sampling_bias_activation(self) -> None:
         """
         Tests that when sending a request to enable a dynamic sampling bias,
         the bias will be successfully enabled and the audit log 'SAMPLING_BIAS_ENABLED' will be triggered
@@ -1686,7 +1704,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1711,7 +1729,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": True},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                     ]
                 },
             )
@@ -1722,7 +1740,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
             ).exists()
 
-    def test_dynamic_sampling_bias_deactivation(self):
+    def test_dynamic_sampling_bias_deactivation(self) -> None:
         """
         Tests that when sending a request to disable a dynamic sampling bias,
         the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
@@ -1730,7 +1748,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
@@ -1755,7 +1773,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 HTTP_AUTHORIZATION=authorization,
                 data={
                     "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
                         {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
@@ -1784,21 +1802,19 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         assert response.status_code == 403
         assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 
-    def test_put_new_dynamic_sampling_rules_with_correct_flags(self):
+    def test_put_new_dynamic_sampling_rules_with_correct_flags(self) -> None:
         """
         Test when user is on a new plan and is trying to update dynamic sampling features of a new plan
         """
         new_biases = [
-            {"id": "boostEnvironments", "active": False},
-            {
-                "id": "boostLatestRelease",
-                "active": False,
-            },
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
+            {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
         ]
         with Feature(
             {
@@ -1822,7 +1838,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert get_response.data["dynamicSamplingBiases"] == new_biases
 
-    def test_put_attempt_new_dynamic_sampling_without_biases_with_correct_flags(self):
+    def test_put_attempt_new_dynamic_sampling_without_biases_with_correct_flags(self) -> None:
         """
         Test when user is on a new plan and is trying to update dynamic sampling features of a new plan with no biases
         """
@@ -1844,7 +1860,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert get_response.data["dynamicSamplingBiases"] == DEFAULT_BIASES
 
-    def test_put_new_dynamic_sampling_incorrect_rules_with_correct_flags(self):
+    def test_put_new_dynamic_sampling_incorrect_rules_with_correct_flags(self) -> None:
         new_biases = [
             {"id": "foo", "active": False},
         ]
@@ -1878,8 +1894,144 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
+    def test_dynamic_sampling_bias_enable_audit_log(self) -> None:
+        """Test that enabling a dynamic sampling bias creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with default biases
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=DEFAULT_BIASES
+                )
+
+                # Enable a specific bias
+                updated_biases = [
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=updated_biases
+                )
+
+            # Check audit log entry was created
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+
+    def test_dynamic_sampling_bias_disable_audit_log(self) -> None:
+        """Test that disabling a dynamic sampling bias creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with a bias enabled
+            with outbox_runner():
+                initial_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True}]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Disable the bias
+                disabled_biases = [{"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False}]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=disabled_biases
+                )
+
+            # Check audit log entry was created
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.BOOST_ENVIRONMENTS_RULE.value
+
+    def test_dynamic_sampling_bias_add_new_bias_audit_log(self) -> None:
+        """Test that adding a new bias to existing biases creates the correct audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with some initial biases
+            initial_biases = [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            ]
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Add a new bias that's enabled
+                expanded_biases = [
+                    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                    {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": True},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
+                )
+
+            # Check audit log entry was created for the newly enabled bias
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entry = AuditLogEntry.objects.get(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entry is not None
+                assert audit_entry.data["name"] == RuleType.MINIMUM_SAMPLE_RATE_RULE.value
+
+    def test_dynamic_sampling_bias_add_new_inactive_bias_no_audit_log(self) -> None:
+        """Test that adding a new bias as inactive does not create an audit log entry."""
+        with self.feature("organizations:dynamic-sampling"):
+            # Start with some initial biases
+            initial_biases = [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            ]
+            with outbox_runner():
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=initial_biases
+                )
+
+                # Add a new bias that's inactive
+                expanded_biases = [
+                    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                    {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                    {"id": RuleType.MINIMUM_SAMPLE_RATE_RULE.value, "active": False},
+                ]
+                self.get_success_response(
+                    self.org_slug, self.proj_slug, dynamicSamplingBiases=expanded_biases
+                )
+
+            # Check that no audit log entry was created for the inactive bias
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                audit_entries = AuditLogEntry.objects.filter(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                    target_object=self.project.id,
+                )
+                assert audit_entries.count() == 0
+
+
+class TestTempestProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
     @with_feature("organizations:tempest-access")
-    def test_put_tempest_fetch_screenshots(self):
+    def test_put_tempest_fetch_screenshots(self) -> None:
         # assert default value is False, and that put request updates the value
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
         response = self.get_success_response(
@@ -1888,27 +2040,46 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         assert response.data["tempestFetchScreenshots"] is True
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
-    def test_put_tempest_fetch_screenshots_without_feature_flag(self):
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_screenshots_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+    def test_put_tempest_fetch_screenshots_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
         )
 
     @with_feature("organizations:tempest-access")
-    def test_get_tempest_fetch_screenshots_options(self):
+    def test_get_tempest_fetch_screenshots_options(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchScreenshots" in response.data
         assert response.data["tempestFetchScreenshots"] is False
 
-    def test_get_tempest_fetch_screenshots_options_without_feature_flag(self):
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_screenshots_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    def test_get_tempest_fetch_screenshots_options_without_feature_flag(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchScreenshots" not in response.data
 
     @with_feature("organizations:tempest-access")
-    def test_put_tempest_fetch_dumps(self):
+    def test_put_tempest_fetch_dumps(self) -> None:
         # assert default value is False, and that put request updates the value
         assert self.project.get_option("sentry:tempest_fetch_dumps") is False
         response = self.get_success_response(
@@ -1917,21 +2088,98 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         assert response.data["tempestFetchDumps"] is True
         assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
-    def test_put_tempest_fetch_dumps_without_feature_flag(self):
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_dumps_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+        assert response.data["tempestFetchDumps"] is True
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
+    def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
         )
 
     @with_feature("organizations:tempest-access")
-    def test_get_tempest_fetch_dumps_options(self):
+    def test_get_tempest_fetch_dumps_options(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" in response.data
         assert response.data["tempestFetchDumps"] is False
 
-    def test_get_tempest_fetch_dumps_options_without_feature_flag(self):
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_dumps_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" in response.data
+        assert response.data["tempestFetchDumps"] is False
+
+    def test_get_tempest_fetch_dumps_options_without_feature_flag(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+
+class TestSeerProjectDetails(TestProjectDetailsBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
+    def test_autofix_automation_tuning(self) -> None:
+        # Test with invalid value - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
+        )
+        assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+
+        # Test with valid value - should succeed
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+        assert resp.data["autofixAutomationTuning"] == "medium"
+
+        # Test setting back to off
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+        assert resp.data["autofixAutomationTuning"] == "off"
+
+    def test_seer_scanner_automation(self) -> None:
+        # Test with invalid value - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
+        )
+        assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
+        assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
+
+        # Test with valid value - should succeed
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=False)
+        assert self.project.get_option("sentry:seer_scanner_automation") is False
+        assert resp.data["seerScannerAutomation"] is False
+
+        # Test setting back to on
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=True)
+        assert self.project.get_option("sentry:seer_scanner_automation") is True
+        assert resp.data["seerScannerAutomation"] is True

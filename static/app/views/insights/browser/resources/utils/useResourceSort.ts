@@ -2,11 +2,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} =
-  SpanMetricsField;
-const {TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanFields;
 
 type Query = {
   sort?: string;
@@ -17,7 +15,7 @@ const SORTABLE_FIELDS = [
   NORMALIZED_DESCRIPTION,
   'epm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-  `${TIME_SPENT_PERCENTAGE}()`,
+  `sum(${SPAN_SELF_TIME})`,
 ] as const;
 
 export type ValidSort = Sort & {
@@ -42,7 +40,7 @@ export function useResourceSort(
 
 const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[4],
+  field: 'sum(span.self_time)',
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

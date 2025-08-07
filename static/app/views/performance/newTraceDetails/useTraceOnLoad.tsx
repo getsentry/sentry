@@ -11,13 +11,14 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
+import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
-// If a trace has less than 3 transactions, we automatically expand all transactions.
+// If a trace has less than 3 transactions or less than 100 spans, we automatically expand all nodes.
 // We do this as the tree is otherwise likely to be very small and not very useful.
-const AUTO_EXPAND_TRANSACTION_THRESHOLD = 3;
+const AUTO_EXPAND_TRANSACTIONS_THRESHOLD = 3;
+const AUTO_EXPAND_SPANS_THRESHOLD = 100;
 async function maybeAutoExpandTrace(
   tree: TraceTree,
   options: {
@@ -26,7 +27,20 @@ async function maybeAutoExpandTrace(
     preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }
 ): Promise<TraceTree> {
-  if (tree.transactions_count >= AUTO_EXPAND_TRANSACTION_THRESHOLD) {
+  const traceNode = tree.root.children[0];
+
+  if (!traceNode) {
+    return tree;
+  }
+
+  if (
+    !(
+      tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
+      // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
+      // by spans count.
+      (isEAPTraceNode(traceNode) && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
+    )
+  ) {
     return tree;
   }
 
@@ -35,7 +49,7 @@ async function maybeAutoExpandTrace(
     node => isTransactionNode(node) || isEAPTransactionNode(node)
   );
   // Expand each transaction, either by zooming (if it has spans to fetch)
-  // or just expanding in place
+  // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
     if (transaction.canFetch) {

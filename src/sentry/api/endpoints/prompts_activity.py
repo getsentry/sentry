@@ -16,7 +16,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
 
@@ -46,6 +45,9 @@ class PromptsActivityEndpoint(Endpoint):
 
     def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
+
+        if not request.user.is_authenticated:
+            return Response(status=400)
 
         features = request.GET.getlist("feature")
         if len(features) == 0:
@@ -118,6 +120,5 @@ class PromptsActivityEndpoint(Endpoint):
                     feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )
         except IntegrityError:
-            incr_rollback_metrics(PromptsActivity)
             pass
         return HttpResponse(status=201)

@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
@@ -32,16 +30,6 @@ function SharedGroupHeader({group}: Props) {
               shortId={group.shortId}
               avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
             />
-            {group.issueCategory === IssueCategory.PERFORMANCE && (
-              <FeatureBadge
-                type="beta"
-                tooltipProps={{
-                  title: t(
-                    'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
-                  ),
-                }}
-              />
-            )}
           </ShortIdWrapper>
           {event && (event.dateCreated ?? event.dateReceived) && (
             <TimeStamp data-test-id="sgh-timestamp">
@@ -97,20 +85,20 @@ const TitleWrap = styled('div')`
 
 const Title = styled('h3')`
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-right: ${space(2)};
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.headerFontSize};
   }
 `;
 
 const TimeStamp = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-top: ${space(0.25)};
 `;

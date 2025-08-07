@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict
@@ -8,6 +8,7 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -18,8 +19,10 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
+from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.types import EAPResponse
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -29,6 +32,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
+    query_result_cache: dict[str, EAPResponse]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,7 +48,7 @@ class ResolvedColumn:
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
-    validator: Callable[[Any], bool] | None = None
+    validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -56,9 +60,16 @@ class ResolvedColumn:
         return value
 
     def validate(self, value: Any) -> None:
-        if self.validator is not None:
-            if not self.validator(value):
-                raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+        if callable(self.validator):
+            if self.validator(value):
+                return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+
+        elif isinstance(self.validator, Iterable):
+            for validator in self.validator:
+                if validator(value):
+                    return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
@@ -70,12 +81,29 @@ class ResolvedColumn:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ResolvedLiteral(ResolvedColumn):
+    value: float
+    is_aggregate: bool = False
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        """rpc doesn't understand a bare literal, so we return a no-op formula"""
+        return Column.BinaryFormula(
+            op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
+            left=Column(literal=LiteralValue(val_double=self.value)),
+            right=Column(literal=LiteralValue(val_double=0)),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
     is_aggregate: bool = field(default=False, init=False)
     # There are columns in RPC that are available but we don't want rendered to the user
     private: bool = False
+    replacement: str | None = field(default=None)
+    deprecation_status: str | None = field(default=None)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -106,6 +134,7 @@ class ValueArgumentDefinition(BaseArgumentDefinition):
 class AttributeArgumentDefinition(BaseArgumentDefinition):
     # the allowed types of data stored in the attribute
     attribute_types: set[constants.SearchType] | None = None
+    field_allowlist: set[str] | None = None
 
 
 @dataclass
@@ -193,7 +222,6 @@ class ResolvedAggregate(ResolvedFunction):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
-
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
@@ -221,6 +249,21 @@ class ResolvedConditionalAggregate(ResolvedFunction):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedEquation(ResolvedFunction):
+    operator: Column.BinaryFormula.Op.ValueType
+    lhs: Column | None
+    rhs: Column | None
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        return Column.BinaryFormula(
+            op=self.operator,
+            left=self.lhs,
+            right=self.rhs,
+        )
+
+
 @dataclass(kw_only=True)
 class FunctionDefinition:
     """
@@ -243,7 +286,9 @@ class FunctionDefinition:
     private: bool = False
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -252,6 +297,8 @@ class FunctionDefinition:
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -271,6 +318,8 @@ class AggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -292,7 +341,7 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation=self.extrapolation,
+            extrapolation=self.extrapolation if not extrapolation_override else False,
             argument=resolved_attribute,
         )
 
@@ -317,17 +366,19 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedConditionalAggregate:
-        key, filter = self.aggregate_resolver(resolved_arguments)
+        key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
-            filter=filter,
+            filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation=self.extrapolation,
+            extrapolation=self.extrapolation if not extrapolation_override else False,
         )
 
 
@@ -338,7 +389,9 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(
+        self,
+    ) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -347,14 +400,17 @@ class FormulaDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
                 ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
+                if self.extrapolation and not extrapolation_override
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
         )
 
         return ResolvedFormula(
@@ -390,11 +446,16 @@ def simple_measurements_field(
     )
 
 
-def datetime_processor(datetime_string: str) -> str:
-    return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
+def datetime_processor(datetime_value: str | float) -> str:
+    if isinstance(datetime_value, float):
+        # assumes that the timestamp is in seconds
+        return datetime.fromtimestamp(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
+    return datetime.fromisoformat(datetime_value).replace(tzinfo=tz.tzutc()).isoformat()
 
 
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
+def project_context_constructor(
+    column_name: str,
+) -> Callable[[SnubaParams], VirtualColumnContext]:
     def context_constructor(params: SnubaParams) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -417,6 +478,17 @@ def project_term_resolver(
         return int(raw_value)
 
 
+# Any of the resolved attributes, mostly to clean typing up so there's not this giant list all over the code
+AnyResolved = (
+    ResolvedAttribute
+    | ResolvedAggregate
+    | ResolvedConditionalAggregate
+    | ResolvedFormula
+    | ResolvedEquation
+    | ResolvedLiteral
+)
+
+
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
@@ -425,3 +497,4 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]

@@ -13,7 +13,12 @@
           "key": {"type": "keySimple", "value": "foo", "quoted": false}
         },
         "operator": "",
-        "value": {"type": "valueText", "value": "456", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "456",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -22,7 +27,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "1.2.1",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -35,7 +45,12 @@
           "key": {"type": "keySimple", "value": "project_id", "quoted": false}
         },
         "operator": "",
-        "value": {"type": "valueText", "value": "123", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

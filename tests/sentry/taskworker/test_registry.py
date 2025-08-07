@@ -1,7 +1,10 @@
+import base64
 from concurrent.futures import Future
 from unittest.mock import Mock
 
+import orjson
 import pytest
+import zstandard as zstd
 from django.test.utils import override_settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
@@ -9,6 +12,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.taskworker.constants import MAX_PARAMETER_BYTES_BEFORE_COMPRESSION, CompressionType
 from sentry.taskworker.registry import TaskNamespace, TaskRegistry
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.router import DefaultRouter
@@ -134,6 +138,61 @@ def test_namespace_send_task_no_retry() -> None:
 
 
 @pytest.mark.django_db
+def test_namespace_send_task_with_compression() -> None:
+    namespace = TaskNamespace(
+        name="tests",
+        router=DefaultRouter(),
+        retry=None,
+    )
+
+    @namespace.register(name="test.compression_task", compression_type=CompressionType.ZSTD)
+    def simple_task_with_compression(param: str) -> None:
+        raise NotImplementedError
+
+    activation = simple_task_with_compression.create_activation(
+        args=["test_arg"], kwargs={"test_key": "test_value"}
+    )
+
+    assert activation.headers.get("compression-type") == CompressionType.ZSTD.value
+
+    expected_params = {"args": ["test_arg"], "kwargs": {"test_key": "test_value"}}
+
+    decoded_data = base64.b64decode(activation.parameters.encode("utf-8"))
+    decompressed_data = zstd.decompress(decoded_data)
+    actual_params = orjson.loads(decompressed_data)
+
+    assert actual_params == expected_params
+
+
+@pytest.mark.django_db
+def test_namespace_send_task_with_auto_compression() -> None:
+    namespace = TaskNamespace(
+        name="tests",
+        router=DefaultRouter(),
+        retry=None,
+    )
+
+    @namespace.register(name="test.compression_task")
+    def simple_task_with_compression(param: str) -> None:
+        raise NotImplementedError
+
+    big_args = ["x" * (MAX_PARAMETER_BYTES_BEFORE_COMPRESSION + 1)]
+    activation = simple_task_with_compression.create_activation(
+        args=big_args, kwargs={"test_key": "test_value"}
+    )
+
+    assert activation.headers.get("compression-type") == CompressionType.ZSTD.value
+
+    expected_params = {"args": big_args, "kwargs": {"test_key": "test_value"}}
+
+    decoded_data = base64.b64decode(activation.parameters.encode("utf-8"))
+    decompressed_data = zstd.decompress(decoded_data)
+    actual_params = orjson.loads(decompressed_data)
+
+    assert actual_params == expected_params
+
+
+@pytest.mark.django_db
 def test_namespace_send_task_with_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
@@ -178,7 +237,7 @@ def test_namespace_with_retry_send_task() -> None:
     activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
-    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
     mock_producer = Mock()
     namespace._producers[Topic.TASKWORKER] = mock_producer
@@ -268,16 +327,30 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.default_processing_deadline_duration == 10
     assert ns.name == "tests"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "tests"
 
     retry = Retry(times=3)
     ns = registry.create_namespace(
-        "test-two", retry=retry, expires=60 * 10, processing_deadline_duration=60
+        "test-two",
+        retry=retry,
+        expires=60 * 10,
+        processing_deadline_duration=60,
+        app_feature="anvils",
     )
     assert ns.default_retry == retry
     assert ns.default_processing_deadline_duration == 60
     assert ns.default_expires == 60 * 10
     assert ns.name == "test-two"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "anvils"
+
+
+@pytest.mark.django_db
+def test_registry_create_namespace_duplicate() -> None:
+    registry = TaskRegistry()
+    registry.create_namespace(name="tests")
+    with pytest.raises(ValueError, match="tests already exists"):
+        registry.create_namespace(name="tests")
 
 
 @pytest.mark.django_db

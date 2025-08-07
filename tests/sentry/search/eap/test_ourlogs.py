@@ -17,7 +17,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -25,12 +24,12 @@ from sentry.search.events.types import SnubaParams
 
 
 class SearchResolverQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
         )
 
-    def test_freetext_search_query(self):
+    def test_freetext_search_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -41,7 +40,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_simple_query(self):
+    def test_simple_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("message:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -52,7 +51,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_negation(self):
+    def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!message:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -63,7 +62,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_in_filter(self):
+    def test_in_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("message:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -74,22 +73,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_hex_id_validation(self):
-        where, having, _ = self.resolver.resolve_query(f"span_id:{'f'*16}")
-        assert where == TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="f" * 16),
-            )
-        )
-        assert having is None
-
-    def test_invalid_span_id_validation(self):
-        with pytest.raises(InvalidSearchQuery):
-            self.resolver.resolve_query("span_id:hello")
-
-    def test_not_in_filter(self):
+    def test_not_in_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("!message:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -100,7 +84,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_in_numeric_filter(self):
+    def test_in_numeric_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("severity_number:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -111,7 +95,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_greater_than_numeric_filter(self):
+    def test_greater_than_numeric_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("severity_number:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -122,7 +106,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_query_with_and(self):
+    def test_query_with_and(self) -> None:
         where, having, _ = self.resolver.resolve_query("message:foo severity_text:bar")
         assert where == TraceItemFilter(
             and_filter=AndFilter(
@@ -150,7 +134,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_query_with_or(self):
+    def test_query_with_or(self) -> None:
         where, having, _ = self.resolver.resolve_query("message:foo or severity_text:bar")
         assert where == TraceItemFilter(
             or_filter=OrFilter(
@@ -178,9 +162,9 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_query_with_or_and_brackets(self):
+    def test_query_with_or_and_brackets(self) -> None:
         where, having, _ = self.resolver.resolve_query(
-            "(message:123 and severity_text:345) or (message:foo and severity_text:bar)"
+            "(message:123 and severity_text:345) or (message:foo and severity:bar)"
         )
         assert where == TraceItemFilter(
             or_filter=OrFilter(
@@ -239,18 +223,18 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("")
         assert where is None
         assert having is None
 
-    def test_none_query(self):
+    def test_none_query(self) -> None:
         where, having, _ = self.resolver.resolve_query(None)
         assert where is None
         assert having is None
 
 
-def test_count_default_argument():
+def test_count_default_argument() -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )
@@ -279,7 +263,7 @@ def test_count_default_argument():
         ("min", Function.FUNCTION_MIN),
     ],
 )
-def test_monoid_functions(function_name, proto_function):
+def test_monoid_functions(function_name, proto_function) -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )

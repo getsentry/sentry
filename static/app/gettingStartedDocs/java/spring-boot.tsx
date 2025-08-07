@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {
   feedbackOnboardingJsLoader,
@@ -133,6 +132,12 @@ sentry.dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
 sentry.send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+sentry.logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -147,6 +152,13 @@ sentry:
   # Add data like request headers and IP for users,
   # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
   send-default-pii: true${
+    params.isLogsSelected
+      ? `
+  # Enable sending logs to Sentry
+  logs:
+    enabled: true`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -192,7 +204,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
               link: <Link to="/settings/auth-tokens/" />,
             }

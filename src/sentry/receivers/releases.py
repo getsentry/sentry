@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -30,7 +31,6 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -172,15 +172,16 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 )
 
         except IntegrityError:
-            incr_rollback_metrics(name="resolved_in_commit")
+            pass
         else:
             if repo is not None:
                 if repo.integration_id is not None:
                     analytics.record(
-                        "integration.resolve.commit",
-                        provider=repo.provider,
-                        id=repo.integration_id,
-                        organization_id=repo.organization_id,
+                        IntegrationResolveCommitEvent(
+                            provider=repo.provider,
+                            id=repo.integration_id,
+                            organization_id=repo.organization_id,
+                        )
                     )
 
                 issue_resolved.send_robust(
@@ -248,15 +249,15 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
         except IntegrityError:
-            incr_rollback_metrics(name="resolved_in_pull_request")
             pass
         else:
             if repo is not None and repo.integration_id is not None:
                 analytics.record(
-                    "integration.resolve.pr",
-                    provider=repo.provider,
-                    id=repo.integration_id,
-                    organization_id=repo.organization_id,
+                    IntegrationResolvePREvent(
+                        provider=repo.provider,
+                        id=repo.integration_id,
+                        organization_id=repo.organization_id,
+                    )
                 )
 
 

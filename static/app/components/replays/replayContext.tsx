@@ -1,6 +1,7 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -29,6 +30,7 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    */
   analyticsContext: string;
@@ -50,6 +52,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * The speed is automatically determined by the length of each idle period
    */
   fastForwardSpeed: number;
+
+  /**
+   * Returns the replay DOM mirror
+   */
+  getMirror: () => Mirror | null;
 
   /**
    * Set to true while the library is reconstructing the DOM
@@ -85,7 +92,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The core replay data
    */
-  replay: ReplayReader | null;
 
   /**
    * Restart the replay
@@ -93,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
@@ -127,15 +133,16 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isPlaying: false,
   isVideoReplay: false,
   removeHighlight: () => {},
-  replay: null,
   restart: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
+  getMirror: () => null,
 });
 
 type Props = {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    * Attached to certain analytics events.
    */
@@ -329,7 +336,7 @@ export function Provider({
           return;
         }
 
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+        if (replayerRef.current.iframe.contentDocument?.body?.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }
@@ -517,14 +524,18 @@ export function Provider({
   // Initialize replayer for Video Replays
   useEffect(() => {
     const instance =
-      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+      isVideoReplay &&
+      rootEl &&
+      !replay?.isFetching() &&
+      !replayerRef.current &&
+      initVideoRoot(rootEl);
 
     return () => {
       if (instance && !rootEl) {
         instance.destroy();
       }
     };
-  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
   useEffect(() => {
@@ -607,10 +618,10 @@ export function Provider({
           isFinished,
           isPlaying,
           removeHighlight,
-          replay,
           restart,
           setCurrentTime,
           togglePlayPause,
+          getMirror: () => replayerRef.current?.getMirror() ?? null,
           ...value,
         }}
       >

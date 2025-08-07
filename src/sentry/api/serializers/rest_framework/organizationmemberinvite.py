@@ -27,7 +27,7 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         required=False,
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
-    teams = serializers.ListField(required=False, allow_null=False, default=[])
+    teams = serializers.ListField(required=False, allow_null=False, default=list)
 
     reinvite = serializers.BooleanField(
         required=False,
@@ -98,7 +98,7 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
                 "You do not have permission to invite a member with that org-level role"
             )
         if (
-            not features.has("organizations:team-roles", self.context["organization"])
+            features.has("organizations:team-roles", self.context["organization"])
             and role_obj.is_retired
         ):
             raise serializers.ValidationError(
