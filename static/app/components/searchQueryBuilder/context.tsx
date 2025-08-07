@@ -128,6 +128,8 @@ export function SearchQueryBuilderProvider({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
   });
 
   const stableFieldDefinitionGetter = useMemo(
