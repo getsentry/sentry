@@ -159,7 +159,12 @@ class IncidentGroupOpenPeriodTest(TestCase):
 
         open_period.group.update(status=GroupStatus.RESOLVED)
         open_period.update(date_ended=timezone.now())
-        open_period_2 = create_open_period(open_period.group, timezone.now())
+        create_open_period(open_period.group, timezone.now())
+        open_period_2 = (
+            GroupOpenPeriod.objects.filter(group=open_period.group)
+            .order_by("-date_started")
+            .first()
+        )
 
         # Create new incident and new relationship
         incident2 = self.create_incident(

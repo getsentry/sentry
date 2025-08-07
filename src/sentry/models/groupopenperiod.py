@@ -239,7 +239,7 @@ def get_open_periods_for_group(
     return open_periods
 
 
-def create_open_period(group: Group, start_time: datetime) -> GroupOpenPeriod:
+def create_open_period(group: Group, start_time: datetime) -> None:
     if not features.has("organizations:issue-open-periods", group.project.organization):
         return
 
@@ -250,7 +250,7 @@ def create_open_period(group: Group, start_time: datetime) -> GroupOpenPeriod:
 
     # There are some historical cases where we log multiple regressions for the same group,
     # but we only want to create a new open period for the first regression
-    return GroupOpenPeriod.objects.create(
+    GroupOpenPeriod.objects.create(
         group=group,
         project=group.project,
         date_started=start_time,
