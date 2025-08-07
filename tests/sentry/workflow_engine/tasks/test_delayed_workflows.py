@@ -43,7 +43,8 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.delayed_workflow import (
+from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.tasks.delayed_workflows import (
     EventInstance,
     EventKey,
     EventRedisData,
@@ -991,9 +992,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 1})
-    @patch(
-        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
-    )
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
@@ -1106,7 +1105,7 @@ class TestEventKeyAndInstance:
         assert instance.event_id == "test"
         assert instance.occurrence_id == "test"
 
-    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.logger")
     def test_from_redis_data_continue_on_error(self, mock_logger: MagicMock) -> None:
         # Create a mix of valid and invalid data
         redis_data = {
@@ -1137,7 +1136,7 @@ class TestEventKeyAndInstance:
         with pytest.raises(ValueError, match="event_id"):
             EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
-    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.logger")
     def test_from_redis_data_invalid_keys(self, mock_logger: MagicMock) -> None:
         # Create data with an invalid key structure
         redis_data = {
