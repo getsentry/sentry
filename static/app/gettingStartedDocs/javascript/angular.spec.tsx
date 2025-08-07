@@ -18,7 +18,12 @@ describe('javascript-angular onboarding docs', function () {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes import statement
+    // Always includes AppComponent class wrapper in verify section
+    expect(
+      screen.getByText(textWithMarkupMatcher(/export class AppComponent/))
+    ).toBeInTheDocument();
+
+    // Includes import statement in main config and app config (not in verify section by default)
     expect(
       screen.getAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
@@ -111,6 +116,13 @@ describe('javascript-angular onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
     ).toBeInTheDocument();
+
+    // When logs are selected, import statement should appear in verify section too
+    expect(
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
+      )
+    ).toHaveLength(3);
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {
