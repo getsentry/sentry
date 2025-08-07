@@ -21,7 +21,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorOccurrence,
     EventData,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataCondition, DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -566,19 +566,24 @@ class StatefulDetectorHandler(
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
+        has_cached_condition_group = is_model_attr_cached(self.detector, "workflow_condition_group")
+        condition_result_levels: list[DataCondition] | None = None
 
-        if self.detector.workflow_condition_group is None:
-            return []
-
-        if is_model_attr_cached(self.detector.workflow_condition_group, "conditions"):
-            condition_result_levels = list(
-                condition.condition_result
-                for condition in self.detector.workflow_condition_group.conditions.all()
+        if has_cached_condition_group:
+            has_cached_conditions = is_model_attr_cached(
+                self.detector.workflow_condition_group, "conditions"
             )
-        else:
+            if has_cached_conditions:
+                condition_result_levels = list(
+                    condition.condition_result
+                    for condition in self.detector.workflow_condition_group.conditions.all()
+                )
+
+        if condition_result_levels is None:
             condition_result_levels = list(
-                self.detector.workflow_condition_group.conditions.filter(
-                    condition_result__in=priority_levels
+                DataCondition.objects.filter(
+                    condition_group__detector=self.detector,
+                    condition_result__in=priority_levels,
                 ).values_list("condition_result", flat=True)
             )
 
