@@ -52,8 +52,6 @@ export const enum EventGroupVariantType {
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom_fingerprint',
   BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
-  CUSTOM_FINGERPRINT = 'custom_fingerprint',
-  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
@@ -62,6 +60,19 @@ export const enum EventGroupVariantType {
 export function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
   const converted = type.replace(/-/g, '_');
   return converted as EventGroupVariantType;
+}
+
+export function isEventGroupVariantType(value: string): value is EventGroupVariantType {
+  const eventGroupVariantTypes = new Set<string>([
+    'checksum',
+    'fallback',
+    'custom_fingerprint',
+    'built_in_fingerprint',
+    'component',
+    'salted_component',
+    'performance_problem',
+  ]);
+  return eventGroupVariantTypes.has(value);
 }
 
 export function convertVariantFromBackend(variant: any): EventGroupVariant {
