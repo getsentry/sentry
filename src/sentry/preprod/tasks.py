@@ -99,6 +99,7 @@ def assemble_preprod_artifact(
             org_id=org_id,
             project_id=project_id,
             checksum=checksum,
+            file_id=assemble_result.bundle.id,
             build_configuration=assemble_result.build_configuration,
         )
 
@@ -137,22 +138,14 @@ def create_preprod_artifact(
     org_id,
     project_id,
     checksum,
+    file_id,
     build_configuration=None,
 ):
-    from sentry.models.files.file import File
-
     organization = Organization.objects.get_from_cache(pk=org_id)
     project = Project.objects.get(id=project_id, organization=organization)
     bind_organization_context(organization)
 
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
-
-        if existing_file is None:
-            raise ValueError(
-                f"No existing file found for checksum when trying to create preprod artifact. checksum={checksum}"
-            )
-
         build_config = None
         if build_configuration:
             build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
@@ -162,7 +155,7 @@ def create_preprod_artifact(
 
         preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
             project=project,
-            file_id=existing_file.id,
+            file_id=file_id,
             build_configuration=build_config,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
