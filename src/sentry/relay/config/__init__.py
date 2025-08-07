@@ -1145,7 +1145,7 @@ def _get_project_config(
     if features.has("organizations:log-project-config", project.organization):
         try:
             logger.info(
-                "Logging sampling feature flags for project %s in org %s.",
+                "log-project-config - get_project_config: Logging sampling feature flags for project %s in org %s.",
                 project.id,
                 project.organization.id,
                 extra={
@@ -1177,7 +1177,7 @@ def _get_project_config(
                 },
             )
             logger.info(
-                "Logging project sampling config for project %s in org %s.",
+                "log-project-config - get_project_config: Logging project sampling config for project %s in org %s.",
                 project.id,
                 project.organization.id,
                 extra={
