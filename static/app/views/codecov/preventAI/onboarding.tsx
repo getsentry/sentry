@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -19,19 +18,18 @@ interface OnboardingStepProps {
 }
 
 function OnboardingStep({step, title, description}: OnboardingStepProps) {
-  const theme = useTheme();
   return (
-    <StepContainer style={{marginTop: theme.space.md}}>
+    <Flex gap="md" align="start" position="relative">
       <StepNumber>{step}</StepNumber>
       <StepContent isLastStep={step === 3}>
-        <Heading as="h3" style={{marginBottom: theme.space.sm}}>
-          {title}
-        </Heading>
-        <Text variant="muted" size="md">
-          {description}
-        </Text>
+        <Flex direction="column" gap="md">
+          <Heading as="h3">{title}</Heading>
+          <Text variant="muted" size="md">
+            {description}
+          </Text>
+        </Flex>
       </StepContent>
-    </StepContainer>
+    </Flex>
   );
 }
 
@@ -39,63 +37,61 @@ export default function PreventAIOnboarding() {
   const organization = useOrganization();
   const theme = useTheme();
   return (
-    <Fragment>
-      <SectionWrapper>
-        <Flex
-          direction="row"
-          gap="md"
-          justify="around"
-          border="primary"
-          radius="md"
-          padding="xl 2xl"
-          maxWidth="1000px"
-        >
-          <StyledImg src={preventHero} alt="Prevent AI Hero" />
-          <Flex direction="column" gap="md" maxWidth="500px">
-            <Heading as="h1" style={{maxWidth: '400px', marginTop: theme.space['3xl']}}>
-              {t('Ship Code That Breaks Less With Code Reviews And Tests')}
-            </Heading>
-            <Text variant="primary" size="md">
-              {t('Prevent AI is an AI agent that automates tasks in your PR:')}
-            </Text>
-            <Container as="ul" style={{margin: 0, fontSize: theme.fontSize.sm}}>
-              <Container as="li">
-                {t(
-                  'It reviews your pull requests, predicting errors and suggesting code fixes.'
-                )}
-              </Container>
-              <Container as="li">
-                {t('It generates unit tests for untested code in your PR.')}
-              </Container>
+    <Flex direction="column" gap="2xl">
+      <Flex
+        direction="row"
+        gap="md"
+        justify="around"
+        border="primary"
+        radius="md"
+        padding="xl 2xl"
+        maxWidth="1000px"
+      >
+        <StyledImg src={preventHero} alt="Prevent AI Hero" />
+        <Flex direction="column" gap="md" maxWidth="500px" padding="2xl 0">
+          <Heading as="h1" style={{maxWidth: '400px'}}>
+            {t('Ship Code That Breaks Less With Code Reviews And Tests')}
+          </Heading>
+          <Text variant="primary" size="md">
+            {t('Prevent AI is an AI agent that automates tasks in your PR:')}
+          </Text>
+          <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+            <Container as="li">
+              {t(
+                'It reviews your pull requests, predicting errors and suggesting code fixes.'
+              )}
             </Container>
-          </Flex>
+            <Container as="li">
+              {t('It generates unit tests for untested code in your PR.')}
+            </Container>
+          </Container>
         </Flex>
-      </SectionWrapper>
-      <SectionWrapper>
-        <Flex
-          direction="row"
-          gap="md"
-          border="primary"
-          radius="md"
-          padding="xl 2xl"
-          maxWidth="1000px"
-        >
-          <Flex direction="column" gap="md" maxWidth="600px">
-            <Flex
-              direction="column"
-              gap="md"
-              style={{borderBottom: `1px solid ${theme.border}`}}
-            >
-              <Heading as="h1" style={{marginTop: theme.space.lg}}>
-                {t('Setup Prevent AI')}
-              </Heading>
-
-              <Text variant="primary" size="sm" style={{marginBottom: theme.space.xl}}>
-                {t(
-                  `These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation.`
-                )}
-              </Text>
-            </Flex>
+      </Flex>
+      <Flex
+        direction="row"
+        gap="md"
+        border="primary"
+        radius="md"
+        padding="xl 2xl"
+        maxWidth="1000px"
+      >
+        <Flex direction="column" gap="2xl" maxWidth="600px">
+          <Flex
+            direction="column"
+            gap="md"
+            padding="0 0 xl 0"
+            style={{borderBottom: `1px solid ${theme.border}`}}
+          >
+            <Heading as="h1" style={{marginBottom: theme.space.md}}>
+              {t('Setup Prevent AI')}
+            </Heading>
+            <Text variant="primary" size="sm">
+              {t(
+                `These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation.`
+              )}
+            </Text>
+          </Flex>
+          <Flex direction="column" gap="xl">
             <OnboardingStep
               step={1}
               title={t(`Enable Generative AI features`)}
@@ -132,96 +128,81 @@ export default function PreventAIOnboarding() {
                 }
               )}
             />
-
-            <Flex
-              direction="column"
-              style={{marginTop: theme.space.xl}}
-              gap="md"
-              padding="xl"
-              background="secondary"
-              radius="md"
-            >
-              <Text variant="primary" size="sm" bold>
-                {t('How to use Prevent AI')}
-              </Text>
-              <Text variant="muted" size="sm">
-                {t('Prevent AI helps you ship better code with three features:')}
-              </Text>
-              <Container
-                as="ul"
-                style={{marginBottom: theme.space.md, fontSize: theme.fontSize.sm}}
-              >
-                <li>
-                  <Text variant="muted" size="sm">
-                    {tct(
-                      'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
-                      {
-                        sentryCommand: (
-                          <Text variant="accent" size="sm" bold>
-                            @sentry review
-                          </Text>
-                        ),
-                      }
-                    )}
-                  </Text>
-                </li>
-                <li>
-                  <Text variant="muted" size="sm">
-                    {tct(
-                      'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
-                      {
-                        sentryCommand: (
-                          <Text variant="accent" size="sm" bold>
-                            @sentry review
-                          </Text>
-                        ),
-                      }
-                    )}
-                  </Text>
-                </li>
-                <li>
-                  <Text variant="muted" size="sm">
-                    {tct(
-                      'It generates unit tests for your PR when you prompt [sentryCommand].',
-                      {
-                        sentryCommand: (
-                          <Text variant="accent" size="sm" bold>
-                            @sentry generate-test
-                          </Text>
-                        ),
-                      }
-                    )}
-                  </Text>
-                </li>
-              </Container>
-              <Text variant="muted" size="xs">
-                {tct(
-                  'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
-                    ),
-                  }
-                )}
-              </Text>
-            </Flex>
           </Flex>
-          <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+          <Flex
+            direction="column"
+            gap="md"
+            padding="xl"
+            background="secondary"
+            radius="md"
+          >
+            <Text variant="primary" size="sm" bold>
+              {t('How to use Prevent AI')}
+            </Text>
+            <Text variant="muted" size="sm">
+              {t('Prevent AI helps you ship better code with three features:')}
+            </Text>
+            <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+              <li>
+                <Text variant="muted" size="sm">
+                  {tct(
+                    'It reviews your code, suggesting broader fixes when you prompt [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry review
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </li>
+              <li>
+                <Text variant="muted" size="sm">
+                  {tct(
+                    'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry review
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </li>
+              <li>
+                <Text variant="muted" size="sm">
+                  {tct(
+                    'It generates unit tests for your PR when you prompt [sentryCommand].',
+                    {
+                      sentryCommand: (
+                        <Text variant="accent" size="sm" bold>
+                          @sentry generate-test
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </li>
+            </Container>
+            <Text variant="muted" size="xs">
+              {tct(
+                'Sentry Error Prediction works better with Sentry Issue Context. [link:Learn more] on how to set this up to get the most accurate error prediction we can offer.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
+                  ),
+                }
+              )}
+            </Text>
+          </Flex>
         </Flex>
-      </SectionWrapper>
-    </Fragment>
+        <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+      </Flex>
+    </Flex>
   );
 }
-
-const SectionWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-
-  & > div {
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-      flex-direction: column;
-    }
-  }
-`;
 
 const StyledImg = styled('img')`
   overflow: hidden;
@@ -243,13 +224,6 @@ const StepNumber = styled('div')`
   font-weight: 600;
 `;
 
-const StepContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
-  position: relative;
-`;
-
 const StepContent = styled('div')<{isLastStep?: boolean}>`
   flex: 1;
   position: relative;
@@ -262,7 +236,7 @@ const StepContent = styled('div')<{isLastStep?: boolean}>`
     top: 25px;
     bottom: ${p => (p.isLastStep ? '0px' : '-20px')};
     width: 2px;
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => p.theme.border};
     z-index: 0;
   }
 `;
