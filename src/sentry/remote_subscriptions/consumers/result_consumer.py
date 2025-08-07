@@ -43,26 +43,38 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         pass
 
     def __call__(self, identifier: str, result: T):
-        try:
-            # TODO: Handle subscription not existing - we should remove the subscription from
-            # the remote system in that case.
-            with sentry_sdk.start_transaction(
-                name=f"monitors.{identifier}.result_consumer.ResultProcessor",
-                op="result_processor.handle_result",
-            ):
-                subscription = self.get_subscription(result)
-                if self.use_subscription_lock and subscription:
-                    lock = locks.get(
-                        f"subscription:{subscription.type}:{subscription.subscription_id}",
-                        duration=10,
-                        name=f"subscription_{identifier}",
-                    )
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        self.handle_result(subscription, result)
-                else:
-                    self.handle_result(subscription, result)
-        except Exception:
-            logger.exception("Failed to process message result")
+        with metrics.timer(
+            "remote_subscriptions.result_consumer.call_timing",
+            tags={"identifier": identifier},
+        ):
+            try:
+                # TODO: Handle subscription not existing - we should remove the subscription from
+                # the remote system in that case.
+                with sentry_sdk.start_transaction(
+                    name=f"monitors.{identifier}.result_consumer.ResultProcessor",
+                    op="result_processor.handle_result",
+                ):
+                    subscription = self.get_subscription(result)
+                    if self.use_subscription_lock and subscription:
+                        lock = locks.get(
+                            f"subscription:{subscription.type}:{subscription.subscription_id}",
+                            duration=10,
+                            name=f"subscription_{identifier}",
+                        )
+                        with TimedRetryPolicy(10)(lock.acquire):
+                            with metrics.timer(
+                                "remote_subscriptions.result_consumer.handle_result_timing",
+                                tags={"identifier": identifier},
+                            ):
+                                self.handle_result(subscription, result)
+                    else:
+                        with metrics.timer(
+                            "remote_subscriptions.result_consumer.handle_result_timing",
+                            tags={"identifier": identifier},
+                        ):
+                            self.handle_result(subscription, result)
+            except Exception:
+                logger.exception("Failed to process message result")
 
     def get_subscription(self, result: T) -> U | None:
         try:
