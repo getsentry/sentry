@@ -100,7 +100,7 @@ def assemble_preprod_artifact(
             project_id=project_id,
             checksum=checksum,
             file_id=assemble_result.bundle.id,
-            build_configuration=assemble_result.build_configuration,
+            build_configuration=kwargs.get("build_configuration"),
         )
 
     except Exception as e:
