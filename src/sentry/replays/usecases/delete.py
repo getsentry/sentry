@@ -207,8 +207,6 @@ def delete_seer_replay_data(
         response, status_code = make_signed_seer_request_simple(
             SEER_DELETE_SUMMARIES_URL,
             {
-                "organization_id": organization_id,
-                "project_id": project_id,
                 "replay_ids": replay_ids,
             },
             timeout=timeout,

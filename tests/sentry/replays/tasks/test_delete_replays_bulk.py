@@ -284,8 +284,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert mock_post.call_args_list[0].args == (SEER_DELETE_SUMMARIES_URL,)
         assert mock_post.call_args_list[0].kwargs["data"] == json.dumps(
             {
-                "organization_id": self.project.organization_id,
-                "project_id": self.project.id,
                 "replay_ids": ["a", "b"],
             }
         )
@@ -296,8 +294,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert mock_post.call_args_list[1].args == (SEER_DELETE_SUMMARIES_URL,)
         assert mock_post.call_args_list[1].kwargs["data"] == json.dumps(
             {
-                "organization_id": self.project.organization_id,
-                "project_id": self.project.id,
                 "replay_ids": ["c"],
             }
         )

@@ -265,7 +265,5 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         (url, data) = mock_make_seer_request.call_args.args
         assert url == SEER_DELETE_SUMMARIES_URL
         assert data == {
-            "organization_id": self.organization.id,
-            "project_id": self.project.id,
             "replay_ids": [self.replay_id],
         }
