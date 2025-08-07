@@ -308,15 +308,25 @@ describe('useActiveBreakpoint', () => {
     expect(result.current).toBe('large');
   });
 
-  it('removes event listeners on unmount', () => {
+  it('calls AbortController.abort() on unmount', () => {
     const addEventListenerSpy = jest.fn();
-    const removeEventListenerSpy = jest.fn();
+
+    const abortController = {
+      abort: jest.fn(),
+      signal: {
+        aborted: false,
+        onabort: jest.fn(),
+      },
+    } as unknown as AbortController;
+
+    const mockAbortController = jest.fn(() => abortController);
+    window.AbortController = mockAbortController;
 
     window.matchMedia = jest.fn(() => ({
       matches: false,
       media: '',
       addEventListener: addEventListenerSpy,
-      removeEventListener: removeEventListenerSpy,
+      removeEventListener: jest.fn(),
       addListener: jest.fn(),
       removeListener: jest.fn(),
       onchange: null,
@@ -334,6 +344,6 @@ describe('useActiveBreakpoint', () => {
     expect(addEventListenerSpy).toHaveBeenCalledTimes(5);
     unmount();
     // Removes listeners for all breakpoints
-    expect(removeEventListenerSpy).toHaveBeenCalledTimes(5);
+    expect(abortController.abort).toHaveBeenCalledTimes(1);
   });
 });

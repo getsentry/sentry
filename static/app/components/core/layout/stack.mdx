@@ -13,7 +13,9 @@ import APIReference from '!!type-loader!sentry/components/core/layout/stack';
 
 export const types = {Stack: APIReference.Stack};
 
-export const CustomComponent = props => <div {...props} />;
+export function CustomComponent(props) {
+  return <div {...props} />;
+}
 
 The `Stack` component is a simplified layout component built on top of the `Flex` component. It provides a focused API for common stacking layouts with only the essential props: `direction`, `align`, `justify`, and `gap`. By default, Stack uses column direction making it perfect for vertical layouts.
 

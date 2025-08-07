@@ -13,7 +13,9 @@ import APIReference from '!!type-loader!sentry/components/core/layout/grid';
 
 export const types = {Grid: APIReference.Grid};
 
-export const CustomComponent = props => <div {...props} />;
+export function CustomComponent(props) {
+  return <div {...props} />;
+}
 
 The `Grid` component is a layout component that extends the `Container` component with CSS grid properties.
 
