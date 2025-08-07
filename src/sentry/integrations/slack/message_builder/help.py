@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
+from sentry.utils.options import sample_modulo
 
 _logger = logging.getLogger(__name__)
 
@@ -24,6 +25,10 @@ DM_COMMANDS = {
 CHANNEL_COMMANDS = {
     "link team": "Get your Sentry team's issue alert notifications in this channel.",
     "unlink team": "Unlink a team from this channel.",
+}
+CHANNEL_COMMANDS_ROUTING = {
+    "link team [organization_slug]": "Get your Sentry team's issue alert notifications in this channel.",
+    "unlink team [organization_slug]": "Unlink a team from this channel.",
 }
 HELP_COMMANDS = {
     "support": "Get support resources.",
@@ -51,13 +56,15 @@ def list_commands(commands: Mapping[str, str]) -> str:
 
 DM_COMMANDS_MESSAGE = list_commands(DM_COMMANDS)
 CHANNEL_COMMANDS_MESSAGE = list_commands(CHANNEL_COMMANDS)
+CHANNEL_COMMANDS_ROUTING_MESSAGE = list_commands(CHANNEL_COMMANDS_ROUTING)
 HELP_COMMANDS_MESSAGE = list_commands(HELP_COMMANDS)
 
 
 class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
-    def __init__(self, command: str | None = None) -> None:
+    def __init__(self, command: str | None = None, integration_id: int | None = None) -> None:
         super().__init__()
         self.command = command
+        self.integration_id = integration_id
 
     def get_header_blocks(self) -> Sequence[SlackBlock]:
         blocks = []
@@ -71,12 +78,18 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
         return blocks
 
     def get_help_message(self) -> SlackBlock:
+        channel_commands_message = CHANNEL_COMMANDS_MESSAGE
+        if self.integration_id and sample_modulo(
+            "hybrid_cloud.integration_region_targeting_rate", self.integration_id
+        ):
+            channel_commands_message = CHANNEL_COMMANDS_ROUTING_MESSAGE
+
         return self._build_blocks(
             *self.get_header_blocks(),
             self.get_markdown_block(DM_COMMAND_HEADER),
             self.get_markdown_block(DM_COMMANDS_MESSAGE),
             self.get_markdown_block(CHANNEL_COMMANDS_HEADER),
-            self.get_markdown_block(CHANNEL_COMMANDS_MESSAGE),
+            self.get_markdown_block(channel_commands_message),
             self.get_markdown_block(HELP_COMMANDS_HEADER),
             self.get_markdown_block(HELP_COMMANDS_HEADER_MESSAGE),
             self.get_markdown_block(HELP_COMMANDS_MESSAGE),
