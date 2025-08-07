@@ -236,7 +236,7 @@ function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | unde
 
 const IconBar = styled('div')`
   position: relative;
-  padding: 0 ${space(0.5)};
+  padding: 0;
 `;
 
 const IconContainer = styled('div')`

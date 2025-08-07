@@ -248,12 +248,14 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             duration_ms = (
                 (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
             )
+            trace_id = row_dict["sentry.trace_id"].val_str
         else:
             uptime_check_id = row_dict["uptime_check_id"].val_str
             scheduled_check_time = datetime.fromtimestamp(
                 row_dict["scheduled_check_time"].val_double
             )
             duration_ms = row_dict["duration_ms"].val_int
+            trace_id = row_dict["trace_id"].val_str
 
         return EapCheckEntry(
             uptime_check_id=uptime_check_id,
@@ -278,7 +280,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 else row_dict["http_status_code"].val_int
             ),
             duration_ms=duration_ms,
-            trace_id=row_dict["trace_id"].val_str,
+            trace_id=trace_id,
             incident_status=IncidentStatus(row_dict["incident_status"].val_int),
             environment=row_dict.get("environment", AttributeValue(val_str="")).val_str,
             region=row_dict["region"].val_str,

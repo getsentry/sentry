@@ -16,7 +16,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {PlatformKey, Project} from './project';
+import type {AvatarProject, PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -964,6 +964,24 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
+
+// Maps to SimpleGroupSerializer in the backend
+export type SimpleGroup = {
+  culprit: string | null;
+  firstSeen: string;
+  id: string;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
+  lastSeen: string;
+  level: Level;
+  metadata: EventMetadata;
+  project: AvatarProject;
+  shortId: string;
+  status: GroupStatus;
+  substatus: GroupSubstatus | null;
+  title: string;
+  type: EventOrGroupType;
+};
 
 export interface GroupTombstone {
   actor: AvatarUser;

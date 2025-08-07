@@ -45,6 +45,11 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "system.debug-files-renewal-age-threshold-days",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
@@ -359,6 +364,10 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# New `objectstore` service configuration
+register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+
 
 # Symbol server
 register(
@@ -1447,13 +1456,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "project-abuse-quota.log-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 register(
     "organization-abuse-quota.metric-bucket-limit",
@@ -3322,13 +3324,6 @@ register(
 )
 
 register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "sentry.demo_mode.sync_debug_artifacts.enable",
     type=Bool,
     default=False,
@@ -3342,8 +3337,19 @@ register(
 
 # Taskbroker flags
 register(
+    "taskworker.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.route.overrides",
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

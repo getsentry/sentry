@@ -36,6 +36,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         http_status_code=200,
         request_type="GET",
         request_url="https://example.com",
+        original_url=None,
         request_sequence=0,
         check_duration_us=150000,
         request_duration_us=125000,
@@ -45,8 +46,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
         time_to_first_byte_duration_us=None,
         send_request_duration_us=None,
         receive_response_duration_us=None,
-        request_body_size_bytes=0,
-        response_body_size_bytes=1024,
+        request_body_size_bytes=None,
+        response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
     ) -> TraceItem:
@@ -74,22 +75,22 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "request_sequence": request_sequence,
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
-            "request_body_size_bytes": request_body_size_bytes,
-            "response_body_size_bytes": response_body_size_bytes,
         }
 
         if check_id is not None:
             attributes_data["check_id"] = check_id
 
-        timing_fields = {
+        optional_fields = {
             "dns_lookup_duration_us": dns_lookup_duration_us,
             "tcp_connection_duration_us": tcp_connection_duration_us,
             "tls_handshake_duration_us": tls_handshake_duration_us,
             "time_to_first_byte_duration_us": time_to_first_byte_duration_us,
             "send_request_duration_us": send_request_duration_us,
             "receive_response_duration_us": receive_response_duration_us,
+            "request_body_size_bytes": request_body_size_bytes,
+            "response_body_size_bytes": response_body_size_bytes,
         }
-        for field, value in timing_fields.items():
+        for field, value in optional_fields.items():
             if value is not None:
                 attributes_data[field] = value
 
@@ -100,6 +101,10 @@ class UptimeResultEAPTestCase(BaseTestCase):
 
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
+
+        if original_url is None:
+            original_url = request_url
+        attributes_data["original_url"] = original_url
 
         attributes_proto = {}
         for k, v in attributes_data.items():

@@ -81,29 +81,6 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_2.event_id
 
-    def test_limited_to_week(self) -> None:
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        event = self.store_event(
-            data={"timestamp": before_now(days=2).isoformat()}, project_id=project.id
-        )
-        self.store_event(data={"timestamp": before_now(days=8).isoformat()}, project_id=project.id)
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            assert response.data[0]["eventID"] == event.event_id
-
     def test_with_stats_period_parameter(self) -> None:
         self.login_as(user=self.user)
 
@@ -257,61 +234,6 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range parameters provided"
-
-    def test_with_stats_period_parameter_with_event_date_limit_feature_flag(self) -> None:
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        # Event from 10 days ago (outside feature flag limit)
-        self.store_event(data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id)
-
-        # Event from 5 days ago (within feature flag limit)
-        recent_event = self.store_event(
-            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
-        )
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            response = self.client.get(url, {"statsPeriod": "15d"}, format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["eventID"] == recent_event.event_id
-
-    def test_with_end_date_before_feature_flag_limit_with_event_date_limit_feature_flag(
-        self,
-    ) -> None:
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            start_time = before_now(days=10)
-            end_time = before_now(days=8)
-            response = self.client.get(
-                url,
-                {"start": start_time.isoformat(), "end": end_time.isoformat()},
-                format="json",
-            )
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "End date must be less than 7 days ago"
 
     def test_sample(self) -> None:
         self.login_as(user=self.user)
