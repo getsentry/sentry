@@ -1,6 +1,6 @@
 import {initializeLogsTest} from 'sentry-fixture/log';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -12,6 +12,7 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -35,11 +36,15 @@ describe('LogsTabContent', function () {
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </TraceItemAttributeProvider>
-      </LogsPageParamsProvider>
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </TraceItemAttributeProvider>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
     );
   }
 
@@ -197,5 +202,45 @@ describe('LogsTabContent', function () {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('should switch between modes', async function () {
+    render(
+      <ProviderWrapper>
+        <LogsTabContent {...datePageFilterProps} />
+      </ProviderWrapper>,
+      {initialRouterConfig, organization}
+    );
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Logs'}));
+
+    expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 });

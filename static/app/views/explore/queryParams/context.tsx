@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -34,7 +34,34 @@ export function QueryParamsContextProvider({
   return <QueryParamsContext value={value}>{children}</QueryParamsContext>;
 }
 
-export function useQueryParamsMode(): Mode {
+function useQueryParams() {
   const {queryParams} = useQueryParamsContext();
+  return queryParams;
+}
+
+function useSetQueryParams() {
+  const {setQueryParams} = useQueryParamsContext();
+
+  return useCallback(
+    (writableQueryParams: WritableQueryParams) => {
+      setQueryParams(writableQueryParams);
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsMode(): Mode {
+  const queryParams = useQueryParams();
   return queryParams.mode;
+}
+
+export function useSetQueryParamsMode() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (mode: Mode) => {
+      setQueryParams({mode});
+    },
+    [setQueryParams]
+  );
 }

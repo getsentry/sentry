@@ -472,21 +472,6 @@ export function useLogsAnalyticsPageSource() {
   return analyticsPageSource;
 }
 
-export function useLogsMode() {
-  const {mode} = useLogsPageParams();
-  return mode;
-}
-
-export function useSetLogsMode() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (mode: Mode) => {
-      setPageParams({mode});
-    },
-    [setPageParams]
-  );
-}
-
 function getLogCursorFromLocation(location: Location): string {
   if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';

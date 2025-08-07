@@ -13,6 +13,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 
 describe('LogsAutoRefresh Integration Tests', () => {
   const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
@@ -48,9 +49,13 @@ describe('LogsAutoRefresh Integration Tests', () => {
     options: Parameters<typeof render>[1]
   ) => {
     const result = render(
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
-      </LogsPageParamsProvider>,
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.
     if (!result.router.location.query) {
@@ -176,6 +181,33 @@ describe('LogsAutoRefresh Integration Tests', () => {
         screen.getByText(
           /Auto-refresh is only supported when using a relative time period/i
         )
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('disables auto-refresh when on aggregates mode', async () => {
+    renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {
+            ...routerConfig.location.query,
+            mode: 'aggregate',
+          },
+        },
+      },
+      organization,
+    });
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeDisabled();
+
+    await userEvent.hover(toggleSwitch);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Auto-refresh is not available in the aggregates view./i)
       ).toBeInTheDocument();
     });
   });
