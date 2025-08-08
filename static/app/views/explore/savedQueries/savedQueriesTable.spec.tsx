@@ -178,6 +178,39 @@ describe('SavedQueriesTable', () => {
     );
   });
 
+  it('should link to a single query view for logs dataset', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Logs Query Name',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              fields: ['message', 'timestamp', 'custom_field'],
+              query: 'test:foo',
+              groupby: ['message'],
+              sort: 'timestamp',
+            },
+          ],
+          dataset: 'logs',
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />, {
+      deprecatedRouterMocks: true,
+    });
+    expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/logs/?environment=production&project=1&query=test%3Afoo&field=message&field=timestamp&field=custom_field'
+    );
+  });
+
   it('should display starred status', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,

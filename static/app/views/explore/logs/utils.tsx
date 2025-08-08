@@ -21,6 +21,8 @@ import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/query
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   LogAttributesHumanLabel,
@@ -336,10 +338,26 @@ export function getLogsUrl({
   organization,
   selection,
   query,
+  field,
+  groupBy,
+  id,
+  interval,
+  mode,
+  referrer,
+  sort,
+  title,
 }: {
   organization: Organization;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
   query?: string;
+  referrer?: string;
   selection?: PageFilters;
+  sort?: string;
+  title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -351,6 +369,14 @@ export function getLogsUrl({
     end,
     query,
     utc,
+    field,
+    groupBy,
+    id,
+    interval,
+    mode,
+    referrer,
+    sort,
+    title,
   };
 
   return (
@@ -367,4 +393,25 @@ function makeLogsPathname({
   path: string;
 }) {
   return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+}
+
+export function getLogsUrlFromSavedQueryUrl(
+  savedQuery: SavedQuery,
+  organization: Organization
+) {
+  const firstQuery = savedQuery.query[0];
+  return getLogsUrl({
+    organization,
+    query: firstQuery.query,
+    selection: {
+      datetime: {
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
+        utc: null,
+      },
+      environments: savedQuery.environment ? [...savedQuery.environment] : [],
+      projects: savedQuery.projects ? [...savedQuery.projects] : [],
+    },
+  });
 }

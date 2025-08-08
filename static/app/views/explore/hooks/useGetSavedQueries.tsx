@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import type {DateString} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -42,7 +43,8 @@ type ReadableQuery = {
   visualize?: RawVisualize[];
 };
 
-class Query {
+// This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
+export class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
@@ -115,15 +117,15 @@ export class SavedQuery {
   name: string;
   position: number | null;
   projects: number[];
-  query: [Query, ...Query[]];
+  query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
   createdBy?: User;
-  end?: string;
+  end?: string | DateString;
   environment?: string[];
   isPrebuilt?: boolean;
   range?: string;
-  start?: string;
+  start?: string | DateString;
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.dateAdded = savedQuery.dateAdded;
@@ -135,8 +137,8 @@ export class SavedQuery {
     this.position = savedQuery.position;
     this.projects = savedQuery.projects;
     this.query = [
-      new Query(savedQuery.query[0]),
-      ...savedQuery.query.slice(1).map(q => new Query(q)),
+      new SavedQueryQuery(savedQuery.query[0]),
+      ...savedQuery.query.slice(1).map(q => new SavedQueryQuery(q)),
     ];
     this.starred = savedQuery.starred;
     this.createdBy = savedQuery.createdBy;

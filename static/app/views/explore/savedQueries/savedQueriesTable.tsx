@@ -27,8 +27,9 @@ import {
   type SortOption,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -70,14 +71,7 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
-  const {
-    saveQueryFromSavedQuery: saveQueryFromSavedQuerySpans,
-    updateQueryFromSavedQuery: updateQueryFromSavedQuerySpans,
-  } = useSaveQuery(TraceItemDataset.SPANS);
-  const {
-    saveQueryFromSavedQuery: saveQueryFromSavedQueryLogs,
-    updateQueryFromSavedQuery: updateQueryFromSavedQueryLogs,
-  } = useSaveQuery(TraceItemDataset.LOGS);
+  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const [starredIds, setStarredIds] = useState<number[]>([]);
 
@@ -89,17 +83,25 @@ export function SavedQueriesTable({
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (id: number, starred: boolean) => {
+    (id: number, starred: boolean, dataset: TraceItemDataset) => {
       if (starred) {
         setStarredIds(prev => [...prev, id]);
       } else {
         setStarredIds(prev => prev.filter(starredId => starredId !== id));
       }
-      trackAnalytics('trace_explorer.star_query', {
-        save_type: starred ? 'star_query' : 'unstar_query',
-        ui_source: 'table',
-        organization,
-      });
+      if (dataset === TraceItemDataset.SPANS) {
+        trackAnalytics('trace_explorer.star_query', {
+          save_type: starred ? 'star_query' : 'unstar_query',
+          ui_source: 'table',
+          organization,
+        });
+      } else if (dataset === TraceItemDataset.LOGS) {
+        trackAnalytics('logs.star_query', {
+          save_type: starred ? 'star_query' : 'unstar_query',
+          ui_source: 'table',
+          organization,
+        });
+      }
       starQuery(id, starred).catch(() => {
         // If the starQuery call fails, we need to revert the starredIds state
         addErrorMessage(t('Unable to star query'));
@@ -116,26 +118,18 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
       return (name: string) => {
-        const fn =
-          savedQuery.traceItemDataset === TraceItemDataset.SPANS
-            ? updateQueryFromSavedQuerySpans
-            : updateQueryFromSavedQueryLogs;
-        return fn({
+        return updateQueryFromSavedQuery({
           ...savedQuery,
           name,
           traceItemDataset: savedQuery.traceItemDataset,
         });
       };
     },
-    [updateQueryFromSavedQueryLogs, updateQueryFromSavedQuerySpans]
+    [updateQueryFromSavedQuery]
   );
 
   const duplicateQuery = async (savedQuery: SavedQuery) => {
-    const fn =
-      savedQuery.traceItemDataset === TraceItemDataset.SPANS
-        ? saveQueryFromSavedQuerySpans
-        : saveQueryFromSavedQueryLogs;
-    await fn({
+    await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
       traceItemDataset: savedQuery.traceItemDataset,
@@ -152,14 +146,14 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (id, starred) => {
+        (id, starred, dataset) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
-            starQueryHandler(id, false);
+            starQueryHandler(id, false, dataset);
             addSuccessMessage(t('Query unstarred'));
           } else {
             addLoadingMessage(t('Starring query...'));
-            starQueryHandler(id, true);
+            starQueryHandler(id, true, dataset);
             addSuccessMessage(t('Query starred'));
           }
         },
@@ -222,12 +216,18 @@ export function SavedQueriesTable({
             <SavedEntityTable.Cell hasButton data-column="star">
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
-                onClick={() => debouncedOnClick(query.id, query.starred)}
+                onClick={() =>
+                  debouncedOnClick(query.id, query.starred, query.traceItemDataset)
+                }
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="name">
               <SavedEntityTable.CellName
-                to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+                to={
+                  query.traceItemDataset === TraceItemDataset.LOGS
+                    ? getLogsUrlFromSavedQueryUrl(query, organization)
+                    : getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})
+                }
               >
                 {query.name}
               </SavedEntityTable.CellName>
@@ -272,12 +272,21 @@ export function SavedQueriesTable({
                           key: 'rename',
                           label: t('Rename'),
                           onAction: () => {
-                            trackAnalytics('trace_explorer.save_query_modal', {
-                              action: 'open',
-                              save_type: 'rename_query',
-                              ui_source: 'table',
-                              organization,
-                            });
+                            if (query.traceItemDataset === TraceItemDataset.SPANS) {
+                              trackAnalytics('trace_explorer.save_query_modal', {
+                                action: 'open',
+                                save_type: 'rename_query',
+                                ui_source: 'table',
+                                organization,
+                              });
+                            } else if (query.traceItemDataset === TraceItemDataset.LOGS) {
+                              trackAnalytics('logs.save_query_modal', {
+                                action: 'open',
+                                save_type: 'rename_query',
+                                ui_source: 'table',
+                                organization,
+                              });
+                            }
                             openSaveQueryModal({
                               organization,
                               saveQuery: getHandleUpdateFromSavedQuery(query),
