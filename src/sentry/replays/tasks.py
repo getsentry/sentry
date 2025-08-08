@@ -47,12 +47,16 @@ logger = logging.getLogger()
         ),
     ),
 )
-def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
+def delete_recording_segments(
+    project_id: int, replay_id: str, has_seer_data: bool = False, **kwargs: Any
+) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
+    if has_seer_data:
+        delete_seer_replay_data(project_id, [replay_id])
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
 
 
@@ -221,10 +225,7 @@ def run_bulk_replay_delete_job(
             delete_matched_rows(job.project_id, results["rows"])
             if has_seer_data:
                 delete_seer_replay_data(
-                    job.organization_id,
-                    job.project_id,
-                    [row["replay_id"] for row in results["rows"]],
-                    run_in_thread=False,
+                    job.project_id, [row["replay_id"] for row in results["rows"]]
                 )
     except Exception:
         logger.exception("Bulk delete replays failed.")

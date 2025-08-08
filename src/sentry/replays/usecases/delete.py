@@ -3,7 +3,6 @@ from __future__ import annotations
 import concurrent.futures as cf
 import functools
 import logging
-import threading
 from datetime import datetime
 from typing import TypedDict
 
@@ -195,38 +194,25 @@ def fetch_rows_matching_pattern(
 
 
 def delete_seer_replay_data(
-    organization_id: int,
     project_id: int,
     replay_ids: list[str],
-    run_in_thread: bool,
     timeout: int | tuple[int, int] | None = None,
 ) -> bool:
-    """If synchronous, this returns whether the request was successful."""
-
-    def run_delete():
-        response, status_code = make_signed_seer_request_simple(
-            SEER_DELETE_SUMMARIES_URL,
-            {
+    response, status_code = make_signed_seer_request_simple(
+        SEER_DELETE_SUMMARIES_URL,
+        {
+            "replay_ids": replay_ids,
+        },
+        timeout=timeout,
+    )
+    if status_code >= 400:
+        logger.error(
+            "Failed to delete replay data from Seer",
+            extra={
+                "project_id": project_id,
                 "replay_ids": replay_ids,
+                "status_code": status_code,
+                "response": response.content if response else None,
             },
-            timeout=timeout,
         )
-        if status_code >= 400:
-            logger.error(
-                "Failed to delete replay data from Seer",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project_id,
-                    "replay_ids": replay_ids,
-                    "status_code": status_code,
-                    "response": response.content if response else None,
-                },
-            )
-        return status_code < 400
-
-    if run_in_thread:
-        thread = threading.Thread(target=run_delete)
-        thread.start()
-        return True
-
-    return run_delete()
+    return status_code < 400

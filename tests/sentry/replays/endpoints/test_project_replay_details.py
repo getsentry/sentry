@@ -240,10 +240,8 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata3) is not None
 
     @mock.patch("sentry.replays.usecases.delete.make_signed_seer_request_simple")
-    @mock.patch("sentry.replays.endpoints.project_replay_details.delete_recording_segments")
     def test_delete_replay_from_seer(
         self,
-        _mock_delete_recording_segments: mock.MagicMock,
         mock_make_seer_request: mock.MagicMock,
     ) -> None:
         """Test delete method deletes from Seer if summaries are enabled."""
@@ -258,8 +256,9 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         mock_make_seer_request.return_value = (None, 204)
 
         with self.feature({**REPLAYS_FEATURES, "organizations:replay-ai-summaries": True}):
-            response = self.client.delete(self.url)
-            assert response.status_code == 204
+            with TaskRunner():
+                response = self.client.delete(self.url)
+                assert response.status_code == 204
 
         mock_make_seer_request.assert_called_once()
         (url, data) = mock_make_seer_request.call_args.args

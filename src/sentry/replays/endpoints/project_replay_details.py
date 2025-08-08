@@ -15,7 +15,6 @@ from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_recording_segments
-from sentry.replays.usecases.delete import delete_seer_replay_data
 from sentry.replays.usecases.reader import has_archived_segment
 
 
@@ -97,13 +96,10 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)
 
-        delete_recording_segments.delay(project_id=project.id, replay_id=replay_id)
+        delete_recording_segments.delay(
+            project_id=project.id,
+            replay_id=replay_id,
+            has_seer_data=features.has("organizations:replay-ai-summaries", project.organization),
+        )
 
-        if features.has("organizations:replay-ai-summaries", project.organization):
-            delete_seer_replay_data(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                replay_ids=[replay_id],
-                run_in_thread=False,
-            )
         return Response(status=204)
