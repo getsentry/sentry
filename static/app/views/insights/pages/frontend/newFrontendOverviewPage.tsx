@@ -27,6 +27,8 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import OverviewAssetsByTimeSpentWidget from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
 import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget';
+import OverviewTransactionDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget';
+import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -236,8 +238,8 @@ export function NewFrontendOverviewPage() {
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
-                    <span>Throughput chart</span>
-                    <span>Duration chart</span>
+                    <OverviewTransactionThroughputChartWidget />
+                    <OverviewTransactionDurationChartWidget />
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
