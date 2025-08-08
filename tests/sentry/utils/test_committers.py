@@ -1,7 +1,7 @@
 import unittest
 from datetime import timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -724,7 +724,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     @patch("sentry.utils.committers.get_frame_paths")
-    def test_none_frame(self, mock_get_frame_paths):
+    def test_none_frame(self, mock_get_frame_paths: MagicMock) -> None:
         """Test that if a frame is None, we skip over it"""
         frames: list[Any] = [
             {

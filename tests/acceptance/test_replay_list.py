@@ -52,7 +52,7 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
 
         self.path = f"/organizations/{self.org.slug}/replays/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')

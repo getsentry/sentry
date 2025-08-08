@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Callable, Sequence
-from datetime import datetime
+from collections.abc import Callable
+from datetime import timedelta
 from itertools import chain
-from typing import Any
+from typing import Any, Never, TypedDict
 
 import sentry_sdk
 from rest_framework import serializers
@@ -88,9 +88,18 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self,
+        request: Request,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
     ) -> SnubaParams:
-        snuba_params = super().get_snuba_params(request, organization, check_global_views)
+        snuba_params = super().get_snuba_params(
+            request,
+            organization,
+            check_global_views=check_global_views,
+            quantize_date_params=quantize_date_params,
+        )
 
         if len(snuba_params.project_ids) != 1:
             raise ParseError(detail="You must specify exactly 1 project.")
@@ -116,7 +125,7 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
         return direction, orderby
 
 
-class SpansPerformanceSerializer(serializers.Serializer):
+class SpansPerformanceSerializer(serializers.Serializer[Never]):
     field = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     spanOp = serializers.ListField(
@@ -131,7 +140,7 @@ class SpansPerformanceSerializer(serializers.Serializer):
     min_exclusive_time = serializers.FloatField(required=False)
     max_exclusive_time = serializers.FloatField(required=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if (
             "min_exclusive_time" in data
             and "max_exclusive_time" in data
@@ -142,7 +151,7 @@ class SpansPerformanceSerializer(serializers.Serializer):
             )
         return data
 
-    def validate_spanGroup(self, span_groups):
+    def validate_spanGroup(self, span_groups: list[object]) -> list[object]:
         for group in span_groups:
             if not is_span_id(group):
                 raise serializers.ValidationError(INVALID_SPAN_ID.format("spanGroup"))
@@ -203,13 +212,13 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
             )
 
 
-class SpanSerializer(serializers.Serializer):
+class SpanSerializer(serializers.Serializer[Never]):
     query = serializers.CharField(required=False, allow_null=True)
     span = serializers.CharField(required=True, allow_null=False)
     min_exclusive_time = serializers.FloatField(required=False)
     max_exclusive_time = serializers.FloatField(required=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if (
             "min_exclusive_time" in data
             and "max_exclusive_time" in data
@@ -225,6 +234,12 @@ class SpanSerializer(serializers.Serializer):
             return Span.from_str(span)
         except ValueError as e:
             raise serializers.ValidationError(str(e))
+
+
+class _Example(TypedDict):
+    op: str
+    group: str
+    examples: list[ExampleTransaction]
 
 
 @region_silo_endpoint
@@ -251,7 +266,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
         direction, orderby_column = self.get_orderby_column(request)
 
-        def data_fn(offset: int, limit: int) -> Any:
+        def data_fn(offset: int, limit: int) -> list[_Example]:
             example_transactions = query_example_transactions(
                 snuba_params,
                 query,
@@ -291,10 +306,10 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
 
 class SpanExamplesPaginator:
-    def __init__(self, data_fn: Callable[[int, int], Any]):
+    def __init__(self, data_fn: Callable[[int, int], list[_Example]]):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult:
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[_Example]:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
@@ -326,12 +341,12 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
         span = serialized["span"]
 
         def get_event_stats(
-            query_columns: Sequence[str],
+            query_columns: list[str],
             query: str,
             snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None = None,
+            comparison_delta: timedelta | None = None,
         ) -> SnubaTSResult:
             with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
                 builder = TimeseriesQueryBuilder(
@@ -376,7 +391,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snuba_params.start_date,
                     snuba_params.end_date,
                     rollup,
-                    "time",
+                    ["time"],
                 )
 
             return SnubaTSResult(
@@ -603,7 +618,7 @@ class SpanQueryBuilder(BaseQueryBuilder):
         alias: str,
         min_exclusive_time: float | None = None,
         max_exclusive_time: float | None = None,
-    ):
+    ) -> Function:
         op = span.op
         group = span.group
 
@@ -725,6 +740,8 @@ def get_span_description(
     span_group: str,
 ) -> str | None:
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
+    if nodestore_event is None:
+        return None
     data = nodestore_event.data
 
     # the transaction itself is a span as well, so make sure to check it
@@ -748,6 +765,7 @@ def get_example_transaction(
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
+    assert nodestore_event is not None
     data = nodestore_event.data
 
     # the transaction itself is a span as well but we need to reconstruct

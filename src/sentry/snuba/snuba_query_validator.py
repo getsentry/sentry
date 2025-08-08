@@ -80,6 +80,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )
+    group_by = serializers.ListField(
+        child=serializers.CharField(allow_blank=False, max_length=200),
+        required=False,
+        allow_empty=False,
+    )
 
     class Meta:
         model = QuerySubscription
@@ -91,6 +96,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             "time_window",
             "environment",
             "event_types",
+            "group_by",
         ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
@@ -151,6 +157,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         data = super().validate(data)
         self._validate_aggregate(data)
         self._validate_query(data)
+
+        data["group_by"] = self._validate_group_by(data.get("group_by"))
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -351,6 +359,31 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    def _validate_group_by(self, value: Sequence[str] | None) -> Sequence[str] | None:
+        if value is None:
+            return None
+
+        if not features.has(
+            "organizations:workflow-engine-metric-alert-group-by-creation",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError(
+                "Group by Metric Alerts feature must be enabled to use this field"
+            )
+
+        if len(value) > 100:
+            raise serializers.ValidationError("Group by must be 100 or fewer items")
+
+        # group by has to be unique list of strings
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Group by must be a unique list of strings")
+
+        # TODO:
+        # validate that group by is a valid snql / EAP column?
+
+        return value
+
     @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
@@ -362,6 +395,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             resolution=timedelta(minutes=1),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
+            group_by=validated_data.get("group_by"),
         )
         return create_snuba_subscription(
             project=self.context["project"],

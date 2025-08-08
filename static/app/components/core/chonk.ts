@@ -21,3 +21,9 @@ export function chonkFor(theme: DO_NOT_USE_ChonkTheme, baseColor: string) {
 
   return result;
 }
+
+export function debossedBackground(theme: DO_NOT_USE_ChonkTheme) {
+  return {
+    backgroundColor: theme.type === 'dark' ? 'rgba(8,0,24,0.28)' : 'rgba(0,0,112,0.03)',
+  };
+}

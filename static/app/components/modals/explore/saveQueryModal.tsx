@@ -18,11 +18,14 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSetLogsSavedQueryInfo} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type SaveQueryModalProps = {
   organization: Organization;
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
+  traceItemDataset: TraceItemDataset;
   name?: string;
   source?: 'toolbar' | 'table';
 };
@@ -37,6 +40,7 @@ function SaveQueryModal({
   saveQuery,
   name: initialName,
   source,
+  traceItemDataset,
 }: Props) {
   const organization = useOrganization();
 
@@ -45,12 +49,17 @@ function SaveQueryModal({
   const [starred, setStarred] = useState(true);
 
   const setExplorePageParams = useSetExplorePageParams();
+  const setLogsQuery = useSetLogsSavedQueryInfo();
 
   const updatePageIdAndTitle = useCallback(
     (id: string, title: string) => {
-      setExplorePageParams({id, title});
+      if (traceItemDataset === TraceItemDataset.LOGS) {
+        setLogsQuery(id, title);
+      } else if (traceItemDataset === TraceItemDataset.SPANS) {
+        setExplorePageParams({id, title});
+      }
     },
-    [setExplorePageParams]
+    [setExplorePageParams, setLogsQuery, traceItemDataset]
   );
 
   const onSave = useCallback(async () => {
@@ -63,12 +72,21 @@ function SaveQueryModal({
       }
       addSuccessMessage(t('Query saved successfully'));
       if (defined(source)) {
-        trackAnalytics('trace_explorer.save_query_modal', {
-          action: 'submit',
-          save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
-          ui_source: source,
-          organization,
-        });
+        if (traceItemDataset === TraceItemDataset.LOGS) {
+          trackAnalytics('logs.save_query_modal', {
+            action: 'submit',
+            save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+            ui_source: source,
+            organization,
+          });
+        } else if (traceItemDataset === TraceItemDataset.SPANS) {
+          trackAnalytics('trace_explorer.save_query_modal', {
+            action: 'submit',
+            save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+            ui_source: source,
+            organization,
+          });
+        }
       }
       closeModal();
     } catch (error) {
@@ -86,6 +104,7 @@ function SaveQueryModal({
     organization,
     initialName,
     source,
+    traceItemDataset,
   ]);
 
   return (

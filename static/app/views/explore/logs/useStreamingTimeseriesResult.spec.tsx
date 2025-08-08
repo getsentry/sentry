@@ -1,11 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {LogFixture} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,29 +25,19 @@ function preciseTimestampFromMillis(timestamp: number) {
 }
 
 describe('useStreamingTimeseriesResult', () => {
-  const logsOrganization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-live-refresh'],
+  const {
+    organization: logsOrganization,
+    project,
+    setupPageFilters,
+  } = initializeLogsTest({
+    liveRefresh: true,
   });
-  const project = ProjectFixture();
+
+  setupPageFilters();
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockUseLocation.mockReturnValue(LocationFixture());
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
   });
 
   const createWrapper = ({
@@ -103,6 +90,9 @@ describe('useStreamingTimeseriesResult', () => {
       isEmpty: logFixtures.length === 0,
       fetchNextPage: jest.fn(),
       fetchPreviousPage: jest.fn(),
+      isRefetching: false,
+      refetch: jest.fn(),
+      queryKey: ['logs', 'infinite', 'infinite'],
       hasNextPage: false,
       hasPreviousPage: false,
       isFetchingNextPage: false,
@@ -212,17 +202,13 @@ describe('useStreamingTimeseriesResult', () => {
     }) as any;
 
   it('should return original timeseries when feature flag is enabled', () => {
-    const orgWithFeature = OrganizationFixture({
-      features: ['ourlogs-enabled', 'ourlogs-live-refresh'],
-    });
-
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'enabled', organization: orgWithFeature}),
+        wrapper: createWrapper({autoRefresh: 'enabled', organization: logsOrganization}),
       }
     );
 
@@ -270,15 +256,27 @@ describe('useStreamingTimeseriesResult', () => {
 
       const mockTableData = createMockTableData([
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '1',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '2',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8200),
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '3',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8100),
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '4',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
         }),
       ]);
@@ -361,22 +359,37 @@ describe('useStreamingTimeseriesResult', () => {
 
       const initialTableFixtures = [
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '5',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'brand_new_severity',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '6',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '7',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '8',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '9',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(7000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
@@ -445,6 +458,9 @@ describe('useStreamingTimeseriesResult', () => {
       rerender(
         createMockTableData([
           LogFixture({
+            [OurLogKnownFieldKey.ID]: '10',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
             [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(12000),
             [OurLogKnownFieldKey.SEVERITY]: 'yet_another_severity',
           }),
@@ -546,22 +562,37 @@ describe('useStreamingTimeseriesResult', () => {
 
       const mockTableData = createMockTableData([
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '10',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '11',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8600),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '12',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '13',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(6500),
           [OurLogKnownFieldKey.SEVERITY]: 'info',
         }),
         LogFixture({
+          [OurLogKnownFieldKey.ID]: '14',
+          [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8500),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),

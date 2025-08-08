@@ -39,7 +39,7 @@ def test_define_task_retry(task_namespace: TaskNamespace) -> None:
     assert task.retry == retry
 
 
-def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace):
+def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace) -> None:
     with pytest.raises(AssertionError) as err:
         Task(
             name="test.do_things",

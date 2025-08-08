@@ -248,7 +248,7 @@ class SaltedComponentVariant(ComponentVariant):
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
+        super().__init__(component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
 

@@ -99,14 +99,12 @@ function ActionsBarPriority({
   return (
     <ActionsBarContainer>
       {!narrowViewport && (
-        <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
-          <Checkbox
-            onChange={() => SelectedGroupStore.toggleSelectAll()}
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-            aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-            disabled={displayReprocessingActions}
-          />
-        </ActionsCheckbox>
+        <Checkbox
+          onChange={() => SelectedGroupStore.toggleSelectAll()}
+          checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+          aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+          disabled={displayReprocessingActions}
+        />
       )}
       {!displayReprocessingActions && (
         <AnimatePresence initial={false} mode="wait">
@@ -129,9 +127,7 @@ function ActionsBarPriority({
               />
             </HeaderButtonsWrapper>
           ) : (
-            <NarrowHeaderButtonsWrapper>
-              <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
-            </NarrowHeaderButtonsWrapper>
+            <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
           )}
         </AnimatePresence>
       )}
@@ -489,29 +485,23 @@ const StickyActions = styled(Sticky)`
 `;
 
 const ActionsBarContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: ${space(1)};
   min-height: 36px;
   padding-top: ${space(0.5)};
   padding-bottom: ${space(0.5)};
+  padding-left: ${space(2)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 6px 6px 0 0;
-`;
-
-const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
-  display: flex;
-  align-items: center;
-  padding-left: ${space(2)};
-  margin-bottom: 1px;
-  ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
 const HeaderButtonsWrapper = styled(motion.div)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
-  flex: 1;
-  margin: 0 ${space(1)};
+  grid-column: 2 / -1;
   display: grid;
   gap: ${space(0.5)};
   grid-auto-flow: column;
@@ -519,21 +509,8 @@ const HeaderButtonsWrapper = styled(motion.div)`
   white-space: nowrap;
 `;
 
-const NarrowHeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 50%;
-  }
-  flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(2)};
-  display: grid;
-  gap: ${space(0.5)};
-  grid-auto-flow: column;
-  justify-content: space-between;
-  white-space: nowrap;
-`;
-
 const AnimatedHeaderItemsContainer = styled(motion.div)`
+  grid-column: -1;
   display: flex;
   align-items: center;
 `;

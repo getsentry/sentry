@@ -30,7 +30,9 @@ from sentry.testutils.cases import TestCase
 
 class IncidentOccurrenceTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
-    def test_send_incident_occurrence(self, mock_produce_occurrence_to_kafka):
+    def test_send_incident_occurrence(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -200,7 +202,7 @@ class IncidentOccurrenceTestCase(TestCase):
         KAFKA_TOPIC_OVERRIDES={"monitors-incident-occurrences": "monitors-test-topic"}
     )
     @mock.patch("sentry.monitors.logic.incident_occurrence._incident_occurrence_producer")
-    def test_queue_incident_occurrence(self, mock_producer):
+    def test_queue_incident_occurrence(self, mock_producer: mock.MagicMock) -> None:
         tick = timezone.now().replace(second=0, microsecond=0)
 
         monitor = self.create_monitor()

@@ -1,6 +1,6 @@
 import {memo, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';

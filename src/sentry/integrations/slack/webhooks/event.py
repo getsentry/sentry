@@ -116,7 +116,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         payload = {
             "channel": slack_request.channel_id,
-            **SlackHelpMessageBuilder(command).as_payload(),
+            **SlackHelpMessageBuilder(
+                command=command,
+                integration_id=slack_request.integration.id,
+            ).as_payload(),
         }
         logger_params = {
             "integration_id": slack_request.integration.id,
@@ -131,7 +134,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.chat_postMessage(
                 channel=slack_request.channel_id,
-                **SlackHelpMessageBuilder(command).as_payload(),
+                **SlackHelpMessageBuilder(
+                    command=command,
+                    integration_id=slack_request.integration.id,
+                ).as_payload(),
             )
         except SlackApiError:
             _logger.exception("on_message.post-message-error", extra=logger_params)

@@ -3,10 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import type {
-  TraceMeta,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -17,7 +14,6 @@ import {
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import type {TraceMetaQueryResults} from './useTraceMeta';
 import {useTraceTree} from './useTraceTree';
 
 const getMockedTraceResults = (
@@ -28,12 +24,6 @@ const getMockedTraceResults = (
     status,
     data,
   }) as UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
-
-const getMockedMetaResults = (status: string, data: TraceMeta | undefined = undefined) =>
-  ({
-    status,
-    data,
-  }) as TraceMetaQueryResults;
 
 const organization = OrganizationFixture();
 
@@ -53,7 +43,6 @@ describe('useTraceTree', () => {
       () =>
         useTraceTree({
           trace: getMockedTraceResults('error'),
-          meta: getMockedMetaResults('error'),
           traceSlug: 'test-trace',
           replay: null,
         }),
@@ -70,7 +59,6 @@ describe('useTraceTree', () => {
       () =>
         useTraceTree({
           trace: getMockedTraceResults('pending'),
-          meta: getMockedMetaResults('pending'),
           traceSlug: 'test-trace',
           replay: null,
         }),
@@ -89,17 +77,6 @@ describe('useTraceTree', () => {
           trace: getMockedTraceResults('success', {
             transactions: [],
             orphan_errors: [],
-          }),
-          meta: getMockedMetaResults('success', {
-            errors: 1,
-            performance_issues: 2,
-            projects: 1,
-            transactions: 1,
-            transaction_child_count_map: {
-              '1': 1,
-            },
-            span_count: 0,
-            span_count_map: {},
           }),
           traceSlug: 'test-trace',
           replay: null,
@@ -148,23 +125,10 @@ describe('useTraceTree', () => {
       ],
     };
 
-    const mockedMeta = {
-      errors: 1,
-      performance_issues: 2,
-      projects: 1,
-      transactions: 1,
-      transaction_child_count_map: {
-        '1': 1,
-      },
-      span_count: 0,
-      span_count_map: {},
-    };
-
     const {result} = renderHook(
       () =>
         useTraceTree({
           trace: getMockedTraceResults('success', mockedTrace),
-          meta: getMockedMetaResults('success', mockedMeta),
           traceSlug: 'test-trace',
           replay: null,
         }),

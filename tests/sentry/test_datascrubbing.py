@@ -19,7 +19,7 @@ def merge_pii_configs(prefixes_and_configs):
 
 @django_db_all
 @pytest.mark.parametrize("field", ["ooo", "oöö", "o o", "o\no", "o'o"])
-def test_scrub_data(field, default_project):
+def test_scrub_data(field, default_project) -> None:
     project = default_project
     organization = project.organization
 

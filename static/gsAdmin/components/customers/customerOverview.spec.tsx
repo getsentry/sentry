@@ -458,6 +458,7 @@ describe('CustomerOverview', function () {
       DataCategory.SPANS,
       DataCategory.PROFILE_DURATION,
       DataCategory.PROFILE_DURATION_UI,
+      DataCategory.LOG_BYTE,
       ReservedBudgetCategoryType.SEER,
     ];
 

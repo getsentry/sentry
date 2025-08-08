@@ -205,7 +205,17 @@ def child_process(
                         "taskname": inflight.activation.taskname,
                         "processing_pool": processing_pool_name,
                     },
+                    sample_rate=1.0,
                 )
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("taskname", inflight.activation.taskname)
+                    scope.set_tag("namespace", inflight.activation.namespace)
+                    scope.set_tag("processing_pool", processing_pool_name)
+                    scope.set_extra("activation", str(inflight.activation))
+                    scope.capture_message(
+                        f"Unregistered task {inflight.activation.taskname} was not executed"
+                    )
+
                 processed_tasks.put(
                     ProcessingResult(
                         task_id=inflight.activation.id,
@@ -344,13 +354,18 @@ def child_process(
             name=activation.taskname,
             origin="taskworker",
         )
+        sampling_context = {
+            "taskworker": {
+                "task": activation.taskname,
+            }
+        }
         with (
             track_memory_usage(
                 "taskworker.worker.memory_change",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
             sentry_sdk.isolation_scope(),
-            sentry_sdk.start_transaction(transaction),
+            sentry_sdk.start_transaction(transaction, custom_sampling_context=sampling_context),
         ):
             transaction.set_data(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}

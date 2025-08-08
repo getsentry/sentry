@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -13,12 +13,16 @@ import {renderLinksInText} from 'sentry/components/events/interfaces/crashConten
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {
+  FoldSection,
+  SectionDivider,
+} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
@@ -38,10 +42,15 @@ type Props = {
   threadId?: number;
 } & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
-type CollapsedExceptionMap = Record<number, boolean>;
+type ExceptionRenderStateMap = Record<number, boolean>;
 
-const useCollapsedExceptions = (values?: ExceptionValue[]) => {
-  const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(
+/**
+ * We want to hide all children of an exception group is the exception group
+ * itself is not the root level exception.
+ */
+const useHiddenExceptions = (values?: ExceptionValue[]) => {
+  // map of exception group ids and whether their children are hidden
+  const [hiddenExceptions, setHiddenExceptions] = useState<ExceptionRenderStateMap>(
     () => {
       if (!values) {
         return {};
@@ -58,8 +67,8 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
     }
   );
 
-  const toggleException = (exceptionId: number) => {
-    setCollapsedSections(old => {
+  const toggleRelatedExceptions = (exceptionId: number) => {
+    setHiddenExceptions(old => {
       if (!defined(old[exceptionId])) {
         return old;
       }
@@ -69,13 +78,12 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
   };
 
   const expandException = (exceptionId: number) => {
-    setCollapsedSections(old => {
+    setHiddenExceptions(old => {
       const exceptionValue = values?.find(
         value => value.mechanism?.exception_id === exceptionId
       );
       const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
-
-      if (!exceptionGroupId || !defined(old[exceptionGroupId])) {
+      if (!defined(exceptionGroupId) || !defined(old[exceptionGroupId])) {
         return old;
       }
 
@@ -83,27 +91,31 @@ const useCollapsedExceptions = (values?: ExceptionValue[]) => {
     });
   };
 
-  return {toggleException, collapsedExceptions, expandException};
+  return {
+    toggleRelatedExceptions,
+    hiddenExceptions,
+    expandException,
+  };
 };
 
 function ToggleExceptionButton({
   values,
   exception,
-  toggleException,
-  collapsedExceptions,
+  toggleRelatedExceptions,
+  hiddenExceptions,
 }: {
-  collapsedExceptions: CollapsedExceptionMap;
   exception: ExceptionValue;
-  toggleException: (exceptionId: number) => void;
+  hiddenExceptions: ExceptionRenderStateMap;
+  toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
 }) {
   const exceptionId = exception.mechanism?.exception_id;
 
-  if (!exceptionId || !defined(collapsedExceptions[exceptionId])) {
+  if (!defined(exceptionId) || !defined(hiddenExceptions[exceptionId])) {
     return null;
   }
 
-  const collapsed = collapsedExceptions[exceptionId];
+  const collapsed = hiddenExceptions[exceptionId];
   const numChildren = values.filter(
     ({mechanism}) => mechanism?.parent_id === exceptionId
   ).length;
@@ -111,12 +123,117 @@ function ToggleExceptionButton({
   return (
     <ShowRelatedExceptionsButton
       priority="link"
-      onClick={() => toggleException(exceptionId)}
+      onClick={() => {
+        toggleRelatedExceptions(exceptionId);
+      }}
     >
       {collapsed
-        ? tn('Show %s related exceptions', 'Show %s related exceptions', numChildren)
-        : tn('Hide %s related exceptions', 'Hide %s related exceptions', numChildren)}
+        ? tn('Show %s related exception', 'Show %s related exceptions', numChildren)
+        : tn('Hide %s related exception', 'Hide %s related exceptions', numChildren)}
     </ShowRelatedExceptionsButton>
+  );
+}
+
+function InnerContent({
+  exception,
+  exceptionIdx,
+  project,
+  event,
+  meta,
+  newestFirst,
+  values,
+  threadId,
+  type,
+  hasChainedExceptions,
+  sourceMapDebuggerData,
+  isSampleError,
+  stackView,
+  groupingCurrentLevel,
+  hiddenExceptions,
+  toggleRelatedExceptions,
+  expandException,
+}: {
+  exception: ExceptionValue;
+  exceptionIdx: number;
+  expandException: (exceptionId: number) => void;
+  hasChainedExceptions: boolean;
+  hiddenExceptions: ExceptionRenderStateMap;
+  isSampleError: boolean;
+  sourceMapDebuggerData: ReturnType<typeof useSourceMapDebuggerData>;
+  toggleRelatedExceptions: (exceptionId: number) => void;
+  values: ExceptionValue[];
+  project?: Project;
+} & Omit<Props, 'projectSlug'>) {
+  const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
+    exceptionIdx
+  ]!.frames.map(debuggerFrame =>
+    prepareSourceMapDebuggerFrameInformation(
+      sourceMapDebuggerData,
+      debuggerFrame,
+      event,
+      project?.platform
+    )
+  );
+  const exceptionValue = exception.value
+    ? renderLinksInText({exceptionText: exception.value})
+    : null;
+
+  const platform = getStacktracePlatform(event, exception.stacktrace);
+
+  // The banners should appear on the top exception only
+  const isTopException = newestFirst
+    ? exceptionIdx === values.length - 1
+    : exceptionIdx === 0;
+
+  return (
+    <Fragment>
+      <StyledPre>
+        {meta?.[exceptionIdx]?.value?.[''] && !exception.value ? (
+          <AnnotatedText
+            value={exception.value}
+            meta={meta?.[exceptionIdx]?.value?.['']}
+          />
+        ) : (
+          exceptionValue
+        )}
+      </StyledPre>
+      <ToggleExceptionButton
+        {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
+      />
+      {exception.mechanism && (
+        <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
+      )}
+      <RelatedExceptions
+        mechanism={exception.mechanism}
+        allExceptions={values}
+        newestFirst={newestFirst}
+        onExceptionClick={expandException}
+      />
+      {exception.stacktrace && isTopException && !isSampleError && (
+        <ErrorBoundary customComponent={null}>
+          <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
+        </ErrorBoundary>
+      )}
+      <StackTrace
+        data={
+          type === StackType.ORIGINAL
+            ? exception.stacktrace
+            : exception.rawStacktrace || exception.stacktrace
+        }
+        stackView={stackView}
+        stacktrace={exception.stacktrace}
+        expandFirstFrame={exceptionIdx === values.length - 1}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+        chainedException={hasChainedExceptions}
+        groupingCurrentLevel={groupingCurrentLevel}
+        meta={meta?.[exceptionIdx]?.stacktrace}
+        threadId={threadId}
+        frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+        stackType={type}
+      />
+    </Fragment>
   );
 }
 
@@ -133,10 +250,9 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const {collapsedExceptions, toggleException, expandException} =
-    useCollapsedExceptions(values);
-
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+  const {hiddenExceptions, toggleRelatedExceptions, expandException} =
+    useHiddenExceptions(values);
 
   const isSampleError = useIsSampleEvent();
 
@@ -148,33 +264,72 @@ export function Content({
   }
 
   const project = projects.find(({slug}) => slug === projectSlug);
+  const hasChainedExceptions = values.length > 1;
+
   const children = values.map((exc, excIdx) => {
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
       : undefined;
 
-    const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
-      excIdx
-    ]!.frames.map(debuggerFrame =>
-      prepareSourceMapDebuggerFrameInformation(
-        sourceMapDebuggerData,
-        debuggerFrame,
-        event,
-        project?.platform
-      )
-    );
-    const exceptionValue = exc.value
-      ? renderLinksInText({exceptionText: exc.value})
-      : null;
-
-    if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
+    if (
+      exc.mechanism?.parent_id !== undefined &&
+      hiddenExceptions[exc.mechanism.parent_id]
+    ) {
+      // hide all child exceptions when the parent
+      // does not have related exceptions toggled to show
       return null;
     }
 
-    const platform = getStacktracePlatform(event, exc.stacktrace);
+    const innerContent = (
+      <InnerContent
+        exception={exc}
+        exceptionIdx={excIdx}
+        hasChainedExceptions={hasChainedExceptions}
+        isSampleError={isSampleError}
+        project={project}
+        sourceMapDebuggerData={sourceMapDebuggerData}
+        values={values}
+        newestFirst={newestFirst}
+        event={event}
+        type={type}
+        meta={meta}
+        threadId={threadId}
+        stackView={stackView}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hiddenExceptions={hiddenExceptions}
+        toggleRelatedExceptions={toggleRelatedExceptions}
+        expandException={expandException}
+      />
+    );
 
-    // The banners should appear on the top exception only
-    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
+    if (hasChainedExceptions) {
+      return (
+        <StyledFoldSection
+          key={excIdx}
+          className="exception"
+          dataTestId="exception-value"
+          sectionKey={SectionKey.CHAINED_EXCEPTION}
+          title={
+            defined(exc?.module) ? (
+              <Tooltip
+                title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}
+              >
+                <Title id={id}>{exc.type}</Title>
+              </Tooltip>
+            ) : (
+              <Title id={id}>{exc.type}</Title>
+            )
+          }
+          disableCollapsePersistence
+          initialCollapse={excIdx !== values.length - 1}
+          additionalIdentifier={
+            exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
+          }
+        >
+          {innerContent}
+        </StyledFoldSection>
+      );
+    }
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
@@ -185,49 +340,7 @@ export function Content({
         ) : (
           <Title id={id}>{exc.type}</Title>
         )}
-        <StyledPre>
-          {meta?.[excIdx]?.value?.[''] && !exc.value ? (
-            <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
-          ) : (
-            exceptionValue
-          )}
-        </StyledPre>
-        <ToggleExceptionButton
-          {...{collapsedExceptions, toggleException, values, exception: exc}}
-        />
-        {exc.mechanism && (
-          <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
-        )}
-        <RelatedExceptions
-          mechanism={exc.mechanism}
-          allExceptions={values}
-          newestFirst={newestFirst}
-          onExceptionClick={expandException}
-        />
-        {exc.stacktrace && isTopException && !isSampleError && (
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
-        )}
-        <StackTrace
-          data={
-            type === StackType.ORIGINAL
-              ? exc.stacktrace
-              : exc.rawStacktrace || exc.stacktrace
-          }
-          stackView={stackView}
-          stacktrace={exc.stacktrace}
-          expandFirstFrame={excIdx === values.length - 1}
-          platform={platform}
-          newestFirst={newestFirst}
-          event={event}
-          chainedException={values.length > 1}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta?.[excIdx]?.stacktrace}
-          threadId={threadId}
-          frameSourceMapDebuggerData={frameSourceMapDebuggerData}
-          stackType={type}
-        />
+        {innerContent}
       </div>
     );
   });
@@ -236,7 +349,21 @@ export function Content({
     children.reverse();
   }
 
-  return <div>{children}</div>;
+  return (
+    <div>
+      {hasChainedExceptions && (
+        <Fragment>
+          <p>
+            {tct('There are [numExceptions] chained exceptions in this event.', {
+              numExceptions: values.length,
+            })}
+          </p>
+          <SectionDivider />
+        </Fragment>
+      )}
+      {children}
+    </div>
+  );
 }
 
 const StyledPre = styled('pre')`
@@ -248,7 +375,7 @@ const StyledPre = styled('pre')`
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: 0;
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
@@ -257,4 +384,14 @@ const Title = styled('h5')`
 const ShowRelatedExceptionsButton = styled(Button)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const StyledFoldSection = styled(FoldSection)`
+  margin-bottom: 0;
+  margin-left: -${p => p.theme.space.sm};
+
+  & ~ hr {
+    margin-left: ${p => p.theme.space.xl};
+    margin-right: ${p => p.theme.space.xl};
+  }
 `;

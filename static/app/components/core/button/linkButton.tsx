@@ -96,8 +96,15 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
+  ${p => (p.theme.isChonk ? getChonkLinkButtonStyles(p) : getButtonStyles(p as any))}
 `;
+
+const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
+  return {
+    ...getChonkButtonStyles(p as any),
+    ...(p.disabled || p.busy ? {color: 'inherit'} : undefined),
+  };
+};
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>

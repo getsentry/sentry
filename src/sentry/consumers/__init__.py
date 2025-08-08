@@ -119,7 +119,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),

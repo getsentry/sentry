@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
+    LegacyTextJSONField,
     Model,
     UUIDField,
     region_silo_model,
@@ -258,7 +258,7 @@ class Monitor(Model):
     The team assigned as the owner of this model.
     """
 
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
+    config = models.JSONField(default=dict)
     """
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
     """
@@ -516,7 +516,7 @@ class MonitorCheckIn(Model):
     max_runtime.
     """
 
-    monitor_config = JSONField(null=True)
+    monitor_config = LegacyTextJSONField(null=True)
     """
     A snapshot of the monitor configuration at the time of the check-in.
     """

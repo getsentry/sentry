@@ -113,8 +113,7 @@ export function ProjectInstallPlatform({
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           activeProductSelection={products}
         />
       )}

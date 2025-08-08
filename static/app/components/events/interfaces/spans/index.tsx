@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';

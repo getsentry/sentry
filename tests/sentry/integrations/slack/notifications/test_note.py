@@ -81,7 +81,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_note_generic_issue_block(self, occurrence):
+    def test_note_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a comment is made on a generic issue type
         """

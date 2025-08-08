@@ -56,7 +56,12 @@ interface State {
 }
 
 class MetricAlertDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
+  state: State = {
+    isLoading: false,
+    hasError: false,
+    error: null,
+    selectedIncident: null,
+  };
 
   componentDidMount() {
     const {api, organization} = this.props;

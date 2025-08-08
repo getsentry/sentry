@@ -29,11 +29,7 @@ import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getConfigStep = ({
-  isSelfHosted,
-  organization,
-  projectSlug,
-}: Params): ContentBlock[] => {
+const getConfigStep = ({isSelfHosted, organization, project}: Params): ContentBlock[] => {
   const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
@@ -51,7 +47,7 @@ const getConfigStep = ({
     {
       type: 'code',
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${project.slug}`,
     },
   ];
 };

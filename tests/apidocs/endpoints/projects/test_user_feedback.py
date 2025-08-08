@@ -18,13 +18,13 @@ class ProjectUserFeedbackDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {
             "event_id": self.event_id,
             "name": "Hellboy",

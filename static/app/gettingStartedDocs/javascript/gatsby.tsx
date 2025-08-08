@@ -61,12 +61,10 @@ const getIntegrations = (params: Params): string[] => {
 const getDynamicParts = (params: Params): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isPerformanceSelected) {
+  if (params.isLogsSelected) {
     dynamicParts.push(`
-      // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
-      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+      // Enable sending logs to Sentry
+      enableLogs: true`);
   }
 
   if (params.isReplaySelected) {
@@ -76,10 +74,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
-  if (params.isLogsSelected) {
+  if (params.isPerformanceSelected) {
     dynamicParts.push(`
-      // Logs
-      enableLogs: true`);
+      // Tracing
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
 
   if (params.isProfilingSelected) {
@@ -113,16 +113,25 @@ import * as Sentry from "@sentry/gatsby";
 
 Sentry.init({
   ${config}
-});
-
-const container = document.getElementById(“app”);
-const root = createRoot(container);
-root.render(<App />);
-`;
+});`;
 };
 
-const getVerifySnippet = () => `
-myUndefinedFunction();`;
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `// Send a log before throwing the error
+    Sentry.logger.info("User triggered test error button", {
+      action: "test_error_button_click",
+    });
+`
+    : '';
+
+  return `
+import * as Sentry from "@sentry/gatsby";
+
+setTimeout(() => {
+  ${logsCode}throw new Error("Sentry Test Error");
+});`;
+};
 
 const getConfigureStep = (params: Params): OnboardingStep => {
   return {
@@ -131,7 +140,7 @@ const getConfigureStep = (params: Params): OnboardingStep => {
       {
         type: 'text',
         text: tct(
-          'Register the [code:Sentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
+          'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
           {code: <code />}
         ),
       },
@@ -152,7 +161,7 @@ const getConfigureStep = (params: Params): OnboardingStep => {
       {
         type: 'text',
         text: tct(
-          'Then, configure your [codeSentry:Sentry.init:]. For this, create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following code:',
+          'Then create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following Sentry configuration:',
           {codeSentry: <code />}
         ),
       },
@@ -222,7 +231,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -238,7 +247,7 @@ const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: getVerifySnippet(),
+              code: getVerifySnippet(params),
             },
           ],
         },

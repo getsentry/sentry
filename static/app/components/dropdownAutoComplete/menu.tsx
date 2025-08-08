@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
-import {Input} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -134,11 +134,6 @@ export interface MenuProps
   hideInput?: boolean;
 
   /**
-   * renderProp for the end (right side) of the search input
-   */
-  inputActions?: React.ReactElement;
-
-  /**
    * Props to pass to input/filter component
    */
   inputProps?: React.HTMLAttributes<HTMLInputElement>;
@@ -257,7 +252,6 @@ function Menu({
   menuFooter,
   style,
   onScroll,
-  inputActions,
   onChange,
   onSelect,
   onOpen,
@@ -372,19 +366,18 @@ function Menu({
               >
                 <DropdownMainContent minWidth={minWidth}>
                   {showInput && (
-                    <InputWrapper>
+                    <InputGroup>
                       <StyledInput
                         ref={focusElement}
                         placeholder={searchPlaceholder}
                         {...getInputProps({...inputProps, onChange})}
                       />
-                      <InputLoadingWrapper>
-                        {(busy || busyItemsStillVisible) && (
-                          <LoadingIndicator size={16} mini />
-                        )}
-                      </InputLoadingWrapper>
-                      {inputActions}
-                    </InputWrapper>
+                      {(busy || busyItemsStillVisible) && (
+                        <InputGroup.TrailingItems>
+                          <LoadingIndicator size={16} />
+                        </InputGroup.TrailingItems>
+                      )}
+                    </InputGroup>
                   )}
                   <div>
                     {menuHeader && (
@@ -438,32 +431,22 @@ function Menu({
 
 export default Menu;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(InputGroup.Input)`
   flex: 1;
-  border: 1px solid transparent;
-  border-radius: calc(${p => p.theme.borderRadius} - 1px);
+  border: 0;
+  border-radius: ${p => p.theme.borderRadius};
+  width: 100%;
   &,
   &:focus,
+  &:focus-visible,
   &:active,
   &:hover {
     border: 0;
     box-shadow: none;
     font-size: 13px;
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
     font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
-  }
-`;
-
-const InputLoadingWrapper = styled('div')`
-  display: flex;
-  background: ${p => p.theme.background};
-  align-items: center;
-  flex-shrink: 0;
-  width: 30px;
-  .loading.mini {
-    height: 16px;
-    margin: 0;
   }
 `;
 
@@ -483,6 +466,7 @@ const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
 const StyledDropdownBubble = styled(DropdownBubble)<{minWidth: number}>`
   display: flex;
   min-width: ${p => p.minWidth}px;
+  border: none;
 
   ${p => p.detached && p.alignMenu === 'left' && 'right: auto;'}
   ${p => p.detached && p.alignMenu === 'right' && 'left: auto;'}
@@ -491,14 +475,8 @@ const StyledDropdownBubble = styled(DropdownBubble)<{minWidth: number}>`
 const DropdownMainContent = styled('div')<{minWidth: number}>`
   width: 100%;
   min-width: ${p => p.minWidth}px;
-`;
-
-const InputWrapper = styled('div')`
-  display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p =>
-    `calc(${p.theme.borderRadius} - 1px) calc(${p.theme.borderRadius} - 1px) 0 0`};
-  align-items: center;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`

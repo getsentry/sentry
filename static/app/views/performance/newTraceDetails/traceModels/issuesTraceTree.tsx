@@ -49,9 +49,11 @@ export class IssuesTraceTree extends TraceTree {
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
-    const tree = super.FromTrace(trace, options);
+    const baseTree = super.FromTrace(trace, options);
     const issuesTree = new IssuesTraceTree();
-    issuesTree.root = tree.root;
+
+    Object.assign(issuesTree, baseTree);
+
     return issuesTree;
   }
 

@@ -6,7 +6,10 @@ from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
 from typing import Any
 
+import sentry_sdk
+
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
@@ -363,13 +366,17 @@ class AlertRuleNotification(ProjectNotification):
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
-        analytics.record(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider=provider.name,
-            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
-            alert_type="issue_alert",
-            external_id=str(recipient.id),
-            notification_uuid=self.notification_uuid,
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    provider=provider.name,
+                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_type="issue_alert",
+                    external_id=str(recipient.id),
+                    notification_uuid=self.notification_uuid,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

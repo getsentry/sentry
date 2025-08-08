@@ -2,7 +2,7 @@ import datetime
 import uuid
 from hashlib import md5
 from itertools import cycle
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType
@@ -23,7 +23,7 @@ from sentry.uptime.models import get_detector
 class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
     @patch("sentry.uptime.issue_platform.produce_occurrence_to_kafka")
     @patch("sentry.uptime.issue_platform.uuid")
-    def test(self, mock_uuid, mock_produce_occurrence_to_kafka):
+    def test(self, mock_uuid: MagicMock, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         mock_uuid.uuid4.side_effect = cycle([uuid.uuid4(), uuid.uuid4()])
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
@@ -44,7 +44,7 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
 @freeze_time()
 class BuildOccurrenceFromResultTest(UptimeTestCase):
     @patch("sentry.uptime.issue_platform.uuid")
-    def test(self, mock_uuid):
+    def test(self, mock_uuid: MagicMock) -> None:
         occurrence_id = uuid.uuid4()
         event_id = uuid.uuid4()
         mock_uuid.uuid4.side_effect = cycle([occurrence_id, event_id])

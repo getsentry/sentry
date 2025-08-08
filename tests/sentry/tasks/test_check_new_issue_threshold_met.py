@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.tasks.check_new_issue_threshold_met import (
     NEW_ISSUE_WEEKLY_THRESHOLD,
@@ -16,7 +16,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         self.project.save()
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met", return_value=False)
-    def test_threshold_not_met(self, mock_calculate):
+    def test_threshold_not_met(self, mock_calculate: MagicMock) -> None:
         assert not self.project.flags.has_high_priority_alerts
 
         check_new_issue_threshold_met(self.project.id)
@@ -26,7 +26,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         assert not self.project.flags.has_high_priority_alerts
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met")
-    def test_threshold_already_met(self, mock_calculate):
+    def test_threshold_already_met(self, mock_calculate: MagicMock) -> None:
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
@@ -38,7 +38,7 @@ class CheckNewIssueThresholdMetTest(TestCase):
         assert self.project.flags.has_high_priority_alerts
 
     @patch("sentry.tasks.check_new_issue_threshold_met.calculate_threshold_met", return_value=True)
-    def test_threshold_newly_met(self, mock_calculate):
+    def test_threshold_newly_met(self, mock_calculate: MagicMock) -> None:
         assert not self.project.flags.has_high_priority_alerts
         check_new_issue_threshold_met(self.project.id)
 

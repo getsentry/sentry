@@ -424,6 +424,8 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
+        aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -451,6 +453,7 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = True,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, int]:
         range_set = self.get_range(
             model,
@@ -464,6 +467,7 @@ class BaseTSDB(Service):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            project_ids=project_ids,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -482,6 +486,7 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
+        project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
 
         raise NotImplementedError
@@ -500,6 +505,7 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
         result: Mapping[TSDBKey, int] = self.get_sums_data(
             model,
@@ -514,6 +520,7 @@ class BaseTSDB(Service):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            project_ids=project_ids,
         )
         return result
 

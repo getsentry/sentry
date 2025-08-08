@@ -976,6 +976,11 @@ export default typescript.config([
           type: 'story-book',
           pattern: 'static/app/stories',
         },
+        // --- debug tools (e.g. notifications) ---
+        {
+          type: 'debug-tools',
+          pattern: 'static/app/debug',
+        },
         // --- tests ---
         {
           type: 'test-sentry',
@@ -1128,6 +1133,11 @@ export default typescript.config([
             {
               from: ['story-files', 'story-book'],
               allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- debug tools (e.g. notifications) ---
+            {
+              from: ['debug-tools'],
+              allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
             {

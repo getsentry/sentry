@@ -744,6 +744,26 @@ export default class ReplayReader {
     )
   );
 
+  getSummaryChapterFrames = memoize(() => {
+    return [
+      ...this.getPerfFrames(),
+      ...this.getCustomFrames(),
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        [
+          'replay.hydrate-error',
+          'replay.mutations',
+          'feedback',
+          'device.battery',
+          'device.connectivity',
+          'device.orientation',
+          'app.foreground',
+          'app.background',
+        ].includes(frame.category)
+      ),
+      ...this._errors,
+    ].sort(sortFrames);
+  });
+
   getPerfFrames = memoize(() => {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(

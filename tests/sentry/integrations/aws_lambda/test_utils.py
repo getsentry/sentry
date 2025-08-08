@@ -167,7 +167,7 @@ class GetOptionValueTest(TestCase):
         assert get_option_value(self.python_fn, OPTION_ACCOUNT_NUMBER) == "1234"
 
     @patch.object(cache, "get")
-    def test_with_cache(self, mock_get):
+    def test_with_cache(self, mock_get: MagicMock) -> None:
         mock_get.return_value = self.cache_value
         with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
             assert get_option_value(self.node_fn, OPTION_VERSION) == "19"
@@ -180,7 +180,7 @@ class GetOptionValueTest(TestCase):
             assert get_option_value(self.python_fn, OPTION_ACCOUNT_NUMBER) == "943013980633"
 
     @patch.object(cache, "get")
-    def test_invalid_region(self, mock_get):
+    def test_invalid_region(self, mock_get: MagicMock) -> None:
         fn = {
             "Runtime": "nodejs10.x",
             "FunctionArn": "arn:aws:lambda:us-gov-east-1:599817902985:function:lambdaB",
@@ -191,7 +191,7 @@ class GetOptionValueTest(TestCase):
                 get_option_value(fn, OPTION_VERSION)
 
     @patch.object(cache, "get")
-    def test_cache_miss(self, mock_get):
+    def test_cache_miss(self, mock_get: MagicMock) -> None:
         mock_get.return_value = {}
         with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
             with pytest.raises(

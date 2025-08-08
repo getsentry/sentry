@@ -79,7 +79,7 @@ def params(now, today):
     ],
 )
 @django_db_all
-def test_where(params, search, condition):
+def test_where(params, search, condition) -> None:
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
         params,

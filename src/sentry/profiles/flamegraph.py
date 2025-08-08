@@ -26,9 +26,9 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -713,20 +713,9 @@ class FlamegraphExecutor:
             for candidate in continuous_profile_candidates
         }
 
-        always_use_direct_chunks = features.has(
-            "organizations:profiling-flamegraph-always-use-direct-chunks",
-            self.snuba_params.organization,
-            actor=self.request.user,
-        )
-
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
-        if (
-            len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles
-            and always_use_direct_chunks
-        ):
-            total_duration = continuous_duration if always_use_direct_chunks else 0.0
-            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+        if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
 
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
@@ -790,10 +779,8 @@ class FlamegraphExecutor:
 
                 continuous_profile_candidates.append(candidate)
 
-                total_duration += end_timestamp - start_timestamp
-
                 # can set max duration to negative to skip this check
-                if (max_duration >= 0 and total_duration >= max_duration) or (
+                if (
                     len(continuous_profile_candidates) + len(transaction_profile_candidates)
                     >= max_profiles
                 ):
@@ -847,9 +834,9 @@ class FlamegraphExecutor:
             query = f"{query} and {profiling_constraint}"
         else:
             query = profiling_constraint
-        return spans_rpc.run_table_query(
-            self.snuba_params,
-            query,
+        return Spans.run_table_query(
+            params=self.snuba_params,
+            query_string=query,
             selected_columns=[
                 "id",
                 "project.id",

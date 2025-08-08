@@ -112,7 +112,7 @@ class EapCheckEntry:
     """
 
     uptime_check_id: str
-    uptime_subscription_id: int
+    uptime_monitor_id: int
     timestamp: datetime
     scheduled_check_time: datetime
     check_status: CheckStatus
@@ -123,6 +123,18 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+
+
+@dataclass(frozen=True)
+class UptimeSummary:
+    """
+    Represents data used for uptime summary
+    """
+
+    total_checks: int
+    failed_checks: int
+    downtime_checks: int
+    missed_window_checks: int
 
 
 class UptimeMonitorMode(enum.IntEnum):

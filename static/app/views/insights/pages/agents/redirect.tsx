@@ -6,7 +6,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';

@@ -1,4 +1,4 @@
-""" Strategies for clustering high-cardinality transaction names """
+"""Strategies for clustering high-cardinality transaction names"""
 
 from dataclasses import dataclass
 from enum import Enum

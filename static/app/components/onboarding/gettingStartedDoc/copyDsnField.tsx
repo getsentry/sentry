@@ -13,7 +13,7 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
         {tct(
           "If you already have the configuration for Sentry in your application, and just need this project's ([projectSlug]) DSN, you can find it below:",
           {
-            projectSlug: <code>{params.projectSlug}</code>,
+            projectSlug: <code>{params.project.slug}</code>,
           }
         )}
       </p>

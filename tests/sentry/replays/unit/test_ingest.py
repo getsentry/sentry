@@ -148,6 +148,6 @@ def test_pack_replay_video() -> None:
         (None, None),
     ],
 )
-def test_extract_trace_id(replay_event, expected):
+def test_extract_trace_id(replay_event, expected) -> None:
     """Test "extract_trace_id" function."""
     assert extract_trace_id(replay_event) == expected

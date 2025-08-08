@@ -150,7 +150,7 @@ class LatestAdoptedReleaseFilter(EventFilter):
 
 def is_newer_release(
     release: Release, comparison_release: Release, order_type: LatestReleaseOrders
-):
+) -> bool:
     if (
         order_type == LatestReleaseOrders.SEMVER
         and release.is_semver_release

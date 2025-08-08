@@ -39,6 +39,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -1380,8 +1381,9 @@ class EventView {
         // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter(
           (field: Field) =>
-            isLegalYAxisType(aggregateOutputType(field.field)) ||
-            isAggregateEquation(field.field)
+            isAggregateEquation(field.field) ||
+            (isLegalYAxisType(aggregateOutputType(field.field)) &&
+              !field.field.startsWith(`${AggregationKey.ANY}(`)) // hide AggregationKey.ANY from y axis
         )
         .map((field: Field) => ({
           label: isEquation(field.field) ? getEquation(field.field) : field.field,

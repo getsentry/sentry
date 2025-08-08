@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -186,10 +185,15 @@ describe('DatabaseSpanSummaryPage', function () {
       ],
     });
 
-    render(
-      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization, deprecatedRouterMocks: true}
-    );
+    render(<DatabaseSpanSummaryPage />, {
+      organization,
+      initialRouterConfig: {
+        route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
+        },
+      },
+    });
 
     // Metrics ribbon
     expect(eventsRequestMock).toHaveBeenNthCalledWith(
@@ -201,15 +205,10 @@ describe('DatabaseSpanSummaryPage', function () {
           dataset: 'spans',
           environment: [],
           field: [
-            'span.op',
-            'span.description',
-            'span.action',
-            'span.domain',
-            'count()',
+            'sentry.normalized_description',
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'http_response_count(5)',
           ],
           per_page: 50,
           project: [],

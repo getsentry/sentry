@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {DOMAIN_VIEW_MODULE_TITLES} from 'sentry/views/insights/common/utils/moduleTitles';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';

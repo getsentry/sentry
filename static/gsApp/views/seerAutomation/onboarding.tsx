@@ -68,6 +68,7 @@ function transformRepositoriesToApiFormat(repositories: any[], repoIds: string[]
       external_id: repo.externalId,
       branch_name: '',
       instructions: '',
+      branch_overrides: [],
     };
   });
 }

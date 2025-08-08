@@ -1,0 +1,204 @@
+---
+title: Badge
+description: Badges and Tags are highlighted text elements intended to provide quick, at-a-glance contextual information such as status.
+source: 'sentry/components/core/badge'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3574-5336
+  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/badge/index.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+---
+
+import {useState} from 'react';
+
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+import {IncidentStatus} from 'sentry/views/alerts/types';
+
+import BadgeAPIReference from '!!type-loader!sentry/components/core/badge/index';
+import TagAPIReference from '!!type-loader!sentry/components/core/badge/tag';
+
+export const types = {Badge: BadgeAPIReference.Badge, Tag: TagAPIReference.Tag};
+
+Badges are a contextual highlighted text components that support specific use cases like `FeatureBadge`, `AlertBadge`, and `DeployBadge`.
+
+## FeatureBadge
+
+The `FeatureBadge` component should be used to annotate new features as they move through the various stages of rollout. Each badge includes a tooltip with a standard message describing the rollout stage.
+
+<Storybook.Demo>
+  <FeatureBadge type="alpha" />
+  <FeatureBadge type="beta" />
+  <FeatureBadge type="new" />
+  <FeatureBadge type="experimental" />
+</Storybook.Demo>
+```jsx import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+
+<FeatureBadge type="alpha" />
+<FeatureBadge type="beta" />
+<FeatureBadge type="new" />
+<FeatureBadge type="experimental" />
+```
+
+Generally, the default tooltip should suffice, but if your special feature requires additional context, you can customize the `tooltipProps`.
+
+<Storybook.Demo>
+  <FeatureBadge
+    type="new"
+    tooltipProps={{title: 'This very special new feature requires additional context!'}}
+  />
+</Storybook.Demo>
+```jsx
+<FeatureBadge
+  type="new"
+  tooltipProps={{title: 'This very special new feature requires additional context!'}}
+/>
+```
+
+## AlertBadge
+
+The `AlertBadge` component displays an indicator for all Alert types that Sentry supports.
+
+- For metric alerts, set the `status` prop to the `IncidentStatus` enum (from `sentry/views/alerts/types`).
+- For issue alerts, set the `isIssue` prop. `isIssue` overrides the `status`.
+- For alerts that are disabled/paused, set the `isDisabled` prop. `isDisabled` overrides the `status`.
+
+<Storybook.Demo>
+  <AlertBadge status={IncidentStatus.OPENED} />
+  <AlertBadge status={IncidentStatus.CLOSED} />
+  <AlertBadge status={IncidentStatus.WARNING} />
+  <AlertBadge status={IncidentStatus.CRITICAL} />
+  <AlertBadge isIssue />
+  <AlertBadge isDisabled />
+</Storybook.Demo>
+```jsx import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+<AlertBadge status={IncidentStatus.OPENED} />
+<AlertBadge status={IncidentStatus.CLOSED} />
+<AlertBadge status={IncidentStatus.WARNING} />
+<AlertBadge status={IncidentStatus.CRITICAL} />
+<AlertBadge isIssue />
+<AlertBadge isDisabled />
+```
+
+### Labels
+
+The `withText` prop displays a label for each status.
+
+<Storybook.Demo>
+  <AlertBadge withText status={IncidentStatus.OPENED} />
+  <AlertBadge withText status={IncidentStatus.CLOSED} />
+  <AlertBadge withText status={IncidentStatus.WARNING} />
+  <AlertBadge withText status={IncidentStatus.CRITICAL} />
+  <AlertBadge withText isIssue />
+  <AlertBadge withText isDisabled />
+</Storybook.Demo>
+```jsx
+<AlertBadge withText status={IncidentStatus.OPENED} />
+<AlertBadge withText status={IncidentStatus.CLOSED} />
+<AlertBadge withText status={IncidentStatus.WARNING} />
+<AlertBadge withText status={IncidentStatus.CRITICAL} />
+<AlertBadge withText isIssue />
+<AlertBadge withText isDisabled />
+```
+
+## DeployBadge
+
+export const deploy = {
+  name: '85fedddce5a61a58b160fa6b3d6a1a8451e94eb9 to prod',
+  url: '',
+  environment: 'production',
+  dateStarted: '2020-05-11T18:12:00.025928Z',
+  dateFinished: '2020-05-11T18:12:00.025928Z',
+  version: '4.2.0',
+  id: '6348842',
+};
+
+The `DeployBadge` component can be used to link to the Issues feed, filtered to issues related to a specific release.
+
+The text of each badge is derived from the `environment` passed to the `deploy` property, which must adhere to `import type {Deploy} from 'sentry/types/release'`.
+
+<Storybook.Demo>
+  <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
+</Storybook.Demo>
+```jsx import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+
+<DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
+```
+
+## Tag
+
+The `Tag` component is a generic primitive. Depending on the `type` prop, it can be used as an error/warning/success indicator and for various other use cases.
+
+<Storybook.Demo>
+  <Tag type="default">Default</Tag>
+  <Tag type="success">Success</Tag>
+  <Tag type="error">Error</Tag>
+  <Tag type="warning">Warning</Tag>
+  <Tag type="info">Info</Tag>
+  <Tag type="promotion">Promotion</Tag>
+</Storybook.Demo>
+```jsx
+<Tag type="default">Default</Tag>
+<Tag type="success">Success</Tag>
+<Tag type="error">Error</Tag>
+<Tag type="warning">Warning</Tag>
+<Tag type="info">Info</Tag>
+<Tag type="promotion">Promotion</Tag>
+```
+
+### Icons
+
+The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
+
+<Storybook.Demo>
+  <Tag icon={<IconCheckmark />} type="success">
+    Success
+  </Tag>
+  <Tag icon={<IconWarning />} type="warning">
+    Warning
+  </Tag>
+  <Tag icon={<IconCircle />} type="promotion">
+    Promotion
+  </Tag>
+</Storybook.Demo>
+```jsx
+<Tag icon={<IconCheckmark />} type="success">
+  Success
+</Tag>
+<Tag icon={<IconWarning />} type="warning">
+  Warning
+</Tag>
+<Tag icon={<IconCircle />} type="promotion">
+  Promotion
+</Tag>
+```
+
+### Dismiss
+
+Pass a custom `onDismiss` callback to create a dismissable tag with a trailing close icon.
+
+export function DismissableTag() {
+  const [dismissed, setDismissed] = useState(false);
+
+if (dismissed) {
+return <Tag icon={<IconRefresh />} type="default" onClick={() => setDismissed(false)}>Reset Tag</Tag>
+}
+
+return <Tag type="info" onDismiss={() => setDismissed(true)}>
+Dismiss Tag
+
+  </Tag>
+}
+
+<Storybook.Demo>
+  <DismissableTag />
+</Storybook.Demo>
+```jsx
+<Tag type="info" onDismiss={() => setDismissed(true)}>
+  Dismiss Tag
+</Tag>
+```

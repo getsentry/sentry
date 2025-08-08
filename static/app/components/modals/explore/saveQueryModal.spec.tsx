@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import SaveQueryModal from 'sentry/components/modals/explore/saveQueryModal';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -24,6 +25,7 @@ describe('SaveQueryModal', function () {
         closeModal={() => {}}
         organization={initialData.organization}
         saveQuery={saveQuery}
+        traceItemDataset={TraceItemDataset.SPANS}
       />
     );
 
@@ -45,6 +47,7 @@ describe('SaveQueryModal', function () {
         closeModal={() => {}}
         organization={initialData.organization}
         saveQuery={saveQuery}
+        traceItemDataset={TraceItemDataset.SPANS}
       />
     );
 
@@ -69,6 +72,7 @@ describe('SaveQueryModal', function () {
         closeModal={() => {}}
         organization={initialData.organization}
         saveQuery={saveQuery}
+        traceItemDataset={TraceItemDataset.SPANS}
       />
     );
 
@@ -95,6 +99,28 @@ describe('SaveQueryModal', function () {
         organization={initialData.organization}
         saveQuery={saveQuery}
         name="Initial Query Name"
+        traceItemDataset={TraceItemDataset.SPANS}
+      />
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue('Initial Query Name');
+    expect(screen.getByText('Rename Query')).toBeInTheDocument();
+    expect(screen.getByText('Save Changes')).toBeInTheDocument();
+  });
+
+  it('should render ui with logs dataset', function () {
+    const saveQuery = jest.fn();
+    render(
+      <SaveQueryModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        saveQuery={saveQuery}
+        name="Initial Query Name"
+        traceItemDataset={TraceItemDataset.LOGS}
       />
     );
 

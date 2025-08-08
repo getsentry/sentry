@@ -28,11 +28,11 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         event_data["tags"] = {"url": "http://example.org/path?key=value"}
         return self.store_event(data=event_data, project_id=self.project.id)
 
-    def test_user_tag(self):
+    def test_user_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "user")
         assert self.browser.element_exists_by_test_id("group-tag-mail")
 
-    def test_url_tag(self):
+    def test_url_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "url")
 
         assert self.browser.element_exists_by_test_id("group-tag-url")

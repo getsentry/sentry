@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
@@ -97,7 +97,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return produce_kwargs["headers"], payload2
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test(self, mock_eventstream_insert):
+    def test(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
 
         event = self.__build_event(now)
@@ -134,7 +134,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_issueless(self, mock_eventstream_insert):
+    def test_issueless(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
@@ -162,7 +162,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert len(result["data"]) == 1
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_multiple_groups(self, mock_eventstream_insert):
+    def test_multiple_groups(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
@@ -196,7 +196,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["group_ids"] == [self.group.id]
 
     @patch("sentry.eventstream.snuba.logger")
-    def test_invalid_groupevent_passed(self, logger):
+    def test_invalid_groupevent_passed(self, logger: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.group_ids = [self.group.id]
@@ -218,7 +218,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
+    def test_groupevent_occurrence_passed(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
@@ -280,7 +280,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_error_queue(self, mock_eventstream_insert):
+    def test_error_queue(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
 
         event = self.__build_event(now)
@@ -311,7 +311,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert body["queue"] == "post_process_errors"
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_transaction_queue(self, mock_eventstream_insert):
+    def test_transaction_queue(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -337,7 +337,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert body["queue"] == "post_process_transactions"
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_issue_platform_queue(self, mock_eventstream_insert):
+    def test_issue_platform_queue(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]

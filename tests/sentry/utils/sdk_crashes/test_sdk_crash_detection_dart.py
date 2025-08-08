@@ -233,7 +233,9 @@ def test_sdk_crash_is_reported_with_flutter_paths(
 
 
 @decorators
-def test_ignore_get_current_stack_trace(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_ignore_get_current_stack_trace(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(sdk_function="getCurrentStackTrace")
     event = store_event(data=event_data)
 
@@ -248,7 +250,9 @@ def test_ignore_get_current_stack_trace(mock_sdk_crash_reporter, mock_random, st
 
 
 @decorators
-def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_beta_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="8.2.2-beta.0")
     event = store_event(data=event_data)
@@ -282,7 +286,9 @@ def test_too_low_min_sdk_version_not_detected(
 
 
 @decorators
-def test_ignore_handle_begin_frame(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_ignore_handle_begin_frame(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleBeginFrame")
     event = store_event(data=event_data)
 
@@ -297,7 +303,9 @@ def test_ignore_handle_begin_frame(mock_sdk_crash_reporter, mock_random, store_e
 
 
 @decorators
-def test_ignore_handle_draw_frame(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_ignore_handle_draw_frame(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleDrawFrame")
     event = store_event(data=event_data)
 

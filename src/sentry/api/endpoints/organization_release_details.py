@@ -34,6 +34,7 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
@@ -428,7 +429,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def put(self, request: Request, organization, version) -> Response:
+    def put(self, request: Request, organization: Organization, version) -> Response:
         """
 
         Update a release. This can change some metadata associated with

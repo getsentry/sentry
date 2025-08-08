@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.models.activity import Activity
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PriorityChangeReason(Enum):
+class PriorityChangeReason(StrEnum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
     ISSUE_PLATFORM = "issue_platform"

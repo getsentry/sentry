@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import responses
@@ -75,7 +75,7 @@ class GithubSearchTest(APITestCase):
     # Happy Paths
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_external_issue_results(self, mock_record):
+    def test_finds_external_issue_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20AEIOU",
@@ -122,7 +122,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_repo_results(self, mock_record):
+    def test_finds_repo_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self._build_repo_query_path(query="ex"),
@@ -154,7 +154,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_repo_search_validation_error(self, mock_record):
+    def test_repo_search_validation_error(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self._build_repo_query_path(query="nope"),
@@ -206,7 +206,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues_rate_limit(self, mock_record):
+    def test_search_issues_rate_limit(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20ex",
@@ -235,7 +235,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_project_rate_limit(self, mock_record):
+    def test_search_project_rate_limit(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             self._build_repo_query_path(query="ex"),
@@ -263,7 +263,7 @@ class GithubSearchTest(APITestCase):
     # Request Validations
     # Test observability requests for GET requests failures here
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_field(self, mock_record):
+    def test_missing_field(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"query": "XYZ"})
         assert resp.status_code == 400
         assert len(mock_record.mock_calls) == 6
@@ -276,7 +276,7 @@ class GithubSearchTest(APITestCase):
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_query(self, mock_record):
+    def test_missing_query(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue"})
 
         assert resp.status_code == 400
@@ -289,7 +289,7 @@ class GithubSearchTest(APITestCase):
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_repository(self, mock_record):
+    def test_missing_repository(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue", "query": "XYZ"})
 
         assert resp.status_code == 400
@@ -311,7 +311,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     # Test observability requests for GET requests failures here
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_missing_integration(self, mock_record):
+    def test_missing_integration(self, mock_record: MagicMock) -> None:
         url = reverse(
             "sentry-integration-github-search",
             kwargs={

@@ -63,7 +63,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    def test_for_projects_query_filter_id(self, mock_record):
+    def test_for_projects_query_filter_id(self, mock_record: mock.MagicMock) -> None:
         with mock.patch("time.time") as mock_time:
             mock_time.return_value = 0
             euser = EventUser.for_projects([self.project], {"id": ["2"]}, result_limit=1)
@@ -312,7 +312,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.utils.eventuser.OVERFETCH_FACTOR", new=2)
     @mock.patch("sentry.analytics.record")
-    def test_for_projects_multiple_query(self, mock_record):
+    def test_for_projects_multiple_query(self, mock_record) -> None:
         id_1 = "test1"
         email_1 = "test@sentry.io"
         for i in range(6):

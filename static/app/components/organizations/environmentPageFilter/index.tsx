@@ -16,7 +16,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-import {EnvironmentPageFilterTrigger} from './trigger';
+import {
+  EnvironmentPageFilterTrigger,
+  type EnvironmentPageFilterTriggerProps,
+} from './trigger';
 
 interface EnvironmentPageFilterProps
   extends Partial<
@@ -35,6 +38,7 @@ interface EnvironmentPageFilterProps
       | 'menuFooterMessage'
       | 'checkboxWrapper'
       | 'shouldCloseOnInteractOutside'
+      | 'triggerProps'
     >
   > {
   /**
@@ -45,6 +49,7 @@ interface EnvironmentPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
 export function EnvironmentPageFilter({

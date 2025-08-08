@@ -17,7 +17,7 @@ class SegmentPluginTest(PluginTestCase):
         return SegmentPlugin()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
 
         self.plugin.set_option("write_key", "secret-api-key", self.project)

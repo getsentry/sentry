@@ -64,8 +64,19 @@ export function NativeContent({
 }: Props) {
   const frames = data.frames ?? [];
 
+  const isDartAsyncSuspensionFrame = useCallback((frame: Frame): boolean => {
+    return (
+      frame.filename === '<asynchronous suspension>' ||
+      frame.absPath === '<asynchronous suspension>'
+    );
+  }, []);
+
   const frameIsVisible = useCallback(
     (frame: Frame, nextFrame: Frame) => {
+      if (!includeSystemFrames && isDartAsyncSuspensionFrame(frame)) {
+        return false;
+      }
+
       return (
         includeSystemFrames ||
         frame.inApp ||
@@ -75,7 +86,7 @@ export function NativeContent({
         isFrameUsedForGrouping(frame, groupingCurrentLevel)
       );
     },
-    [includeSystemFrames, groupingCurrentLevel]
+    [includeSystemFrames, groupingCurrentLevel, isDartAsyncSuspensionFrame]
   );
 
   function setInitialFrameMap(): Record<number, boolean> {

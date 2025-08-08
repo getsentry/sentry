@@ -70,11 +70,13 @@ export default function ReplayTableHeaderActions({
                 ? tct('Selected all replays matching: [queryString].', {
                     queryString: <var>{queryString}</var>,
                   })
-                : tn(
-                    'Selected all %s replay.',
-                    'Selected all %s replays.',
-                    countSelected
-                  )}
+                : countSelected > replays.length
+                  ? t('Selected all %s+ replays.', replays.length)
+                  : tn(
+                      'Selected all %s replay.',
+                      'Selected all %s replays.',
+                      countSelected
+                    )}
             </span>
           </Flex>
         </FullGridAlert>

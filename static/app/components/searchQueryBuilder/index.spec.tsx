@@ -19,6 +19,10 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
+import {
   type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
@@ -33,6 +37,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -4389,14 +4394,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4421,14 +4419,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4453,14 +4444,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'random value');
@@ -4475,6 +4459,31 @@ describe('SearchQueryBuilder', function () {
 
       expect(
         screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('matchKeySuggestions', () => {
+    it('renders the matched key suggestions when the value matches the pattern', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+        />
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox'),
+        '12345678901234567890123456789012'
+      );
+
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('trace')).toBeInTheDocument();
+
+      await userEvent.click(within(listbox).getByText('trace'));
+
+      expect(
+        screen.getByRole('row', {name: 'trace:12345678901234567890123456789012'})
       ).toBeInTheDocument();
     });
   });
@@ -4581,6 +4590,105 @@ describe('SearchQueryBuilder', function () {
             })
           );
         });
+      });
+    });
+
+    describe('user clicks on ask seer button', () => {
+      it('renders the seer combobox', async () => {
+        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer, query} = useSearchQueryBuilder();
+          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+        }
+
+        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+          return (
+            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
+              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            </SearchQueryBuilderProvider>
+          );
+        }
+
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/seer/setup-check/`,
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          }),
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace-explorer-ai/setup/',
+          method: 'POST',
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace-explorer-ai/query/',
+          method: 'POST',
+          body: {
+            status: 'ok',
+            queries: [
+              {
+                query: 'span.duration:>30s',
+                stats_period: '',
+                group_by: [],
+                visualization: [{chart_type: 1, y_axes: ['count()']}],
+                sort: '-span.duration',
+              },
+            ],
+          },
+        });
+
+        render(
+          <AskSeerWrapper>
+            <SearchQueryBuilder {...defaultProps} />
+          </AskSeerWrapper>,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+
+        const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+        expect(askSeer).toBeInTheDocument();
+        await userEvent.hover(askSeer);
+        await userEvent.keyboard('{enter}');
+
+        const input = await screen.findByRole('combobox', {
+          name: 'Ask Seer with Natural Language',
+        });
+        await userEvent.click(input);
+
+        const exampleQuery = await screen.findByText('p95 duration of http client calls');
+        await userEvent.click(exampleQuery);
+
+        const filter = await screen.findByText('Filter');
+        await userEvent.hover(filter);
+        await userEvent.keyboard('{enter}');
+
+        await userEvent.click(getLastInput());
+
+        const feedback = await screen.findByText(
+          'We loaded the results. Does this look right?'
+        );
+        expect(feedback).toBeInTheDocument();
+
+        const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
+        await userEvent.click(yep);
+
+        const askSeer2 = await screen.findByRole('option', {name: /Ask Seer/});
+        expect(askSeer2).toBeInTheDocument();
       });
     });
 

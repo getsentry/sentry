@@ -275,7 +275,7 @@ export function AutofixChanges({
             <HeaderWrapper>
               <HeaderText>
                 <HeaderIconWrapper ref={iconCodeRef}>
-                  <IconCode size="sm" color="blue400" />
+                  <IconCode size="md" color="blue400" />
                 </HeaderIconWrapper>
                 {t('Code Changes')}
                 <ChatButton
@@ -286,7 +286,7 @@ export function AutofixChanges({
                   analyticsEventName="Autofix: Changes Chat"
                   analyticsEventKey="autofix.changes.chat"
                 >
-                  <IconChat size="xs" />
+                  <IconChat />
                 </ChatButton>
               </HeaderText>
               {!prsMade && (
@@ -423,6 +423,10 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+  text-decoration: underline dashed;
+  text-decoration-color: ${p => p.theme.blue300};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
@@ -456,7 +460,7 @@ const Separator = styled('hr')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -480,7 +484,6 @@ const HeaderIconWrapper = styled('div')`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
 `;
 
 function CreatePRsButton({

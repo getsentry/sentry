@@ -36,6 +36,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         http_status_code=200,
         request_type="GET",
         request_url="https://example.com",
+        original_url=None,
         request_sequence=0,
         check_duration_us=150000,
         request_duration_us=125000,
@@ -45,10 +46,11 @@ class UptimeResultEAPTestCase(BaseTestCase):
         time_to_first_byte_duration_us=None,
         send_request_duration_us=None,
         receive_response_duration_us=None,
-        request_body_size_bytes=0,
-        response_body_size_bytes=1024,
+        request_body_size_bytes=None,
+        response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
+        span_id=None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -62,6 +64,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
             guid = uuid4().hex
         if subscription_id is None:
             subscription_id = f"sub-{uuid4().hex[:8]}"
+        if span_id is None:
+            span_id = uuid4().hex[:16]
 
         attributes_data = {
             "guid": guid,
@@ -74,22 +78,23 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "request_sequence": request_sequence,
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
-            "request_body_size_bytes": request_body_size_bytes,
-            "response_body_size_bytes": response_body_size_bytes,
+            "span_id": span_id,
         }
 
         if check_id is not None:
             attributes_data["check_id"] = check_id
 
-        timing_fields = {
+        optional_fields = {
             "dns_lookup_duration_us": dns_lookup_duration_us,
             "tcp_connection_duration_us": tcp_connection_duration_us,
             "tls_handshake_duration_us": tls_handshake_duration_us,
             "time_to_first_byte_duration_us": time_to_first_byte_duration_us,
             "send_request_duration_us": send_request_duration_us,
             "receive_response_duration_us": receive_response_duration_us,
+            "request_body_size_bytes": request_body_size_bytes,
+            "response_body_size_bytes": response_body_size_bytes,
         }
-        for field, value in timing_fields.items():
+        for field, value in optional_fields.items():
             if value is not None:
                 attributes_data[field] = value
 
@@ -100,6 +105,10 @@ class UptimeResultEAPTestCase(BaseTestCase):
 
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
+
+        if original_url is None:
+            original_url = request_url
+        attributes_data["original_url"] = original_url
 
         attributes_proto = {}
         for k, v in attributes_data.items():
@@ -138,3 +147,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+        for result in uptime_results:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
+            result.item_id = result.item_id[::-1]

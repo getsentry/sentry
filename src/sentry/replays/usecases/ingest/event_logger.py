@@ -5,20 +5,17 @@ from hashlib import md5
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer, publish_replay_event
+from sentry.replays.lib.eap.write import write_trace_items
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
 from sentry.utils import json, metrics
-from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger()
 
@@ -268,11 +265,7 @@ def report_rage_click(
 
 @sentry_sdk.trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
-    """Emit trace-items to EAP."""
-    topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
-    for trace_item in trace_items:
-        payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-        eap_producer.produce(ArroyoTopic(topic), payload)
+    write_trace_items(trace_items)
 
 
 @sentry_sdk.trace

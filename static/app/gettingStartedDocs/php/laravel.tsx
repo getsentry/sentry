@@ -53,6 +53,15 @@ SENTRY_TRACES_SAMPLE_RATE=1.0`
 # Set a sampling rate for profiling - this is relative to traces_sample_rate
 SENTRY_PROFILES_SAMPLE_RATE=1.0`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+# Enable logs to be sent to Sentry
+SENTRY_ENABLE_LOGS=true
+# Configure logging to use both file and Sentry
+LOG_CHANNEL=stack
+LOG_STACK=single,sentry_logs`
+      : ''
   }`;
 
 const onboarding: OnboardingConfig = {
@@ -131,6 +140,26 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: getConfigureSnippet(params),
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `'channels' => [
+    // ...
+    'sentry_logs' => [
+        'driver' => 'sentry_logs',
+        // The minimum logging level at which this handler will be triggered
+        // Available levels: debug, info, notice, warning, error, critical, alert, emergency
+        'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
+    ],
+],`,
+              },
+            ]
+          : []),
         {
           description: (
             <Alert.Container>
@@ -148,7 +177,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       configurations: [
@@ -162,6 +191,35 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'php artisan sentry:test',
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `use Illuminate\\Support\\Facades\\Log;
+
+// Log to all channels in the stack (including Sentry)
+Log::info('This is an info message');
+Log::warning('User {id} failed to login.', ['id' => $user->id]);
+Log::error('This is an error message');
+
+// Log directly to the Sentry channel
+Log::channel('sentry')->error('This will only go to Sentry');`,
+              },
+              {
+                description: tct(
+                  'You can also test your configuration using the Sentry logger directly:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `\\Sentry\\logger()->info('A test log message');
+\\Sentry\\logger()->flush();`,
+              },
+            ]
+          : []),
       ],
     },
   ],

@@ -4,9 +4,9 @@ from sentry.api.event_search import SearchFilter
 from sentry.db.models.query import in_iexact
 
 
-def apply_filter[
-    T: Model
-](queryset: QuerySet[T], filter: SearchFilter, column: str, distinct: bool = False) -> QuerySet[T]:
+def apply_filter[T: Model](
+    queryset: QuerySet[T], filter: SearchFilter, column: str, distinct: bool = False
+) -> QuerySet[T]:
     """
     Apply a search filter to a Django queryset with case-insensitive matching.
 

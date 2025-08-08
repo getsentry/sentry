@@ -1,0 +1,122 @@
+---
+title: Layout Composition
+description: Learn how to compose layout components using render props and advanced patterns.
+layout: document
+---
+
+## Render Props
+
+When using the `Container`, `Flex`, and `Grid` elements, use **render props** to apply layout styling to custom elements without creating extra DOM nodes.
+
+```tsx
+// ✅ Apply layout props to a single element
+<Container border="primary" padding="lg">
+  {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
+</Container>
+
+// ✅ Apply the same layout props to multiple elements
+<Container border="primary" padding="lg">
+  {props => (
+    <>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+    </>
+  )}
+</Container>
+```
+
+## When Not to Use Render Props
+
+Do not use render props if all you need is to apply the styled to an intrinsic element. Use the `as` prop instead.
+
+```tsx
+// ❌ Unnecessary render prop, use the `as` prop instead
+<Container border="primary" padding="lg">
+  {props => <section {...props}>Content</section>}
+</Container>
+
+// ✅ Use the `as` prop instead
+<Container border="primary" padding="lg" as="section">
+  Content
+</Container>
+```
+
+## Use Cases
+
+### Omitting the DOM Node
+
+When using render props, the layout component doesn't render its own DOM element. Instead, it passes all its styling props to the render function, which can then apply them to any element.
+
+```tsx
+// Without render prop - creates extra DOM wrapper
+<Flex padding="md" gap="md">
+  <MyComponent>Click me</MyComponent>
+</Flex>
+// Renders:
+// <div class="flex-styles">
+//   <MyComponent>Click me</MyComponent>
+// </div>
+
+// With render prop - no extra wrapper
+<Flex padding="md" gap="md">
+  {props => <MyComponent {...props}>Click me</MyComponent>}
+</Flex>
+// Renders:
+// <MyComponent class="flex-styles">Click me</MyComponent>
+```
+
+### Applying Layout Props to Custom Elements
+
+You can apply layout props to custom elements by passing a render function to the layout component.
+
+```tsx
+<Container border="primary" padding="lg">
+  {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
+</Container>
+```
+
+### Render Props vs `cloneElement` / `asChild`
+
+There are multiple ways to apply layout styling to a custom element, each has their tradeoffs. We have picked the render prop pattern becaseu we believe that it is
+the most type-safe and flexible way of applying component props to the child element.
+
+### Type Safety
+
+The render prop system prevents invalid attributes from being passed to HTML elements:
+
+```tsx
+// ✅ Props are passed to the child element in a type-safe way
+<Container border="primary" aria-activedescendant="invalid">
+  {props => <p {...props}>Hello</p>}
+</Container>
+
+// ❌ Props are spread onto the child element without type safety or guarantees that they will be accepted
+<Container border="primary" asChild>
+  <ComponentWithIncompatibleProps/>}
+</Container>
+// The aria-activedescendant prop is filtered out since it's invalid for <p>
+```
+
+### Prop Merging and Prop Selection
+
+The render prop system allows you to select which props to pass to the child element at runtime, and pick only a subset of the props that you need.
+
+```tsx
+import {mergeProps} from 'react-aria';
+
+// ✅ You decide how and which props get merged
+<Container onClick={handleContainerClick}>
+  {layoutProps => {
+    const buttonProps = {onClick: handleButtonClick, disabled: false};
+    const mergedProps = mergeProps(layoutProps, buttonProps);
+    return <button {...mergedProps}>Click me</button>;
+  }}
+</Container>
+
+// ❌ You don't have control over which props are passed to the child element.
+<Container asChild>
+  <ComponentWithIncompatibleProps/>
+</Container>
+```

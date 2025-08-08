@@ -32,7 +32,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         super().setUp()
         self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/"
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
@@ -46,7 +46,7 @@ class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/latest/"
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

@@ -123,7 +123,7 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
 class GetProjectRulesTest(ProjectRuleBaseTestCase):
     method = "get"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         # attaches lastTriggered by default
         response = self.get_success_response(
             self.organization.slug,

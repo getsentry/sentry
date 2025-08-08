@@ -275,7 +275,7 @@ def sync_status_inbound(
             activity_type=activity_type,
             activity_data=activity_data,
         )
-        # after we update the group, pdate the resolutions
+        # after we update the group, update the resolutions
         for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:

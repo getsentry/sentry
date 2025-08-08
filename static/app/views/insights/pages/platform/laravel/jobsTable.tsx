@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -35,7 +35,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
     width: 164,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: 184,
   },
@@ -47,7 +47,7 @@ const rightAlignColumns = new Set([
   'failure_rate()',
   'sum(span.duration)',
   'avg(messaging.message.receive.latency)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
 ]);
 
 export function JobsTable() {
@@ -60,7 +60,7 @@ export function JobsTable() {
       'messaging.destination.name',
       'transaction',
       'avg(messaging.message.receive.latency)',
-      'avg_if(span.duration,span.op,queue.process)',
+      'avg_if(span.duration,span.op,equals,queue.process)',
       'failure_rate()',
       'sum(span.duration)',
     ],
@@ -104,7 +104,7 @@ export function JobsTable() {
             />
           );
         case 'avg(messaging.message.receive.latency)':
-        case 'avg_if(span.duration,span.op,queue.process)':
+        case 'avg_if(span.duration,span.op,equals,queue.process)':
           return <DurationCell milliseconds={dataRow[column.key]} />;
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;

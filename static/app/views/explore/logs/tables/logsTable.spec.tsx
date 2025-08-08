@@ -142,18 +142,11 @@ describe('LogsTable', function () {
   ];
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
-  function ProviderWrapper({
-    children,
-    isTableFrozen = false,
-  }: {
-    children: React.ReactNode;
-    isTableFrozen?: boolean;
-  }) {
+  function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
       <OrganizationContext.Provider value={organization}>
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          isTableFrozen={isTableFrozen}
         >
           <LogsPageDataProvider>{children}</LogsPageDataProvider>
         </LogsPageParamsProvider>
@@ -207,7 +200,7 @@ describe('LogsTable', function () {
   it('should be interactable', async () => {
     render(
       <ProviderWrapper>
-        <LogsTable showHeader />
+        <LogsTable />
       </ProviderWrapper>
     );
 
@@ -231,8 +224,8 @@ describe('LogsTable', function () {
 
   it('should not be interactable on embedded views', async () => {
     render(
-      <ProviderWrapper isTableFrozen>
-        <LogsTable showHeader />
+      <ProviderWrapper>
+        <LogsTable embedded />
       </ProviderWrapper>
     );
 

@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -169,7 +169,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         ).exists()
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_project_created_with_origin(self, record_analytics):
+    def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:
         project = self.create_project()
         project_created.send(
             project=project, user=self.user, default_rules=False, sender=None, origin="ui"
@@ -194,7 +194,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_received(self, record_analytics):
+    def test_first_event_received(self, record_analytics: MagicMock) -> None:
         now = timezone.now()
 
         # Create first project and send event
@@ -364,7 +364,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_without_minified_stack_trace_received(self, record_analytics):
+    def test_first_event_without_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         there no event with minified stack trace is received
@@ -389,7 +391,9 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_with_minified_stack_trace_received(self, record_analytics):
+    def test_first_event_with_minified_stack_trace_received(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is recorded when
         a first event with minified stack trace is received
@@ -503,7 +507,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 1
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_old_project_sending_minified_stack_trace_event(self, record_analytics):
+    def test_old_project_sending_minified_stack_trace_event(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ).
@@ -567,7 +573,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_without_sourcemaps_received(self, record_analytics):
+    def test_first_event_without_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         no event with sourcemaps is received
@@ -599,7 +605,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_first_event_with_sourcemaps_received(self, record_analytics):
+    def test_first_event_with_sourcemaps_received(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is recorded when
         a first event with sourcemaps is received
@@ -696,7 +702,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 1
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_old_project_sending_sourcemap_event(self, record_analytics):
+    def test_old_project_sending_sourcemap_event(self, record_analytics: MagicMock) -> None:
         """
         Test that an analytics event is NOT recorded when
         the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_SOURCEMAPS_PER_PROJ).
@@ -747,7 +753,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert count == 0
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_real_time_notifications_added(self, record_analytics):
+    def test_real_time_notifications_added(self, record_analytics: MagicMock) -> None:
         integration_id = self._create_integration("slack", 123).id
         integration_added.send(
             integration_id=integration_id,
@@ -774,7 +780,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_source_code_management_added(self, record_analytics):
+    def test_source_code_management_added(self, record_analytics: MagicMock) -> None:
         integration_id = self._create_integration("github", 123).id
         integration_added.send(
             integration_id=integration_id,
@@ -860,7 +866,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         ).exists()
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_new_onboarding_complete(self, record_analytics):
+    def test_new_onboarding_complete(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (without source maps)
         """
@@ -1150,7 +1156,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_source_maps_as_required_task(self, record_analytics):
+    def test_source_maps_as_required_task(self, record_analytics: MagicMock) -> None:
         """
         Test the new quick start happy path (with source maps)
         """
@@ -1307,7 +1313,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_tasks_are_transferred_when_project_is_transferred(self, record_analytics):
+    def test_tasks_are_transferred_when_project_is_transferred(
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that onboarding tasks are transferred when a project is transferred
         """

@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -44,7 +44,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_basic(self, mock_make_seer_request):
+    def test_get_feedback_summary_basic(self, mock_make_seer_request: MagicMock) -> None:
 
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
@@ -64,7 +64,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_with_date_filter(self, mock_make_seer_request):
+    def test_get_feedback_summary_with_date_filter(self, mock_make_seer_request: MagicMock) -> None:
         # 12 feedbacks that are created immediately
         for _ in range(12):
             event = mock_feedback_event(self.project1.id)
@@ -95,7 +95,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_with_project_filter(self, mock_make_seer_request):
+    def test_get_feedback_summary_with_project_filter(
+        self, mock_make_seer_request: MagicMock
+    ) -> None:
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -124,7 +126,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_with_many_project_filter_as_list(self, mock_make_seer_request):
+    def test_get_feedback_summary_with_many_project_filter_as_list(
+        self, mock_make_seer_request: MagicMock
+    ) -> None:
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -153,7 +157,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_with_many_project_filter_separate(self, mock_make_seer_request):
+    def test_get_feedback_summary_with_many_project_filter_separate(
+        self, mock_make_seer_request: MagicMock
+    ) -> None:
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -181,7 +187,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
-    def test_get_feedback_summary_too_few_feedbacks(self, mock_make_seer_request):
+    def test_get_feedback_summary_too_few_feedbacks(
+        self, mock_make_seer_request: MagicMock
+    ) -> None:
         for _ in range(9):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
@@ -202,7 +210,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
     )
-    def test_get_feedback_summary_character_limit(self, mock_make_seer_request):
+    def test_get_feedback_summary_character_limit(self, mock_make_seer_request) -> None:
         # Create 9 older feedbacks with normal size, skipped due to the middle one exceeding the character limit
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))
@@ -233,7 +241,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
     @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_hit(self, mock_cache, mock_make_seer_request):
+    def test_get_feedback_summary_cache_hit(
+        self, mock_cache: MagicMock, mock_make_seer_request: MagicMock
+    ) -> None:
         mock_cache.get.return_value = {
             "summary": "Test cached summary of feedback",
             "numFeedbacksUsed": 13,
@@ -261,7 +271,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
     )
     @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_miss(self, mock_cache, mock_make_seer_request):
+    def test_get_feedback_summary_cache_miss(
+        self, mock_cache: MagicMock, mock_make_seer_request: MagicMock
+    ) -> None:
         mock_cache.get.return_value = None
 
         for _ in range(15):

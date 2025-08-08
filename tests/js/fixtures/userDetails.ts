@@ -33,7 +33,6 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
       theme: 'light',
       prefersIssueDetailsStreamlinedUI: false,
       prefersNextjsInsightsOverview: false,
-      prefersAgentsInsightsModule: false,
       prefersStackedNavigation: false,
       prefersChonkUI: false,
     },

@@ -76,7 +76,7 @@ class SymbolicationFailed(Exception):
             rv["image_arch"] = self.image_arch
         return rv
 
-    def __str__(self):
+    def __str__(self) -> str:
         rv = []
         if self.type is not None:
             rv.append("%s: " % self.type)

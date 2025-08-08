@@ -12,9 +12,10 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap import constants
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import ourlogs
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -82,15 +83,17 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
-        results = ourlogs.run_table_query(
-            snuba_params,
-            query,
-            selected_columns,
-            orderby,
-            offset,
-            limit,
-            Referrer.API_TRACE_VIEW_LOGS.value,
-            SearchResolverConfig(use_aggregate_conditions=False),
+        results = OurLogs.run_table_query(
+            params=snuba_params,
+            query_string=query,
+            selected_columns=selected_columns,
+            orderby=orderby,
+            offset=offset,
+            limit=limit,
+            referrer=Referrer.API_TRACE_VIEW_LOGS.value,
+            config=SearchResolverConfig(use_aggregate_conditions=False),
+            # Since we're getting all logs for a given trace we always want highest accuracy
+            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,
         )
         return results
 

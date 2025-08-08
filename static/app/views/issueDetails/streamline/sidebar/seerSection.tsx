@@ -32,6 +32,9 @@ function SeerSectionContent({
 }) {
   const aiConfig = useAiConfig(group, project);
 
+  if (!event && !aiConfig.isAutofixSetupLoading) {
+    return <StyledP>{t('No event to analyze.')}</StyledP>;
+  }
   if (!event || aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
@@ -203,4 +206,8 @@ const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const StyledP = styled('p')`
+  margin-bottom: ${p => p.theme.space.md};
 `;

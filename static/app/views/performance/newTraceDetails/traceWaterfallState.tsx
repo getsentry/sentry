@@ -1,44 +1,76 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+
+import type {TraceTree} from './traceModels/traceTree';
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 
-function TraceLoading() {
+function TraceLoading({
+  trace,
+}: {
+  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
+}) {
   return (
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
       <NoMarginIndicator size={24}>
-        <div>{t('Assembling the trace')}</div>
+        <div>
+          {trace.failureCount > 0
+            ? t('Failed to load the trace, trying again')
+            : t('Assembling the trace')}
+        </div>
       </NoMarginIndicator>
     </LoadingContainer>
   );
 }
 
-function TraceError() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
+function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
+  const message = useMemo(() => {
+    const status: number | undefined = trace.error?.status;
+
+    if (status === 404) {
+      return tct(
+        "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
+        {
+          feedbackLink: <FeedbackLink />,
+        }
+      );
+    }
+
+    if (status === 404) {
+      return tct(
+        'The request was invalid. Think could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
+        {
+          feedbackLink: <FeedbackLink />,
+        }
+      );
+    }
+
+    if (status === 504) {
+      return tct(
+        "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
+        {
+          feedbackLink: <FeedbackLink />,
+        }
+      );
+    }
+
+    return tct('Seeing this often? [feedbackLink]', {
+      feedbackLink: <FeedbackLink />,
+    });
+  }, [trace.error?.status]);
 
   return (
     <LoadingContainer animate error>
-      <div>
-        {t('Woof. We failed to load your trace. If you need to yell at someone, ')}
-      </div>
-      <div>
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('send feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
-            {t('send feedback')}
-          </a>
-        )}
-      </div>
+      <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
+      <div>{message}</div>
     </LoadingContainer>
   );
 }
@@ -53,12 +85,32 @@ function TraceEmpty() {
   const message =
     timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS)
       ? t("We're still processing this trace. Please try refreshing after a minute")
-      : t("This trace is so empty, even tumbleweeds don't roll here");
+      : tct(
+          'We were unable to find any spans for this trace. Seeing this often? [feedbackLink: Send us feedback]',
+          {
+            feedbackLink: <FeedbackLink />,
+          }
+        );
 
   return (
     <LoadingContainer animate>
       <div>{message}</div>
     </LoadingContainer>
+  );
+}
+
+function FeedbackLink() {
+  const linkref = useRef<HTMLAnchorElement>(null);
+  const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  return feedback ? (
+    <a href="#" ref={linkref} onClick={e => e.preventDefault()}>
+      {t('Send us feedback')}
+    </a>
+  ) : (
+    <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
+      {t('Send us feedback')}
+    </a>
   );
 }
 
@@ -70,11 +122,15 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   left: 50%;
   top: 50%;
   position: absolute;
+  gap: 10px;
+  max-width: 300px;
+  max-height: 150px;
+  text-align: center;
   height: auto;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   z-index: 30;
-  padding: 24px;
+  padding: 20px;
   background-color: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
@@ -114,6 +170,10 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
 
 const NoMarginIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const ErrorTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export const TraceWaterfallState = {

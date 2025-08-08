@@ -1,6 +1,6 @@
 import unittest
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -679,7 +679,7 @@ class ReleaseDetailsTest(APITestCase):
 
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_simple(self, mock_fetch_commits):
+    def test_simple(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -766,7 +766,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert response.status_code == 404
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_deprecated_head_commits(self, mock_fetch_commits):
+    def test_deprecated_head_commits(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False

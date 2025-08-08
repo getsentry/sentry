@@ -8,6 +8,7 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_FEATURE_MAP,
   MODULE_FEATURE_VISIBLE_MAP,
+  MODULES_CONSIDERED_BETA,
   MODULES_CONSIDERED_NEW,
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
@@ -20,6 +21,8 @@ export const isModuleVisible = (module: ModuleName, organization: Organization) 
 
 export const isModuleConsideredNew = (module: ModuleName) =>
   MODULES_CONSIDERED_NEW.has(module);
+
+export const isModuleInBeta = (module: ModuleName) => MODULES_CONSIDERED_BETA.has(module);
 
 export const getModuleView = (module: ModuleName): DomainView => {
   if (DOMAIN_VIEW_MODULES.backend.includes(module)) {

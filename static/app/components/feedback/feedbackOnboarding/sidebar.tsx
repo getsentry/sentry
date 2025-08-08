@@ -397,8 +397,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         dsn={dsn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={getConfig()}
         projectKeyId={projectKeyId}
       />

@@ -12,7 +12,12 @@ import type {
   Thread,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {BaseGroup, Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {
+  BaseGroup,
+  Group,
+  GroupTombstoneHelper,
+  SimpleGroup,
+} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -40,7 +45,7 @@ export function eventTypeHasLogLevel(type: EventOrGroupType) {
 }
 
 export function isTombstone(
-  maybe: BaseGroup | Event | GroupTombstoneHelper
+  maybe: BaseGroup | Event | GroupTombstoneHelper | SimpleGroup
 ): maybe is GroupTombstoneHelper {
   return 'isTombstone' in maybe && maybe.isTombstone;
 }
@@ -49,7 +54,7 @@ export function isTombstone(
  * Extract the display message from an event.
  */
 export function getMessage(
-  event: Event | BaseGroup | GroupTombstoneHelper
+  event: Event | BaseGroup | GroupTombstoneHelper | SimpleGroup
 ): string | undefined {
   if (isTombstone(event)) {
     return event.culprit || '';
@@ -89,7 +94,7 @@ export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   return undefined;
 }
 
-export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
+export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | SimpleGroup) {
   const {metadata, type, culprit, title} = event;
   const customTitle = metadata?.title;
 

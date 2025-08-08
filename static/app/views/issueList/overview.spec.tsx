@@ -501,7 +501,7 @@ describe('IssueList', function () {
           statsPeriod: '14d',
         })
       );
-    });
+    }, 20_000);
 
     it('pins a custom query', async function () {
       const pinnedSearch = {

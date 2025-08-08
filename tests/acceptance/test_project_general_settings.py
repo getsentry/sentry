@@ -14,12 +14,12 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
 
         self.login_as(self.user)
 
-    def test_saved_searches(self):
+    def test_saved_searches(self) -> None:
         path = f"/{self.org.slug}/{self.project.slug}/settings/"
         self.browser.get(path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_mobile_menu(self):
+    def test_mobile_menu(self) -> None:
         """
         It is only possible to open the menu at mobile widths
         """

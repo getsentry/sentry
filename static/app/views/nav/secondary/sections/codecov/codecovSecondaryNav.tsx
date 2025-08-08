@@ -5,6 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
 import {
   COVERAGE_BASE_URL,
+  PREVENT_AI_BASE_URL,
   TESTS_BASE_URL,
   TOKENS_BASE_URL,
 } from 'sentry/views/codecov/settings';
@@ -26,11 +27,15 @@ function CodecovSecondaryNav() {
     organization,
     path: `/${TOKENS_BASE_URL}/`,
   });
+  const preventAIPathName = makeCodecovPathname({
+    organization,
+    path: `/${PREVENT_AI_BASE_URL}/`,
+  });
 
   return (
     <Fragment>
       <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.PREVENT].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section id="codecov-main">
@@ -42,6 +47,12 @@ function CodecovSecondaryNav() {
           </SecondaryNav.Item>
           <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
             {t('Tests')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${preventAIPathName}new/`}
+            activeTo={`${preventAIPathName}new/`}
+          >
+            {t('Prevent AI')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="codecov-configure" title={t('Configure')}>

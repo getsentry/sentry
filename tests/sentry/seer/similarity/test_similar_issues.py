@@ -42,7 +42,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_groups_found(self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock):
+    def test_groups_found(self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock) -> None:
         cases: list[tuple[RawSeerSimilarIssueData, str]] = [
             (
                 {
@@ -86,7 +86,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_no_groups_found(self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock):
+    def test_no_groups_found(
+        self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock
+    ) -> None:
         mock_seer_request.return_value = self._make_response({"responses": []})
 
         assert get_similarity_data_from_seer(self.request_params) == []
@@ -263,7 +265,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_returns_sorted_results(self, mock_seer_request: MagicMock):
+    def test_returns_sorted_results(self, mock_seer_request: MagicMock) -> None:
         less_similar_event = save_new_event({"message": "Charlie is goofy"}, self.project)
 
         raw_similar_issue_data: RawSeerSimilarIssueData = {

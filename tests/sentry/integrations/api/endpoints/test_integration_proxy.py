@@ -104,7 +104,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_proxy(self, mock_client, mock_get_client):
+    def test_proxy(self, mock_client: MagicMock, mock_get_client: MagicMock) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path,
@@ -145,7 +145,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_proxy_with_different_base_url(self, mock_client, mock_get_client):
+    def test_proxy_with_different_base_url(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path,
@@ -187,7 +189,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_proxy_request_with_missing_integration_id(self, mock_client, mock_get_client):
+    def test_proxy_request_with_missing_integration_id(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path,
@@ -234,7 +238,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
     @patch.object(Integration, "get_installation")
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_request(self, mock_get_installation):
+    def test__validate_request(self, mock_get_installation: MagicMock) -> None:
         # Missing header data
         request = self.factory.get(self.path)
         assert not self.endpoint_cls._validate_request(request)
@@ -282,7 +286,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_handles_identity_not_valid(self, mock_client, mock_get_client):
+    def test_handles_identity_not_valid(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path, integration_id=self.org_integration.id
@@ -302,7 +308,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_handles_api_host_errors(self, mock_client, mock_get_client):
+    def test_handles_api_host_errors(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path, integration_id=self.org_integration.id
@@ -324,7 +332,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_handles_api_timeout_error(self, mock_client, mock_get_client):
+    def test_handles_api_timeout_error(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path, integration_id=self.org_integration.id
@@ -346,7 +356,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
-    def test_returns_500_for_unexpected_error(self, mock_client, mock_get_client):
+    def test_returns_500_for_unexpected_error(
+        self, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
         signature_path = f"/{self.proxy_path}"
         headers = self.create_request_headers(
             signature_path=signature_path, integration_id=self.org_integration.id

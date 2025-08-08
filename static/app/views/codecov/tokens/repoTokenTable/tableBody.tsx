@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
-import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useRegenerateRepositoryToken} from 'sentry/views/codecov/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 import {
   type Column,
   type Row,
@@ -14,7 +16,12 @@ interface TableBodyProps {
   row: Row;
 }
 
-export function renderTableBody({column, row}: TableBodyProps) {
+function TableBodyCell({column, row}: TableBodyProps) {
+  const organization = useOrganization();
+  const {integratedOrgId} = useCodecovContext();
+
+  const {mutate: regenerateToken} = useRegenerateRepositoryToken();
+
   const key = column.key;
   const alignment = ['regenerateToken', 'token'].includes(key) ? 'right' : 'left';
 
@@ -23,7 +30,11 @@ export function renderTableBody({column, row}: TableBodyProps) {
       <AlignmentContainer alignment={alignment}>
         <Confirm
           onConfirm={() => {
-            openTokenRegenerationConfirmationModal({});
+            regenerateToken({
+              orgSlug: organization.slug,
+              integratedOrgId: integratedOrgId!,
+              repository: row.name,
+            });
           }}
           header={<h5>{t('Generate new token')}</h5>}
           cancelText={t('Return')}
@@ -55,11 +66,11 @@ export function renderTableBody({column, row}: TableBodyProps) {
     return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
   }
 
-  if (key === 'createdAt') {
-    return <DateContainer>{value}</DateContainer>;
-  }
-
   return <AlignmentContainer alignment={alignment}>{value}</AlignmentContainer>;
+}
+
+export function renderTableBody(props: TableBodyProps) {
+  return <TableBodyCell {...props} />;
 }
 
 const StyledButton = styled(Button)`
@@ -68,9 +79,4 @@ const StyledButton = styled(Button)`
 
 export const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
-`;
-
-const DateContainer = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
-  text-align: 'left';
 `;

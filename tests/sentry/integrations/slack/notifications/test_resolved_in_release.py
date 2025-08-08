@@ -59,7 +59,9 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_resolved_in_release_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_resolved_in_release_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
         and block kit is enabled.
@@ -88,7 +90,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_resolved_in_release_generic_issue_block(self, occurrence):
+    def test_resolved_in_release_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved in a release
         and block kit is enabled.

@@ -15,7 +15,7 @@ from social_auth.models import UserSocialAuth
 
 
 class PullRequestEventWebhook(APITestCase):
-    def test_opened(self):
+    def test_opened(self) -> None:
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -63,7 +63,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author.name == "baxterthehacker"
         assert pr.author.email == "alberto@sentry.io"
 
-    def test_edited(self):
+    def test_edited(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
@@ -105,7 +105,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author.name == "baxterthehacker"
         assert pr.author.email == "baxterthehacker@localhost"
 
-    def test_closed(self):
+    def test_closed(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"

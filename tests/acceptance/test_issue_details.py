@@ -49,7 +49,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         )
         return event
 
-    def test_python_event(self):
+    def test_python_event(self) -> None:
         tags = [
             ["server_name", "web02.example.org"],
             ["environment", "staging"],
@@ -61,116 +61,116 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         # Wait for tag bars to load
         self.browser.wait_until_test_id("loaded-device-name")
 
-    def test_python_rawbody_event(self):
+    def test_python_rawbody_event(self) -> None:
         event = self.create_sample_event(platform="python-rawbody")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.move_to('[data-test-id="rich-http-content-body-section-pre"]')
 
-    def test_python_formdata_event(self):
+    def test_python_formdata_event(self) -> None:
         event = self.create_sample_event(platform="python-formdata")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_pii_tooltips(self):
+    def test_pii_tooltips(self) -> None:
         event = self.create_sample_event(platform="pii-tooltips")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_cocoa_event(self):
+    def test_cocoa_event(self) -> None:
         event = self.create_sample_event(platform="cocoa")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_cocoa_event_frame_line_hover(self):
+    def test_cocoa_event_frame_line_hover(self) -> None:
         event = self.create_sample_event(platform="cocoa")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.wait_until_not(".loading")
         self.browser.move_to(".traceback li:nth-child(2)")
 
-    def test_unity_event(self):
+    def test_unity_event(self) -> None:
         event = self.create_sample_event(default="unity", platform="csharp")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_android_event(self):
+    def test_android_event(self) -> None:
         event = self.create_sample_event(platform="android")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_android_ndk_event(self):
+    def test_android_ndk_event(self) -> None:
         event = self.create_sample_event(default="android-ndk", platform="android-ndk")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_aspnetcore_event(self):
+    def test_aspnetcore_event(self) -> None:
         event = self.create_sample_event(default="aspnetcore", platform="csharp")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_javascript_specific_event(self):
+    def test_javascript_specific_event(self) -> None:
         event = self.create_sample_event(platform="javascript")
         self.page.visit_issue(self.org.slug, event.group.id)
 
         self.browser.click('label[data-test-id="curl"]')
 
-    def test_rust_event(self):
+    def test_rust_event(self) -> None:
         # TODO: This should become its own "rust" platform type
         event = self.create_sample_event(platform="native", sample_name="Rust")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_cordova_event(self):
+    def test_cordova_event(self) -> None:
         event = self.create_sample_event(platform="cordova")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_stripped_event(self):
+    def test_stripped_event(self) -> None:
         event = self.create_sample_event(platform="pii")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_empty_exception(self):
+    def test_empty_exception(self) -> None:
         event = self.create_sample_event(platform="empty-exception")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_empty_stacktrace(self):
+    def test_empty_stacktrace(self) -> None:
         event = self.create_sample_event(platform="empty-stacktrace")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_activity_page(self):
+    def test_activity_page(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.go_to_subtab("activity")
 
         self.browser.wait_until_test_id("activity-item")
 
-    def test_resolved(self):
+    def test_resolved(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
 
-    def test_archived(self):
+    def test_archived(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.archive_issue()
 
-    def test_exception_and_no_threads_event(self):
+    def test_exception_and_no_threads_event(self) -> None:
         event = self.create_sample_event(platform="exceptions-and-no-threads")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_exception_with_stack_trace_and_crashed_thread_without_stack_trace_event(self):
+    def test_exception_with_stack_trace_and_crashed_thread_without_stack_trace_event(self) -> None:
         event = self.create_sample_event(
             platform="exception-with-stack-trace-and-crashed-thread-without-stack-trace"
         )
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_exception_without_stack_trace_and_crashed_thread_with_stack_trace_event(self):
+    def test_exception_without_stack_trace_and_crashed_thread_with_stack_trace_event(self) -> None:
         event = self.create_sample_event(
             platform="exception-without-stack-trace-and-crashed-thread-with-stack-trace"
         )
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_exception_with_stack_trace_and_crashed_thread_with_stack_trace_event(self):
+    def test_exception_with_stack_trace_and_crashed_thread_with_stack_trace_event(self) -> None:
         event = self.create_sample_event(
             platform="exception-with-stack-trace-and-crashed-thread-with-stack-trace"
         )
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_python_invalid_json_error(self):
+    def test_python_invalid_json_error(self) -> None:
         event = self.create_sample_event(default="python-invalid-json-error", platform="native")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_exception_with_address_instruction(self):
+    def test_exception_with_address_instruction(self) -> None:
         event = self.create_sample_event(
             default="exception-with-address-instruction", platform="cocoa"
         )

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -95,7 +95,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_user_message_link(self, mock_record):
+    def test_user_message_link(self, mock_record: MagicMock) -> None:
         """
         Test that when a user types in "link" to the DM we reply with the correct response.
         """

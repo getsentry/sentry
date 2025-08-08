@@ -21,11 +21,11 @@ def make_spans_snapshot(insta_snapshot):
     return inner
 
 
-def test_empty(make_spans_snapshot):
+def test_empty(make_spans_snapshot) -> None:
     make_spans_snapshot([])
 
 
-def test_single_invalid(make_spans_snapshot):
+def test_single_invalid(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -38,7 +38,7 @@ def test_single_invalid(make_spans_snapshot):
     )
 
 
-def test_single_incomplete(make_spans_snapshot):
+def test_single_incomplete(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -51,7 +51,7 @@ def test_single_incomplete(make_spans_snapshot):
     )
 
 
-def test_single_full(make_spans_snapshot):
+def test_single_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -68,7 +68,7 @@ def test_single_full(make_spans_snapshot):
     )
 
 
-def test_multiple_full(make_spans_snapshot):
+def test_multiple_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {

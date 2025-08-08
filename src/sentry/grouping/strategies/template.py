@@ -33,7 +33,7 @@ def template_v1(
         context_line_component.update(values=[interface.context_line])
 
     return {
-        context["variant"]: TemplateGroupingComponent(
+        context["variant_name"]: TemplateGroupingComponent(
             values=[filename_component, context_line_component]
         )
     }

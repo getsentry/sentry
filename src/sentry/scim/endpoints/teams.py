@@ -15,9 +15,6 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
-from sentry.api.endpoints.team_details import TeamDetailsEndpoint
-from sentry.api.endpoints.team_details import TeamDetailsSerializer as TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -34,6 +31,9 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
+from sentry.core.endpoints.team_details import TeamDetailsEndpoint
+from sentry.core.endpoints.team_details import TeamDetailsSerializer as TeamSerializer
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

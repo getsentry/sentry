@@ -2,6 +2,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildDetailsHeaderContent} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
@@ -47,17 +48,19 @@ export default function BuildDetails() {
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main>
-            <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
-          </Layout.Main>
+          <UrlParamBatchProvider>
+            <Layout.Main>
+              <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
+            </Layout.Main>
 
-          <Layout.Side>
-            <BuildDetailsSidebarContent
-              buildDetailsQuery={buildDetailsQuery}
-              artifactId={artifactId}
-              projectId={projectId}
-            />
-          </Layout.Side>
+            <Layout.Side>
+              <BuildDetailsSidebarContent
+                buildDetailsQuery={buildDetailsQuery}
+                artifactId={artifactId}
+                projectId={projectId}
+              />
+            </Layout.Side>
+          </UrlParamBatchProvider>
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>

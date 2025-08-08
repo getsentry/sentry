@@ -1813,7 +1813,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.save()
         self.storage = get_relocation_storage()
 
-    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
@@ -1848,7 +1848,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
-    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         org_count = Organization.objects.filter(slug__startswith="testing").count()
         with assume_test_silo_mode(SiloMode.CONTROL):
             user_count = User.objects.all().count()
@@ -1944,7 +1944,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 # We don't overwrite `sentry.useremail`, retaining the existing value instead.
             ]
 
-    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.relocation.scheduled_pause_at_step = Relocation.Step.IMPORTING.value
         self.relocation.save()

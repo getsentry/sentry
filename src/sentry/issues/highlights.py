@@ -8,7 +8,7 @@ from rest_framework import serializers
 from sentry.models.project import Project
 from sentry.utils.platform_categories import MOBILE
 
-VALID_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]+$")
+VALID_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_.: -]+$")
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)

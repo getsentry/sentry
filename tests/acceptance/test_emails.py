@@ -80,7 +80,7 @@ class EmailTestCase(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def test_emails(self):
+    def test_emails(self) -> None:
         for url, name in EMAILS:
             # HTML output is captured as a snapshot
             self.browser.get(build_url(url, "html"))

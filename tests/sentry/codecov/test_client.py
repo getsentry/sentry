@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
@@ -60,7 +60,7 @@ class TestCodecovApiClient(TestCase):
         jwt.decode(encoded_jwt, self.test_secret)
 
     @patch("requests.get")
-    def test_sends_get_request_with_jwt_auth_header(self, mock_get):
+    def test_sends_get_request_with_jwt_auth_header(self, mock_get: MagicMock) -> None:
         with patch.object(self.codecov_client, "_create_jwt", return_value="test"):
             self.codecov_client.get(
                 "/example/endpoint", {"example-param": "foo"}, {"X_TEST_HEADER": "bar"}
@@ -76,7 +76,7 @@ class TestCodecovApiClient(TestCase):
             )
 
     @patch("requests.post")
-    def test_sends_post_request_with_jwt_auth_header(self, mock_post):
+    def test_sends_post_request_with_jwt_auth_header(self, mock_post: MagicMock) -> None:
         with patch.object(self.codecov_client, "_create_jwt", return_value="test"):
             self.codecov_client.post(
                 "/example/endpoint", data={"example-param": "foo"}, headers={"X_TEST_HEADER": "bar"}
@@ -93,7 +93,7 @@ class TestCodecovApiClient(TestCase):
             )
 
     @patch("requests.post")
-    def test_query_sends_post_request_with_jwt_auth_header(self, mock_post):
+    def test_query_sends_post_request_with_jwt_auth_header(self, mock_post: MagicMock) -> None:
         with patch.object(self.codecov_client, "_create_jwt", return_value="test"):
             self.codecov_client.query("query { test }", {"test": "test"}, GitProvider.GitHub)
             mock_post.assert_called_once_with(

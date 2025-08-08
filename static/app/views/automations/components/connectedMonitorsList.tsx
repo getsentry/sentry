@@ -100,7 +100,7 @@ export default function ConnectedMonitorsList({
               <DetectorTypeCell type={detector.type} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="last-issue">
-              <IssueCell group={undefined} />
+              <IssueCell group={detector.latestGroup} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="owner">
               <DetectorAssigneeCell assignee={detector.owner} />

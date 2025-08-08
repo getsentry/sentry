@@ -141,7 +141,7 @@ function getErrorMessage(fetchError: RequestError) {
 }
 
 const RowCell = styled(SimpleTable.RowCell)`
-  overflow: auto;
+  overflow-x: auto;
 
   /* Used for cell menu items that are hidden by default */
   &:hover [data-visible-on-hover='true'] {

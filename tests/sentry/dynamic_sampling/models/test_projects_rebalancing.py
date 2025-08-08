@@ -2,24 +2,25 @@ from operator import attrgetter
 
 import pytest
 
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.projects_rebalancing import (
+    ProjectsRebalancingInput,
+    ProjectsRebalancingModel,
+)
 
 
 @pytest.fixture
 def projects_rebalancing_model():
-    return model_factory(ModelType.PROJECTS_REBALANCING)
+    return ProjectsRebalancingModel()
 
 
-def test_adjust_sample_rates_org_with_no_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_no_projects(projects_rebalancing_model) -> None:
     assert (
         projects_rebalancing_model.run(ProjectsRebalancingInput(classes=[], sample_rate=0.25)) == []
     )
 
 
-def test_adjust_sample_rates_org_with_single_project(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_single_project(projects_rebalancing_model) -> None:
     assert projects_rebalancing_model.run(
         ProjectsRebalancingInput(
             classes=[
@@ -33,7 +34,7 @@ def test_adjust_sample_rates_org_with_single_project(projects_rebalancing_model)
     ) == [RebalancedItem(id=1, count=10, new_sample_rate=0.4)]
 
 
-def test_adjust_sample_rates_org_with_few_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_few_projects(projects_rebalancing_model) -> None:
     classes = [
         RebalancedItem(id=1, count=9),
         RebalancedItem(id=2, count=7),
@@ -75,7 +76,7 @@ def test_adjust_sample_rates_org_with_few_projects(projects_rebalancing_model):
     )
 
 
-def test_adjust_sample_rates_org_with_many_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_many_projects(projects_rebalancing_model) -> None:
     """
     This test checks how we calculate sample rates for org with 30 projects
     and make sure model doesn't generate negative sample rate
@@ -132,7 +133,7 @@ def test_adjust_sample_rates_org_with_many_projects(projects_rebalancing_model):
         ) * p.new_sample_rate == pytest.approx(sample_rate)
 
 
-def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_model) -> None:
     classes = [
         RebalancedItem(id=1, count=8.0),
         RebalancedItem(id=2, count=7.0),
@@ -168,7 +169,7 @@ def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_mod
     )
 
 
-def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_model) -> None:
     classes = [
         RebalancedItem(id=1, count=9.0),
         RebalancedItem(id=2, count=6.0),
@@ -210,7 +211,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_
     )
 
 
-def test_adjust_sample_rates_org_with_counts_projects(projects_rebalancing_model):
+def test_adjust_sample_rates_org_with_counts_projects(projects_rebalancing_model) -> None:
     classes = [
         RebalancedItem(id=1, count=2.0),
         RebalancedItem(id=2, count=10.0),

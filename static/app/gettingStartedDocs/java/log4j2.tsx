@@ -76,7 +76,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -94,7 +94,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -128,6 +128,12 @@ dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/log4j2/data-management/data-collected/ for more info
 send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -158,7 +164,12 @@ const getConsoleAppenderSnippet = (params: Params) => `
 
 const getLogLevelSnippet = (params: Params) => `
 <!-- Setting minimumBreadcrumbLevel modifies the default minimum level to add breadcrumbs from INFO to DEBUG  -->
-<!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->
+<!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->${
+  params.isLogsSelected
+    ? `
+<!-- Setting minimumLevel configures which log messages are sent to Sentry -->`
+    : ''
+}
 <Sentry name="Sentry"${
   params.platformOptions.opentelemetry === YesNo.NO
     ? `
@@ -166,7 +177,12 @@ const getLogLevelSnippet = (params: Params) => `
     : ''
 }
         minimumBreadcrumbLevel="DEBUG"
-        minimumEventLevel="WARN"
+        minimumEventLevel="WARN"${
+          params.isLogsSelected
+            ? `
+        minimumLevel="DEBUG"`
+            : ''
+        }
 />`;
 
 const getVerifyJavaSnippet = () => `
@@ -311,7 +327,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    label: 'Properties',
+                    value: 'properties',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],

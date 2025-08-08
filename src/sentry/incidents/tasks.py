@@ -65,6 +65,9 @@ def handle_trigger_action(
     metric_value: int | None = None,
     **kwargs: Any,
 ) -> None:
+    from sentry.incidents.grouptype import MetricIssue
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     try:
         action = AlertRuleTriggerAction.objects.select_related(
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
@@ -92,20 +95,22 @@ def handle_trigger_action(
     if notification_uuid is None:
         metrics.incr("incidents.alert_rules.action.incident_activity_missing")
 
-    metrics.incr(
-        "incidents.alert_rules.action.{}.{}".format(
-            AlertRuleTriggerAction.Type(action.type).name.lower(), method
+    # We should only fire using the legacy registry if we are not using the workflow engine
+    if not should_fire_workflow_actions(incident.organization, MetricIssue.type_id):
+        metrics.incr(
+            "incidents.alert_rules.action.{}.{}".format(
+                AlertRuleTriggerAction.Type(action.type).name.lower(), method
+            )
         )
-    )
 
-    getattr(action, method)(
-        action,
-        incident,
-        project,
-        metric_value=metric_value,
-        new_status=IncidentStatus(new_status),
-        notification_uuid=notification_uuid,
-    )
+        getattr(action, method)(
+            action,
+            incident,
+            project,
+            metric_value=metric_value,
+            new_status=IncidentStatus(new_status),
+            notification_uuid=notification_uuid,
+        )
 
 
 @instrumented_task(

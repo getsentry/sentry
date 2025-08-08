@@ -1,7 +1,6 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -83,7 +82,12 @@ function DetectorListTable({
           <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
             {t('Type')}
           </HeaderCell>
-          <HeaderCell data-column-name="last-issue" divider sort={sort}>
+          <HeaderCell
+            data-column-name="last-issue"
+            divider
+            sortKey="latestGroup"
+            sort={sort}
+          >
             {t('Last Issue')}
           </HeaderCell>
           <HeaderCell data-column-name="assignee" divider sort={sort}>
@@ -98,15 +102,14 @@ function DetectorListTable({
             {t('Automations')}
           </HeaderCell>
         </SimpleTable.Header>
-        {isError && <LoadingError message={t('Error loading monitors')} />}
+        {isError && <SimpleTable.Empty>{t('Error loading monitors')}</SimpleTable.Empty>}
         {isPending && <LoadingSkeletons />}
-        {isSuccess && detectors.length > 0 ? (
-          detectors.map(detector => (
-            <DetectorListRow key={detector.id} detector={detector} />
-          ))
-        ) : (
+        {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
         )}
+        {detectors.map(detector => (
+          <DetectorListRow key={detector.id} detector={detector} />
+        ))}
       </DetectorListSimpleTable>
     </Container>
   );

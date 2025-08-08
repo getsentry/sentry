@@ -42,7 +42,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
         headers = params.pop("extra_headers", {})
         return getattr(self.client, self.method)(url, format="json", data=params, **headers)
 
-    def test_through_api_gateway(self):
+    def test_through_api_gateway(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return
 

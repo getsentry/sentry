@@ -6,7 +6,10 @@ import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
+import sentry_sdk
+
 from sentry import analytics
+from sentry.issues.analytics import IssueForecastSaved
 from sentry.issues.escalating.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
@@ -49,7 +52,10 @@ def save_forecast_per_group(
                 "save_forecast_per_group",
                 extra={"group_id": group_id, "group_counts": group_count},
             )
-    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
+    try:
+        analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def generate_and_save_forecasts(groups: Iterable[Group]) -> None:

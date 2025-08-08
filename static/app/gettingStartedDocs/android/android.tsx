@@ -109,6 +109,13 @@ const getConfigurationSnippet = (params: Params) => `
   <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  <!-- enable logs to be sent to Sentry -->
+  <meta-data android:name="io.sentry.logs.enabled" android:value="true" />`
+      : ''
   }
 </application>`;
 
@@ -288,8 +295,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ],
           },
         ],
-  nextSteps: params =>
-    isAutoInstall(params)
+  nextSteps: params => {
+    const steps = isAutoInstall(params)
       ? [
           {
             id: 'advanced-configuration',
@@ -335,7 +342,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: t('See your source code as part of your stacktraces in Sentry.'),
             link: 'https://docs.sentry.io/platforms/android/enhance-errors/source-context/',
           },
-        ],
+        ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/android/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {

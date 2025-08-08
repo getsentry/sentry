@@ -24,8 +24,11 @@ from snuba_sdk.entity import get_required_time_column
 from snuba_sdk.legacy import is_condition, parse_condition
 from snuba_sdk.query import SelectableExpression
 
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
@@ -735,7 +738,14 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
+        project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
+
+        aggregation = self.get_aggregate_function(model)
+
+        if self._should_use_upsampled_aggregation(model, project_ids):
+            aggregation = "upsampled_count"
+
         result: Mapping[TSDBKey, int] = self.get_data(
             model,
             keys,
@@ -743,7 +753,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=self.get_aggregate_function(model),
+            aggregation=aggregation,
             group_on_time=group_on_time,
             conditions=conditions,
             use_cache=use_cache,
@@ -752,6 +762,26 @@ class SnubaTSDB(BaseTSDB):
             referrer_suffix=referrer_suffix,
         )
         return result
+
+    def _should_use_upsampled_aggregation(
+        self, model: TSDBModel, project_ids: Sequence[int] | None
+    ) -> bool:
+        """Check if we should use upsampled aggregation based on model and project allowlist."""
+
+        # Only apply to error models
+        error_model = get_issue_tsdb_group_model(GroupCategory.ERROR)
+
+        if model != error_model:
+            return False
+
+        # Check if any projects are in upsampling allowlist
+        if not project_ids:
+            return False
+
+        try:
+            return are_any_projects_error_upsampled(list(project_ids))
+        except Exception:
+            return False
 
     def get_range(
         self,
@@ -768,7 +798,17 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
         aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
+
+        if aggregation_override:
+            aggregation = aggregation_override
+        else:
+            aggregation = self.get_aggregate_function(model)
+
+            if self._should_use_upsampled_aggregation(model, project_ids):
+                aggregation = "upsampled_count"
+
         result = self.get_data(
             model,
             keys,
@@ -776,7 +816,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=aggregation_override or self.get_aggregate_function(model),
+            aggregation=aggregation,
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,

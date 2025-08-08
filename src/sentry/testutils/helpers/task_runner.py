@@ -9,6 +9,8 @@ from celery import current_app
 from celery.app.task import Task
 from django.conf import settings
 
+from sentry.taskworker.task import Task as TaskworkerTask
+
 __all__ = ("BurstTaskRunner", "TaskRunner")
 
 
@@ -37,6 +39,7 @@ class _BurstState:
     def __init__(self) -> None:
         self._active = False
         self._orig_apply_async = Task.apply_async
+        self._orig_signal_send = TaskworkerTask._signal_send
         self.queue: list[tuple[Task, tuple[Any, ...], dict[str, Any]]] = []
 
     def _apply_async(
@@ -60,12 +63,25 @@ class _BurstState:
 
         self.queue.append((task, args, {} if kwargs is None else kwargs))
 
+    def _signal_send(
+        self,
+        task: Task,
+        args: tuple[Any, ...] = (),
+        kwargs: dict[str, Any] | None = None,
+    ) -> None:
+        if not self._active:
+            raise AssertionError("task enqueued to burst runner while burst was not active!")
+        self.queue.append((task, args, {} if kwargs is None else kwargs))
+
     @contextlib.contextmanager
     def _patched(self) -> Generator[Self]:
         if self._active:
             raise AssertionError("nested BurstTaskRunner!")
 
-        with mock.patch.object(Task, "apply_async", self._apply_async):
+        with (
+            mock.patch.object(Task, "apply_async", self._apply_async),
+            mock.patch.object(TaskworkerTask, "_signal_send", self._signal_send),
+        ):
             self._active = True
             try:
                 yield self
@@ -77,7 +93,10 @@ class _BurstState:
         if not self._active:
             raise AssertionError("cannot disable burst when not active")
 
-        with mock.patch.object(Task, "apply_async", self._orig_apply_async):
+        with (
+            mock.patch.object(Task, "apply_async", self._orig_apply_async),
+            mock.patch.object(TaskworkerTask, "_signal_send", self._orig_signal_send),
+        ):
             self._active = False
             try:
                 yield

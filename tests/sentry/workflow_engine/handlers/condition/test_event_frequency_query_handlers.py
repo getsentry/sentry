@@ -356,8 +356,8 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
         1,
     )
     def test_batch_query_percent(self) -> None:
-        self._make_sessions(60, self.environment2.name)
-        self._make_sessions(60, self.environment.name)
+        self._make_sessions(60, self.environment2.name, received=self.end.timestamp())
+        self._make_sessions(60, self.environment.name, received=self.end.timestamp())
 
         batch_query = self.handler().batch_query(
             groups=self.groups,

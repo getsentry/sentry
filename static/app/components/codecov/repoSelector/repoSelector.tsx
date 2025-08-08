@@ -55,7 +55,8 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, integratedOrgId, changeContextValue} = useCodecovContext();
+  const {repository, integratedOrgId, codecovPeriod, changeContextValue} =
+    useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const {data: repositories} = useInfiniteRepositories({term: searchValue});
 
@@ -63,9 +64,13 @@ export function RepoSelector() {
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({repository: selectedOption.value});
+      changeContextValue({
+        integratedOrgId,
+        codecovPeriod,
+        repository: selectedOption.value,
+      });
     },
-    [changeContextValue]
+    [changeContextValue, integratedOrgId, codecovPeriod]
   );
 
   const handleOnSearch = useMemo(

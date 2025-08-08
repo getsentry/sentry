@@ -336,7 +336,7 @@ export function Provider({
           return;
         }
 
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+        if (replayerRef.current.iframe.contentDocument?.body?.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }

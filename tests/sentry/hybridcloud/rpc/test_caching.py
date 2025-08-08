@@ -314,15 +314,18 @@ def test_caching_list() -> None:
         for member in members:
             member.update(role="member")
 
-    # Does not include updates made to db
+    # Read from cache - does not include updates made to db
     after_update_wrapped = get_org_members(org.id)
     for member in after_update_wrapped:
         assert member.role == "owner"
 
-        # Clear cache simulating outbox logic
-        region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_org_members.key_from(org.id)
-        )
+    # DB read is updated
+    after_update_direct = get_org_members.cb(org.id)
+    for member in after_update_direct:
+        assert member.role == "member"
+
+    # Clear cache simulating outbox logic
+    control_caching_service.clear_key(key=get_org_members.key_from(org.id))
 
     cached_members = get_org_members(org.id)
     assert len(cached_members) == 0, "with members updated none are owners"

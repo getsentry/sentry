@@ -9,6 +9,7 @@ plugin_slugs = [
     "asana",
     "bitbucket",
     "browsers",
+    "dartplugin",
     "device",
     "github",
     "gitlab",

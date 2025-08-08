@@ -110,23 +110,10 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
             organization.id, organization.slug, project_ids, natural_language_query
         )
 
-        if "responses" not in data:
-            return Response(
-                {
-                    "status": "ok",
-                    "query": data["query"],  # the sentry EQS query as a string
-                    "stats_period": data["stats_period"],
-                    "group_by": list(data.get("group_by", [])),
-                    "visualization": list(
-                        data.get("visualization")
-                    ),  # [{chart_type: 1, y_axes: ["count_message"]}, ...]
-                    "sort": data["sort"],
-                }
-            )
+        responses = data.get("responses", [])[:limit]
+        unsupported_reason = data.get("unsupported_reason")
 
-        data = data["responses"][:limit]
-
-        if len(data) == 0:
+        if len(responses) == 0 and not unsupported_reason:
             logger.info("No results found for query")
             return Response(
                 {"detail": "No results found for query"},
@@ -141,10 +128,12 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                         "query": query["query"],
                         "stats_period": query["stats_period"],
                         "group_by": list(query.get("group_by", [])),
-                        "visualization": list(query.get("visualization")),
+                        "visualization": list(query.get("visualization", [])),
                         "sort": query["sort"],
+                        "mode": query.get("mode", "spans"),
                     }
-                    for query in data
+                    for query in responses
                 ],
+                "unsupported_reason": unsupported_reason,
             }
         )

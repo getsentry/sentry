@@ -2,7 +2,7 @@ import unittest
 import uuid
 from datetime import UTC, datetime
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 from django.utils import timezone
@@ -16,6 +16,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.cache import cache
@@ -86,7 +87,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ]
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_state_results(self, mock_produce_occurrence_to_kafka):
+    def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -126,7 +127,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
+    def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
@@ -339,6 +340,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             mock_incr.assert_not_called()
 
 
+@django_db_all
 class TestKeyBuilders(unittest.TestCase):
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
         if detector is None:

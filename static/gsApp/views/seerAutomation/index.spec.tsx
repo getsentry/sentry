@@ -40,7 +40,6 @@ describe('SeerAutomation', function () {
 
   it('can update the org default autofix automation tuning setting', async function () {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: true,
     });
     const project = ProjectFixture();
@@ -104,7 +103,6 @@ describe('SeerAutomation', function () {
 
   it('can update the org default scanner automation setting', async function () {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: false,
     });
     const project = ProjectFixture();

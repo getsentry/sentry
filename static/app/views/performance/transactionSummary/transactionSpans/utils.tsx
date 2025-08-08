@@ -111,7 +111,7 @@ function getSuspectSpanSort(sort: string): SpanSortOption {
   return SPAN_SORT_OPTIONS.find(option => option.field === DEFAULT_SORT)!;
 }
 
-export function getSuspectSpanSortFromLocation(
+function getSuspectSpanSortFromLocation(
   location: Location,
   sortKey = 'sort'
 ): SpanSortOption {

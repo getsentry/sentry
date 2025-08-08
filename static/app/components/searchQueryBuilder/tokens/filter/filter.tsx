@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
@@ -16,6 +16,7 @@ import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
+  areWildcardOperatorsAllowed,
   formatFilterValue,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -32,7 +33,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
@@ -50,6 +51,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
   const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
+  );
+  const fieldDefinition = useMemo(
+    () => getFieldDefinition(token.key.text),
+    [token.key.text]
   );
 
   if (token.filter === FilterType.HAS) {
@@ -73,7 +78,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           <FilterValueSingleTruncatedValue>
             {formatFilterValue({
               token: items[0]!.value,
-              stripWildcards: allContains && hasWildcardOperators,
+              stripWildcards:
+                allContains &&
+                hasWildcardOperators &&
+                areWildcardOperatorsAllowed(fieldDefinition),
             })}
           </FilterValueSingleTruncatedValue>
         );
@@ -91,7 +99,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
               <FilterMultiValueTruncated>
                 {formatFilterValue({
                   token: item.value!,
-                  stripWildcards: allContains && hasWildcardOperators,
+                  stripWildcards:
+                    allContains &&
+                    hasWildcardOperators &&
+                    areWildcardOperatorsAllowed(fieldDefinition),
                 })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -117,7 +128,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueSingleTruncatedValue>
           {formatFilterValue({
             token: token.value,
-            stripWildcards: allContains && hasWildcardOperators,
+            stripWildcards:
+              allContains &&
+              hasWildcardOperators &&
+              areWildcardOperatorsAllowed(fieldDefinition),
           })}
         </FilterValueSingleTruncatedValue>
       );

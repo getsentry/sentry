@@ -303,7 +303,7 @@ export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) 
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady});
 }
 
-function useWrappedDiscoverQueryWithoutPageFilters<T>(
+export function useWrappedDiscoverQueryWithoutPageFilters<T>(
   props: WrappedDiscoverQueryProps<T>
 ) {
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});

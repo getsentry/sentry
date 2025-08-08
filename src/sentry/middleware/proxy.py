@@ -29,7 +29,7 @@ class SetRemoteAddrFromForwardedFor(MiddlewareMixin):
             pass
         else:
             # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
-            # Take the last one, from the last trusted forwarder.
-            real_ip = real_ip.split(",")[-1].strip()
+            # Take just the first one.
+            real_ip = real_ip.split(",")[0].strip()
             real_ip = self._remove_port_number(real_ip)
             request.META["REMOTE_ADDR"] = real_ip

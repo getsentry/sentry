@@ -146,7 +146,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.public_key)
 
     @classmethod

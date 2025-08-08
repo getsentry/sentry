@@ -18,13 +18,13 @@ class TeamsBySlugDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_put(self):
+    def test_put(self) -> None:
         data = {"name": "foo"}
         response = self.client.put(self.url, data)
         request = RequestFactory().put(self.url, data)

@@ -32,7 +32,7 @@ export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
     basePaths: ['settings'],
     label: t('Settings'),
   },
-  [PrimaryNavGroup.CODECOV]: {
+  [PrimaryNavGroup.PREVENT]: {
     basePaths: ['codecov'],
     label: t('Prevent'),
   },

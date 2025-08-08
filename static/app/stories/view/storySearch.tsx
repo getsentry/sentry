@@ -52,11 +52,7 @@ export function StorySearch() {
   );
   const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
 
-  const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-
-  useHotkeys(storiesSearchHotkeys);
+  useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
     const sections: StorySection[] = [];

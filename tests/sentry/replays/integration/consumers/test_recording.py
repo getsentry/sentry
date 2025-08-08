@@ -41,7 +41,7 @@ def submit(consumer, message):
     consumer.terminate()
 
 
-def test_recording_consumer(consumer):
+def test_recording_consumer(consumer) -> None:
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(b"")
 
@@ -66,7 +66,7 @@ def test_recording_consumer(consumer):
         assert commit.called
 
 
-def test_recording_consumer_invalid_message(consumer):
+def test_recording_consumer_invalid_message(consumer) -> None:
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, {})
 

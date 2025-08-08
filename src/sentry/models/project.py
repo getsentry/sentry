@@ -119,7 +119,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "native",
     "native-qt",
     "nintendo-switch",
-    "nintendo-switch-2",
     "node",
     "node-awslambda",
     "node-azurefunctions",
@@ -370,7 +369,7 @@ class Project(Model):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self, delta: int = 1) -> int:

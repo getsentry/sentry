@@ -37,7 +37,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 },
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -92,7 +92,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_logs_item_type(self):
+    def test_simple_using_logs_item_type(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -152,7 +152,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_simple_using_spans_item_type(self):
+    def test_simple_using_spans_item_type(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -215,7 +215,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_spans_item_type_with_sentry_conventions(self):
+    def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             measurements={
@@ -285,7 +285,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_logs_with_a_meta_key(self):
+    def test_logs_with_a_meta_key(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "[Filtered]",
@@ -350,7 +350,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_user_attributes_collide_with_sentry_attributes(self):
+    def test_user_attributes_collide_with_sentry_attributes(self) -> None:
         log = self.create_ourlog(
             {
                 "body": "foo",
@@ -397,7 +397,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             + "Z",
         }
 
-    def test_sentry_links(self):
+    def test_sentry_links(self) -> None:
         span_1 = self.create_span(
             {
                 "description": "foo",

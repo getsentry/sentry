@@ -1,20 +1,16 @@
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/tables/gridEditable';
+import GridEditable, {type GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {renderTableBody} from 'sentry/views/codecov/tokens/repoTokenTable/tableBody';
 import {renderTableHeader} from 'sentry/views/codecov/tokens/repoTokenTable/tableHeader';
 
 type RepoTokenTableResponse = {
-  createdAt: string;
   name: string;
   token: string;
 };
 
-export type Row = Pick<RepoTokenTableResponse, 'name' | 'token' | 'createdAt'>;
-export type Column = GridColumnHeader<'name' | 'token' | 'createdAt' | 'regenerateToken'>;
+export type Row = Pick<RepoTokenTableResponse, 'name' | 'token'>;
+export type Column = GridColumnHeader<'name' | 'token' | 'regenerateToken'>;
 
 type ValidField = (typeof SORTABLE_FIELDS)[number];
 
@@ -27,16 +23,15 @@ export type ValidSort = Sort & {
 };
 
 const COLUMNS_ORDER: Column[] = [
-  {key: 'name', name: t('Repository Name'), width: 350},
-  {key: 'token', name: t('Token'), width: 275},
-  {key: 'createdAt', name: t('Created Date'), width: COL_WIDTH_UNDEFINED},
+  {key: 'name', name: t('Repository Name'), width: 400},
+  {key: 'token', name: t('Token'), width: 350},
   {key: 'regenerateToken', name: '', width: 100},
 ];
 
-export const SORTABLE_FIELDS = ['name', 'createdAt'] as const;
+export const SORTABLE_FIELDS = ['name'] as const;
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'createdAt',
+  field: 'name',
   kind: 'desc',
 };
 

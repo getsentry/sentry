@@ -32,13 +32,13 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
-import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -72,7 +72,7 @@ function BackendOverviewPage() {
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
   }
-  return <OldBackendOverviewPage />;
+  return <Am1BackendOverviewPage />;
 }
 
 function EAPBackendOverviewPage() {
@@ -269,7 +269,7 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 
 export default BackendOverviewPageWithProviders;
 
-const StackedWidgetWrapper = styled('div')`
+export const StackedWidgetWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -277,7 +277,7 @@ const StackedWidgetWrapper = styled('div')`
   min-height: 502px;
 `;
 
-const TripleRowWidgetWrapper = styled('div')`
+export const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: 300px;

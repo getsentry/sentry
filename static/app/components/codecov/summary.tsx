@@ -38,7 +38,7 @@ export function useCreateSummaryFilterLink(filterBy: SummaryFilterKey) {
 const StyledSummaryEntryLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 interface SummaryEntryLabelProps extends React.ComponentProps<typeof Hovercard> {
@@ -67,7 +67,7 @@ export const SummaryEntryValue = styled('span')`
 
 const StyledSummaryEntryValueLink = styled('span')`
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.blue300};
+  color: ${p => p.theme.linkColor};
   font-size: 2.25rem;
 
   /* This stops the text from jumping when becoming bold */
@@ -125,11 +125,11 @@ export const SummaryEntries = styled('div')<{
   display: grid;
   align-items: start;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-  padding-top: ${space(3)};
-  padding-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.xl};
+  padding-right: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space['2xl']};
+  padding-bottom: ${p => p.theme.space.sm};
   grid-template-columns: repeat(${p => p.smallColumnSpan}, 1fr);
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -140,5 +140,5 @@ export const SummaryEntries = styled('div')<{
 export const SummaryContainer = styled('div')<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

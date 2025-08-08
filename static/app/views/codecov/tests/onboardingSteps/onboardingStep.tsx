@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const Container = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
-  margin-bottom: ${space(3)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const Header = styled('h3')`

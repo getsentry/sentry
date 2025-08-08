@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import APITestCase
@@ -34,7 +34,7 @@ class TestTempestCredentialsDetails(APITestCase):
     @patch(
         "sentry.tempest.endpoints.tempest_credentials_details.TempestCredentialsDetailsEndpoint.create_audit_entry"
     )
-    def test_delete_tempest_credentials_as_org_admin(self, create_audit_entry):
+    def test_delete_tempest_credentials_as_org_admin(self, create_audit_entry: MagicMock) -> None:
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             response = self.get_response(

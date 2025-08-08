@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import orjson
@@ -39,7 +39,7 @@ class SlackRequestTest(TestCase):
         return SlackRequest(self.request)
 
     @patch("slack_sdk.signature.SignatureVerifier.is_valid")
-    def test_validate_using_sdk(self, mock_verify):
+    def test_validate_using_sdk(self, mock_verify: MagicMock) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
         )

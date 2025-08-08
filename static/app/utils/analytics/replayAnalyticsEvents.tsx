@@ -5,7 +5,9 @@ export type ReplayEventParameters = {
   'replay.ai-summary.chapter-clicked': {
     chapter_type?: 'error' | 'feedback';
   };
-  'replay.ai-summary.regenerate-requested': Record<string, unknown>;
+  'replay.ai-summary.regenerate-requested': {
+    area: string;
+  };
   'replay.canvas-detected-banner-clicked': {
     sdk_needs_update?: boolean;
   };

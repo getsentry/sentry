@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 
@@ -72,12 +72,12 @@ class FetchCommitsTest(TestCase):
         assert latest_repo_release_environment.release_id == release2.id
         assert latest_repo_release_environment.commit_id == commit_list[0].id
 
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
-    def test_duplicate_repositories(self, mock_record):
+    def test_duplicate_repositories(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         Repository.objects.create(
@@ -86,7 +86,7 @@ class FetchCommitsTest(TestCase):
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
 
-    def test_release_locked(self, mock_record_event):
+    def test_release_locked(self, mock_record_event: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -149,7 +149,9 @@ class FetchCommitsTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_plugin_error(self, mock_compare_commits, mock_record):
+    def test_fetch_error_plugin_error(
+        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -187,7 +189,9 @@ class FetchCommitsTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_plugin_error_for_sentry_app(self, mock_compare_commits, mock_record):
+    def test_fetch_error_plugin_error_for_sentry_app(
+        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+    ) -> None:
         org = self.create_organization(owner=self.user, name="baz")
         sentry_app = self.create_sentry_app(
             organization=org, published=True, verify_install=False, name="Super Awesome App"
@@ -226,7 +230,9 @@ class FetchCommitsTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_random_exception(self, mock_compare_commits, mock_record):
+    def test_fetch_error_random_exception(
+        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -263,7 +269,7 @@ class FetchCommitsTest(TestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
-    def test_fetch_error_random_exception_integration(self, mock_record):
+    def test_fetch_error_random_exception_integration(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 

@@ -160,7 +160,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -173,7 +173,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -185,7 +185,7 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -218,7 +218,7 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -257,8 +257,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051",
-            num_brokers=1,
+            broker_hosts=["127.0.0.1:50051"],
             max_child_task_count=1,
             process_type="fork",
             processing_pool_name="testing",
@@ -294,7 +293,7 @@ class TestTaskWorker(TestCase):
         # We should retain the result until RPC succeeds.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -337,7 +336,7 @@ class TestTaskWorker(TestCase):
         # to raise and catch a NoRetriesRemainingError
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -379,7 +378,7 @@ class TestTaskWorker(TestCase):
 
 @pytest.mark.django_db
 @mock.patch("sentry.taskworker.workerchild.capture_checkin")
-def test_child_process_complete(mock_capture_checkin) -> None:
+def test_child_process_complete(mock_capture_checkin: mock.MagicMock) -> None:
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -703,7 +702,7 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
 
 @pytest.mark.django_db
 @mock.patch("sentry.taskworker.workerchild.capture_checkin")
-def test_child_process_decompression(mock_capture_checkin) -> None:
+def test_child_process_decompression(mock_capture_checkin: mock.MagicMock) -> None:
 
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
