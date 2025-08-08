@@ -239,7 +239,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata2) is None
         assert storage.get(metadata3) is not None
 
-    @mock.patch("sentry.replays.usecases.delete.make_signed_seer_request_simple")
+    @mock.patch("sentry.replays.usecases.delete.make_seer_request")
     def test_delete_replay_from_seer(
         self,
         mock_make_seer_request: mock.MagicMock,

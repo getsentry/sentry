@@ -35,7 +35,7 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.seer.signed_seer_api import make_signed_seer_request_simple, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -232,7 +232,7 @@ def delete_seer_replay_data(
     replay_ids: list[str],
     timeout: int | tuple[int, int] | None = None,
 ) -> bool:
-    response, status_code = make_signed_seer_request_simple(
+    response, status_code = make_seer_request(
         SEER_DELETE_SUMMARIES_URL,
         {
             "replay_ids": replay_ids,
