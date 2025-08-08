@@ -119,8 +119,7 @@ export const useApplySeerSearchQuery = () => {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
 
-  const {setDisplayAskSeer, setDisplayAskSeerFeedback, askSeerSuggestedQueryRef} =
-    useSearchQueryBuilder();
+  const {askSeerSuggestedQueryRef} = useSearchQueryBuilder();
 
   return useCallback(
     (result: SeerSearchQuery) => {
@@ -179,16 +178,7 @@ export const useApplySeerSearchQuery = () => {
         mode,
       });
       navigate(url, {replace: true, preventScrollReset: true});
-      setDisplayAskSeerFeedback(true);
-      setDisplayAskSeer(false);
     },
-    [
-      askSeerSuggestedQueryRef,
-      navigate,
-      organization,
-      pageFilters.selection,
-      setDisplayAskSeer,
-      setDisplayAskSeerFeedback,
-    ]
+    [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
   );
 };
