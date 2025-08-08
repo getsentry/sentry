@@ -34,8 +34,25 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
                 "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             },
             # Optional metadata
-            "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             "build_configuration": {"type": "string"},
+            # VCS parameters
+            "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "provider": {
+                "type": "string",
+                "enum": [
+                    "github",
+                    "github_enterprise",
+                    "gitlab",
+                    "bitbucket",
+                    "bitbucket_server",
+                ],
+            },
+            "head_repo_name": {"type": "string", "maxLength": 255},
+            "base_repo_name": {"type": "string", "maxLength": 255},
+            "head_ref": {"type": "string", "maxLength": 255},
+            "base_ref": {"type": "string", "maxLength": 255},
+            "pr_number": {"type": "integer", "minimum": 1},
         },
         "required": ["checksum", "chunks"],
         "additionalProperties": False,
@@ -44,8 +61,15 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
     error_messages = {
         "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
-        "git_sha": "The git_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "build_configuration": "The build_configuration field must be a string.",
+        "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
+        "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
+        "provider": "The provider field must be a string with one of the following values: github, github_enterprise, gitlab, bitbucket, bitbucket_server.",
+        "head_repo_name": "The head_repo_name field must be a string with maximum length of 255 characters.",
+        "base_repo_name": "The base_repo_name field must be a string with maximum length of 255 characters.",
+        "head_ref": "The head_ref field must be a string with maximum length of 255 characters.",
+        "base_ref": "The base_ref field must be a string with maximum length of 255 characters.",
+        "pr_number": "The pr_number field must be a positive integer.",
     }
 
     try:
@@ -144,6 +168,16 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "checksum": checksum,
                     "chunks": chunks,
                     "artifact_id": artifact_id,
+                    "build_configuration": data.get("build_configuration"),
+                    # VCS parameters
+                    "head_sha": data.get("head_sha"),
+                    "base_sha": data.get("base_sha"),
+                    "provider": data.get("provider"),
+                    "head_repo_name": data.get("head_repo_name"),
+                    "base_repo_name": data.get("base_repo_name"),
+                    "head_ref": data.get("head_ref"),
+                    "base_ref": data.get("base_ref"),
+                    "pr_number": data.get("pr_number"),
                 }
             )
             if is_org_auth_token_auth(request.auth):
