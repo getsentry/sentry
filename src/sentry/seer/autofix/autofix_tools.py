@@ -8,8 +8,8 @@ def get_profile_details(
     project_id: int,
     profile_id: str,
     is_continuous: bool = False,
-    precise_start_ts: float = None,
-    precise_finish_ts: float = None,
+    precise_start_ts: float | None = None,
+    precise_finish_ts: float | None = None,
 ):
     profile = fetch_profile_data(
         profile_id=profile_id,
