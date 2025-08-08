@@ -13,7 +13,11 @@ def dict_from_stack(value: str, stack, strict: bool) -> dict[str, Any]:
 
 class TestEventFromStack:
     def test_simple(self):
-        event = dict_from_stack("test", [FrameSummary("/app/test.py", 1, "func")], strict=True)
+        stack = [
+            FrameSummary("/app/test_xyz.py", 1, "func"),  # app code - in_app
+            FrameSummary("/usr/lib/python3.13/threading.py", 100, "start"),  # stdlib - not in_app
+        ]
+        event = dict_from_stack("test", stack, strict=True)
 
         assert event == {
             "level": "error",
@@ -31,13 +35,21 @@ class TestEventFromStack:
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "filename": "/app/test.py",
+                                    "filename": "/app/test_xyz.py",
                                     "function": "func",
                                     "module": None,
                                     "lineno": 1,
-                                    "context_line": None,
+                                    "context_line": "",
                                     "in_app": True,
-                                }
+                                },
+                                {
+                                    "filename": "/usr/lib/python3.13/threading.py",
+                                    "function": "start",
+                                    "module": None,
+                                    "lineno": 100,
+                                    "context_line": "",
+                                    "in_app": False,
+                                },
                             ]
                         },
                     }
@@ -75,4 +87,4 @@ class TestEventFromStack:
         event = dict_from_stack("test", [frame_minimal], strict=True)
         stack_frame = event["exception"]["values"][0]["stacktrace"]["frames"][0]
         assert stack_frame["module"] is None
-        assert stack_frame["context_line"] is None
+        assert stack_frame["context_line"] == ""

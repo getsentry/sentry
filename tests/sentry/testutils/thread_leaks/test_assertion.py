@@ -1,12 +1,14 @@
 """Integration tests for thread leak assertion utilities."""
 
+import builtins
 import re
-import sys
 from threading import Event, Thread
 
 import pytest
 
 from sentry.testutils.thread_leaks.assertion import ThreadLeakAssertionError, assert_none
+
+log_test_info = builtins.print
 
 
 class TestAssertNoneIntegration:
@@ -20,17 +22,29 @@ class TestAssertNoneIntegration:
         """Test that thread leaks raise in strict mode."""
         stop = Event()
         thread = Thread(target=stop.wait, daemon=True)
+        result = {}
         try:
             with pytest.raises(ThreadLeakAssertionError) as exc_info:
-                with assert_none(strict=True):
+                with assert_none(strict=True) as result:
                     # Create a daemon thread that won't block test completion
                     thread.start()
         finally:
             stop.set()
             thread.join()
 
+        # Verify event was captured even though exception was raised
+        assert len(result["events"]) == 1
+
+        # Print event ID for manual verification via Sentry MCP
+        event_id, event = next(iter(result["events"].items()))
+        log_test_info(f"Thread leak strict event ID: {event_id}")
+
+        # Verify event payload
+        assert event["level"] == "error"  # strict=True
+        assert event["exception"]["values"][0]["mechanism"]["handled"] is False
+
         stack_diff = str(exc_info.value)
-        sys.stdout.write(f"ORIG: {stack_diff}\n")
+        log_test_info(f"ORIG: {stack_diff}")
 
         # all of the numbers are effectively random
         stack_diff = re.sub("[0-9]+", "$N", stack_diff)
@@ -58,3 +72,26 @@ class TestAssertNoneIntegration:
             # Wait for thread to complete before context exits
             thread.join(timeout=1.0)
         # Should not raise - thread completed and is no longer active
+
+    def test_thread_leak_non_strict_sends_to_sentry(self):
+        """Test that thread leaks in non-strict mode send events to Sentry."""
+        stop = Event()
+        thread = Thread(target=stop.wait, daemon=True)
+        try:
+            with assert_none(strict=False) as result:
+                # Create a daemon thread leak
+                thread.start()
+        finally:
+            stop.set()
+            thread.join()
+
+        # Verify event was captured
+        assert len(result["events"]) == 1
+
+        # Print event ID for manual verification via Sentry MCP
+        event_id, event = next(iter(result["events"].items()))
+        log_test_info(f"Thread leak event ID: {event_id}")
+
+        # Verify event payload
+        assert event["level"] == "warning"  # strict=False
+        assert event["exception"]["values"][0]["mechanism"]["handled"] is True
