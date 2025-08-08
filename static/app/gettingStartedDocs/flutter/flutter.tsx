@@ -49,7 +49,7 @@ const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
 const getManualInstallSnippet = (params: Params) => {
-  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '9.6.0');
   return `dependencies:
   sentry_flutter: ^${version}`;
 };

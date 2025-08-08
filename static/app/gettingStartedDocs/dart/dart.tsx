@@ -17,7 +17,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = (params: Params) => `
 dependencies:
-  sentry: ^${getPackageVersion(params, 'sentry.dart', '7.8.0')}`;
+  sentry: ^${getPackageVersion(params, 'sentry.dart', '9.6.0')}`;
 
 const getConfigureSnippet = (params: Params) => `
 import 'package:sentry/sentry.dart';
