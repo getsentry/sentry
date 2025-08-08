@@ -18,8 +18,8 @@ class BuildDetailsAppInfo(BaseModel):
     build_number: int | None = None
     date_added: str | None = None
     date_built: str | None = None
-    artifact_type: PreprodArtifact.ArtifactType
-    platform: Platform
+    artifact_type: PreprodArtifact.ArtifactType | None = None
+    platform: Platform | None = None
     is_installable: bool
     # build_configuration: Optional[str] = None  # Uncomment when available
     # icon: Optional[str] = None  # Uncomment when available
@@ -44,8 +44,10 @@ class BuildDetailsApiResponse(BaseModel):
     size_info: BuildDetailsSizeInfo | None = None
 
 
-def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
-    if artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType | None) -> Platform | None:
+    if artifact_type is None:
+        return None
+    elif artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
         return Platform.IOS
     elif (
         artifact_type == PreprodArtifact.ArtifactType.AAB
