@@ -15,6 +15,7 @@ import {
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 
@@ -28,13 +29,15 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider
-      isTableFrozen
-      limitToTraceId={traceSlug}
-      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-    >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
-    </LogsPageParamsProvider>
+    <LogsQueryParamsProvider source="state">
+      <LogsPageParamsProvider
+        isTableFrozen
+        limitToTraceId={traceSlug}
+        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      >
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 
