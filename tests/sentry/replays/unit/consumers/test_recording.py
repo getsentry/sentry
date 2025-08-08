@@ -262,6 +262,7 @@ def test_parse_recording_event_invalid_headers() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
+@django_db_all
 def test_process_message_compressed() -> None:
     """Test "process_message" function with compressed payload."""
     # Create real compressed data
