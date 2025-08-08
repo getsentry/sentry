@@ -253,7 +253,6 @@ def run_bulk_replay_delete_job(
         return None
 
 
-# TODO: this task doesn't seem to be used anywhere in sentry or getsentry. Delete it?
 @instrumented_task(
     name="sentry.replays.tasks.delete_replay",
     queue="replays.delete_replay",
