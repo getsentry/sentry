@@ -121,7 +121,7 @@ class ActivitySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj: Activity, attrs, user, **kwargs):
         if obj.type == ActivityType.SET_RESOLVED_IN_COMMIT.value:
             data = {"commit": attrs["commit"]}
         elif obj.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value:
@@ -131,7 +131,7 @@ class ActivitySerializer(Serializer):
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
         else:
-            data = obj.data
+            data = obj.data or {}
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
