@@ -88,7 +88,7 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
         },
     ):
         profiling_enabled = options.get(
-            "replay.ingest.profiling.enabled",
+            "replay.consumer.recording.profiling.enabled",
         )
         if profiling_enabled:
             sentry_sdk.profiler.start_profiler()
@@ -193,7 +193,7 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
             },
         ):
             profiling_enabled = options.get(
-                "replay.ingest.profiling.enabled",
+                "replay.consumer.recording.profiling.enabled",
             )
             if profiling_enabled:
                 sentry_sdk.profiler.start_profiler()

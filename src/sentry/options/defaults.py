@@ -517,7 +517,7 @@ register(
 )
 # Enables profiling for replay recording ingestion.
 register(
-    "replay.ingest.profiling.enabled",
+    "replay.consumer.recording.profiling.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
