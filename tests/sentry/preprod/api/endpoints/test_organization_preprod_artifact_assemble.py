@@ -392,6 +392,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
+                "build_configuration": None,
+                "head_sha": None,
+                "base_sha": None,
+                "provider": None,
+                "head_repo_name": None,
+                "base_repo_name": None,
+                "head_ref": None,
+                "base_ref": None,
+                "pr_number": None,
             }
         )
 
@@ -449,6 +458,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
+                "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             }
         )
 
