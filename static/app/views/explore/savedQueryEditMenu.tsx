@@ -9,7 +9,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getSavedQueryTraceItemDataset,
+  useGetSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {confirmDeleteSavedQuery} from 'sentry/views/explore/utils';
 
@@ -47,11 +50,17 @@ export function SavedQueryEditMenu() {
                     normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
                   );
                 }
-                if (savedQuery.traceItemDataset === TraceItemDataset.SPANS) {
+                if (
+                  getSavedQueryTraceItemDataset(savedQuery.dataset) ===
+                  TraceItemDataset.SPANS
+                ) {
                   trackAnalytics('trace_explorer.delete_query', {
                     organization,
                   });
-                } else if (savedQuery.traceItemDataset === TraceItemDataset.LOGS) {
+                } else if (
+                  getSavedQueryTraceItemDataset(savedQuery.dataset) ===
+                  TraceItemDataset.LOGS
+                ) {
                   trackAnalytics('logs.delete_query', {
                     organization,
                   });
