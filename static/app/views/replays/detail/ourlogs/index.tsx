@@ -18,6 +18,7 @@ import {
   TraceItemAttributeProvider,
   useTraceItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   EmptyRenderer,
   ErrorRenderer,
@@ -75,17 +76,19 @@ export default function OurLogs() {
   }
 
   return (
-    <LogsPageParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-      isTableFrozen
-      limitToTraceId={traceIds}
-    >
-      <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <OurLogsContent />
-        </TraceItemAttributeProvider>
-      </LogsPageDataProvider>
-    </LogsPageParamsProvider>
+    <LogsQueryParamsProvider source="state">
+      <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        isTableFrozen
+        limitToTraceId={traceIds}
+      >
+        <LogsPageDataProvider>
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+            <OurLogsContent />
+          </TraceItemAttributeProvider>
+        </LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 

@@ -32,6 +32,7 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -434,110 +435,115 @@ function EAPSpanNodeDetails({
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileId || ''}
               >
-                <LogsPageParamsProvider
-                  isTableFrozen
-                  limitToTraceId={traceId}
-                  limitToSpanId={node.value.event_id}
-                  limitToProjectIds={[node.value.project_id]}
-                  analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-                >
-                  <LogsPageDataProvider>
-                    {issues.length > 0 ? (
-                      <IssueList
+                <LogsQueryParamsProvider source="state">
+                  <LogsPageParamsProvider
+                    isTableFrozen
+                    limitToTraceId={traceId}
+                    limitToSpanId={node.value.event_id}
+                    limitToProjectIds={[node.value.project_id]}
+                    analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+                  >
+                    <LogsPageDataProvider>
+                      {issues.length > 0 ? (
+                        <IssueList
+                          organization={organization}
+                          issues={issues}
+                          node={node}
+                        />
+                      ) : null}
+                      <EAPSpanDescription
+                        node={node}
+                        project={project}
                         organization={organization}
-                        issues={issues}
-                        node={node}
+                        location={location}
+                        attributes={attributes}
+                        avgSpanDuration={avgSpanDuration}
+                        hideNodeActions={hideNodeActions}
                       />
-                    ) : null}
-                    <EAPSpanDescription
-                      node={node}
-                      project={project}
-                      organization={organization}
-                      location={location}
-                      attributes={attributes}
-                      avgSpanDuration={avgSpanDuration}
-                      hideNodeActions={hideNodeActions}
-                    />
-                    <AIInputSection node={node} attributes={attributes} />
-                    <AIOutputSection node={node} attributes={attributes} />
-                    <MCPInputSection node={node} attributes={attributes} />
-                    <MCPOutputSection node={node} attributes={attributes} />
-                    <Attributes
-                      node={node}
-                      attributes={attributes}
-                      theme={theme}
-                      location={location}
-                      organization={organization}
-                      project={project}
-                    />
-
-                    {isTransaction ? (
-                      <Contexts event={eventTransaction} project={project} />
-                    ) : null}
-
-                    <LogDetails />
-
-                    {organization.features.includes('trace-view-span-links') &&
-                    links?.length ? (
-                      <TraceSpanLinks
+                      <AIInputSection node={node} attributes={attributes} />
+                      <AIOutputSection node={node} attributes={attributes} />
+                      <MCPInputSection node={node} attributes={attributes} />
+                      <MCPOutputSection node={node} attributes={attributes} />
+                      <Attributes
                         node={node}
-                        links={links}
+                        attributes={attributes}
                         theme={theme}
                         location={location}
                         organization={organization}
-                      />
-                    ) : null}
-
-                    {eventTransaction && organization.features.includes('profiling') ? (
-                      <ProfileDetails
-                        organization={organization}
                         project={project}
-                        event={eventTransaction}
-                        span={{
-                          span_id: node.value.event_id,
-                          start_timestamp: node.value.start_timestamp,
-                          end_timestamp: node.value.end_timestamp,
-                        }}
                       />
-                    ) : null}
 
-                    {isTransaction ? (
-                      <ReplayPreview
-                        event={eventTransaction}
-                        organization={organization}
-                      />
-                    ) : null}
+                      {isTransaction ? (
+                        <Contexts event={eventTransaction} project={project} />
+                      ) : null}
 
-                    {isTransaction && project ? (
-                      <EventAttachments
-                        event={eventTransaction}
-                        project={project}
-                        group={undefined}
-                      />
-                    ) : null}
+                      <LogDetails />
 
-                    {isTransaction ? (
-                      <BreadCrumbs event={eventTransaction} organization={organization} />
-                    ) : null}
+                      {organization.features.includes('trace-view-span-links') &&
+                      links?.length ? (
+                        <TraceSpanLinks
+                          node={node}
+                          links={links}
+                          theme={theme}
+                          location={location}
+                          organization={organization}
+                        />
+                      ) : null}
 
-                    {isTransaction && project ? (
-                      <EventViewHierarchy
-                        event={eventTransaction}
-                        project={project}
-                        disableCollapsePersistence
-                      />
-                    ) : null}
+                      {eventTransaction && organization.features.includes('profiling') ? (
+                        <ProfileDetails
+                          organization={organization}
+                          project={project}
+                          event={eventTransaction}
+                          span={{
+                            span_id: node.value.event_id,
+                            start_timestamp: node.value.start_timestamp,
+                            end_timestamp: node.value.end_timestamp,
+                          }}
+                        />
+                      ) : null}
 
-                    {isTransaction && eventTransaction.projectSlug ? (
-                      <EventRRWebIntegration
-                        event={eventTransaction}
-                        orgId={organization.slug}
-                        projectSlug={eventTransaction.projectSlug}
-                        disableCollapsePersistence
-                      />
-                    ) : null}
-                  </LogsPageDataProvider>
-                </LogsPageParamsProvider>
+                      {isTransaction ? (
+                        <ReplayPreview
+                          event={eventTransaction}
+                          organization={organization}
+                        />
+                      ) : null}
+
+                      {isTransaction && project ? (
+                        <EventAttachments
+                          event={eventTransaction}
+                          project={project}
+                          group={undefined}
+                        />
+                      ) : null}
+
+                      {isTransaction ? (
+                        <BreadCrumbs
+                          event={eventTransaction}
+                          organization={organization}
+                        />
+                      ) : null}
+
+                      {isTransaction && project ? (
+                        <EventViewHierarchy
+                          event={eventTransaction}
+                          project={project}
+                          disableCollapsePersistence
+                        />
+                      ) : null}
+
+                      {isTransaction && eventTransaction.projectSlug ? (
+                        <EventRRWebIntegration
+                          event={eventTransaction}
+                          orgId={organization.slug}
+                          projectSlug={eventTransaction.projectSlug}
+                          disableCollapsePersistence
+                        />
+                      ) : null}
+                    </LogsPageDataProvider>
+                  </LogsPageParamsProvider>
+                </LogsQueryParamsProvider>
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
