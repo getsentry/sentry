@@ -703,4 +703,60 @@ describe('OnDemandBudgets', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it('displays logs warning copy when only logs-billing is enabled', () => {
+    organization.features = ['logs-billing'];
+    const subscription = SubscriptionFixture({
+      plan: 'am2_business',
+      planTier: PlanTier.AM2,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am2_business')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        budgets: {
+          errors: 1000,
+          transactions: 2000,
+          attachments: 3000,
+          monitorSeats: 4000,
+        },
+        usedSpends: {},
+      },
+    });
+
+    const activePlan = subscription.planDetails;
+
+    const onDemandBudget = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
+      budgets: {
+        errors: 1000,
+        transactions: 2000,
+        attachments: 3000,
+        monitorSeats: 4000,
+      },
+    };
+
+    render(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
+    expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
+
+    expect(
+      screen.getByText(
+        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+      )
+    ).toBeInTheDocument();
+  });
 });

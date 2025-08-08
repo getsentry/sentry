@@ -172,7 +172,8 @@ class OnDemandBudgetEdit extends Component<Props> {
             organization={organization}
             subscription={subscription}
           />
-          {organization.features.includes('seer-billing') && (
+          {(organization.features.includes('seer-billing') ||
+            organization.features.includes('logs-billing')) && (
             <Alert.Container>
               <Alert type="warning">
                 {organization.features.includes('logs-billing')
