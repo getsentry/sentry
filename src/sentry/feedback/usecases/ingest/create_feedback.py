@@ -25,7 +25,7 @@ from sentry.feedback.usecases.title_generation import (
 )
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -165,11 +165,8 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        try:
-            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            metrics.incr("feedback.create_feedback_issue.invalid_schema")
-            raise
+        metrics.incr("feedback.create_feedback_issue.invalid_schema")
+        raise
 
 
 def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
