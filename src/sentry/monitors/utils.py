@@ -412,3 +412,13 @@ def ensure_cron_detector(monitor: Monitor):
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
     except Exception:
         logger.exception("Error creating cron detector")
+
+
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        return Detector.objects.get(
+            datasource__type=DATA_SOURCE_CRON_MONITOR,
+            datasource__source_id=str(monitor.id),
+        )
+    except Detector.DoesNotExist:
+        return None
