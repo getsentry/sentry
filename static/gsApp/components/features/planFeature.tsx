@@ -112,8 +112,9 @@ function PlanFeature({subscription, features, organization, children}: Props) {
   // HACK: we want to remove `global-views` from getsentry and move it to flagpole,
   // but since PlanFeature hooks into getsentry to determine which plan
   // `global-views` is in, we need to hardcode it into the plans here
+  // TODO: remove this
   for (const plan of plans) {
-    if (isBizPlanFamily(plan) || plan.id.includes('mm2') || isAmEnterprisePlan(plan.id)) {
+    if (isBizPlanFamily(plan) || isAmEnterprisePlan(plan.id)) {
       if (!plan.features.includes('global-views')) {
         plan.features.push('global-views');
       }
