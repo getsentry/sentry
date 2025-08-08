@@ -177,7 +177,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
           )
         )
         .join(SERIES_LIST_DELIMITER)

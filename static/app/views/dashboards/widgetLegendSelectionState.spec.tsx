@@ -10,7 +10,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const WIDGET_ID_DELIMITER = ':';
-const SERIES_NAME_DELIMITER = ';';
+const SERIES_NAME_DELIMITER = '|~|';
 
 describe('WidgetLegend functions util', () => {
   let legendFunctions: WidgetLegendSelectionState;

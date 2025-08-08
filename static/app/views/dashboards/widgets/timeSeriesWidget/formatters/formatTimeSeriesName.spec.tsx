@@ -5,8 +5,8 @@ import {formatTimeSeriesName} from './formatTimeSeriesName';
 describe('formatSeriesName', () => {
   describe('releases', () => {
     it.each([
-      ['p75(span.duration);11762', 'p75(span.duration)'],
-      ['Releases;', 'Releases'],
+      ['p75(span.duration)|~|11762', 'p75(span.duration)'],
+      ['Releases|~|', 'Releases'],
     ])('Formats %s as %s', (name, result) => {
       const timeSeries = TimeSeriesFixture({
         yAxis: name,
@@ -72,8 +72,8 @@ describe('formatSeriesName', () => {
 
   describe('combinations', () => {
     it.each([
-      ['equation|p75(measurements.cls) + 1;76123', 'p75(measurements.cls) + 1'],
-      ['equation|p75(measurements.cls);76123', 'p75(measurements.cls)'],
+      ['equation|p75(measurements.cls) + 1|~|76123', 'p75(measurements.cls) + 1'],
+      ['equation|p75(measurements.cls)|~|76123', 'p75(measurements.cls)'],
     ])('Formats %s as %s', (name, result) => {
       const timeSeries = TimeSeriesFixture({
         yAxis: name,
@@ -86,7 +86,7 @@ describe('formatSeriesName', () => {
   describe('groupBy', () => {
     it.each([
       [
-        'equation|p75(measurements.cls);76123',
+        'equation|p75(measurements.cls)|~|76123',
         [{key: 'release', value: 'v0.0.2'}],
         'v0.0.2',
       ],

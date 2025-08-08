@@ -900,7 +900,7 @@ export function getMeasurementSlug(field: string): string | null {
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
