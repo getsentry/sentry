@@ -20,39 +20,37 @@ export default function ReplayTableHeaderActions({
   const queryOptions = parseQueryKey(queryKey).options;
 
   return (
-    <Wrapper>
-      <SimpleTable.HeaderCell style={{gridColumn: '1 / 1'}}>
+    <Header>
+      <FirstCell>
         <ReplaySelectColumn.Header
           columnIndex={0}
           listItemCheckboxState={listItemCheckboxState}
           replays={replays}
         />
-      </SimpleTable.HeaderCell>
-
-      <RemaingingItems>
+      </FirstCell>
+      <RemaingingCells>
         <DeleteReplays
           queryOptions={queryOptions}
           replays={replays}
           selectedIds={selectedIds}
         />
-      </RemaingingItems>
-    </Wrapper>
+      </RemaingingCells>
+    </Header>
   );
 }
 
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  grid-row: 1 / 1;
+const Header = styled(SimpleTable.Header)`
+  grid-row: 1;
   z-index: ${p => p.theme.zIndex.initial};
 `;
 
-const RemaingingItems = styled('div')`
+const FirstCell = styled(SimpleTable.HeaderCell)`
+  grid-column: 1;
+`;
+
+const RemaingingCells = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 2 / -1;
 `;

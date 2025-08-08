@@ -20,7 +20,7 @@ export default function ReplayTableHeader({columns, replays, onSortClick, sort}:
 
   return (
     <Fragment>
-      <SimpleTable.Header style={{gridRow: '1 / 1'}}>
+      <SimpleTable.Header style={{gridRow: '1'}}>
         {columns.map(({Header, sortKey}, columnIndex) => (
           <SimpleTable.HeaderCell
             key={`${sortKey}-${columnIndex}`}
