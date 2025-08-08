@@ -358,9 +358,11 @@ def create_feedback_issue(
                 # "AnnoyingMIDDLEWildcard",  # This is to test if a literal * in the search term will match the MIDDLE or if it means a literal *
                 'Quote\\"Backslash',
                 'Quote"And*Wildcard',
-                "Wilcard\\*Backslash",  # there is a literal backslash here
+                # "Wilcard\\*Backslash",  # there is a literal backslash here
+                "Wilcard\\MIDDLEBackslash",  # Used to test the literal * in the above search term, frontend logic for it
                 "Array[]Syntax",
                 "Comma,Syntax",
+                "RoundBrackets()Syntax)",
             ]
 
             # Truncate the labels so the serialized list is within the allowed length

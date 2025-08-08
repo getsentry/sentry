@@ -31,10 +31,23 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 // We search against a JSON-serialized array of all labels, this means:
 // - The first JSON.stringify is to give us the exact string we want to search for (since the array we are substring matching against has JSON-serialized strings, that have quotes on either side, and the JSON.stringify gives us those quotes on either side)
 // - But, the search API considers backslashes and quotes as special characters (similar to how JSON does), so we have to escape them again to indicate to search that they are exact matches, and not escape/special characters
-// Special case: if the label has a literal * in it, we have to escape it to indicate to search that it is a literal *
+// Special case: if the label has a literal * in it, we have to escape it to indicate to search that it is a literal *. Since otherwise, anything will be matched on the *
 // Q: what if there is a literal \*, does escaping the backslash allow us to exact match on the backslash that's before the *?
+
+// Notes:
+// - Replacing * with \* does NOT work before JSON stringifying, because the \* is escaped to \\*, which actually ends up matching the wildcard and not the literal *
+//   - Thus, we want exactly one \ before *, so we replace after both JSON stringifying, but this also means that the actual wildcard must be added after the final JSON stringify
+
+// Key of this function is that the search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
 function getSearchTermForLabel(label: string) {
-  return JSON.stringify(`*${JSON.stringify(label)}*`);
+  const exactMatchString = JSON.stringify(label);
+  let toPassToSearch = JSON.stringify(exactMatchString);
+  // First, replace * with \* (this must be done after both JSON stringifies)
+  toPassToSearch = toPassToSearch.replace('*', '\\*');
+  // Now, add the wildcards to the string (second spot and second-last spot, since we want them inside the second pair of quotes)
+  // The first and last quotes are added by the JSON.stringify, we just manually add them back
+  toPassToSearch = `"*${toPassToSearch.slice(1, -1)}*"`;
+  return toPassToSearch;
 }
 
 function getSearchTermForLabelList(labels: string[]) {
@@ -42,7 +55,11 @@ function getSearchTermForLabelList(labels: string[]) {
   return `[${searchTerms.join(',')}]`;
 }
 
-const exampleFilter = getSearchTermForLabelList(['Annoying*Wildcard']);
+// This works
+// const exampleFilter = getSearchTermForLabelList(['Annoying*Wildcard']);
+
+// Now try it with a literal backslash before the *
+const exampleFilter = getSearchTermForLabelList(['Quote"And*Wildcard']);
 
 export default function FeedbackSummary() {
   const {
