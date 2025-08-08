@@ -312,7 +312,7 @@ class FlamegraphExecutor:
         self,
         query: str | None,
         limit: int,
-        snuba_params: SnubaParams | None,
+        snuba_params: SnubaParams | None = None,
     ) -> DiscoverQueryBuilder:
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
@@ -359,7 +359,10 @@ class FlamegraphExecutor:
         return builder
 
     def get_chunks_for_profilers(
-        self, profiler_metas: list[ProfilerMeta], limit: int, snuba_params: SnubaParams | None
+        self,
+        profiler_metas: list[ProfilerMeta],
+        limit: int,
+        snuba_params: SnubaParams | None = None,
     ) -> tuple[list[ContinuousProfileCandidate], float]:
         total_duration = 0.0
 
@@ -421,7 +424,7 @@ class FlamegraphExecutor:
         return continuous_profile_candidates, total_duration
 
     def _create_chunks_query(
-        self, profiler_metas: list[ProfilerMeta], snuba_params: SnubaParams | None
+        self, profiler_metas: list[ProfilerMeta], snuba_params: SnubaParams | None = None
     ) -> Query:
         assert profiler_metas, "profiler_metas cannot be empty"
         snuba_params = snuba_params or self.snuba_params
