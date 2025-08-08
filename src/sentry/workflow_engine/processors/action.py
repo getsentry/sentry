@@ -136,8 +136,7 @@ def deduplicate_actions(
     dedup_key_to_action_id: dict[str, int] = defaultdict(int)
 
     for action in sorted_actions:
-        handler = action.get_handler()
-        dedup_key = handler.get_dedup_key(action)
+        dedup_key = action.get_dedup_key()
 
         dedup_key_to_action_id[dedup_key] = action.id
 

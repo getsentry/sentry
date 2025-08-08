@@ -301,9 +301,7 @@ class TestActionDeduplication(TestCase):
     def test_deduplicate_actions_plugin_actions(self) -> None:
         plugin_action_1 = self.create_action(type=Action.Type.PLUGIN)
 
-        plugin_action_2 = self.create_action(
-            type=Action.Type.PLUGIN, config={"target_identifier": "plugin-2"}
-        )
+        plugin_action_2 = self.create_action(type=Action.Type.PLUGIN)
 
         actions_queryset = Action.objects.filter(id__in=[plugin_action_1.id, plugin_action_2.id])
         action_to_workflow_ids = {plugin_action_1.id: 1, plugin_action_2.id: 2}

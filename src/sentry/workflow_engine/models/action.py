@@ -110,6 +110,22 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             },
         )
 
+    def get_dedup_key(self) -> str:
+        key_parts = [self.type]
+        if self.config:
+            temp = self.config.copy()
+            temp.pop("channel_name", None)
+            key_parts.append(str(temp))
+
+        if self.data:
+            temp = self.data.copy()
+            if "dynamic_form_fields" in temp:
+                temp = temp["dynamic_form_fields"]
+
+            key_parts.append(str(temp))
+
+        return ":".join(key_parts)
+
 
 @receiver(pre_save, sender=Action)
 def enforce_config_schema(sender, instance: Action, **kwargs):
