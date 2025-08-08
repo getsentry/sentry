@@ -10,6 +10,7 @@ from sentry.replays.lib import kafka
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.replays.usecases.delete import SEER_DELETE_SUMMARIES_URL
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.utils import kafka_config
@@ -237,3 +238,31 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata1) is None
         assert storage.get(metadata2) is None
         assert storage.get(metadata3) is not None
+
+    @mock.patch("sentry.replays.usecases.delete.make_seer_request")
+    def test_delete_replay_from_seer(
+        self,
+        mock_make_seer_request: mock.MagicMock,
+    ) -> None:
+        """Test delete method deletes from Seer if summaries are enabled."""
+        kept_replay_id = uuid4().hex
+
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        t2 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(t1, self.project.id, self.replay_id, segment_id=0))
+        self.store_replays(mock_replay(t2, self.project.id, self.replay_id, segment_id=1))
+        self.store_replays(mock_replay(t1, self.project.id, kept_replay_id, segment_id=0))
+
+        mock_make_seer_request.return_value = (None, 204)
+
+        with self.feature({**REPLAYS_FEATURES, "organizations:replay-ai-summaries": True}):
+            with TaskRunner():
+                response = self.client.delete(self.url)
+                assert response.status_code == 204
+
+        mock_make_seer_request.assert_called_once()
+        (url, data) = mock_make_seer_request.call_args.args
+        assert url == SEER_DELETE_SUMMARIES_URL
+        assert data == {
+            "replay_ids": [self.replay_id],
+        }

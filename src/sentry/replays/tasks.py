@@ -15,7 +15,11 @@ from sentry.replays.lib.storage import (
     storage_kv,
 )
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
-from sentry.replays.usecases.delete import delete_matched_rows, fetch_rows_matching_pattern
+from sentry.replays.usecases.delete import (
+    delete_matched_rows,
+    delete_seer_replay_data,
+    fetch_rows_matching_pattern,
+)
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
@@ -30,7 +34,7 @@ logger = logging.getLogger()
 
 
 @instrumented_task(
-    name="sentry.replays.tasks.delete_recording_segments",
+    name="sentry.replays.tasks.delete_replay",
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
@@ -43,32 +47,17 @@ logger = logging.getLogger()
         ),
     ),
 )
-def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
+def delete_replay(
+    project_id: int, replay_id: str, has_seer_data: bool = False, **kwargs: Any
+) -> None:
     """Asynchronously delete a replay."""
-    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
-    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
-
-
-@instrumented_task(
-    name="sentry.replays.tasks.delete_replay_recording_async",
-    queue="replays.delete_replay",
-    default_retry_delay=5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        processing_deadline_duration=120,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
-)
-def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
-    delete_replay_recording(project_id, replay_id)
+    if has_seer_data:
+        delete_seer_replay_data(project_id, [replay_id])
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
 
 
 @instrumented_task(
@@ -115,6 +104,25 @@ def delete_replays_script_async(
     ).all()
     for segment_model in segments_from_django_models:
         segment_model.delete()
+
+
+@instrumented_task(
+    name="sentry.replays.tasks.delete_replay_recording_async",
+    queue="replays.delete_replay",
+    default_retry_delay=5,
+    max_retries=5,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks,
+        processing_deadline_duration=120,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
+)
+def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
+    delete_replay_recording(project_id, replay_id)
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
@@ -178,7 +186,9 @@ def _delete_if_exists(filename: str) -> None:
         namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=300
     ),
 )
-def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: int = 100) -> None:
+def run_bulk_replay_delete_job(
+    replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False
+) -> None:
     """Replay bulk deletion task.
 
     We specify retry behavior in the task definition. However, if the task fails more than 5 times
@@ -213,6 +223,10 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
+            if has_seer_data:
+                delete_seer_replay_data(
+                    job.project_id, [row["replay_id"] for row in results["rows"]]
+                )
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
@@ -228,8 +242,9 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         # Checkpoint before continuing.
         job.offset = next_offset
         job.save()
-
-        run_bulk_replay_delete_job.delay(job.id, next_offset, limit=limit)
+        run_bulk_replay_delete_job.delay(
+            job.id, next_offset, limit=limit, has_seer_data=has_seer_data
+        )
         return None
     else:
         # If we've finished deleting all the replays for the selection. We can move the status to
