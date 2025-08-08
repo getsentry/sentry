@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 import responses
-from django.conf import settings
 
 from sentry.feedback.usecases.title_generation import (
+    SEER_GENERATE_TITLE_URL,
     GenerateFeedbackTitleRequest,
     format_feedback_title,
     get_feedback_title_from_seer,
@@ -22,7 +22,7 @@ def mock_seer_response(**kwargs) -> None:
     """Use with @responses.activate to mock Seer API responses."""
     responses.add(
         responses.POST,
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title",
+        SEER_GENERATE_TITLE_URL,
         **kwargs,
     )
 
@@ -78,10 +78,7 @@ class TestTitleGeneration(TestCase):
 
             assert len(responses.calls) == 1
             seer_request = responses.calls[0].request
-            assert (
-                seer_request.url
-                == f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title"
-            )
+            assert seer_request.url == SEER_GENERATE_TITLE_URL
             assert seer_request.method == "POST"
             assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
 
