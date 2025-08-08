@@ -11,6 +11,7 @@ from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
+    DetectorThresholds,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
@@ -55,6 +56,18 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
+    def __init__(
+        self,
+        detector: Detector,
+        thresholds: DetectorThresholds | None = None,
+        has_grouping: bool = True,
+    ):
+        """
+        Tests have `has_grouping` enabled by default.
+        This is to ensure consistency in tests, when the flag was introduced.
+        """
+        super().__init__(detector, thresholds, has_grouping)
+
     def test_get_empty_counter_state(self):
         return {name: None for name in self.state_manager.counter_names}
 
