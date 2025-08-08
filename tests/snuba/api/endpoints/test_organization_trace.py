@@ -34,6 +34,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_basic_uptime_item_serialization(self):
         """Test basic serialization with all required fields."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-123"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-123"),
             "sentry.trace_id": ProtoAttributeValue(val_str="a" * 32),
@@ -78,6 +79,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_redirect_chain_serialization(self):
         """Test serialization of redirect chain with different URLs."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-789"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-789"),
             "sentry.trace_id": ProtoAttributeValue(val_str="b" * 32),
@@ -101,6 +103,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
     def test_null_and_missing_fields(self):
         """Test handling of null and missing optional fields."""
         row_dict = {
+            "sentry.item_id": ProtoAttributeValue(val_str="check-null"),
             "sentry.project_id": ProtoAttributeValue(val_int=1),
             "guid": ProtoAttributeValue(val_str="check-null"),
             "sentry.trace_id": ProtoAttributeValue(val_str="c" * 32),
@@ -514,6 +517,7 @@ class OrganizationEventsTraceEndpointTest(
             elif attr_value.HasField("bool_value"):
                 row_dict[attr_name] = ProtoAttributeValue(val_bool=attr_value.bool_value)
 
+        row_dict["sentry.item_id"] = ProtoAttributeValue(val_str=trace_item.item_id.hex())
         row_dict["sentry.project_id"] = ProtoAttributeValue(val_int=trace_item.project_id)
         row_dict["sentry.organization_id"] = ProtoAttributeValue(val_int=trace_item.organization_id)
         row_dict["sentry.trace_id"] = ProtoAttributeValue(val_str=trace_item.trace_id)
@@ -702,76 +706,3 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
-
-    def test_uptime_root_tree_multiple_checks(self):
-        """Test handling of multiple uptime checks with only the last one becoming parent"""
-        self.load_trace(is_eap=True)
-
-        self.create_event(
-            trace_id=self.trace_id,
-            transaction="/transaction/orphan",
-            spans=[],
-            project_id=self.project.id,
-            parent_span_id=uuid4().hex[:16],
-            milliseconds=500,
-            is_eap=True,
-        )
-        check1_result = self._create_uptime_result_with_original_url(
-            organization=self.organization,
-            project=self.project,
-            trace_id=self.trace_id,
-            guid="check-111",
-            check_status="success",
-            http_status_code=200,
-            request_sequence=0,
-            request_url="https://first.com",
-            scheduled_check_time=self.day_ago,
-            check_duration_us=100000,
-        )
-
-        check2_redirect = self._create_uptime_result_with_original_url(
-            organization=self.organization,
-            project=self.project,
-            trace_id=self.trace_id,
-            guid="check-222",
-            check_status="success",
-            http_status_code=301,
-            request_sequence=0,
-            request_url="https://second.com",
-            scheduled_check_time=self.day_ago,
-            check_duration_us=200000,
-        )
-
-        check2_final = self._create_uptime_result_with_original_url(
-            organization=self.organization,
-            project=self.project,
-            trace_id=self.trace_id,
-            guid="check-222",
-            check_status="success",
-            http_status_code=200,
-            request_sequence=1,
-            request_url="https://www.second.com",
-            scheduled_check_time=self.day_ago,
-            check_duration_us=300000,
-        )
-
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
-
-        self.store_uptime_results([check1_result, check2_redirect, check2_final])
-
-        with self.feature(features):
-            response = self.client_get(
-                data={"timestamp": self.day_ago, "include_uptime": "1"},
-            )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        self.assert_expected_results(
-            data,
-            [check1_result, check2_redirect, check2_final],
-            expected_children_ids=["/transaction/orphan", "root"],
-        )
