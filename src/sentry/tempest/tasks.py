@@ -184,6 +184,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
             },
         )
 
+        # Fetching crashes can fail if the CRS returns unexpected data.
+        # In this case retying does not help since we will just keep failing.
+        # To avoid this we skip over the bad crash by setting the latest fetched id to
+        # `None` such that in the next iteration of the job we first fetch the latest ID again.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
+
 
 def fetch_latest_id_from_tempest(
     org_id: int, project_id: int, client_id: str, client_secret: str
