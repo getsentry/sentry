@@ -46,9 +46,14 @@ function getRubyFrame(frame: Frame, includeLocation = true): string {
   return result;
 }
 
-function getPHPFrame(frame: Frame, idx: number): string {
+function getPHPFrame(frame: Frame, idx: number, includeLocation = true): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
-  return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
+  let result = `#${idx} ${frame.filename || frame.module}`;
+  if (includeLocation && defined(frame.lineNo) && frame.lineNo >= 0) {
+    result += `(${frame.lineNo})`;
+  }
+  result += `: ${funcName}`;
+  return result;
 }
 
 function getPythonFrame(frame: Frame, includeLocation = true): string {
@@ -185,7 +190,7 @@ function getFrame(
     case 'ruby':
       return getRubyFrame(frame, includeLocation);
     case 'php':
-      return getPHPFrame(frame, frameIdx);
+      return getPHPFrame(frame, frameIdx, includeLocation);
     case 'python':
       return getPythonFrame(frame, includeLocation);
     case 'java':
