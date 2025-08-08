@@ -322,7 +322,7 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None, **extra: Any):
+    def __init__(self, enhancements: str | None = None):
         if enhancements is None:
             enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
