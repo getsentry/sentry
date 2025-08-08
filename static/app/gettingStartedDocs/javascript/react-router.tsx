@@ -169,7 +169,7 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';`
     integrationsList.length > 0
       ? `
   integrations: [${integrationsList.join('')}
-  ]`
+  ],`
       : '';
 
   return `
