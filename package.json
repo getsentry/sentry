@@ -182,6 +182,7 @@
     "@emotion/eslint-plugin": "^11.12.0",
     "@eslint/js": "9.32.0",
     "@ianvs/prettier-plugin-sort-imports": "4.6.1",
+    "@prettier/plugin-oxc": "0.0.4",
     "@sentry-internal/rrweb-types": "2.34.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "9.40.0",
