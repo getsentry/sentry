@@ -354,7 +354,6 @@ def _serialize_columnar_uptime_item(
     columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
     common_column_names = {col.internal_name for col in COMMON_COLUMNS}
 
-    guid = row_dict["guid"].val_str
     trace_id = row_dict["sentry.trace_id"].val_str
     check_status = row_dict["check_status"].val_str
     http_status_code = (
@@ -368,8 +367,10 @@ def _serialize_columnar_uptime_item(
     project_id = row_dict["sentry.project_id"].val_int
     project_slug = project_slugs[project_id]
 
+    item_id_str = row_dict["sentry.item_id"].val_str
+
     span = {
-        "event_id": guid,
+        "event_id": item_id_str,
         "project_id": project_id,
         "project_slug": project_slug,
         "transaction_id": trace_id,
