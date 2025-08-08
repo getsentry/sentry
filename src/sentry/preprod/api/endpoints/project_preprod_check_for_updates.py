@@ -96,8 +96,8 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             return filter_kwargs
 
         try:
-            filter_kwargs = get_base_filters()
-            filter_kwargs.update(
+            current_filter_kwargs = get_base_filters()
+            current_filter_kwargs.update(
                 {
                     "main_binary_identifier": main_binary_identifier,
                     "build_version": provided_version,
@@ -105,9 +105,11 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             )
 
             if provided_build_configuration:
-                filter_kwargs["build_configuration"] = provided_build_configuration
+                current_filter_kwargs["build_configuration"] = provided_build_configuration
 
-            preprod_artifact = PreprodArtifact.objects.filter(**filter_kwargs).latest("date_added")
+            preprod_artifact = PreprodArtifact.objects.filter(**current_filter_kwargs).latest(
+                "date_added"
+            )
         except PreprodArtifact.DoesNotExist:
             logger.warning(
                 "No artifact found for binary identifier with version %s", provided_version
@@ -125,11 +127,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         # Get the update object - find the highest version available
         # Get all build versions for this app and platform
-        filter_kwargs = get_base_filters()
+        new_build_filter_kwargs = get_base_filters()
         if preprod_artifact:
-            filter_kwargs["build_configuration"] = preprod_artifact.build_configuration
+            new_build_filter_kwargs["build_configuration"] = preprod_artifact.build_configuration
+        elif provided_build_configuration:
+            new_build_filter_kwargs["build_configuration"] = provided_build_configuration
         all_versions = (
-            PreprodArtifact.objects.filter(**filter_kwargs)
+            PreprodArtifact.objects.filter(**new_build_filter_kwargs)
             .values_list("build_version", flat=True)
             .distinct()
         )
@@ -148,23 +152,17 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         # Get all artifacts for the highest version
         if highest_version:
-            filter_kwargs = get_base_filters()
-            filter_kwargs["build_version"] = highest_version
-            potential_artifacts = PreprodArtifact.objects.filter(**filter_kwargs)
+            new_build_filter_kwargs["build_version"] = highest_version
+            potential_artifacts = PreprodArtifact.objects.filter(**new_build_filter_kwargs)
 
             # Filter for installable artifacts and get the one with highest build_number
             installable_artifacts = [
                 artifact for artifact in potential_artifacts if is_installable_artifact(artifact)
             ]
             if len(installable_artifacts) > 0:
-                build_numbers = [artifact.build_number for artifact in installable_artifacts]
-                installable_artifacts = [
-                    artifact
-                    for artifact in installable_artifacts
-                    if artifact.build_number == max(build_numbers)
-                ]
-                # Get the artifact with the highest creation date
-                best_artifact = max(installable_artifacts, key=lambda x: x.date_added)
+                best_artifact = max(
+                    installable_artifacts, key=lambda a: (a.build_number, a.date_added)
+                )
                 if not preprod_artifact or preprod_artifact.id != best_artifact.id:
                     if best_artifact.build_version and best_artifact.build_number:
                         update = InstallableBuildDetails(

@@ -1,9 +1,12 @@
+import logging
 import secrets
 from datetime import timedelta
 
 from django.utils import timezone
 
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+
+logger = logging.getLogger(__name__)
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
@@ -62,6 +65,17 @@ def create_installable_preprod_artifact(
         url_path=url_path,
         expiration_date=expiration_date,
         download_count=0,
+    )
+
+    logger.info(
+        "Created installable preprod artifact",
+        extra={
+            "installable_artifact_id": installable_artifact.id,
+            "preprod_artifact_id": preprod_artifact.id,
+            "project_id": preprod_artifact.project.id,
+            "organization_id": preprod_artifact.project.organization.id,
+            "expiration_date": expiration_date.isoformat(),
+        },
     )
 
     return installable_artifact
