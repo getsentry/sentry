@@ -314,9 +314,17 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_basic(self, mock_assemble_preprod_artifact: MagicMock) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_basic(
+        self, mock_create_preprod_artifact: MagicMock, mock_assemble_preprod_artifact: MagicMock
+    ) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
+        artifact_id = "test-artifact-id"
+
+        mock_create_preprod_artifact.return_value = artifact_id
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -330,8 +338,16 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.CREATED
+        assert response.data["state"] == ChunkFileState.OK
         assert set(response.data["missingChunks"]) == set()
+        assert response.data["artifactId"] == artifact_id
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration=None,
+        )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
             kwargs={
@@ -339,15 +355,24 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
+                "artifact_id": artifact_id,
             }
         )
 
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_with_metadata(self, mock_assemble_preprod_artifact: MagicMock) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_with_metadata(
+        self, mock_create_preprod_artifact: MagicMock, mock_assemble_preprod_artifact: MagicMock
+    ) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
+        artifact_id = "test-artifact-id-with-metadata"
+
+        mock_create_preprod_artifact.return_value = artifact_id
 
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
@@ -363,8 +388,16 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.CREATED
+        assert response.data["state"] == ChunkFileState.OK
         assert set(response.data["missingChunks"]) == set()
+        assert response.data["artifactId"] == artifact_id
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+        )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
             kwargs={
@@ -372,6 +405,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
+                "artifact_id": artifact_id,
             }
         )
 
@@ -405,7 +439,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.CREATED
+        assert response.data["state"] == ChunkFileState.OK
 
     def test_assemble_response(self) -> None:
         content = b"test response content"
@@ -423,7 +457,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.CREATED
+        assert response.data["state"] == ChunkFileState.OK
 
     def test_assemble_with_pending_deletion_project(self) -> None:
         self.project.status = ObjectStatus.PENDING_DELETION
@@ -537,8 +571,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["missingChunks"] == []
 
     def test_check_existing_assembly_status(self) -> None:
+        """Test that endpoint doesn't check existing assembly status - it processes new requests."""
         checksum = sha1(b"test existing status").hexdigest()
 
+        # Even if assembly status exists, endpoint doesn't check it
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
         )
@@ -547,24 +583,24 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             self.url,
             data={
                 "checksum": checksum,
-                "chunks": [],
+                "chunks": [],  # No chunks means NOT_FOUND
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
         assert response.status_code == 200
-        assert response.data["state"] == ChunkFileState.OK
+        # Endpoint returns NOT_FOUND when no chunks are provided, regardless of existing status
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
     def test_integration_task_sets_status_api_can_read_it(self) -> None:
         """
-        Integration test that verifies the task and API endpoint use consistent scope.
+        Test showing that this endpoint doesn't poll for status - it only processes new assembly requests.
 
-        This test reproduces the real workflow:
-        1. Task assembles artifact and sets status with project_id scope
-        2. API endpoint polls for status using project_id scope
-
-        Both should use consistent project-level scope since preprod artifacts are project-specific.
+        This endpoint doesn't check existing assembly status. Instead, it:
+        1. Checks for missing chunks
+        2. Creates artifacts and queues assembly tasks
+        3. Returns NOT_FOUND when no chunks are provided
         """
         content = b"test integration content"
         total_checksum = sha1(content).hexdigest()
@@ -572,6 +608,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
 
+        # Even if task sets status, this endpoint doesn't read it
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
         )
@@ -580,13 +617,14 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             self.url,
             data={
                 "checksum": total_checksum,
-                "chunks": [],
+                "chunks": [],  # No chunks means NOT_FOUND
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
         assert response.status_code == 200
-        assert response.data["state"] == ChunkFileState.OK
+        # Endpoint doesn't check existing status, returns NOT_FOUND for empty chunks
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
     def test_permission_required(self) -> None:
@@ -602,3 +640,37 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 401
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_create_artifact_failure(
+        self, mock_create_preprod_artifact: MagicMock
+    ) -> None:
+        """Test that endpoint returns error when create_preprod_artifact fails."""
+        content = b"test preprod artifact content"
+        total_checksum = sha1(content).hexdigest()
+
+        mock_create_preprod_artifact.return_value = None
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.ERROR
+        assert response.data["detail"] == "Failed to create preprod artifact row."
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration=None,
+        )
