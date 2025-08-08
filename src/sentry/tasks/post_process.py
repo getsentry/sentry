@@ -5,6 +5,7 @@ import random
 import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
+from datetime import timezone as tz
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -1012,6 +1013,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
                 group_state=job["group_state"],
                 has_reappeared=job["has_reappeared"],
                 has_escalated=job["has_escalated"],
+                start_timestamp=datetime.now(tz=tz.utc),
             ),
             headers={"sentry-propagate-traces": False},
         )

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
@@ -100,6 +102,7 @@ def process_workflows_event(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
+    start_timestamp: datetime | None = None,
     **kwargs,
 ) -> None:
 
@@ -117,6 +120,6 @@ def process_workflows_event(
         # We want to quietly retry these.
         retry_task(e)
 
-    process_workflows(event_data)
+    process_workflows(event_data, start_timestamp=start_timestamp)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)

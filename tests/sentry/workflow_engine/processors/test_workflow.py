@@ -903,6 +903,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             type=Condition.EVENT_FREQUENCY_COUNT,
             comparison={"interval": "1d", "value": 7},
         )
+        start_ts = current_time - timedelta(seconds=1)
         enqueue_workflows(
             {
                 self.workflow: DelayedWorkflowItem(
@@ -912,6 +913,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                     [self.slow_workflow_filter_group.id, slow_workflow_filter_group_2.id],
                     [self.workflow_filter_group.id, workflow_filter_group_2.id],
                     timestamp=current_time,
+                    start_timestamp=start_ts,
                 )
             }
         )
@@ -931,6 +933,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                         "event_id": self.event.event_id,
                         "occurrence_id": self.group_event.occurrence_id,
                         "timestamp": current_time,
+                        "start_timestamp": start_ts,
                     }
                 )
             },

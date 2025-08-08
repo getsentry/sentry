@@ -81,6 +81,8 @@ class DelayedWorkflowItem:
     # Should be close to when fast conditions were evaluated to try to be consistent.
     timestamp: datetime
 
+    start_timestamp: datetime | None = None
+
     def buffer_key(self) -> str:
         when_condition_group_str = (
             str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
@@ -95,6 +97,7 @@ class DelayedWorkflowItem:
                 "event_id": self.event.event_id,
                 "occurrence_id": self.event.occurrence_id,
                 "timestamp": self.timestamp,
+                "start_timestamp": self.start_timestamp,
             }
         )
 
@@ -388,7 +391,9 @@ def _get_associated_workflows(
 
 @log_context.root()
 def process_workflows(
-    event_data: WorkflowEventData, detector: Detector | None = None
+    event_data: WorkflowEventData,
+    detector: Detector | None = None,
+    start_timestamp: datetime | None = None,
 ) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -463,7 +468,12 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
-        detector, actions, event_data, should_trigger_actions, is_delayed=False
+        detector,
+        actions,
+        event_data,
+        should_trigger_actions,
+        is_delayed=False,
+        start_timestamp=start_timestamp,
     )
     fire_actions(actions, detector, event_data)
 
