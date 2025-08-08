@@ -253,8 +253,20 @@ function convertLogsPageParamsToRequest(
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode, groupBy} = logsParams;
+  const {sortBys, fields, search, mode, groupBy, aggregateFn, aggregateParam} =
+    logsParams;
   const query = search?.formatString() ?? '';
+
+  const aggregate =
+    aggregateFn && aggregateParam ? `${aggregateFn}(${aggregateParam})` : undefined;
+  const visualize = aggregate
+    ? [
+        {
+          yAxes: [aggregate],
+          chartType: 0,
+        },
+      ]
+    : undefined;
 
   return {
     name: title,
@@ -272,6 +284,7 @@ function convertLogsPageParamsToRequest(
         query,
         groupby: groupBy ? [groupBy] : undefined,
         mode,
+        visualize,
       },
     ],
   };
