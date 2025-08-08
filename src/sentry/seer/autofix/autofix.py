@@ -488,6 +488,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             event_node.update(
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
+                    "transaction": transaction_title,
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
@@ -629,9 +630,9 @@ def _get_profile_from_trace_tree(
         return None
 
     events = trace_tree.get("events", [])
-    event_span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
+    event_transaction_name = event.transaction
 
-    if not event_span_id:
+    if not event_transaction_name:
         return None
 
     # Flatten all events in the tree for easier traversal
@@ -645,18 +646,11 @@ def _get_profile_from_trace_tree(
     for root_node in events:
         collect_all_events(root_node)
 
-    # Find the first transaction that contains the event's span ID
-    # or has a span_id matching the event's span_id
+    # Find the first transaction that matches the event's transaction name and has a profile
     matching_transaction = None
     for node in all_events:
         if node.get("is_transaction", False):
-            # Check if this transaction's span_id matches the event_span_id
-            if node.get("span_id") == event_span_id:
-                matching_transaction = node
-                break
-
-            # Check if this transaction contains the event_span_id in its span_ids
-            if event_span_id in node.get("span_ids", []):
+            if node.get("transaction") == event_transaction_name and node.get("profile_id"):
                 matching_transaction = node
                 break
 
@@ -665,6 +659,7 @@ def _get_profile_from_trace_tree(
             "[Autofix] No matching transaction with profile_id found for event",
             extra={
                 "trace_to_search_id": event.trace_id,
+                "event_transaction_name": event_transaction_name,
                 "matching_transaction": matching_transaction,
                 "project_slug": project.slug,
                 "organization_slug": project.organization.slug,
@@ -688,7 +683,6 @@ def _get_profile_from_trace_tree(
     start_ts = matching_transaction.get("precise_start_ts")
     end_ts = matching_transaction.get("precise_finish_ts")
 
-    # Fetch the profile data using the shared utility
     profile = fetch_profile_data(
         profile_id=profile_id,
         organization_id=project.organization_id,
