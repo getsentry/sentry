@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 
-export const PREVENT_PAGE_TITLE = t('Prevent');
 export const PREVENT_BASE_URL = 'prevent';
 
 export const COVERAGE_PAGE_TITLE = t('Coverage Analytics');

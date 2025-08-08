@@ -28,7 +28,7 @@ const COLUMNS_ORDER: Column[] = [
   {key: 'regenerateToken', name: '', width: 100},
 ];
 
-export const SORTABLE_FIELDS = ['name'] as const;
+const SORTABLE_FIELDS = ['name'] as const;
 
 export const DEFAULT_SORT: ValidSort = {
   field: 'name',

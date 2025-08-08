@@ -10,13 +10,11 @@ import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/ut
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 
-export const PREVENT_DEFAULT_RELATIVE_PERIODS = {
+const PREVENT_DEFAULT_RELATIVE_PERIODS = {
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
   '30d': t('Last 30 days'),
 };
-
-export type PreventPeriodOptions = keyof typeof PREVENT_DEFAULT_RELATIVE_PERIODS;
 
 export function DateSelector() {
   const {preventPeriod, changeContextValue} = usePreventContext();

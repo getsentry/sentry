@@ -15,14 +15,14 @@ export const SUMMARY_TO_TA_TABLE_FILTER_KEY = {
 
 export type SummaryTAFilterKey = keyof typeof SUMMARY_TO_TA_TABLE_FILTER_KEY;
 
-export const SUMMARY_TO_COMMITS_TABLE_FILTER_KEY = {
+const _SUMMARY_TO_COMMITS_TABLE_FILTER_KEY = {
   uncoveredLines: 'UNCOVERED_LINES',
   indirectChanges: 'INDIRECT_CHANGES',
   filesChanged: 'FILES_CHANGED',
   uploadsCount: 'UPLOAD_COUNT',
 };
 
-type SummaryCommitsFilterKey = keyof typeof SUMMARY_TO_COMMITS_TABLE_FILTER_KEY;
+type SummaryCommitsFilterKey = keyof typeof _SUMMARY_TO_COMMITS_TABLE_FILTER_KEY;
 
 export type SummaryFilterKey = SummaryTAFilterKey | SummaryCommitsFilterKey;
 

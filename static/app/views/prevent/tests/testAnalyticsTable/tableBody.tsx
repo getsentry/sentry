@@ -60,14 +60,14 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
   return <Container alignment={alignment}>{value}</Container>;
 }
 
-export const TestNameContainer = styled('div')<{wrapToggleValue: boolean}>`
+const TestNameContainer = styled('div')<{wrapToggleValue: boolean}>`
   ${p => !p.wrapToggleValue && p.theme.overflowEllipsis};
   overflow-wrap: break-word;
   font-family: ${p => p.theme.text.familyMono};
   text-align: left;
 `;
 
-export const Container = styled('div')<{alignment: string}>`
+const Container = styled('div')<{alignment: string}>`
   ${p => p.theme.overflowEllipsis};
   font-family: ${p => p.theme.text.familyMono};
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};

@@ -77,6 +77,6 @@ const StyledButton = styled(Button)`
   max-width: 175px;
 `;
 
-export const AlignmentContainer = styled('div')<{alignment: string}>`
+const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
 `;
