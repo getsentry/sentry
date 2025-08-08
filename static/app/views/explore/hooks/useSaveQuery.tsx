@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 // Request payload type that matches the backend ExploreSavedQuerySerializer
-export type ExploreSavedQueryRequest = {
+type ExploreSavedQueryRequest = {
   dataset: 'logs' | 'spans' | 'segment_spans';
   name: string;
   projects: number[];
@@ -77,7 +77,7 @@ export function useSpansSaveQuery() {
   return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
-export function useCreateOrUpdateSavedQuery(id?: string) {
+function useCreateOrUpdateSavedQuery(id?: string) {
   const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
