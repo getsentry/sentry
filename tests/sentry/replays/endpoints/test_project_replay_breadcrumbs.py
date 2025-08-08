@@ -4,12 +4,13 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 
 from sentry.replays.lib.eap.write import new_trace_item, write_trace_items_test_suite
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.replays.testutils import mock_replay
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-class ProjectReplayBreadcrumbsEndpointTest(APITestCase, SnubaTestCase):
+class ProjectReplayBreadcrumbsEndpointTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details-breadcrumbs"
 
     def setUp(self):
@@ -18,6 +19,19 @@ class ProjectReplayBreadcrumbsEndpointTest(APITestCase, SnubaTestCase):
         self.replay_id = uuid.uuid4().hex
         self.url = reverse(
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
+        )
+
+        replay_start_timestamp = datetime.now() - timedelta(minutes=2)
+        timestamp = replay_start_timestamp + timedelta(minutes=1)
+
+        self.store_replays(
+            mock_replay(
+                timestamp,
+                self.project.id,
+                self.replay_id,
+                segment_id=0,
+                replay_start_timestamp=int(replay_start_timestamp.timestamp()),
+            )
         )
 
     def test_get_ui_click_breadcrumb(self):
@@ -217,7 +231,7 @@ class ProjectReplayBreadcrumbsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + "?statsPeriod=1d")
+            response = self.client.get(self.url)
             assert response.status_code == 200
 
             response_json = response.json()

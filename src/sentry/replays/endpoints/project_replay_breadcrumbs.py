@@ -1,11 +1,12 @@
 import uuid
 from collections.abc import Callable, MutableMapping, Sequence
+from datetime import datetime, timedelta
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Entity, Limit, Offset, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -15,6 +16,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.lib.eap.read import query
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
+from sentry.replays.lib.snuba import execute_query
 from sentry.utils.cursors import Cursor, CursorResult
 
 QUERY_SETTINGS: Settings = {
@@ -166,10 +168,19 @@ class ProjectReplayBreadcrumbsEndpoint(ProjectEndpoint):
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
-            return Response(status=404)
+            return Response("Feature not enabled", status=404)
+
+        result = get_replay_range(project.organization_id, project.id, replay_id)
+        if not result:
+            return Response("Replay not found", status=404)
 
         filter_params = self.get_filter_params(request, project)
         end, start = filter_params["end"], filter_params["start"]
+
+        if not start:
+            start = result[0]
+        if not end:
+            end = result[1]
 
         def data_fn(offset: int, limit: int):
             request_meta: RequestMeta = {
@@ -244,3 +255,36 @@ class HasMorePaginator:
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
+
+
+def get_replay_range(
+    organization_id: int,
+    project_id: int,
+    replay_id: str,
+) -> tuple[datetime, datetime] | None:
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Function("min", parameters=[Column("replay_start_timestamp")], alias="min"),
+            Function("max", parameters=[Column("timestamp")], alias="max"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+        ],
+        groupby=[Column("replay_id")],
+        limit=Limit(1),
+    )
+
+    rows = execute_query(
+        query,
+        tenant_id={"organization_id": organization_id},
+        referrer="replay.breadcrumbs.range",
+    )
+    if not rows:
+        return None
+    else:
+        return (rows[0]["min"], rows[0]["max"])
