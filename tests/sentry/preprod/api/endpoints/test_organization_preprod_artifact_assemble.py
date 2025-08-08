@@ -38,8 +38,35 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         data = {
             "checksum": "a" * 40,
             "chunks": ["b" * 40, "c" * 40],
-            "git_sha": "d" * 40,
             "build_configuration": "release",
+            "head_sha": "e" * 40,
+            "base_sha": "f" * 40,
+            "provider": "github",
+            "head_repo_name": "owner/repo",
+            "base_repo_name": "owner/repo",
+            "head_ref": "feature/xyz",
+            "base_ref": "main",
+            "pr_number": 123,
+        }
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert result == data
+
+    def test_valid_schema_with_commit_comparison(self) -> None:
+        """Test valid schema with CommitComparison fields passes validation."""
+        data = {
+            "checksum": "a" * 40,
+            "chunks": ["b" * 40, "c" * 40],
+            "build_configuration": "release",
+            "head_sha": "e" * 40,
+            "base_sha": "f" * 40,
+            "provider": "github",
+            "head_repo_name": "owner/repo",
+            "base_repo_name": "owner/repo",
+            "head_ref": "feature/xyz",
+            "base_ref": "main",
+            "pr_number": 123,
         }
         body = orjson.dumps(data)
         result, error = validate_preprod_artifact_schema(body)
@@ -105,24 +132,46 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert error is not None
         assert result == {}
 
-    def test_git_sha_wrong_type(self) -> None:
-        """Test non-string git_sha returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": 123})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
-    def test_git_sha_invalid_format(self) -> None:
-        """Test invalid git_sha format returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": "invalid"})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert "git_sha" in error
-        assert result == {}
-
     def test_build_configuration_wrong_type(self) -> None:
         """Test non-string build_configuration returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "build_configuration": 123})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert result == {}
+
+    def test_head_sha_invalid_format(self) -> None:
+        """Test invalid head_sha format returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_sha": "invalid"})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert "head_sha" in error
+        assert result == {}
+
+    def test_base_sha_invalid_format(self) -> None:
+        """Test invalid base_sha format returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "base_sha": "invalid"})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert "base_sha" in error
+        assert result == {}
+
+    def test_provider_too_long(self) -> None:
+        """Test provider field too long returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "provider": "a" * 65})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert result == {}
+
+    def test_head_repo_name_too_long(self) -> None:
+        """Test head_repo_name field too long returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_repo_name": "a" * 256})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert result == {}
+
+    def test_pr_number_invalid(self) -> None:
+        """Test invalid pr_number returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
@@ -255,26 +304,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_git_sha_wrong_type(self) -> None:
-        """Test that non-string git_sha is rejected."""
-        checksum = sha1(b"1").hexdigest()
-        response = self.client.post(
-            self.url,
-            data={"checksum": checksum, "chunks": [], "git_sha": 123},
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-        assert response.status_code == 400, response.content
-
-    def test_assemble_json_schema_git_sha_invalid_format(self) -> None:
-        """Test that invalid git_sha format is rejected."""
-        checksum = sha1(b"1").hexdigest()
-        response = self.client.post(
-            self.url,
-            data={"checksum": checksum, "chunks": [], "git_sha": "invalid_sha"},
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-        assert response.status_code == 400, response.content
-
     def test_assemble_json_schema_build_configuration_wrong_type(self) -> None:
         """Test that non-string build_configuration is rejected."""
         checksum = sha1(b"1").hexdigest()
@@ -304,8 +333,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": checksum,
                 "chunks": [],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
                 "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -356,6 +392,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
+                "build_configuration": None,
+                "head_sha": None,
+                "base_sha": None,
+                "provider": None,
+                "head_repo_name": None,
+                "base_repo_name": None,
+                "head_ref": None,
+                "base_ref": None,
+                "pr_number": None,
             }
         )
 
@@ -382,8 +427,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "git_sha": "c076e3b84d9d7c43f456908535ea78b9de6ec59b",
                 "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -406,6 +458,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
+                "build_configuration": "release",
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                "base_repo_name": "owner/repo",
+                "head_ref": "feature/xyz",
+                "base_ref": "main",
+                "pr_number": 123,
             }
         )
 
