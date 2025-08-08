@@ -40,7 +40,11 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
-from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.committers import (
+    AuthorCommitsSerialized,
+    get_serialized_committers,
+    get_serialized_event_file_committers,
+)
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -132,8 +136,58 @@ def get_rules(
     ]
 
 
+def process_serialized_committers(
+    committers: Sequence[AuthorCommitsSerialized], commits: MutableMapping[str, Mapping[str, Any]]
+) -> MutableMapping[str, Mapping[str, Any]]:
+    """
+    Transform committer data from nested structure to flat commit dictionary.
+
+    Args:
+        committers: List of {author, commits}
+        commits: Dict to store processed commits (modified in-place)
+
+    Returns:
+        Dict mapping commit IDs to enriched commit data with shortId, author, subject
+    """
+    for committer in committers:
+        for commit in committer["commits"]:
+            if commit["id"] not in commits:
+                commit_data = dict(commit)
+                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["author"] = committer["author"]
+                commit_data["subject"] = (
+                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                )
+                if commit.get("pullRequest"):
+                    commit_data["pull_request"] = commit["pullRequest"]
+                commits[commit["id"]] = commit_data
+    return commits
+
+
+def get_suspect_commits_by_group_id(
+    project: Project,
+    group_id: int,
+) -> Sequence[Mapping[str, Any]]:
+    """
+    Get suspect commits for workflow notifications that only have a group ID (no Event).
+
+    Uses Commit Context (SCM integrations) only - no release-based fallback.
+    Returns commits sorted by recency, not suspicion score.
+    """
+    commits: MutableMapping[str, Mapping[str, Any]] = {}
+    try:
+        committers = get_serialized_committers(project, group_id)
+    except (Commit.DoesNotExist, Release.DoesNotExist):
+        pass
+    except Exception as exc:
+        logging.exception(str(exc))
+    else:
+        commits = process_serialized_committers(committers=committers, commits=commits)
+    return list(commits.values())
+
+
 def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
-    # lets identify possibly suspect commits and owners
+    # let's identify possible suspect commits and owners
     commits: MutableMapping[int, Mapping[str, Any]] = {}
     try:
         committers = get_serialized_event_file_committers(project, event)
@@ -142,20 +196,11 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     except Exception as exc:
         logging.exception(str(exc))
     else:
-        for committer in committers:
-            for commit in committer["commits"]:
-                if commit["id"] not in commits:
-                    commit_data = dict(commit)
-                    commit_data["shortId"] = commit_data["id"][:7]
-                    commit_data["author"] = committer["author"]
-                    commit_data["subject"] = (
-                        commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
-                    )
-                    if commit.get("pullRequest"):
-                        commit_data["pull_request"] = commit["pullRequest"]
-                    commits[commit["id"]] = commit_data
+        commits = process_serialized_committers(committers=committers, commits=commits)
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
     # commits from Commit Context dont have a "score" key
+    # keep this sort while release_based SuspectCommitStrategy is active.
+    # scm_based SuspectCommitStrategy does not use this scoring system.
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 

@@ -8,6 +8,7 @@ from slack_sdk.web import SlackResponse
 from sentry.models.activity import Activity
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -102,6 +103,7 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
         assert self.project.slug in blocks[-2]["elements"][0]["text"]
 
+    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_with_suspect_commits(self, mock_post):
         """
         Test that suspect commits are included in assignment notification emails
@@ -155,6 +157,7 @@ class AssignedNotificationAPITest(APITestCase):
         assert "abc123d" in html_content  # shortened commit ID
         assert user.get_display_name() in html_content  # commit author
 
+    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_without_suspect_commits(self, mock_post):
         """
         Test that assignment notifications work normally when no suspect commits exist.
@@ -179,6 +182,7 @@ class AssignedNotificationAPITest(APITestCase):
         # But assignment notification should still work
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
+    @with_feature("organizations:suspect-commits-in-emails")
     def test_sends_assignment_notification_with_multiple_suspect_commits(self, mock_post):
         """
         Test that when multiple suspect commits exist, the most recent one is displayed in notifications.
