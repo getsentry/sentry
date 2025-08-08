@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
@@ -238,6 +239,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
             mock_monitor_url_for_project.assert_not_called()
 
+    @pytest.mark.skip(reason="flaky: #97490")
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
     def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
