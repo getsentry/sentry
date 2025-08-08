@@ -513,7 +513,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
             {tct('You can review or change these settings in [link:Project Settings].', {
               link: (
                 <Link
-                  to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`}
+                  to={`/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`}
                 />
               ),
             })}
@@ -573,7 +573,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           trackAnalytics('onboarding.js_loader_npm_docs_optional_shown', {
             organization: params.organization,
             platform: params.platformKey,
-            project_id: params.projectId,
+            project_id: params.project.id,
           });
         }
       },
@@ -594,7 +594,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -603,7 +603,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -611,7 +611,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({previousProducts, products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         previousProducts,
         projectKey: params.projectKeyId,
@@ -623,7 +623,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -689,7 +689,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -697,7 +697,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -708,7 +708,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -720,7 +720,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
