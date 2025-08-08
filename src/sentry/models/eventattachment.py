@@ -17,8 +17,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
-from sentry.objectstore.metrics import measure_storage_put
-from sentry.utils import metrics
+from sentry.objectstore.metrics import StorageMetricEmitter, measure_storage_operation
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -115,7 +114,8 @@ class EventAttachment(Model):
                 pass  # nothing to do for inline-stored attachments
             elif self.blob_path.startswith("eventattachments/v1/"):
                 storage = get_storage()
-                storage.delete(self.blob_path)
+                with measure_storage_operation("delete", "attachments"):
+                    storage.delete(self.blob_path)
             else:
                 raise NotImplementedError()
 
@@ -131,6 +131,13 @@ class EventAttachment(Model):
         elif self.blob_path.startswith("eventattachments/v1/"):
             storage = get_storage()
             compressed_blob = storage.open(self.blob_path)
+
+            # We want to log the compressed size here but we want to stream the payload.
+            # So, we swallow the cost of a metadata fetch.
+            compressed_blob.reload()
+            metric_emitter = StorageMetricEmitter("get", "attachments")
+            metric_emitter.record_compressed_size(compressed_blob.reload(), "gzip")
+
             dctx = zstandard.ZstdDecompressor()
             return dctx.stream_reader(compressed_blob, read_across_frames=True)
 
@@ -149,13 +156,6 @@ class EventAttachment(Model):
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
-        metrics.distribution(
-            "storage.put.size",
-            size,
-            tags={"usecase": "attachments", "compression": "none"},
-            unit="byte",
-        )
-
         if can_store_inline(data):
             blob_path = ":" + data.decode()
         else:
@@ -164,7 +164,9 @@ class EventAttachment(Model):
             storage = get_storage()
             compressed_blob = zstandard.compress(data)
 
-            with measure_storage_put(len(compressed_blob), "attachments", "zstd"):
+            with measure_storage_operation(
+                "put", "attachments", size, len(compressed_blob), "zstd"
+            ):
                 storage.save(blob_path, BytesIO(compressed_blob))
 
         return PutfileResult(
