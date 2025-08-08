@@ -415,11 +415,13 @@ def test_process_message_compressed_with_video() -> None:
     assert expected == processed_result
 
 
+@django_db_all
 def test_process_message_invalid_message() -> None:
     """Test "process_message" function with invalid message."""
     assert process_message(make_kafka_message(b"")) == FilteredPayload()
 
 
+@django_db_all
 def test_process_message_invalid_recording_json() -> None:
     """Test "process_message" function with invalid recording json."""
     message = {
@@ -440,6 +442,7 @@ def test_process_message_invalid_recording_json() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
+@django_db_all
 def test_process_message_invalid_headers() -> None:
     """Test "process_message" function with invalid headers."""
     message = {
@@ -460,6 +463,7 @@ def test_process_message_invalid_headers() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
+@django_db_all
 def test_process_message_malformed_headers() -> None:
     """Test "process_message" function with malformed headers."""
     message = {
@@ -480,6 +484,7 @@ def test_process_message_malformed_headers() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
+@django_db_all
 def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     """Test "process_message" function with malformed unicode codepoint in headers."""
     message = {
@@ -500,6 +505,7 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
+@django_db_all
 def test_process_message_no_headers() -> None:
     """Test "process_message" function with no headers."""
     message = {
@@ -586,8 +592,8 @@ def test_process_message_profiling(mock_profiler, mock_options, profiling_enable
     kafka_message = make_kafka_message(message)
     result = process_message(kafka_message)
 
-    assert mock_profiler.start_profiler.call_count == 1 if profiling_enabled else 0
-    assert mock_profiler.stop_profiler.call_count == 1 if profiling_enabled else 0
+    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
+    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
 
     assert isinstance(result, ProcessedEvent)
 
@@ -602,8 +608,8 @@ def test_commit_message_profiling(mock_profiler, mock_options, profiling_enabled
     processed_event = make_valid_processed_event()
     commit_message(make_processed_event_message(processed_event))
 
-    assert mock_profiler.start_profiler.call_count == 1 if profiling_enabled else 0
-    assert mock_profiler.stop_profiler.call_count == 1 if profiling_enabled else 0
+    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
+    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
 
 
 @patch("sentry.replays.consumers.recording.options.get")
@@ -621,8 +627,8 @@ def test_process_message_profiling_on_error(
     kafka_message = make_kafka_message(message)
     result = process_message(kafka_message)
 
-    assert mock_profiler.start_profiler.call_count == 1 if profiling_enabled else 0
-    assert mock_profiler.stop_profiler.call_count == 1 if profiling_enabled else 0
+    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
+    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
     assert result == FilteredPayload()
 
 
@@ -640,5 +646,5 @@ def test_commit_message_profiling_on_error(
     processed_event = make_valid_processed_event()
     commit_message(make_processed_event_message(processed_event))
 
-    assert mock_profiler.start_profiler.call_count == 1 if profiling_enabled else 0
-    assert mock_profiler.stop_profiler.call_count == 1 if profiling_enabled else 0
+    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
+    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
