@@ -26,10 +26,14 @@ class BuildDetailsAppInfo(BaseModel):
 
 
 class BuildDetailsVcsInfo(BaseModel):
-    commit_id: str | None = None
-    # repo: Optional[str] = None  # Uncomment when available
-    # provider: Optional[str] = None  # Uncomment when available
-    # branch: Optional[str] = None  # Uncomment when available
+    head_sha: str | None = None
+    base_sha: str | None = None
+    provider: str | None = None
+    head_repo_name: str | None = None
+    base_repo_name: str | None = None
+    head_ref: str | None = None
+    base_ref: str | None = None
+    pr_number: int | None = None
 
 
 class BuildDetailsSizeInfo(BaseModel):
