@@ -17,11 +17,16 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
+from sentry.objectstore import attachments
 from sentry.objectstore.metrics import measure_storage_put
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
+
+V1_PREFIX = "eventattachments/v1/"
+V2_PREFIX = "v2/"
 
 
 def get_crashreport_key(group_id: int) -> str:
@@ -113,9 +118,17 @@ class EventAttachment(Model):
         if self.blob_path:
             if self.blob_path.startswith(":"):
                 pass  # nothing to do for inline-stored attachments
-            elif self.blob_path.startswith("eventattachments/v1/"):
+
+            elif self.blob_path.startswith(V1_PREFIX):
                 storage = get_storage()
                 storage.delete(self.blob_path)
+
+            elif self.blob_path.startswith(V2_PREFIX):
+                organization_id = _get_organization(self.project_id)
+                attachments.for_project(organization_id, self.project_id).delete(
+                    self.blob_path.removeprefix(V2_PREFIX)
+                )
+
             else:
                 raise NotImplementedError()
 
@@ -128,11 +141,17 @@ class EventAttachment(Model):
         if self.blob_path.startswith(":"):
             return BytesIO(self.blob_path[1:].encode())
 
-        elif self.blob_path.startswith("eventattachments/v1/"):
+        elif self.blob_path.startswith(V1_PREFIX):
             storage = get_storage()
             compressed_blob = storage.open(self.blob_path)
             dctx = zstandard.ZstdDecompressor()
             return dctx.stream_reader(compressed_blob, read_across_frames=True)
+
+        elif self.blob_path.startswith(V2_PREFIX):
+            id = self.blob_path.removeprefix(V2_PREFIX)
+            organization_id = _get_organization(self.project_id)
+            response = attachments.for_project(organization_id, self.project_id).get(id)
+            return response.payload
 
         raise NotImplementedError()
 
@@ -149,6 +168,10 @@ class EventAttachment(Model):
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
+        # TODO: we measure the uncompressed size for inline stored attachments as well,
+        # however moving to V2 storage would mean we would eather double count
+        # when leaving this metric here in place, or miss inline-stored attachments
+        # when removing this metric and only rely on the one in the V2 Client API.
         metrics.distribution(
             "storage.put.size",
             size,
@@ -158,7 +181,8 @@ class EventAttachment(Model):
 
         if can_store_inline(data):
             blob_path = ":" + data.decode()
-        else:
+
+        elif not in_random_rollout("objectstore.enable_for.attachments"):
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()
@@ -166,6 +190,10 @@ class EventAttachment(Model):
 
             with measure_storage_put(len(compressed_blob), "attachments", "zstd"):
                 storage.save(blob_path, BytesIO(compressed_blob))
+
+        else:
+            organization_id = _get_organization(project_id)
+            blob_path = V2_PREFIX + attachments.for_project(organization_id, project_id).put(data)
 
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
@@ -176,3 +204,9 @@ def normalize_content_type(content_type: str | None, name: str) -> str:
     if content_type:
         return content_type.split(";")[0].strip()
     return mimetypes.guess_type(name)[0] or "application/octet-stream"
+
+
+def _get_organization(project_id: int) -> int:
+    from sentry.models.project import Project
+
+    return Project.objects.get_from_cache(id=project_id).organization_id
