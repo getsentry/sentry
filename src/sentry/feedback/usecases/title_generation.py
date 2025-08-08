@@ -13,6 +13,8 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
+SEER_GENERATE_TITLE_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title"
+
 
 class GenerateFeedbackTitleRequest(TypedDict):
     """Corresponds to GenerateFeedbackTitleRequest in Seer."""
@@ -128,7 +130,7 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     serialized_request = json.dumps(request)
 
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title",
+        SEER_GENERATE_TITLE_URL,
         data=serialized_request,
         headers={
             "content-type": "application/json;charset=utf-8",
