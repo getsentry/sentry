@@ -206,14 +206,21 @@ function convertExplorePageParamsToRequest(
 
   const {aggregateFields, sortBys, fields, query, mode} = exploreParams;
 
-  // Convert aggregate fields to the format expected by the backend
-  const groupBys = aggregateFields.filter(isGroupBy).map(field => field.groupBy);
-  const visualizes = aggregateFields.filter(isVisualize).map(field => ({
-    chartType: field.chartType,
-    yAxes: [field.yAxis],
-  }));
-
-  const aggregateField = [...groupBys.map(groupBy => ({groupBy})), ...visualizes];
+  const transformedAggregateFields = aggregateFields
+    .filter(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return aggregateField.groupBy !== '';
+      }
+      return true;
+    })
+    .map(aggregateField => {
+      return isVisualize(aggregateField)
+        ? {
+            yAxes: [aggregateField.yAxis],
+            chartType: aggregateField.chartType,
+          }
+        : {groupBy: aggregateField.groupBy};
+    });
 
   return {
     name: title,
@@ -229,7 +236,7 @@ function convertExplorePageParamsToRequest(
         fields,
         orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
         query: query ?? '',
-        aggregateField: aggregateField.length > 0 ? aggregateField : undefined,
+        aggregateField: transformedAggregateFields,
         mode,
       },
     ],
