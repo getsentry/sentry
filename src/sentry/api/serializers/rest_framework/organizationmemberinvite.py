@@ -168,7 +168,7 @@ class ApproveInviteRequestValidator(serializers.Serializer):
 
 
 class OrganizationMemberReinviteRequestValidator(serializers.Serializer):
-    regenerate = serializers.BooleanField(
+    trigger_regenerate_token = serializers.BooleanField(
         required=False,
         help_text="Whether or not to regenerate the token for this invitation",
     )

@@ -76,10 +76,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug, other_user_invite.id, status_code=403
         )
-        assert (
-            response.data.get("detail")
-            == "You cannot resend an invitation that was sent by someone else."
-        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.ratelimits.for_organization_member_invite")
@@ -98,7 +95,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug,
             self.approved_invite.id,
-            regenerate=1,
+            trigger_regenerate_token=1,
             status_code=403,
         )
         assert response.data.get("detail") == "You do not have permission to perform this action."
@@ -108,7 +105,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug,
             self.approved_invite.id,
-            regenerate=1,
+            trigger_regenerate_token=1,
             status_code=400,
         )
         assert response.data.get("detail") == "You are missing the member:admin scope."
@@ -122,7 +119,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             invite.id,
-            regenerate=1,
+            trigger_regenerate_token=1,
         )
         invite = OrganizationMemberInvite.objects.get(id=invite.id)
         assert old_token != invite.token
@@ -154,7 +151,7 @@ class OrganizationMemberReinviteTest(APITestCase):
             token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
-        self.get_success_response(self.organization.slug, invite.id, regenerate=1)
+        self.get_success_response(self.organization.slug, invite.id, trigger_regenerate_token=1)
         mock_send_invite_email.assert_called_once()
 
         invite = OrganizationMemberInvite.objects.get(id=invite.id)
@@ -177,7 +174,11 @@ class OrganizationMemberReinviteTest(APITestCase):
             email="sencha@tea.com",
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
-        self.get_error_response(self.organization.slug, invite.id, regenerate=1, status_code=400)
+        self.get_error_response(
+            self.organization.slug, invite.id, trigger_regenerate_token=1, status_code=400
+        )
 
         invite.update(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
-        self.get_error_response(self.organization.slug, invite.id, regenerate=1, status_code=400)
+        self.get_error_response(
+            self.organization.slug, invite.id, trigger_regenerate_token=1, status_code=400
+        )

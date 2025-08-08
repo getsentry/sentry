@@ -58,17 +58,13 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         return args, kwargs
 
-    def _reinvite(
+    def _reinvite_and_send_email(
         self,
         request: Request,
         organization: Organization,
         invited_member: OrganizationMemberInvite,
-        regenerate: bool,
+        trigger_regenerate_token: bool,
     ) -> Response:
-        # for typing
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         if not invited_member.invite_approved:
             return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
 
@@ -86,7 +82,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        if regenerate:
+        if trigger_regenerate_token:
             if request.access.has_scope("member:admin"):
                 with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
                     invited_member.regenerate_token()
@@ -122,7 +118,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
 
         :pparam string organization_id_or_slug: the id or slug of the organization the member will belong to
         :param string member_id: the member ID
-        :param boolean regenerate: whether to regenerate the member's invite token
+        :param boolean trigger_regenerate_token: whether to regenerate the member's invite token
         :auth: required
         """
         if not features.has(
@@ -138,19 +134,17 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        is_member = not request.access.has_scope("member:admin") and (
+        actor_is_member = not request.access.has_scope("member:admin") and (
             request.access.has_scope("member:invite")
         )
         # Members can only resend invites that they sent
-        is_invite_from_user = invited_member.inviter_id == request.user.id
-        members_can_invite = not organization.flags.disable_member_invite
+        is_invite_from_actor = invited_member.inviter_id == request.user.id
+        org_allows_invites_from_members = not organization.flags.disable_member_invite
 
-        if is_member:
-            if not members_can_invite:
+        if actor_is_member:
+            if not org_allows_invites_from_members or not is_invite_from_actor:
                 raise PermissionDenied
-            if not is_invite_from_user:
-                return Response({"detail": ERR_MEMBER_INVITE}, status=status.HTTP_403_FORBIDDEN)
 
-        return self._reinvite(
-            request, organization, invited_member, result.get("regenerate", False)
+        return self._reinvite_and_send_email(
+            request, organization, invited_member, result.get("trigger_regenerate_token", False)
         )
