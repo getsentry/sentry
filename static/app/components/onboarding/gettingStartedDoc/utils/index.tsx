@@ -24,7 +24,7 @@ export function getUploadSourceMapsStep({
   guideLink?: string;
 }): OnboardingStep {
   function trackEvent(eventName: string) {
-    if (!organization || !project?.id || !platformKey) {
+    if (!organization || !project.id || !platformKey) {
       return;
     }
 
