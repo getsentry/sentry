@@ -2,7 +2,6 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import orjson
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
@@ -13,11 +12,13 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.eventstore import backend as eventstore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
-from sentry.profiles.profile_chunks import get_chunk_ids
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
+from sentry.seer.explorer.utils import (
+    convert_profile_to_execution_tree,
+    fetch_profile_data,
+    normalize_description,
+)
 from sentry.seer.sentry_data_models import (
     IssueDetails,
     ProfileData,
@@ -216,92 +217,6 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
 
-def _fetch_profile_data(
-    profile_id: str,
-    organization_id: int,
-    project_id: int,
-    start_ts: float | None = None,
-    end_ts: float | None = None,
-    is_continuous: bool = False,
-) -> dict[str, Any] | None:
-    """
-    Fetch raw profile data from the profiling service.
-
-    Args:
-        profile_id: The profile ID to fetch (profile_id for transaction profiles, profiler_id for continuous)
-        organization_id: Organization ID
-        project_id: Project ID
-        start_ts: Start timestamp from span
-        end_ts: End timestamp from span
-        is_continuous: Whether this is a continuous profile (uses /chunk endpoint)
-
-    Returns:
-        Raw profile data or None if not found
-    """
-    if is_continuous:
-        if start_ts is None or end_ts is None:
-            logger.info(
-                "Start and end timestamps not provided for fetching continuous profiles, skipping",
-                extra={
-                    "profile_id": profile_id,
-                    "is_continuous": is_continuous,
-                    "start_ts": start_ts,
-                    "end_ts": end_ts,
-                },
-            )
-            return None
-
-        span_start = datetime.fromtimestamp(start_ts, UTC)
-        span_end = max(
-            datetime.fromtimestamp(end_ts, UTC),
-            span_start + timedelta(milliseconds=10),
-        )  # Ensure span_end is at least 10ms ahead of span_start
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            logger.warning("Project not found for chunk_ids", extra={"project_id": project_id})
-            return None
-        span_snuba_params = SnubaParams(
-            start=span_start,
-            end=span_end,
-            projects=[project],
-            organization=project.organization,
-        )
-
-        chunk_ids = get_chunk_ids(span_snuba_params, profile_id, project_id)
-
-        response = get_from_profiling_service(
-            method="POST",
-            path=f"/organizations/{organization_id}/projects/{project_id}/chunks",
-            json_data={
-                "profiler_id": profile_id,
-                "chunk_ids": chunk_ids,
-                "start": str(int(start_ts * 1e9)),
-                "end": str(int(end_ts * 1e9)),
-            },
-        )
-    else:
-        # For transaction profiles (profile_id), use the profile endpoint
-        response = get_from_profiling_service(
-            "GET",
-            f"/organizations/{organization_id}/projects/{project_id}/profiles/{profile_id}",
-            params={"format": "sample"},
-        )
-
-    logger.info(
-        "Got response from profiling service",
-        extra={
-            "profile_id": profile_id,
-            "is_continuous": is_continuous,
-            "response.status": response.status,
-            "response.msg": response.msg,
-        },
-    )
-    if response.status == 200:
-        return orjson.loads(response.data)
-    return None
-
-
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
     """
     Get profiles for a given trace, with one profile per unique span/transaction.
@@ -466,7 +381,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         end_ts = profile_info["end_ts"]
 
         # Fetch raw profile data
-        raw_profile = _fetch_profile_data(
+        raw_profile = fetch_profile_data(
             profile_id=profile_id,
             organization_id=project.organization_id,
             project_id=project_id,
