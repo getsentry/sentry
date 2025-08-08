@@ -161,9 +161,8 @@ export interface DocsParams<
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
-  projectId: Project['id'];
+  project: Project;
   projectKeyId: ProjectKey['id'];
-  projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;
   /**
