@@ -2,17 +2,21 @@ import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconSpan, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
@@ -28,10 +32,10 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  stripLogParamsFromLocation,
+  useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
   useLogsFields,
-  useLogsSearch,
-  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
@@ -51,6 +55,8 @@ import {
   DetailsWrapper,
   getLogColors,
   LogAttributeTreeWrapper,
+  LogDetailTableActionsButtonBar,
+  LogDetailTableActionsCell,
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
@@ -69,9 +75,13 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
+  adjustLogTraceID,
   getLogRowItem,
   getLogSeverityLevel,
+  ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -124,8 +134,6 @@ export const LogRowContent = memo(function LogRowContent({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
-  const search = useLogsSearch();
-  const setLogsSearch = useSetLogsSearch();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -186,22 +194,7 @@ export const LogRowContent = memo(function LogRowContent({
     }
   }, [isExpanded, onExpandHeight, dataRow]);
 
-  const addSearchFilter = useCallback(
-    ({
-      key,
-      value,
-      negated,
-    }: {
-      key: string;
-      value: string | number | boolean;
-      negated?: boolean;
-    }) => {
-      const newSearch = search.copy();
-      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
-      setLogsSearch(newSearch);
-    },
-    [setLogsSearch, search]
-  );
+  const addSearchFilter = useLogsAddSearchFilter();
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -383,6 +376,13 @@ function LogRowDetails({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
+    text: ourlogToJson(dataRow),
+    successMessage: t('Copied!'),
+    errorMessage: t('Failed to copy'),
+  });
+  const addSearchFilter = useLogsAddSearchFilter();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
@@ -469,6 +469,88 @@ function LogRowDetails({
           </Fragment>
         )}
       </LogDetailTableBodyCell>
+      {!isPending && data && (
+        <LogDetailTableActionsCell
+          colSpan={colSpan}
+          style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexDirection: 'row',
+          }}
+        >
+          <LogDetailTableActionsButtonBar>
+            <Button
+              priority="link"
+              size="sm"
+              borderless
+              onClick={() => {
+                addSearchFilter({
+                  key: OurLogKnownFieldKey.MESSAGE,
+                  value: dataRow[OurLogKnownFieldKey.MESSAGE],
+                });
+              }}
+            >
+              <IconAdd size="md" style={{paddingRight: space(0.5)}} />
+              {t('Add to filter')}
+            </Button>
+            <Button
+              priority="link"
+              size="sm"
+              borderless
+              onClick={() => {
+                addSearchFilter({
+                  key: OurLogKnownFieldKey.MESSAGE,
+                  value: dataRow[OurLogKnownFieldKey.MESSAGE],
+                  negated: true,
+                });
+              }}
+            >
+              <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
+              {t('Exclude from filter')}
+            </Button>
+          </LogDetailTableActionsButtonBar>
+
+          <LogDetailTableActionsButtonBar>
+            <Button
+              priority="link"
+              size="sm"
+              borderless
+              onClick={() => {
+                betterCopyToClipboard();
+              }}
+            >
+              <IconJson size="md" style={{paddingRight: space(0.5)}} />
+              {t('Copy as JSON')}
+            </Button>
+            <Button
+              priority="link"
+              size="sm"
+              borderless
+              onClick={() => {
+                const traceId = adjustLogTraceID(dataRow[OurLogKnownFieldKey.TRACE_ID]);
+                const locationStripped = stripLogParamsFromLocation(location);
+                const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
+                const target = getTraceDetailsUrl({
+                  traceSlug: traceId,
+                  spanId: dataRow[OurLogKnownFieldKey.SPAN_ID] as string | undefined,
+                  timestamp:
+                    typeof timestamp === 'string' || typeof timestamp === 'number'
+                      ? timestamp
+                      : undefined,
+                  organization,
+                  dateSelection: locationStripped,
+                  location: locationStripped,
+                  source: TraceViewSources.LOGS,
+                });
+                navigate(target);
+              }}
+            >
+              <IconSpan size="md" style={{paddingRight: space(0.5)}} />
+              {t('View Trace')}
+            </Button>
+          </LogDetailTableActionsButtonBar>
+        </LogDetailTableActionsCell>
+      )}
     </DetailsWrapper>
   );
 }

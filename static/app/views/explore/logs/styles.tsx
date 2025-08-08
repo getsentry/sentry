@@ -45,7 +45,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
 export const LogAttributeTreeWrapper = styled('div')`
   padding: ${space(1)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 0px;
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
@@ -89,6 +89,30 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   &:last-child {
     padding: 0;
   }
+`;
+export const LogDetailTableActionsCell = styled(TableBodyCell)`
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  padding-top: ${space(0.5)};
+  padding-bottom: 0;
+  min-height: 0px;
+
+  ${LogTableRow} & {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+    padding-top: ${space(0.5)};
+    padding-bottom: 0;
+  }
+  &:last-child {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+    padding-top: ${space(0.5)};
+    padding-bottom: 0;
+  }
+`;
+export const LogDetailTableActionsButtonBar = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 export const DetailsWrapper = styled('tr')`
