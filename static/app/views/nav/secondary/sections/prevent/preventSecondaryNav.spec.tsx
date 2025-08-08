@@ -37,7 +37,7 @@ describe('PreventSecondaryNav', () => {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/codecov/coverage/commits/',
+            pathname: '/organizations/org-slug/prevent/coverage/commits/',
           },
         },
       }
