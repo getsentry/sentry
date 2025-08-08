@@ -20,7 +20,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {Platform} from 'sentry/components/platformPicker';
+import type {Category, Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
@@ -482,6 +482,8 @@ export function CreateProject() {
     ]
   );
 
+  const category: Category = formData.platform?.category ?? 'popular';
+
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
@@ -499,7 +501,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
-            key={formData.platform?.category}
+            key={category}
             platform={formData.platform?.key}
             defaultCategory={formData.platform?.category}
             setPlatform={handlePlatformChange}
