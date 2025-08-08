@@ -14,7 +14,7 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
     test and testutil frames where thread leak fixes typically need to go. Each filter
     is only applied if it doesn't remove all frames (fail-safe behavior).
 
-    Returns the last 10 frames of application code with relative paths.
+    Returns filtered frames with relative paths.
     """
     # Get current working directory for path relativization
     cwd = os.getcwd() + "/"
@@ -38,12 +38,11 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
         if filtered_stack:
             stack = StackSummary.from_list(filtered_stack)
 
-    # Convert absolute paths to relative and limit to most recent frames
+    # Convert absolute paths to relative
     filtered_stack = [
         FrameSummary(frame.filename.replace(cwd, "./"), frame.lineno, frame.name) for frame in stack
     ]
-    # Return last 10 frames to keep output manageable while showing call chain
-    return StackSummary.from_list(filtered_stack[-10:])
+    return StackSummary.from_list(filtered_stack)
 
 
 def _get_thread_function_name(thread: Thread) -> str:
