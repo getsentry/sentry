@@ -1,17 +1,13 @@
 import {Fragment, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -19,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 import {MessageType} from 'sentry/views/settings/project/tempest/types';
@@ -129,7 +126,6 @@ export default function PlayStationSettings({organization, project}: Props) {
 }
 
 export const getPlayStationHeaderAction = (
-  hasWriteAccess: boolean,
   organization: Organization,
   project: Project
 ) => (
@@ -137,27 +133,7 @@ export const getPlayStationHeaderAction = (
     <ButtonBar gap="lg">
       <FeedbackWidgetButton />
       <RequestSdkAccessButton organization={organization} project={project} />
-      <Tooltip
-        title={t('You must be an organization admin to add new credentials.')}
-        disabled={hasWriteAccess}
-      >
-        <Button
-          priority="primary"
-          size="sm"
-          data-test-id="create-new-credentials"
-          disabled={!hasWriteAccess}
-          icon={<IconAdd isCircled />}
-          onClick={() => {
-            openAddTempestCredentialsModal({organization, project});
-            trackAnalytics('tempest.credentials.add_modal_opened', {
-              organization,
-              project_slug: project.slug,
-            });
-          }}
-        >
-          {t('Add Credentials')}
-        </Button>
-      </Tooltip>
+      <AddCredentialsButton project={project} />
     </ButtonBar>
   </Fragment>
 );
