@@ -126,11 +126,46 @@ class ProjectPreprodBuildDetailsEndpoint(ProjectEndpoint):
         )
 
         vcs_info = BuildDetailsVcsInfo(
-            commit_id=preprod_artifact.commit.key if preprod_artifact.commit else None,
-            # TODO: Implement in the future when available
-            # repo=None,
-            # provider=None,
-            # branch=None,
+            head_sha=(
+                preprod_artifact.commit_comparison.head_sha
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            base_sha=(
+                preprod_artifact.commit_comparison.base_sha
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            provider=(
+                preprod_artifact.commit_comparison.provider
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            head_repo_name=(
+                preprod_artifact.commit_comparison.head_repo_name
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            base_repo_name=(
+                preprod_artifact.commit_comparison.base_repo_name
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            head_ref=(
+                preprod_artifact.commit_comparison.head_ref
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            base_ref=(
+                preprod_artifact.commit_comparison.base_ref
+                if preprod_artifact.commit_comparison
+                else None
+            ),
+            pr_number=(
+                preprod_artifact.commit_comparison.pr_number
+                if preprod_artifact.commit_comparison
+                else None
+            ),
         )
 
         api_response = BuildDetailsApiResponse(
