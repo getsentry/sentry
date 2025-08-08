@@ -1,5 +1,6 @@
 import {useState} from 'react';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -30,39 +31,41 @@ export default function TagExportDropdown({tagKey, group, organization, project}
   });
 
   return (
-    <DropdownMenu
-      size="xs"
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          borderless
-          size="xs"
-          aria-label={t('Export options')}
-          icon={<IconDownload />}
-        />
-      )}
-      items={[
-        {
-          key: 'export-page',
-          label: t('Export Page to CSV'),
-          // TODO(issues): Dropdown menu doesn't support hrefs yet
-          onAction: () => {
-            window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-              '_blank'
-            );
+    <Feature features="organizations:discover-query" organization={organization}>
+      <DropdownMenu
+        size="xs"
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            borderless
+            size="xs"
+            aria-label={t('Export options')}
+            icon={<IconDownload />}
+          />
+        )}
+        items={[
+          {
+            key: 'export-page',
+            label: t('Export Page to CSV'),
+            // TODO(issues): Dropdown menu doesn't support hrefs yet
+            onAction: () => {
+              window.open(
+                `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+                '_blank'
+              );
+            },
           },
-        },
-        {
-          key: 'export-all',
-          label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-          onAction: () => {
-            handleDataExport();
-            setIsExportDisabled(true);
+          {
+            key: 'export-all',
+            label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
+            onAction: () => {
+              handleDataExport();
+              setIsExportDisabled(true);
+            },
+            disabled: isExportDisabled,
           },
-          disabled: isExportDisabled,
-        },
-      ]}
-    />
+        ]}
+      />
+    </Feature>
   );
 }
