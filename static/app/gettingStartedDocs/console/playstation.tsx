@@ -277,7 +277,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below.',
+            'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below:',
             {
               sentryNativeRepoLink: (
                 <ExternalLink href="https://github.com/getsentry/sentry-native" />
