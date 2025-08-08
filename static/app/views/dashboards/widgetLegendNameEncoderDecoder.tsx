@@ -6,7 +6,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
 
-const SERIES_NAME_DELIMITER = '||';
+const SERIES_NAME_DELIMITER = '|~|';
 
 const WidgetLegendNameEncoderDecoder = {
   encodeSeriesNameForLegend(seriesName: string, widgetId?: string) {
