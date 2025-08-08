@@ -11,7 +11,7 @@
 # by calling self.__consumer.paused() to see if there are any paused partitions.
 
 # The problematic code in _run_once method (around line 481) currently looks like:
-# 
+#
 # if self.__is_paused:
 #     paused_partitions = [*self.__consumer.paused()]
 #     if paused_partitions:
@@ -25,15 +25,16 @@
 
 # The fix is to replace the assertion with a proper check of the actual consumer state:
 
+
 def _run_once_fixed_logic():
     """
     Fixed logic for the _run_once method in StreamProcessor.
-    
+
     Instead of:
         if self.__is_paused:
             # ... code ...
             assert self.__consumer.poll(0.1) is None
-    
+
     Use:
         paused_partitions = [*self.__consumer.paused()]
         if paused_partitions:
@@ -59,10 +60,13 @@ def _run_once_fixed_logic():
     """
     pass
 
+
 # The key changes needed in the Arroyo processor.py file:
 # 1. Replace the assertion with proper handling of the case where a message is received when expected to be paused
 # 2. Update __is_paused to reflect the actual consumer state rather than just internal pause calls
 # 3. Handle the case where external components (like SynchronizedConsumer) resume partitions
 
 print("This file contains the logic for fixing the Arroyo StreamProcessor race condition.")
-print("The actual fix needs to be applied to: https://github.com/getsentry/arroyo/blob/main/arroyo/processing/processor.py")
+print(
+    "The actual fix needs to be applied to: https://github.com/getsentry/arroyo/blob/main/arroyo/processing/processor.py"
+)

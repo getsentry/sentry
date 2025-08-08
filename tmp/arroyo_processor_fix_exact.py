@@ -10,7 +10,7 @@ The issue occurs in the _run_once method around line 481 where this assertion fa
 
 This happens because:
 1. Arroyo sets __is_paused = True during rebalancing
-2. SynchronizedConsumer resumes partitions based on offset synchronization  
+2. SynchronizedConsumer resumes partitions based on offset synchronization
 3. The assertion expects poll() to return None when __is_paused is True
 4. But poll() returns a message because partitions were resumed externally
 
@@ -22,7 +22,7 @@ Replace the problematic assertion logic with code that:
 """
 
 # ORIGINAL CODE (around line 470-485 in _run_once method):
-original_code = '''
+original_code = """
 if self.__is_paused:
     paused_partitions = [*self.__consumer.paused()]
     if paused_partitions:
@@ -35,10 +35,10 @@ if self.__is_paused:
             assert self.__consumer.poll(0.1) is None  # <-- THIS LINE FAILS
     else:
         time.sleep(0.01)
-'''
+"""
 
 # FIXED CODE:
-fixed_code = '''
+fixed_code = """
 # Check actual consumer pause state instead of relying on internal __is_paused flag
 paused_partitions = [*self.__consumer.paused()]
 if paused_partitions:
@@ -52,7 +52,7 @@ if paused_partitions:
         message = self.__consumer.poll(0.1)
         if message is not None:
             # A message was received even though we expected the consumer to be paused.
-            # This can happen when external components (like SynchronizedConsumer) 
+            # This can happen when external components (like SynchronizedConsumer)
             # resume partitions independently. Handle this gracefully.
             self.__is_paused = False  # Update state to reflect reality
             self.__message = message  # Store the message for processing
@@ -62,7 +62,7 @@ else:
     if self.__is_paused:
         self.__is_paused = False  # Update state to reflect reality
     time.sleep(0.01)
-'''
+"""
 
 print("=== ARROYO STREAMPROCESSOR FIX ===")
 print("\nFile to modify: arroyo/processing/processor.py")

@@ -67,7 +67,7 @@ To verify that the fix handles rebalancing scenarios properly, we need to examin
 
 The fix properly handles all key scenarios by:
 
-1. **Checking Actual State**: 
+1. **Checking Actual State**:
    - Uses `self.__consumer.paused()` to determine if partitions are actually paused
    - Doesn't rely solely on internal `__is_paused` flag
 

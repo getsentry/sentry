@@ -48,7 +48,7 @@ if paused_partitions:
         message = self.__consumer.poll(0.1)
         if message is not None:
             # A message was received even though we expected the consumer to be paused.
-            # This can happen when external components (like SynchronizedConsumer) 
+            # This can happen when external components (like SynchronizedConsumer)
             # resume partitions independently. Handle this gracefully.
             self.__is_paused = False  # Update state to reflect reality
             self.__message = message  # Store the message for processing
