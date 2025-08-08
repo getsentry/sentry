@@ -126,8 +126,8 @@ class TempestTasksTest(TestCase):
             poll_tempest_crashes(self.credentials.id)
 
         self.credentials.refresh_from_db()
-        # ID should remain unchanged when JSON parsing fails
-        assert self.credentials.latest_fetched_item_id == "42"
+        # ID should be reset when JSON parsing fails since we don't want to retry the faulty crash
+        assert self.credentials.latest_fetched_item_id is None
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
 
