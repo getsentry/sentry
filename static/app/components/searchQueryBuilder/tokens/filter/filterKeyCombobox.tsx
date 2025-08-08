@@ -16,7 +16,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {FieldKey} from 'sentry/utils/fields';
 
 type KeyComboboxProps = {
@@ -144,5 +143,5 @@ const EditingWrapper = styled('div')`
   height: 100%;
   align-items: center;
   max-width: 400px;
-  padding-left: ${space(0.25)};
+  padding-left: ${p => p.theme.space['2xs']};
 `;
