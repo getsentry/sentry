@@ -400,7 +400,7 @@ function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     <EAPSpanNodeDetailsContent
       {...props}
       traceItemData={traceItemData}
-      eventTransaction={eventTransaction!}
+      eventTransaction={eventTransaction}
       avgSpanDuration={avgSpanDuration}
     />
   );
@@ -420,7 +420,7 @@ function EAPSpanNodeDetailsContent({
   avgSpanDuration,
 }: EAPSpanNodeDetailsProps & {
   avgSpanDuration: number | undefined;
-  eventTransaction: EventTransaction;
+  eventTransaction: EventTransaction | undefined;
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
