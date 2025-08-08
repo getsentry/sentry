@@ -36,7 +36,7 @@ class ReappearedEventCondition(EventCondition):
                 group_id=group_id,
                 type=ConditionActivityType.REAPPEARED,
                 timestamp=timestamp,
-                data=data or {},
+                data=data,
             )
             for group_id, timestamp, data in activities
             if group_id is not None

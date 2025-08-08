@@ -27,7 +27,7 @@ preprod: 0014_commitcomparisons_fk
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0965_gzippeddict_big_tables
+sentry: 0964_add_commitcomparison_table
 
 social_auth: 0003_social_auth_json_field
 
