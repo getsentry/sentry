@@ -389,7 +389,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 1
+        assert GroupOpenPeriod.objects.get(group=group).date_ended is None
+        assert GroupOpenPeriod.objects.get(group=group).date_started == activity.datetime
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
