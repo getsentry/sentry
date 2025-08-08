@@ -212,7 +212,7 @@ const getVerifySnippet = (params: Params) => {
     ? `
   // Send a log before throwing the error
   Sentry.logger.info("User triggered test error", {
-    'action': SentryLogAttribute.string('test_loader_error'),
+    'action': 'test_loader_error',
   });`
     : '';
   return `
