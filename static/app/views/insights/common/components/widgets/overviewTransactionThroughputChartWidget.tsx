@@ -17,7 +17,7 @@ export default function OverviewTransactionThroughputChartWidget(
   const yAxis: SpanProperty = 'epm()';
   const referrer = Referrer.TRANSACTION_THROUGHPUT_CHART;
 
-  const {data, isLoading, error} = useSpanSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       search,
       yAxis: [yAxis],
@@ -28,11 +28,11 @@ export default function OverviewTransactionThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      id="insightsOverviewTransactionThroughputChart"
+      id="overviewTransactionThroughputChartWidget"
       title={title}
       height="100%"
       error={error}
-      isLoading={isLoading}
+      isLoading={isPending}
       series={[data[yAxis]]}
       queryInfo={{search, referrer}}
     />

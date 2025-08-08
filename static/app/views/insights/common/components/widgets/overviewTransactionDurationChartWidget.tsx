@@ -27,7 +27,7 @@ export default function OverviewTransactionDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      id="insightsOverviewDurationChart"
+      id="overviewTransactionDurationChartWidget"
       queryInfo={{search, referrer}}
       title={title}
       height="100%"
