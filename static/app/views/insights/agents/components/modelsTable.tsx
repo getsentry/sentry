@@ -238,6 +238,13 @@ const BodyCell = memo(function BodyCell({
       },
     ],
     query: `gen_ai.request.model:${dataRow.model}`,
+    field: [
+      'span.description',
+      'span.duration',
+      'gen_ai.usage.input_tokens',
+      'gen_ai.usage.output_tokens',
+      'timestamp',
+    ],
   });
 
   switch (column.key) {
