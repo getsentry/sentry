@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {Flex} from 'sentry/components/core/layout';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -23,7 +23,6 @@ import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/ut
 
 import {CredentialRow} from './CredentialRow';
 import EmptyState from './EmptyState';
-import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -101,39 +100,36 @@ export default function PlayStationSettings({organization, project}: Props) {
 
       <ConfigForm organization={organization} project={project} />
 
-      {!isLoading && isEmpty ? (
-        <Panel>
-          <EmptyState />
-        </Panel>
-      ) : (
-        <PanelTable
-          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-          isLoading={isLoading}
-          isEmpty={isEmpty}
-        >
-          {tempestCredentials?.map(credential => (
-            <CredentialRow
-              key={credential.id}
-              credential={credential}
-              isRemoving={isRemoving}
-              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-            />
-          ))}
-        </PanelTable>
-      )}
+      <Flex direction="column" gap="md" align="end">
+        <div>
+          <AddCredentialsButton project={project} />
+        </div>
+
+        {!isLoading && isEmpty ? (
+          <Panel>
+            <EmptyState />
+          </Panel>
+        ) : (
+          <FullWidthPanelTable
+            headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
+            isLoading={isLoading}
+            isEmpty={isEmpty}
+          >
+            {tempestCredentials?.map(credential => (
+              <CredentialRow
+                key={credential.id}
+                credential={credential}
+                isRemoving={isRemoving}
+                removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+              />
+            ))}
+          </FullWidthPanelTable>
+        )}
+      </Flex>
     </Fragment>
   );
 }
 
-export const getPlayStationHeaderAction = (
-  organization: Organization,
-  project: Project
-) => (
-  <Fragment>
-    <ButtonBar gap="lg">
-      <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
-      <AddCredentialsButton project={project} />
-    </ButtonBar>
-  </Fragment>
-);
+const FullWidthPanelTable = styled(PanelTable)`
+  width: 100%;
+`;

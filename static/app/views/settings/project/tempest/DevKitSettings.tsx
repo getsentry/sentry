@@ -8,8 +8,6 @@ import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -23,8 +21,6 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
-
-import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -191,15 +187,6 @@ export default function DevKitSettings({organization, project}: Props) {
     </Fragment>
   );
 }
-
-export const getDevKitHeaderAction = (organization: Organization, project: Project) => {
-  return (
-    <ButtonBar gap="lg">
-      <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
-    </ButtonBar>
-  );
-};
 
 const Title = styled('div')`
   font-size: 26px;
