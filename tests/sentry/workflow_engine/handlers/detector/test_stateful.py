@@ -404,6 +404,8 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
         assert group_result
         assert group_result.result
+
+        assert isinstance(group_result.result, IssueOccurrence)
         assert group_result.result.evidence_data
         evidence_data = group_result.result.evidence_data
 
