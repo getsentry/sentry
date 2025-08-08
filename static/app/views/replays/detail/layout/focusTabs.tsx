@@ -13,6 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hasLogsOnReplays} from 'sentry/views/explore/logs/utils';
 
 function getReplayTabs({
   isVideoReplay,
@@ -40,6 +41,7 @@ function getReplayTabs({
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
+    [TabKey.LOGS]: hasLogsOnReplays(organization) ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
