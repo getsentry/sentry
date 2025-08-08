@@ -376,10 +376,6 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
-        if aggregation_value is None:
-            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-            return
-
         if aggregation_value is not None:
             if has_metric_alert_processing:
                 if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
@@ -449,6 +445,10 @@ class SubscriptionProcessor:
                 )
             if potential_anomalies is None:
                 return
+
+        if aggregation_value is None:
+            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+            return
 
         fired_incident_triggers: list[IncidentTrigger] = []
         with transaction.atomic(router.db_for_write(AlertRule)):
