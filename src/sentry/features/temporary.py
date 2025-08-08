@@ -460,7 +460,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable sending uptime results to EAP (Events Analytics Platform)
     manager.add("organizations:uptime-eap-results", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable querying uptime data from EAP uptime_results instead of uptime_checks
-    manager.add("organizations:uptime-eap-uptime-results-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:uptime-eap-uptime-results-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable label generation at ingest time for user feedbacks
