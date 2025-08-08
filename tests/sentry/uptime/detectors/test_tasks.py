@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
 
+import pytest
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
