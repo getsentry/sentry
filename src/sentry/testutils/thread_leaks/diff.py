@@ -1,6 +1,5 @@
 """Generate readable diffs showing thread creation locations for debugging leaks."""
 
-import os
 import sys
 from collections.abc import Generator, Iterable
 from threading import Thread
@@ -12,13 +11,8 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
 
     Applies a series of filters to remove stdlib and system code, then focuses on
     test and testutil frames where thread leak fixes typically need to go. Each filter
-    is only applied if it doesn't remove all frames (fail-safe behavior).
-
-    Returns filtered frames with relative paths.
+    is only applied if it doesn't remove all frames.
     """
-    # Get current working directory for path relativization
-    cwd = os.getcwd() + "/"
-
     # Get stdlib directory path if available (for filtering system code)
     stdlib_dir = getattr(sys, "_stdlib_dir", None)
 
@@ -38,11 +32,7 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
         if filtered_stack:
             stack = StackSummary.from_list(filtered_stack)
 
-    # Convert absolute paths to relative
-    filtered_stack = [
-        FrameSummary(frame.filename.replace(cwd, "./"), frame.lineno, frame.name) for frame in stack
-    ]
-    return StackSummary.from_list(filtered_stack)
+    return StackSummary.from_list(stack)
 
 
 def _get_thread_function_name(thread: Thread) -> str:

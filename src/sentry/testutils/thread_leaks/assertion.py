@@ -6,18 +6,30 @@ does a bit of work to record and show exactly where the Thread came from, which
 proved essential when working to fix these things.
 """
 
+import os
 import threading
 import traceback
 from contextlib import contextmanager
 from threading import Thread
+from traceback import StackSummary
 from typing import Any
 
 from . import sentry
 from .diff import diff
 
+_cwd = os.getcwd() + "/"
+del os  # hygiene
+
 
 class ThreadLeakAssertionError(AssertionError):
     pass
+
+
+def _where(cwd: str = _cwd) -> StackSummary:
+    stack = traceback.extract_stack()
+    for frame in stack:
+        frame.filename = frame.filename.replace(cwd, "./")  # for readability
+    return stack
 
 
 @contextmanager
@@ -26,7 +38,7 @@ def threading_remembers_where():
     __init__ = Thread.__init__
 
     def patched__init__(self: Thread, *a: Any, **k: Any) -> None:
-        setattr(self, "_where", traceback.extract_stack())
+        setattr(self, "_where", _where())
         __init__(self, *a, **k)
 
     from unittest import mock
@@ -41,13 +53,14 @@ def assert_none(strict=True):
 
     with threading_remembers_where():
         expected = threading.enumerate()
-        yield
+        result = {"events": {}}
+        yield result
         actual = threading.enumerate()
 
         thread_leaks = set(actual) - set(expected)
         if not thread_leaks:
             return
 
-        sentry.capture_event(thread_leaks, strict)
+        result["events"] = sentry.capture_event(thread_leaks, strict)
         if strict:
             raise ThreadLeakAssertionError(diff(old=expected, new=actual))
