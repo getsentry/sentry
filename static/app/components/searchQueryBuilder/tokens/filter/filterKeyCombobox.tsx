@@ -26,7 +26,7 @@ type KeyComboboxProps = {
 
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
@@ -114,12 +114,12 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
-        placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
         onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
         onExit={onExit}
         inputValue={inputValue}
+        placeholder={getKeyLabel(token.key)}
         token={token}
         inputLabel={t('Edit filter key')}
         onInputChange={e => setInputValue(e.target.value)}
