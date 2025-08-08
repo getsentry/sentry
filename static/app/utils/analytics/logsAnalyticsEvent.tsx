@@ -35,6 +35,15 @@ export type LogsAnalyticsEventParameters = {
   'logs.issue_details.drawer_opened': {
     organization: Organization;
   };
+  'logs.save_as': {
+    save_type: 'alert' | 'dashboard' | 'update_query';
+    ui_source: 'toolbar' | 'chart' | 'compare chart' | 'searchbar';
+  };
+  'logs.save_query_modal': {
+    action: 'open' | 'submit';
+    save_type: 'save_new_query' | 'rename_query';
+    ui_source: 'toolbar' | 'table';
+  };
   'logs.table.row_expanded': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
@@ -50,4 +59,6 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.table.row_expanded': 'Expanded Log Row Details',
+  'logs.save_as': 'Logs Save As',
+  'logs.save_query_modal': 'Logs Save Query Modal',
 };
