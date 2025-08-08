@@ -238,33 +238,3 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         job.status = DeletionJobStatus.COMPLETED
         job.save()
         return None
-
-
-@instrumented_task(
-    name="sentry.replays.tasks.delete_replay",
-    queue="replays.delete_replay",
-    default_retry_delay=5,
-    max_retries=5,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks, retry=Retry(times=5), processing_deadline_duration=120
-    ),
-)
-def delete_replay(
-    retention_days: int,
-    project_id: int,
-    replay_id: str,
-    max_segment_id: int,
-) -> None:
-    """Single replay deletion task."""
-    delete_matched_rows(
-        project_id=project_id,
-        rows=[
-            {
-                "max_segment_id": max_segment_id,
-                "replay_id": replay_id,
-                "retention_days": retention_days,
-            }
-        ],
-    )
