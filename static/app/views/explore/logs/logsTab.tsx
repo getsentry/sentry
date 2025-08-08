@@ -11,7 +11,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconTable} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -21,6 +21,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -113,6 +114,7 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
   const mode = useQueryParamsMode();
+  const queryClient = useQueryClient();
   const sortBys = useLogsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
@@ -206,6 +208,20 @@ export function LogsTabContent({
   const supportedAggregates = useMemo(() => {
     return [];
   }, []);
+
+  const refreshTable = useCallback(async () => {
+    queryClient.setQueryData(tableData.queryKey, (data: any) => {
+      if (data.pages) {
+        // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+        return {
+          pages: data.pages.slice(0, 1),
+          pageParams: data.pageParams.slice(0, 1),
+        };
+      }
+      return data;
+    });
+    await tableData.refetch();
+  }, [tableData, queryClient]);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -339,6 +355,12 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
+                <Button
+                  onClick={refreshTable}
+                  icon={<IconRefresh />}
+                  size="sm"
+                  aria-label={t('Refresh')}
+                />
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
