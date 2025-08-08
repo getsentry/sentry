@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from unittest import mock
 from uuid import uuid4
 
@@ -61,8 +60,8 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert result["duration"] == 500.0
         assert result["name"] == "https://example.com"
         assert result["description"] == "Uptime Check [success] - https://example.com (200)"
-        assert result["start_timestamp"] == datetime.fromtimestamp(1700000000)
-        assert result["end_timestamp"] == datetime.fromtimestamp(1700000000.5)
+        assert result["start_timestamp"] == 1700000000
+        assert result["end_timestamp"] == 1700000000.5
         attrs = result["additional_attributes"]
         assert attrs["guid"] == "check-123"
         assert attrs["check_status"] == "success"
