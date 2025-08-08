@@ -292,14 +292,30 @@ def get_event_file_committers(
     return _get_committers(annotated_frames, relevant_commits)
 
 
+def get_serialized_committers(project: Project, group_id: int) -> Sequence[AuthorCommitsSerialized]:
+    return get_serialized_event_file_committers(
+        project=project, event=None, group_id=group_id, fallback_to_release_based_strategy=False
+    )
+
+
 def get_serialized_event_file_committers(
-    project: Project, event: Event | GroupEvent, frame_limit: int = 25
+    project: Project,
+    event: Event | GroupEvent | None,
+    frame_limit: int = 25,
+    group_id: int | None = None,
+    fallback_to_release_based_strategy: bool = True,
 ) -> Sequence[AuthorCommitsSerialized]:
-    if event.group_id is None:
+    if event is not None and group_id is not None:
+        raise ValueError("Cannot pass both 'event' and 'group_id' - use one or the other")
+
+    if not group_id and event and event.group_id is None:
         return []
 
+    if not group_id:
+        group_id = event.group_id
+
     group_owners = GroupOwner.objects.filter(
-        group_id=event.group_id,
+        group_id=group_id,
         project=project,
         organization_id=project.organization_id,
         type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -343,12 +359,12 @@ def get_serialized_event_file_committers(
     # We should refactor to query GroupOwner rather than recalculate.
     # But we need to store the commitId and a way to differentiate
     # if the Suspect Commit came from ReleaseCommits or CommitContext.
-    else:
+    if fallback_to_release_based_strategy:
         event_frames = get_frame_paths(event)
         sdk_name = get_sdk_name(event.data)
         committers = get_event_file_committers(
             project,
-            event.group_id,
+            group_id,
             event_frames,
             event.platform,
             frame_limit=frame_limit,
@@ -383,6 +399,8 @@ def get_serialized_event_file_committers(
             skip_internal=False,
         )
         return serialized_committers
+
+    return []
 
 
 def dedupe_commits(
