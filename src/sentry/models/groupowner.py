@@ -20,7 +20,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.utils.cache import cache
 
 READ_CACHE_DURATION = 3600
@@ -206,6 +206,7 @@ class GroupOwner(Model):
         # Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
             project_id=project_id,
+            status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED, GroupStatus.IGNORED],
             last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
         ).values_list("id", flat=True)
 
