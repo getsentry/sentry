@@ -18,6 +18,7 @@ import {
   getFieldDefinition,
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
+  REPLAY_TAG_ALIASES,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -159,10 +160,15 @@ function ReplaySearchBar(props: Props) {
         statsPeriod,
       };
 
+      const searchName =
+        tag.key in REPLAY_TAG_ALIASES
+          ? REPLAY_TAG_ALIASES[tag.key as keyof typeof REPLAY_TAG_ALIASES]
+          : tag.key;
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
-        tagKey: tag.key,
+        tagKey: searchName,
         search: searchQuery,
         projectIds: projectIds?.map(String),
         endpointParams,

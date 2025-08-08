@@ -2572,6 +2572,12 @@ export const REPLAY_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
+export const REPLAY_TAG_ALIASES = {
+  [ReplayFieldKey.SCREEN]: ReplayFieldKey.URL,
+  [ReplayFieldKey.SCREENS]: ReplayFieldKey.URL,
+  [ReplayFieldKey.URLS]: ReplayFieldKey.URL,
+};
+
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
     desc: t('Amount of activity in the replay from 0 to 10'),
