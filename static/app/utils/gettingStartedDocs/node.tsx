@@ -365,29 +365,11 @@ export const getNodeAgentMonitoringOnboarding = ({
 }: {
   basePackage?: string;
 } = {}): OnboardingConfig => ({
-  introduction: () => (
-    <Alert type="info" showIcon={false}>
-      {tct(
-        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK]. If you are using something else, you can use [manual:manual instrumentation].',
-        {
-          vercelai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-          ),
-          openai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
-          ),
-          manual: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-          ),
-        }
-      )}
-    </Alert>
-  ),
   install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:9.30.0].',
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.2.0].',
         {
           code: <code />,
         }
@@ -397,9 +379,9 @@ export const getNodeAgentMonitoringOnboarding = ({
       }),
     },
   ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
+  configure: params => {
+    const vercelStep = {
+      title: t('Configure'),
       description: tct(
         'Add the [code:vercelAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the [link:Vercel AI SDK] to capture spans for AI operations.',
         {
@@ -426,7 +408,10 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     // Add the Vercel AI SDK integration ${basePackage === 'nextjs' ? 'to config.server.(js/ts)' : ''}
-    Sentry.vercelAIIntegration(),
+    Sentry.vercelAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
   ],
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
@@ -466,8 +451,107 @@ const result = await generateText({
           ],
         },
       ],
-    },
+    };
+
+    const openaiStep = {
+      title: t('Configure'),
+      description: tct(
+        'Add the [code:openAIIntegration] to your [code:Sentry.init()] call. This integration automatically instruments the OpenAI SDK to capture spans for AI operations.',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the OpenAI integration
+    Sentry.openAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
   ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: "Tell me a joke",
+});`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const manualStep = {
+      title: t('Configure'),
+      description: tct(
+        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/${
+                basePackage === 'nextjs' ? 'nextjs' : basePackage
+              }";
+
+// Create a span around your AI call
+await Sentry.startSpan({
+  op: "gen_ai.request",
+  name: "Generate Text",
+}, async (span) => {
+  // Call your AI function here
+  // e.g., await generateText(...)
+  span.setAttribute("ai.model", "gpt-4o");
+});`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const selected = (params.platformOptions as any)?.integration ?? 'vercelai';
+    if (selected === 'openai') {
+      return [openaiStep];
+    }
+    if (selected === 'manual') {
+      return [manualStep];
+    }
+    return [vercelStep];
+  },
   verify: () => [],
 });
 
