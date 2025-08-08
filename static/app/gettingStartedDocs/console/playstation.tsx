@@ -78,7 +78,7 @@ const onboardingRetail: OnboardingConfig = {
         },
         {
           type: 'custom',
-          content: <AddCredentialsButton projectSlug={params.project.slug} />,
+          content: <AddCredentialsButton project={params.project} />,
         },
         {
           type: 'text',
