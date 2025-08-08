@@ -131,8 +131,8 @@ def _create_api_access_log(
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
 
-        if in_random_rollout("issues.log-access-logs"):
-            sentry_sdk.capture_message("Acesss log created", level="debug")
+        if in_random_rollout("issues.log-access-logs") and not org_id:
+            sentry_sdk.capture_message("Acesss log created without org_id", level="debug")
 
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
