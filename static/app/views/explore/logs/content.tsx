@@ -7,12 +7,18 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LogsPageParamsProvider,
+  useLogsId,
+  useLogsTitle,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -52,8 +58,6 @@ export default function LogsContent() {
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     logsPickableDays(organization);
 
-  const prefersStackedNav = usePrefersStackedNav();
-
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
       <PageFiltersContainer
@@ -67,47 +71,13 @@ export default function LogsContent() {
           },
         }}
       >
-        <Layout.Page>
-          <Layout.Header unified={prefersStackedNav}>
-            <Layout.HeaderContent unified={prefersStackedNav}>
-              <Layout.Title>
-                {t('Logs')}
-                <FeatureBadge
-                  type="beta"
-                  tooltipProps={{
-                    title: t(
-                      "This feature is currently in beta and we're actively working on it"
-                    ),
-                    isHoverable: true,
-                  }}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar>
-                <FeedbackButton />
-                <LinkButton
-                  icon={<IconOpen />}
-                  priority="primary"
-                  href={LOGS_INSTRUCTIONS_URL}
-                  external
-                  size="xs"
-                  onMouseDown={() => {
-                    trackAnalytics('logs.doc_link.clicked', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Set Up Logs')}
-                </LinkButton>
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsQueryParamsProvider source="location">
-              <LogsPageParamsProvider
-                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              >
+        <LogsQueryParamsProvider source="location">
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          >
+            <Layout.Page>
+              <LogsHeader />
+              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
                 <LogsPageDataProvider>
                   <LogsTabContent
                     defaultPeriod={defaultPeriod}
@@ -115,11 +85,59 @@ export default function LogsContent() {
                     relativeOptions={relativeOptions}
                   />
                 </LogsPageDataProvider>
-              </LogsPageParamsProvider>
-            </LogsQueryParamsProvider>
-          </TraceItemAttributeProvider>
-        </Layout.Page>
+              </TraceItemAttributeProvider>
+            </Layout.Page>
+          </LogsPageParamsProvider>
+        </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>
+  );
+}
+
+function LogsHeader() {
+  const organization = useOrganization();
+  const prefersStackedNav = usePrefersStackedNav();
+
+  const pageId = useLogsId();
+  const title = useLogsTitle();
+  return (
+    <Layout.Header unified={prefersStackedNav}>
+      <Layout.HeaderContent unified={prefersStackedNav}>
+        <Layout.Title>
+          {title && defined(pageId) ? (
+            <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
+          ) : null}
+          {title ? title : t('Logs')}
+          <FeatureBadge
+            type="beta"
+            tooltipProps={{
+              title: t(
+                "This feature is currently in beta and we're actively working on it"
+              ),
+              isHoverable: true,
+            }}
+          />
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar>
+          <FeedbackButton />
+          <LinkButton
+            icon={<IconOpen />}
+            priority="primary"
+            href={LOGS_INSTRUCTIONS_URL}
+            external
+            size="xs"
+            onMouseDown={() => {
+              trackAnalytics('logs.doc_link.clicked', {
+                organization,
+              });
+            }}
+          >
+            {t('Set Up Logs')}
+          </LinkButton>
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
   );
 }

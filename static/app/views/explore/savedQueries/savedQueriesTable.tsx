@@ -30,12 +30,11 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
-  getExploreUrlFromSavedQueryUrl,
+  getSavedQueryTraceItemUrl,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -228,11 +227,7 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="name">
               <SavedEntityTable.CellName
-                to={
-                  query.dataset === 'logs'
-                    ? getLogsUrlFromSavedQueryUrl(query, organization)
-                    : getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})
-                }
+                to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
                 {query.name}
               </SavedEntityTable.CellName>
