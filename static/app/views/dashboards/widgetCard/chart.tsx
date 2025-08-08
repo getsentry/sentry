@@ -50,6 +50,8 @@ import {
   isAggregateField,
   isEquation,
   maybeEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -184,13 +186,22 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           field,
         })),
         tableResults[i]?.meta
-      ).map((column, index) => ({
-        key: column.key,
-        width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
-        type: column.type === 'never' ? null : column.type,
-        sortable:
-          widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
-      }));
+      ).map((column, index) => {
+        const parsedFunction = parseFunction(column.key);
+        let key = column.key;
+        if (parsedFunction) {
+          key = prettifyParsedFunction(parsedFunction);
+        }
+        return {
+          key,
+          width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
+          type: column.type === 'never' ? null : column.type,
+          sortable:
+            widget.widgetType === WidgetType.RELEASE
+              ? isAggregateField(column.key)
+              : true,
+        };
+      });
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
       const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
