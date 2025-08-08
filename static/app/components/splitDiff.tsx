@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
-import type {Change} from 'diff';
-import {diffChars, diffLines, diffWords} from 'diff';
+import {type Change, diffArrays} from 'diff';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
 export const DIFF_COLORS = {
@@ -10,69 +9,121 @@ export const DIFF_COLORS = {
   added: 'hsl(166deg 58% 47% / 32%)',
 } as const;
 
-const diffFnMap = {
-  chars: diffChars,
-  words: diffWords,
-  lines: diffLines,
-} as const;
-
 type Props = {
   base: string;
   target: string;
   className?: string;
-  type?: keyof typeof diffFnMap;
 };
 
-function SplitDiff({className, type = 'lines', base, target}: Props) {
-  const diffFn = diffFnMap[type];
+function SplitDiff({className, base, target}: Props) {
+  function tokenizeStackTrace(t: string): string[] {
+    const trace = t.replace(/, line \d+,/g, ','); // this is ONLY FOR PYTHON
+    const lines = trace.split('\n');
 
-  const baseLines = base.split('\n');
-  const targetLines = target.split('\n');
-  const [largerArray] =
-    baseLines.length > targetLines.length
-      ? [baseLines, targetLines]
-      : [targetLines, baseLines];
-  const results = largerArray.map((_line, index) =>
-    diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
-  );
+    return lines.flatMap((lineStr): string[] => {
+      const matchWithFn = lineStr.match(/^\s*at\s+(.*?)\s+\((.*?):\d+:\d+\)$/);
+      if (matchWithFn !== null && matchWithFn.length === 3) {
+        const fnName = matchWithFn[1]!;
+        const file = matchWithFn[2]!;
+        return ['at', fnName, file, 'LINE', 'COL'];
+      }
+
+      const matchWithoutFn = lineStr.match(/^\s*at\s+(.*?):\d+:\d+$/);
+      if (matchWithoutFn !== null && matchWithoutFn.length === 2) {
+        const file = matchWithoutFn[1]!;
+        return ['at', file, 'LINE', 'COL'];
+      }
+
+      // Fallback: basic whitespace tokenization
+      return [...lineStr.trim().split(/\s+/).filter(Boolean), '\n'];
+    });
+  }
+
+  const tokenizedBase = tokenizeStackTrace(base);
+  const tokenizedTarget = tokenizeStackTrace(target);
+
+  const results = diffArrays(tokenizedBase, tokenizedTarget);
+
+  function assembleLines(
+    assembledLines: Change[][] = [],
+    currentLine: Change[] = []
+  ): Change[][] {
+    for (const result of results) {
+      if (result.value.includes('\n')) {
+        const lineResult = result.value.join(' ').split('\n');
+        // add the rest of the current line and push to aseembled line
+        currentLine.push({
+          added: result.added,
+          removed: result.removed,
+          value: lineResult[0] ?? '====', // Should fix this probable
+        });
+        assembledLines.push(currentLine);
+        currentLine = [];
+
+        // now add the rest of them
+        lineResult.slice(1, -1).forEach(line => {
+          const lineChunk: Change[] = [
+            {
+              added: result.added,
+              removed: result.removed,
+              value: line,
+            },
+          ];
+          assembledLines.push(lineChunk);
+        });
+
+        // now add the last one
+        currentLine.push({
+          added: result.added,
+          removed: result.removed,
+          value: lineResult[lineResult.length - 1] ?? '====', // Should fix this probable
+        });
+      } else {
+        currentLine.push({
+          added: result.added,
+          removed: result.removed,
+          value: result.value.join(' '),
+        });
+      }
+    }
+    assembledLines.push(currentLine);
+    return assembledLines;
+  }
+
+  const assembledLines = assembleLines();
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
-        {results.map((line, j) => {
-          const highlightAdded = line.find(result => result.added);
-          const highlightRemoved = line.find(result => result.removed);
+        {assembledLines.map((line, i) => (
+          <tr key={i}>
+            <Cell isRemoved={line.some(change => change.removed)}>
+              <Line>
+                {line
+                  .filter(change => !change.added)
+                  .map((change, j) => (
+                    <Word key={j} isRemoved={change.removed}>
+                      {change.value}
+                    </Word>
+                  ))}
+              </Line>
+            </Cell>
 
-          return (
-            <tr key={j}>
-              <Cell isRemoved={highlightRemoved}>
-                <Line>
-                  {line
-                    .filter(result => !result.added)
-                    .map((result, i) => (
-                      <Word key={i} isRemoved={result.removed}>
-                        {result.value}
-                      </Word>
-                    ))}
-                </Line>
-              </Cell>
+            <Gap />
 
-              <Gap />
-
-              <Cell isAdded={highlightAdded}>
-                <Line>
-                  {line
-                    .filter(result => !result.removed)
-                    .map((result, i) => (
-                      <Word key={i} isAdded={result.added}>
-                        {result.value}
-                      </Word>
-                    ))}
-                </Line>
-              </Cell>
-            </tr>
-          );
-        })}
+            <Cell isAdded={line.some(change => change.added)}>
+              <Line>
+                {line
+                  .filter(change => !change.removed)
+                  .map((change, j) => (
+                    <Word key={j} isAdded={change.added}>
+                      {change.value}
+                    </Word>
+                  ))}
+              </Line>
+            </Cell>
+          </tr>
+        ))}
       </SplitBody>
     </SplitTable>
   );
@@ -89,7 +140,7 @@ const SplitBody = styled('tbody')`
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
+const Cell = styled('td')<{isAdded?: boolean; isRemoved?: boolean}>`
   vertical-align: top;
   ${p => p.isRemoved && `background-color: ${DIFF_COLORS.removedRow}`};
   ${p => p.isAdded && `background-color: ${DIFF_COLORS.addedRow}`};
