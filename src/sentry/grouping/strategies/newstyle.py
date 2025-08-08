@@ -434,10 +434,9 @@ def _single_stacktrace_variant(
     found_in_app_frame = False
 
     for frame in frames:
-        with context:
-            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
-            if _is_recursive_frame(frame, prev_frame):
-                frame_component.update(contributes=False, hint="ignored due to recursion")
+        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        if _is_recursive_frame(frame, prev_frame):
+            frame_component.update(contributes=False, hint="ignored due to recursion")
 
         if variant_name == "app":
             if frame.in_app:
