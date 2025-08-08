@@ -107,7 +107,7 @@ class WeeklyReportProgressTracker:
     taskworker_config=TaskworkerConfig(
         namespace=reports_tasks,
         retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=15),
+        processing_deadline_duration=timedelta(minutes=30),
     ),
 )
 @retry(timeouts=True)
