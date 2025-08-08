@@ -8,7 +8,6 @@ from sentry.testutils.helpers import override_options
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
-URL = f"http://localhost:9999{PATH}"
 
 
 def run_test_case(
