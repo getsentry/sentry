@@ -255,8 +255,8 @@ export function logsPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
-  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
-    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  if (lastPageLength * 0.25 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.25); // Can be up to 250 on large pages.
   }
   return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
 }
