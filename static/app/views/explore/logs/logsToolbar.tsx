@@ -9,10 +9,10 @@ import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
 import {
   useLogsAggregateFunction,
   useLogsAggregateParam,
-  useLogsGroupBy,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 
 export const LOG_AGGREGATES = [
   {
@@ -69,7 +69,8 @@ interface LogsToolbarProps {
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
   let aggregateParam = useLogsAggregateParam();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
+  const groupBy = groupBys[0] ?? '';
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
