@@ -159,14 +159,21 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         # Members can only delete invitations that they sent
         if invited_member.inviter_id != acting_member.user_id:
-            return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+            return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
+        self._remove_invite_and_log(request, invited_member)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _remove_invite_and_log(
+        self,
+        request: Request,
+        invited_member: OrganizationMemberInvite,
+    ) -> None:
         api_key = get_api_key_for_audit_log(request)
         event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
         invited_member.remove_invite_from_db(
             request.user, event_name, api_key, request.META["REMOTE_ADDR"]
         )
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def delete(
         self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
@@ -207,12 +214,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 if not can_manage:
                     return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
 
-        api_key = get_api_key_for_audit_log(request)
-
-        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
-        invited_member.remove_invite_from_db(
-            request.user, event_name, api_key, request.META["REMOTE_ADDR"]
-        )
+        self._remove_invite_and_log(request, invited_member)
 
         # TODO(mifu67): replace all the magic numbers with status codes in a separate PR
         return Response(status=status.HTTP_204_NO_CONTENT)
