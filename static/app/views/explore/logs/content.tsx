@@ -55,8 +55,7 @@ function FeedbackButton() {
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    logsPickableDays(organization);
+  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
