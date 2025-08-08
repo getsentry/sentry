@@ -1,8 +1,10 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -17,7 +19,18 @@ import {
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {
+  LOGS_AGGREGATE_FN_KEY,
+  LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_FIELDS_KEY,
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   LogAttributesHumanLabel,
@@ -327,4 +340,105 @@ export function hasLogsOnReplays(organization: Organization): boolean {
     organization.features.includes('ourlogs-enabled') &&
     organization.features.includes('ourlogs-replay-ui')
   );
+}
+
+export function getLogsUrl({
+  organization,
+  selection,
+  query,
+  field,
+  groupBy,
+  id,
+  interval,
+  mode,
+  referrer,
+  sortBy,
+  title,
+  aggregateFn,
+  aggregateParam,
+}: {
+  organization: Organization;
+  aggregateFn?: string;
+  aggregateParam?: string;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sortBy?: string;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
+  const queryParams = {
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    [LOGS_QUERY_KEY]: query,
+    utc,
+    [LOGS_FIELDS_KEY]: field,
+    [LOGS_GROUP_BY_KEY]: groupBy,
+    id,
+    interval,
+    mode,
+    referrer,
+    [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
+    [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
+    title,
+  };
+
+  return (
+    makeLogsPathname({organization, path: '/'}) +
+    `?${qs.stringify(queryParams, {skipNull: true})}`
+  );
+}
+
+function makeLogsPathname({
+  organization,
+  path,
+}: {
+  organization: Organization;
+  path: string;
+}) {
+  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+}
+
+export function getLogsUrlFromSavedQueryUrl(
+  savedQuery: SavedQuery,
+  organization: Organization
+) {
+  const firstQuery = savedQuery.query[0];
+  const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
+  const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
+  const aggregateParam = visualize ? visualize.split('(')[1]?.split(')')[0] : undefined;
+
+  return getLogsUrl({
+    organization,
+    field: firstQuery.fields,
+    groupBy: firstQuery.groupby,
+    sortBy: firstQuery.orderby,
+    title: savedQuery.name,
+    id: savedQuery.id,
+    interval: savedQuery.interval,
+    mode: firstQuery.mode,
+    query: firstQuery.query,
+    aggregateFn,
+    aggregateParam,
+    selection: {
+      datetime: {
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
+        utc: null,
+      },
+      environments: savedQuery.environment ? [...savedQuery.environment] : [],
+      projects: savedQuery.projects ? [...savedQuery.projects] : [],
+    },
+  });
 }
