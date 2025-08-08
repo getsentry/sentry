@@ -15,6 +15,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
@@ -86,21 +87,26 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
-        sentry_sdk.profiler.start_profiler()
+        profiling_enabled = options.get(
+            "replay.ingest.profiling.enabled",
+        )
+        if profiling_enabled:
+            sentry_sdk.profiler.start_profiler()
+
         try:
             recording_event = parse_recording_event(message.payload.value)
             set_tag("org_id", recording_event["context"]["org_id"])
             set_tag("project_id", recording_event["context"]["project_id"])
             res = process_recording_event(recording_event)
-            sentry_sdk.profiler.stop_profiler()
             return res
         except DropSilently:
-            sentry_sdk.profiler.stop_profiler()
             return FilteredPayload()
         except Exception:
-            sentry_sdk.profiler.stop_profiler()
             logger.exception("Failed to process replay recording message.")
             return FilteredPayload()
+        finally:
+            if profiling_enabled:
+                sentry_sdk.profiler.stop_profiler()
 
 
 @sentry_sdk.trace
@@ -187,19 +193,22 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
                 )
             },
         ):
-            sentry_sdk.profiler.start_profiler()
+            profiling_enabled = options.get(
+                "replay.ingest.profiling.enabled",
+            )
+            if profiling_enabled:
+                sentry_sdk.profiler.start_profiler()
             try:
                 commit_recording_message(message.payload)
                 track_recording_metadata(message.payload)
-                sentry_sdk.profiler.stop_profiler()
                 return None
             except GCS_RETRYABLE_ERRORS:
-                sentry_sdk.profiler.stop_profiler()
                 raise
             except DropEvent:
-                sentry_sdk.profiler.stop_profiler()
                 return None
             except Exception:
-                sentry_sdk.profiler.stop_profiler()
                 logger.exception("Failed to commit replay recording message.")
                 return None
+            finally:
+                if profiling_enabled:
+                    sentry_sdk.profiler.stop_profiler()
