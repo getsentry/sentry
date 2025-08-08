@@ -2668,6 +2668,9 @@ SENTRY_USE_UPTIME = False
 # This flag activates the taskbroker in devservices
 SENTRY_USE_TASKBROKER = False
 
+# This flag activates the objectstore in devservices
+SENTRY_USE_OBJECTSTORE = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2918,6 +2921,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "objectstore": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/objectstore:latest",
+            "ports": {"8888/tcp": 8888},
+            "environment": {},
+            "only_if": settings.SENTRY_USE_OBJECTSTORE,
         }
     ),
 }
