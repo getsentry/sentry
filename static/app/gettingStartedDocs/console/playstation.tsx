@@ -1,317 +1,126 @@
-import styled from '@emotion/styled';
+import {Fragment, useState} from 'react';
 
-import devkitCrashesStep1 from 'sentry-images/tempest/devkit-crashes-step1.png';
-import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
-import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
-import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
-
-import {Flex} from 'sentry/components/core/layout/flex';
+import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import {
-  type BasePlatformOptions,
-  type Docs,
-  type DocsParams,
-  type OnboardingConfig,
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {CONSOLE_PLATFORM_INSTRUCTIONS} from 'sentry/components/onboarding/consoleModal';
+import type {
+  DocsParams,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t, tct} from 'sentry/locale';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
-  ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
-  AllowListIPAddresses,
-} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
+  CONSOLE_PLATFORM_METADATA,
+  ConsolePlatform,
+} from 'sentry/constants/consolePlatforms';
+import platforms from 'sentry/data/platforms';
+import {IconLock} from 'sentry/icons/iconLock';
+import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
+function ConsolePlatformsContent(params: DocsParams) {
+  const [consolePlatform, setConsolePlatform] = useState<ConsolePlatform>(
+    ConsolePlatform.NINTENDO_SWITCH
+  );
 
-enum InstallationMode {
-  RETAIL = 'retail',
-  DEVKIT = 'devkit',
+  const consoleData = CONSOLE_PLATFORM_METADATA[consolePlatform];
+
+  return (
+    <Flex gap="md" direction="column">
+      <div>
+        <SegmentedControl
+          aria-label={t('Console Platforms')}
+          size="sm"
+          value={consolePlatform}
+          onChange={setConsolePlatform}
+        >
+          <SegmentedControl.Item key={ConsolePlatform.NINTENDO_SWITCH}>
+            {CONSOLE_PLATFORM_METADATA[ConsolePlatform.NINTENDO_SWITCH].displayName}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={ConsolePlatform.PLAYSTATION}>
+            {CONSOLE_PLATFORM_METADATA[ConsolePlatform.PLAYSTATION].displayName}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={ConsolePlatform.XBOX}>
+            {CONSOLE_PLATFORM_METADATA[ConsolePlatform.XBOX].displayName}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      </div>
+      {params.organization.enabledConsolePlatforms?.includes(consolePlatform) ? (
+        <Fragment>
+          <p>
+            {tct(
+              'Our Sentry [repoUrl: [consoleName] SDK] extends the core [sentryNativeRepositoryLink:sentry-native] library with [consoleName]-specific implementations for standalone engines and proprietary game engines.',
+              {
+                repoUrl: <ExternalLink href={consoleData.repoURL} />,
+                consoleName: consoleData.displayName,
+                sentryNativeRepositoryLink: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-native" />
+                ),
+              }
+            )}
+          </p>
+          <Alert
+            type="warning"
+            icon={<IconLock size="sm" locked />}
+            showIcon
+            trailingItems={
+              <Button
+                size="sm"
+                priority="primary"
+                onClick={() => {
+                  openPrivateGamingSdkAccessModal({
+                    organization: params.organization,
+                    projectSlug: params.project.slug,
+                    projectId: params.project.id,
+                    sdkName: consoleData.displayName,
+                    gamingPlatform: consolePlatform,
+                  });
+                }}
+              >
+                {t('Request Access')}
+              </Button>
+            }
+          >
+            {tct(
+              '[strong:Access Restricted]. The [consoleName] SDK is distributed through a private repository under NDA.',
+              {
+                strong: <strong />,
+                consoleName: consoleData.displayName,
+              }
+            )}
+          </Alert>
+          <p>
+            {t('Once the access is granted, you can proceed with the SDK integration.')}
+          </p>
+        </Fragment>
+      ) : (
+        CONSOLE_PLATFORM_INSTRUCTIONS[consolePlatform]
+      )}
+    </Flex>
+  );
 }
+export function getConsoleExtensions(params: DocsParams): OnboardingStep {
+  const platformData = platforms.find(p => p.id === params.platformKey);
+  const platformName = platformData?.name ?? params.platformKey;
 
-const isRetailMode = (params: Params) =>
-  params.platformOptions?.installationMode === InstallationMode.RETAIL;
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
+  return {
+    title: t('Console Extensions'),
+    collapsible: true,
+    content: [
       {
-        label: t('Retail'),
-        value: InstallationMode.RETAIL,
+        type: 'text',
+        text: tct(
+          'Sentry provides private console extensions that work alongside your [platformName] project. These extensions offer platform-specific optimizations and additional features.',
+          {
+            platformName,
+          }
+        ),
       },
       {
-        label: t('Devkit'),
-        value: InstallationMode.DEVKIT,
+        type: 'custom',
+        content: <ConsolePlatformsContent {...params} />,
       },
     ],
-    defaultValue: InstallationMode.DEVKIT,
-  },
-} satisfies BasePlatformOptions;
-
-const onboardingRetail: OnboardingConfig = {
-  install: (params: Params) => [
-    {
-      title: t('Retrieve Back Office Server Credential from Sony'),
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest.'
-          ),
-        },
-        {
-          type: 'alert',
-          alertType: 'warning',
-          showIcon: true,
-          text: t(
-            'To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
-          ),
-        },
-        {
-          type: 'text',
-          text: t(
-            'Once you have the credentials, save them to your project. You can achieve that by clicking on the button below.'
-          ),
-        },
-        {
-          type: 'custom',
-          content: <AddCredentialsButton project={params.project} />,
-        },
-        {
-          type: 'text',
-          text: tct(
-            'After adding credentials, check their status in [projectSettingsLink:Project Settings > PlayStation] to ensure they are valid before proceeding with the instructions below.',
-            {
-              projectSettingsLink: (
-                <ExternalLink
-                  href={`/settings/projects/${params.project.slug}/playstation/`}
-                  openInNewTab
-                />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      title: t('Allow list our IP Addresses'),
-      content: [
-        {
-          type: 'text',
-          text: ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
-        },
-        {
-          type: 'custom',
-          content: <AllowListIPAddresses />,
-        },
-      ],
-    },
-    {
-      title: t('Configure data collection'),
-      collapsible: true,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Enable [strong:Attach Dumps] to automaticallyinclude Prospero crash dumps for debugging and [strong:Attach Screenshots] to include crash screenshots when available.',
-            {
-              strong: <strong />,
-            }
-          ),
-        },
-        {
-          type: 'alert',
-          alertType: 'warning',
-          showIcon: true,
-          text: t(
-            'Both screenshots and crash dump files consume from your attachments quota.'
-          ),
-        },
-        {
-          type: 'custom',
-          content: (
-            <ConfigForm organization={params.organization} project={params.project} />
-          ),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      title: t('Look for events'),
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'c',
-          code: `os.name: PlayStation`,
-        },
-      ],
-    },
-  ],
-};
-
-const onboardingDevkit: OnboardingConfig = {
-  install: (params: Params) => [
-    {
-      title: t('Copy PlayStation Ingestion URL'),
-      content: [
-        {
-          type: 'text',
-          text: t('This is the URL where your crash reports will be sent:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: params.dsn.playstation,
-        },
-      ],
-    },
-  ],
-  configure: () => [
-    {
-      title: t('Using Windows tool to set up Upload URL'),
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Using Windows tool enter that link into the DevKit as the URL to the Recap Server.'
-          ),
-        },
-        {
-          type: 'custom',
-          content: (
-            <Flex justify="center">
-              <CardIllustration src={windowToolImg} alt={t('Windows tool screenshot')} />
-            </Flex>
-          ),
-        },
-      ],
-    },
-    {
-      title: t('Using DevKit Directly to set up Upload URL'),
-      content: [
-        {
-          type: 'text',
-          text: t(
-            "If you haven't done it via Windows tool, you can set up the Upload URL directly in the DevKit. It is under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL'."
-          ),
-        },
-        {
-          type: 'custom',
-          content: (
-            <Flex direction="column" gap="lg" align="center">
-              <CardIllustration
-                src={devkitCrashesStep1}
-                alt={t('DevKit set up screenshot step 1')}
-              />
-              <CardIllustration
-                src={devkitCrashesStep2}
-                alt={t('DevKit set up screenshot step 2')}
-              />
-              <CardIllustration
-                src={devkitCrashesStep3}
-                alt={t('DevKit set up screenshot step 3')}
-              />
-            </Flex>
-          ),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      title: t('Important Notes'),
-      content: [
-        {
-          type: 'custom',
-          content: (
-            <List symbol="bullet">
-              <ListItem>
-                {t(
-                  'If you are trying to re-attempt the upload of a failed crash that occurred before entering the URL it might be that the DevKit still tries to send the crash to the previously specified URL.'
-                )}
-              </ListItem>
-              <ListItem>
-                {t(
-                  'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
-                )}
-              </ListItem>
-            </List>
-          ),
-        },
-      ],
-    },
-  ],
-};
-
-const onboarding: OnboardingConfig = {
-  install: (params: Params) => {
-    return isRetailMode(params)
-      ? onboardingRetail.install(params)
-      : onboardingDevkit.install(params);
-  },
-  configure: (params: Params) => {
-    return isRetailMode(params)
-      ? onboardingRetail.configure(params)
-      : onboardingDevkit.configure(params);
-  },
-  verify: (params: Params) => [
-    ...(isRetailMode(params)
-      ? onboardingRetail.verify(params)
-      : onboardingDevkit.verify(params)),
-    {
-      title: t('PlayStation SDK (Optional)'),
-      collapsible: true,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below:',
-            {
-              sentryNativeRepoLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-native" />
-              ),
-            }
-          ),
-        },
-        {
-          type: 'custom',
-          content: (
-            <RequestSdkAccessButton
-              organization={params.organization}
-              project={params.project}
-            />
-          ),
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs = {
-  onboarding,
-  platformOptions,
-};
-
-export default docs;
-
-const CardIllustration = styled('img')`
-  width: 100%;
-  max-width: 600px;
-  height: auto;
-  object-fit: contain;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
-`;
+  };
+}
