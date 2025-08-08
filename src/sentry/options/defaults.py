@@ -519,7 +519,7 @@ register(
 register(
     "replay.ingest.profiling.enabled",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
