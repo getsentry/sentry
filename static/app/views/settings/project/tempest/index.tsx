@@ -14,7 +14,6 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import DevKitSettings, {getDevKitHeaderAction} from './DevKitSettings';
 import PlayStationSettings, {getPlayStationHeaderAction} from './PlayStationSettings';
@@ -34,7 +33,6 @@ const TAB_LABELS: Record<Tab, string> = {
 const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 
 export default function TempestSettings({organization, project}: Props) {
-  const hasWriteAccess = useHasTempestWriteAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -108,7 +106,7 @@ export default function TempestSettings({organization, project}: Props) {
         return getDevKitHeaderAction(organization, project);
       case 'playstation':
       default:
-        return getPlayStationHeaderAction(hasWriteAccess, organization, project);
+        return getPlayStationHeaderAction(organization, project);
     }
   };
 
