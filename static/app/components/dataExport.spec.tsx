@@ -160,4 +160,22 @@ describe('DataExport', function () {
       expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
     });
   });
+
+  it('shows upgrade message on 404', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 404,
+    });
+
+    render(<DataExport payload={mockPayload} />, {
+      ...mockContext(mockAuthorizedOrg),
+    });
+
+    await userEvent.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('Data export requires Business Plan');
+    });
+  });
 });
