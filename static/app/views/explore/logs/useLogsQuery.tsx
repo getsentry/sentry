@@ -263,10 +263,12 @@ export function useLogsQuery({
   disabled,
   limit,
   referrer,
+  refetchInterval,
 }: {
   disabled?: boolean;
   limit?: number;
   referrer?: string;
+  refetchInterval?: (query: any) => number;
 }) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
@@ -276,6 +278,7 @@ export function useLogsQuery({
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval,
   });
 
   return {
