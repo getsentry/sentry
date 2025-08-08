@@ -276,9 +276,9 @@ def update_group_open_period(
     if not features.has("organizations:issue-open-periods", group.project.organization):
         return
 
-    # Until we've backfilled the GroupOpenPeriod table, we don't want to update open periods for
-    # groups that weren't initially created with one.
-    if not has_initial_open_period(group):
+    # If a group was missed during backfill, we can create a new open period for it on unresolve.
+    if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
+        create_open_period(group, timezone.now())
         return
 
     open_period = get_latest_open_period(group)
@@ -302,8 +302,8 @@ def update_group_open_period(
         open_period.reopen_open_period()
 
 
-def has_initial_open_period(group: Group) -> bool:
-    return GroupOpenPeriod.objects.filter(group=group, date_started__lte=group.first_seen).exists()
+def has_any_open_period(group: Group) -> bool:
+    return GroupOpenPeriod.objects.filter(group=group).exists()
 
 
 def get_latest_open_period(group: Group) -> GroupOpenPeriod | None:
