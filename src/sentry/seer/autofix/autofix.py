@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import orjson
@@ -17,15 +18,15 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -236,30 +237,50 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     if not trace_id:
         return None
 
-    project_ids = list(
-        dict(
-            Project.objects.filter(
-                organization=project.organization, status=ObjectStatus.ACTIVE
-            ).values_list("id", "slug")
-        ).keys()
+    projects_qs = Project.objects.filter(
+        organization=project.organization, status=ObjectStatus.ACTIVE
     )
+    projects = list(projects_qs)
+    project_ids = [p.id for p in projects]
     start = event.datetime - timedelta(days=1)
     end = event.datetime + timedelta(days=1)
-    transaction_event_filter = eventstore.Filter(
-        project_ids=project_ids,
-        conditions=[
-            ["trace_id", "=", trace_id],
-        ],
-        organization_id=project.organization_id,
+
+    # 1) Query for all spans in the trace using direct span query
+    snuba_params = SnubaParams(
         start=start,
         end=end,
+        projects=projects,
+        organization=project.organization,
     )
-    transactions = eventstore.backend.get_events(
-        filter=transaction_event_filter,
-        dataset=Dataset.Transactions,
+    config = SearchResolverConfig(
+        auto_fields=True,
+    )
+    all_spans_result = Spans.run_table_query(
+        params=snuba_params,
+        query_string=f"trace:{trace_id}",
+        selected_columns=[
+            "span_id",
+            "parent_span",
+            "span.op",
+            "span.description",
+            "precise.start_ts",
+            "precise.finish_ts",
+            "is_transaction",
+            "transaction",
+            "project.id",
+            "platform",
+            "profile.id",
+            "profiler.id",
+        ],
+        orderby=["precise.start_ts"],
+        offset=0,
+        limit=1000,
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
-        tenant_ids={"organization_id": project.organization_id},
+        config=config,
+        sampling_mode="NORMAL",
     )
+
+    # 2) Query for all errors using existing eventstore approach
     error_event_filter = eventstore.Filter(
         project_ids=project_ids,
         conditions=[
@@ -274,6 +295,131 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
         referrer=Referrer.API_GROUP_AI_AUTOFIX,
         tenant_ids={"organization_id": project.organization_id},
     )
+
+    # 3) Separate out transaction spans and non-transaction spans
+    all_spans_data = all_spans_result.get("data", [])
+    transaction_spans = []
+    non_transaction_spans = []
+
+    for span_row in all_spans_data:
+        if span_row.get("is_transaction", False):
+            transaction_spans.append(span_row)
+        else:
+            non_transaction_spans.append(span_row)
+
+    # 4) Create trees of non-transaction spans and attach them to transactions
+    # Build a lookup of all spans by span_id
+    spans_by_id = {}
+    transaction_span_ids = set()
+
+    for span_row in non_transaction_spans:
+        span_id = span_row.get("span_id")
+        if span_id:
+            spans_by_id[span_id] = {
+                "span_id": span_id,
+                "parent_span_id": span_row.get("parent_span"),
+                "op": span_row.get("span.op"),
+                "description": span_row.get("span.description"),
+                "start_timestamp": span_row.get("precise.start_ts"),
+                "timestamp": span_row.get("precise.finish_ts"),
+                "data": {},  # empty, but we can add fields we want later
+            }
+
+    for tx_span in transaction_spans:
+        span_id = tx_span.get("span_id")
+        if span_id:
+            transaction_span_ids.add(span_id)
+
+    def find_transaction_parent(span_id: str) -> str | None:
+        """Recursively find which transaction this span belongs to by following parent_span_id chain"""
+        if not span_id:
+            return None
+
+        # If this span_id is itself a transaction, return it
+        if span_id in transaction_span_ids:
+            return span_id
+
+        # If this span exists in our spans lookup, check its parent
+        if span_id in spans_by_id:
+            parent_id = spans_by_id[span_id]["parent_span_id"]
+            if parent_id:
+                return find_transaction_parent(parent_id)
+
+        return None
+
+    # Group non-transaction spans by their parent transaction
+    spans_by_transaction: dict[str, list] = {}
+    for span_data in spans_by_id.values():
+        span_id = span_data["span_id"]
+        transaction_parent = find_transaction_parent(span_id)
+
+        if transaction_parent:
+            if transaction_parent not in spans_by_transaction:
+                spans_by_transaction[transaction_parent] = []
+            spans_by_transaction[transaction_parent].append(span_data)
+
+    # Convert transaction spans to event-like objects
+    transactions = []
+    for tx_span in transaction_spans:
+        event_id = tx_span.get("span_id")
+        project_id = tx_span.get("project.id")
+        tx_span_id: str | None = tx_span.get("span_id")
+        parent_span_id = tx_span.get("parent_span")
+        transaction_name = tx_span.get("transaction")
+        start_ts = tx_span.get("precise.start_ts")
+        finish_ts = tx_span.get("precise.finish_ts")
+        span_op = tx_span.get("span.op")
+        platform_name = tx_span.get("platform")
+        profile_id = tx_span.get("profile.id")
+        profiler_id = tx_span.get("profiler.id")
+
+        if not tx_span_id:
+            continue
+
+        # Get nested spans for this transaction
+        nested_spans = spans_by_transaction.get(tx_span_id, [])
+
+        # Create a transaction-like event object
+        transactions.append(
+            SimpleNamespace(
+                event_id=event_id,
+                project_id=project_id,
+                platform=platform_name,
+                title=transaction_name,
+                project=next((p for p in projects if p.id == project_id), None),
+                data={
+                    "start_timestamp": start_ts,
+                    "precise_start_ts": start_ts,
+                    "precise_finish_ts": finish_ts,
+                    "contexts": {
+                        "trace": {
+                            "span_id": tx_span_id,
+                            "parent_span_id": parent_span_id,
+                            "op": span_op,
+                        },
+                        "profile": {
+                            "profile_id": profile_id or profiler_id,
+                            "is_continuous": bool(profiler_id and not profile_id),
+                        },
+                    },
+                    "spans": nested_spans,
+                    "breakdowns": {
+                        "span_ops": {
+                            "total.time": {
+                                "value": (
+                                    ((finish_ts - start_ts) * 1000)
+                                    if (finish_ts and start_ts)
+                                    else 0
+                                ),
+                                "unit": "millisecond",
+                            }
+                        }
+                    },
+                },
+            )
+        )
+
+    # 5) Process transaction and error events as before to get expected output
     results = transactions + errors
 
     if not results:
@@ -286,22 +432,23 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     all_events: list[dict] = []  # Track all events for orphan detection
 
     # First pass: collect all events and their metadata
-    for event in results:
-        event_data = event.data
+    for trace_event in results:
+        event_data = trace_event.data
+        # Determine type based on presence of spans in event data
         is_transaction = event_data.get("spans") is not None
         is_error = not is_transaction
 
         event_node = {
-            "event_id": event.event_id,
+            "event_id": trace_event.event_id,
             "datetime": event_data.get("start_timestamp", float("inf")),
             "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
             "is_error": is_error,
-            "is_current_project": event.project_id == project.id,
-            "project_slug": event.project.slug,
-            "project_id": event.project_id,
-            "platform": event.platform,
+            "is_current_project": trace_event.project_id == project.id,
+            "project_slug": trace_event.project.slug if trace_event.project else "",
+            "project_id": trace_event.project_id,
+            "platform": trace_event.platform,
             "children": [],
         }
 
@@ -310,7 +457,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
         if is_transaction:
             op = event_data.get("contexts", {}).get("trace", {}).get("op")
-            transaction_title = event.title
+            transaction_title = trace_event.title
             duration_obj = (
                 event_data.get("breakdowns", {}).get("span_ops", {}).get("total.time", {})
             )
@@ -318,6 +465,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 f"{duration_obj.get('value', 0)} {duration_obj.get('unit', 'millisecond')}s"
             )
             profile_id = event_data.get("contexts", {}).get("profile", {}).get("profile_id")
+            is_continuous = event_data.get("contexts", {}).get("profile", {}).get("is_continuous")
+            precise_start_ts = event_data.get("precise_start_ts")
+            precise_finish_ts = event_data.get("precise_finish_ts")
 
             # Store all span IDs from this transaction for later relationship building
             spans = event_data.get("spans", [])
@@ -342,6 +492,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
                     "spans": selected_spans_tree,
+                    "is_continuous": is_continuous,
+                    "precise_start_ts": precise_start_ts,
+                    "precise_finish_ts": precise_finish_ts,
                 }
             )
 
@@ -350,9 +503,9 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
                 if span_id:
                     span_to_transaction[span_id] = event_node
         else:
-            title = event.title
-            message = event.message if event.message != event.title else None
-            transaction_name = event.transaction
+            title = trace_event.title
+            message = trace_event.message if trace_event.message != trace_event.title else None
+            transaction_name = trace_event.transaction
 
             error_title = message or ""
             if title:
@@ -526,18 +679,28 @@ def _get_profile_from_trace_tree(
         return None
 
     profile_id = matching_transaction.get("profile_id")
+    is_continuous = matching_transaction.get("is_continuous", False)
 
-    # Fetch the profile data
-    response = get_from_profiling_service(
-        "GET",
-        f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
-        params={"format": "sample"},
+    if not profile_id:
+        return None
+
+    # Get precise timestamps for continuous profiles
+    start_ts = matching_transaction.get("precise_start_ts")
+    end_ts = matching_transaction.get("precise_finish_ts")
+
+    # Fetch the profile data using the shared utility
+    profile = fetch_profile_data(
+        profile_id=profile_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        start_ts=start_ts,
+        end_ts=end_ts,
+        is_continuous=is_continuous,
     )
 
-    if response.status == 200:
-        profile = orjson.loads(response.data)
+    if profile:
         execution_tree = _convert_profile_to_execution_tree(profile)
-        output = (
+        return (
             None
             if not execution_tree
             else {
@@ -545,284 +708,8 @@ def _get_profile_from_trace_tree(
                 "execution_tree": execution_tree,
             }
         )
-        if not output:
-            logger.info(
-                "[Autofix] Failed to convert profile to execution tree",
-                extra={
-                    "profile_id": profile_id,
-                    "project_slug": project.slug,
-                    "organization_slug": project.organization.slug,
-                },
-            )
-        return output
-    else:
-        logger.info(
-            "[Autofix] Failed to get profile from profiling service",
-            extra={
-                "response.status": response.status,
-                "profile_id": profile_id,
-                "project_slug": project.slug,
-                "organization_slug": project.organization.slug,
-            },
-        )
-        return None
 
-
-def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
-    """
-    Converts profile data into a hierarchical representation of code execution,
-    including only items from the MainThread and app frames.
-    Calculates accurate durations for all nodes based on call stack transitions.
-    """
-    profile = profile_data.get(
-        "profile"
-    )  # transaction profiles are formatted as {"profile": {"frames": [], "samples": [], "stacks": []}}
-    if not profile:
-        profile = profile_data.get("chunk", {}).get(
-            "profile"
-        )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
-        if not profile:
-            return []
-
-    frames = profile.get("frames")
-    stacks = profile.get("stacks")
-    samples = profile.get("samples")
-    if not all([frames, stacks, samples]):
-        return []
-
-    # Find the MainThread ID
-    thread_metadata = profile.get("thread_metadata", {}) or {}
-    main_thread_id = next(
-        (key for key, value in thread_metadata.items() if value.get("name") == "MainThread"), None
-    )
-    if (
-        not main_thread_id and len(thread_metadata) == 1
-    ):  # if there is only one thread, use that as the main thread
-        main_thread_id = list(thread_metadata.keys())[0]
-
-    def _get_elapsed_since_start_ns(
-        sample: dict[str, Any], all_samples: list[dict[str, Any]]
-    ) -> int:
-        """
-        Get the elapsed time since start for a sample.
-        Handles both transaction and continuous profiles.
-        """
-        if "elapsed_since_start_ns" in sample:
-            return sample["elapsed_since_start_ns"]
-        elif "timestamp" in sample:
-            min_timestamp = min(s["timestamp"] for s in all_samples)
-            return int((sample["timestamp"] - min_timestamp) * 1e9)
-        else:
-            return 0
-
-    # Sort samples chronologically
-    sorted_samples = sorted(samples, key=lambda x: _get_elapsed_since_start_ns(x, samples))
-
-    # Calculate average sampling interval
-    if len(sorted_samples) >= 2:
-        time_diffs = [
-            _get_elapsed_since_start_ns(sorted_samples[i + 1], sorted_samples)
-            - _get_elapsed_since_start_ns(sorted_samples[i], sorted_samples)
-            for i in range(len(sorted_samples) - 1)
-        ]
-        sample_interval_ns = int(sum(time_diffs) / len(time_diffs)) if time_diffs else 10000000
-    else:
-        sample_interval_ns = 10000000  # default 10ms
-
-    def create_frame_node(frame_index: int) -> dict[str, Any]:
-        """Create a node representation for a single frame"""
-        frame = frames[frame_index]
-        return {
-            "function": frame.get("function", ""),
-            "module": frame.get("module", ""),
-            "filename": frame.get("filename", ""),
-            "lineno": frame.get("lineno", 0),
-            "in_app": frame.get("in_app", False),
-            "children": [],
-            "node_id": None,
-            "sample_count": 0,
-            "first_seen_ns": None,
-            "last_seen_ns": None,
-            "duration_ns": None,
-        }
-
-    def get_node_path(node: dict[str, Any], parent_path: str = "") -> str:
-        """Generate a unique path identifier for a node"""
-        return f"{parent_path}/{node['function']}:{node['filename']}:{node['lineno']}"
-
-    def find_or_create_child(parent: dict[str, Any], frame_data: dict[str, Any]) -> dict[str, Any]:
-        """Find existing child node or create new one"""
-        for child in parent["children"]:
-            if (
-                child["function"] == frame_data["function"]
-                and child["module"] == frame_data["module"]
-                and child["filename"] == frame_data["filename"]
-                and child["lineno"] == frame_data["lineno"]
-            ):
-                return child
-
-        parent["children"].append(frame_data)
-        return frame_data
-
-    def process_stack(stack_index):
-        """Extract app frames from a stack trace"""
-        frame_indices = stacks[stack_index]
-        if not frame_indices:
-            return []
-
-        # Create nodes for app frames only, maintaining order (bottom to top)
-        nodes = []
-        for idx in reversed(frame_indices):
-            frame = frames[idx]
-            if frame.get("in_app", False) and not (
-                frame.get("filename", "").startswith("<")
-                and frame.get("filename", "").endswith(">")
-            ):
-                nodes.append(create_frame_node(idx))
-
-        return nodes
-
-    # Build the execution tree and track call stacks
-    execution_tree: list[dict[str, Any]] = []
-    call_stack_history: list[tuple[list[str], int]] = []  # [(node_ids, timestamp), ...]
-    node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
-
-    for sample in sorted_samples:
-        if str(sample["thread_id"]) != str(main_thread_id):
-            continue
-
-        timestamp_ns = _get_elapsed_since_start_ns(sample, sorted_samples)
-        stack_frames = process_stack(sample["stack_id"])
-        if not stack_frames:
-            continue
-
-        # Process this stack sample
-        current_stack_ids = []
-
-        # Find or create root node
-        root = None
-        for existing_root in execution_tree:
-            if (
-                existing_root["function"] == stack_frames[0]["function"]
-                and existing_root["module"] == stack_frames[0]["module"]
-                and existing_root["filename"] == stack_frames[0]["filename"]
-                and existing_root["lineno"] == stack_frames[0]["lineno"]
-            ):
-                root = existing_root
-                break
-
-        if root is None:
-            root = stack_frames[0]
-            execution_tree.append(root)
-
-        # Process root node
-        if root["node_id"] is None:
-            node_id = get_node_path(root)
-            root["node_id"] = node_id
-            node_registry[node_id] = root
-            root["first_seen_ns"] = timestamp_ns
-
-        root["sample_count"] += 1
-        root["last_seen_ns"] = timestamp_ns
-        current_stack_ids.append(root["node_id"])
-
-        # Process rest of the stack
-        current = root
-        current_path = root["node_id"]
-
-        for frame in stack_frames[1:]:
-            current = find_or_create_child(current, frame)
-
-            if current["node_id"] is None:
-                node_id = get_node_path(current, current_path)
-                current["node_id"] = node_id
-                node_registry[node_id] = current
-                current["first_seen_ns"] = timestamp_ns
-
-            current["sample_count"] += 1
-            current["last_seen_ns"] = timestamp_ns
-            current_stack_ids.append(current["node_id"])
-            current_path = current["node_id"]
-
-        # Record this call stack with its timestamp
-        call_stack_history.append((current_stack_ids, timestamp_ns))
-
-    # Calculate function active periods from call stack history
-    function_periods: dict[str, list[list[int | None]]] = {}
-
-    for i, (call_path, timestamp) in enumerate(call_stack_history):
-        # Mark functions as started
-        for node_id in call_path:
-            if node_id not in function_periods:
-                function_periods[node_id] = []
-
-            # Start a new period if needed
-            if not function_periods[node_id] or function_periods[node_id][-1][1] is not None:
-                function_periods[node_id].append([timestamp, None])
-
-        # Mark functions that disappeared as ended
-        if i > 0:
-            prev_call_path = call_stack_history[i - 1][0]
-            for node_id in prev_call_path:
-                if node_id not in call_path and function_periods.get(node_id):
-                    if function_periods[node_id][-1][1] is None:
-                        function_periods[node_id][-1][1] = timestamp
-
-    # Handle the last sample - all active functions end
-    if call_stack_history:
-        last_timestamp = call_stack_history[-1][1]
-        last_call_path = call_stack_history[-1][0]
-
-        for node_id in last_call_path:
-            if function_periods.get(node_id) and function_periods[node_id][-1][1] is None:
-                function_periods[node_id][-1][1] = last_timestamp + sample_interval_ns
-
-    # Calculate durations
-    def apply_durations(node):
-        """Calculate and set duration for a node and its children"""
-        node_id = node["node_id"]
-
-        # Primary method: use function periods if available
-        if node_id in function_periods:
-            periods = function_periods[node_id]
-            total_duration = sum(
-                (end - start) for start, end in periods if start is not None and end is not None
-            )
-
-            if total_duration > 0:
-                node["duration_ns"] = total_duration
-
-        # Apply to all children
-        for child in node["children"]:
-            apply_durations(child)
-
-        # Fallback methods if needed
-        if node["duration_ns"] is None or node["duration_ns"] == 0:
-            # Method 1: Use first and last seen timestamps
-            if node["first_seen_ns"] is not None and node["last_seen_ns"] is not None:
-                node["duration_ns"] = (
-                    node["last_seen_ns"] - node["first_seen_ns"] + sample_interval_ns
-                )
-
-            # Method 2: Use sample count as an estimate
-            elif node["sample_count"] > 0:
-                node["duration_ns"] = node["sample_count"] * sample_interval_ns
-
-            # Method 3: Use sum of children's durations
-            elif node["children"]:
-                child_duration = sum(
-                    child["duration_ns"]
-                    for child in node["children"]
-                    if child["duration_ns"] is not None
-                )
-                if child_duration > 0:
-                    node["duration_ns"] = child_duration
-
-    # Apply durations to all nodes
-    for node in execution_tree:
-        apply_durations(node)
-
-    return execution_tree
+    return None
 
 
 def _respond_with_error(reason: str, status: int):

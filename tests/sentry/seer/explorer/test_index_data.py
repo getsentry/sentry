@@ -11,7 +11,6 @@ from sentry.seer.explorer.index_data import (
     get_trace_for_transaction,
     get_transactions_for_project,
 )
-from sentry.seer.sentry_data_models import ExecutionTreeNode
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.search.test_backend import SharedSnubaMixin
@@ -230,31 +229,94 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
         self.store_spans([span1, span2, span3, span4], is_eap=True)
 
-        # Mock only the external profiling service calls
-        with (
-            mock.patch(
-                "sentry.seer.explorer.index_data.get_from_profiling_service"
-            ) as mock_service,
-            mock.patch(
-                "sentry.seer.explorer.index_data.convert_profile_to_execution_tree"
-            ) as mock_convert,
-        ):
+        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
             def mock_service_response(method, path, *args, **kwargs):
                 if f"profiles/{profile1_id}" in path:
                     response = mock.Mock()
                     response.status = 200
-                    response.data = orjson.dumps({"profile": "transaction_data1"})
+                    response.data = orjson.dumps(
+                        {
+                            "profile": {
+                                "frames": [
+                                    {
+                                        "function": "main",
+                                        "module": "app",
+                                        "filename": "main.py",
+                                        "lineno": 10,
+                                        "in_app": True,
+                                    }
+                                ],
+                                "stacks": [[0]],
+                                "samples": [
+                                    {
+                                        "elapsed_since_start_ns": 1000000,
+                                        "thread_id": "1",
+                                        "stack_id": 0,
+                                    }
+                                ],
+                                "thread_metadata": {"1": {"name": "MainThread"}},
+                            }
+                        }
+                    )
                     return response
                 elif f"profiles/{profile2_id}" in path:
                     response = mock.Mock()
                     response.status = 200
-                    response.data = orjson.dumps({"profile": "transaction_data2"})
+                    response.data = orjson.dumps(
+                        {
+                            "profile": {
+                                "frames": [
+                                    {
+                                        "function": "query",
+                                        "module": "db",
+                                        "filename": "db.py",
+                                        "lineno": 20,
+                                        "in_app": True,
+                                    }
+                                ],
+                                "stacks": [[0]],
+                                "samples": [
+                                    {
+                                        "elapsed_since_start_ns": 2000000,
+                                        "thread_id": "1",
+                                        "stack_id": 0,
+                                    }
+                                ],
+                                "thread_metadata": {"1": {"name": "MainThread"}},
+                            }
+                        }
+                    )
                     return response
                 elif "/chunks" in path:
                     response = mock.Mock()
                     response.status = 200
-                    response.data = orjson.dumps({"profile": "continuous_data"})
+                    response.data = orjson.dumps(
+                        {
+                            "chunk": {
+                                "profile": {
+                                    "frames": [
+                                        {
+                                            "function": "continuous_func",
+                                            "module": "profiler",
+                                            "filename": "profiler.py",
+                                            "lineno": 30,
+                                            "in_app": True,
+                                        }
+                                    ],
+                                    "stacks": [[0]],
+                                    "samples": [
+                                        {
+                                            "elapsed_since_start_ns": 3000000,
+                                            "thread_id": "1",
+                                            "stack_id": 0,
+                                        }
+                                    ],
+                                    "thread_metadata": {"1": {"name": "MainThread"}},
+                                }
+                            }
+                        }
+                    )
                     return response
                 else:
                     # Return 404 for unexpected calls
@@ -263,51 +325,6 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
                     return response
 
             mock_service.side_effect = mock_service_response
-
-            # Mock execution tree conversion
-            def mock_convert_response(data):
-                if data.get("profile") == "transaction_data1":
-                    return [
-                        ExecutionTreeNode(
-                            function="main",
-                            module="app",
-                            filename="main.py",
-                            lineno=10,
-                            in_app=True,
-                            children=[],
-                            node_id="node1",
-                            sample_count=5,
-                        )
-                    ]
-                elif data.get("profile") == "transaction_data2":
-                    return [
-                        ExecutionTreeNode(
-                            function="query",
-                            module="db",
-                            filename="db.py",
-                            lineno=20,
-                            in_app=True,
-                            children=[],
-                            node_id="node2",
-                            sample_count=3,
-                        )
-                    ]
-                elif data.get("profile") == "continuous_data":
-                    return [
-                        ExecutionTreeNode(
-                            function="continuous_func",
-                            module="profiler",
-                            filename="profiler.py",
-                            lineno=30,
-                            in_app=True,
-                            children=[],
-                            node_id="node3",
-                            sample_count=7,
-                        )
-                    ]
-                return None
-
-            mock_convert.side_effect = mock_convert_response
 
             # Call the function
             result = get_profiles_for_trace(trace_id, self.project.id)
@@ -406,39 +423,38 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         self.store_spans([span1, span2, span3, span4], is_eap=True)
 
         # Mock the external profiling service calls
-        with (
-            mock.patch(
-                "sentry.seer.explorer.index_data.get_from_profiling_service"
-            ) as mock_service,
-            mock.patch(
-                "sentry.seer.explorer.index_data.convert_profile_to_execution_tree"
-            ) as mock_convert,
-        ):
+        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response
             def mock_service_response(method, path, *args, **kwargs):
                 response = mock.Mock()
                 response.status = 200
-                response.data = orjson.dumps({"profile": "merged_profile_data"})
+                response.data = orjson.dumps(
+                    {
+                        "profile": {
+                            "frames": [
+                                {
+                                    "function": "merged_function",
+                                    "module": "app",
+                                    "filename": "merged.py",
+                                    "lineno": 10,
+                                    "in_app": True,
+                                }
+                            ],
+                            "stacks": [[0]],
+                            "samples": [
+                                {
+                                    "elapsed_since_start_ns": 1000000,
+                                    "thread_id": "1",
+                                    "stack_id": 0,
+                                }
+                            ],
+                            "thread_metadata": {"1": {"name": "MainThread"}},
+                        }
+                    }
+                )
                 return response
 
             mock_service.side_effect = mock_service_response
-
-            # Mock execution tree conversion
-            def mock_convert_response(data):
-                return [
-                    ExecutionTreeNode(
-                        function="merged_function",
-                        module="app",
-                        filename="merged.py",
-                        lineno=10,
-                        in_app=True,
-                        children=[],
-                        node_id="merged_node",
-                        sample_count=10,
-                    )
-                ]
-
-            mock_convert.side_effect = mock_convert_response
 
             # Call the function
             result = get_profiles_for_trace(trace_id, self.project.id)
@@ -538,39 +554,40 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         self.store_spans(spans, is_eap=True)
 
         # Mock the external profiling service calls
-        with (
-            mock.patch(
-                "sentry.seer.explorer.index_data.get_from_profiling_service"
-            ) as mock_service,
-            mock.patch(
-                "sentry.seer.explorer.index_data.convert_profile_to_execution_tree"
-            ) as mock_convert,
-        ):
+        with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response for continuous profiles (/chunks endpoint)
             def mock_service_response(method, path, *args, **kwargs):
                 response = mock.Mock()
                 response.status = 200
-                response.data = orjson.dumps({"profile": "continuous_merged_data"})
+                response.data = orjson.dumps(
+                    {
+                        "chunk": {
+                            "profile": {
+                                "frames": [
+                                    {
+                                        "function": "continuous_merged_function",
+                                        "module": "profiler",
+                                        "filename": "continuous.py",
+                                        "lineno": 15,
+                                        "in_app": True,
+                                    }
+                                ],
+                                "stacks": [[0]],
+                                "samples": [
+                                    {
+                                        "elapsed_since_start_ns": 1000000,
+                                        "thread_id": "1",
+                                        "stack_id": 0,
+                                    }
+                                ],
+                                "thread_metadata": {"1": {"name": "MainThread"}},
+                            }
+                        }
+                    }
+                )
                 return response
 
             mock_service.side_effect = mock_service_response
-
-            # Mock execution tree conversion
-            def mock_convert_response(data):
-                return [
-                    ExecutionTreeNode(
-                        function="continuous_merged_function",
-                        module="profiler",
-                        filename="continuous.py",
-                        lineno=15,
-                        in_app=True,
-                        children=[],
-                        node_id="continuous_merged_node",
-                        sample_count=15,
-                    )
-                ]
-
-            mock_convert.side_effect = mock_convert_response
 
             # Call the function
             result = get_profiles_for_trace(trace_id, self.project.id)
