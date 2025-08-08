@@ -70,6 +70,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
         'span.group': 'abc123',
         'span.description': 'span1',
         'sentry.normalized_description': 'span1',
+        'project.id': 123,
         transaction: 'transaction_a',
       },
     ],

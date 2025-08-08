@@ -44,7 +44,10 @@ import {
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
@@ -56,6 +59,15 @@ import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 type LogsTableProps = {
   allowPagination?: boolean;
   embedded?: boolean;
+  embeddedStyling?: {
+    disableBodyPadding?: boolean;
+    showVerticalScrollbar?: boolean;
+  };
+  emptyRenderer?: () => React.ReactNode;
+  localOnlyItemFilters?: {
+    filterText: string;
+    filteredItems: OurLogsResponseItem[];
+  };
   numberAttributes?: TagCollection;
   scrollContainer?: React.RefObject<HTMLElement | null>;
   stringAttributes?: TagCollection;
@@ -66,9 +78,12 @@ const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible 
 
 export function LogsInfiniteTable({
   embedded = false,
+  localOnlyItemFilters,
+  emptyRenderer,
   numberAttributes,
   stringAttributes,
   scrollContainer,
+  embeddedStyling,
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useLogsFields();
@@ -79,7 +94,7 @@ export function LogsInfiniteTable({
     isPending,
     isEmpty,
     meta,
-    data,
+    data: originalData,
     isError,
     fetchNextPage,
     fetchPreviousPage,
@@ -87,6 +102,9 @@ export function LogsInfiniteTable({
     isFetchingPreviousPage,
     lastPageLength,
   } = infiniteLogsQueryResult;
+
+  // Use filtered items if provided, otherwise use original data
+  const data = localOnlyItemFilters?.filteredItems ?? originalData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -119,7 +137,13 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
-  const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
+  const highlightTerms = useMemo(() => {
+    const terms = getLogBodySearchTerms(search);
+    if (localOnlyItemFilters?.filterText) {
+      terms.push(localOnlyItemFilters.filterText);
+    }
+    return terms;
+  }, [search, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
@@ -234,6 +258,7 @@ export function LogsInfiniteTable({
         css={tableStaticCSS}
         hideBorder={embedded}
         data-test-id="logs-table"
+        showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
           <LogsTableHeader
@@ -243,7 +268,11 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        <LogTableBody showHeader={!embedded} ref={tableBodyRef}>
+        <LogTableBody
+          showHeader={!embedded}
+          ref={tableBodyRef}
+          disableBodyPadding={embeddedStyling?.disableBodyPadding}
+        >
           {paddingTop > 0 && (
             <TableRow>
               {fields.map(field => (
@@ -253,7 +282,7 @@ export function LogsInfiniteTable({
           )}
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
-          {isEmpty && <EmptyRenderer />}
+          {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" />
           )}
@@ -383,7 +412,7 @@ function LogsTableHeader({
   );
 }
 
-function EmptyRenderer() {
+export function EmptyRenderer() {
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
@@ -405,7 +434,7 @@ function EmptyRenderer() {
   );
 }
 
-function ErrorRenderer() {
+export function ErrorRenderer() {
   return (
     <TableStatus>
       <IconWarning color="gray300" size="lg" />
@@ -413,7 +442,7 @@ function ErrorRenderer() {
   );
 }
 
-function LoadingRenderer({size}: {size?: number}) {
+export function LoadingRenderer({size}: {size?: number}) {
   return (
     <TableStatus size={size}>
       <LoadingIndicator size={size} />
