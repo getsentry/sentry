@@ -19,6 +19,7 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -178,6 +179,10 @@ fixability_connection_pool = connection_from_url(
     settings.SEER_SEVERITY_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
+fixability_connection_pool_gpu = connection_from_url(
+    settings.SEER_SCORING_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
 
 
 def _generate_fixability_score(group: Group):
@@ -187,8 +192,14 @@ def _generate_fixability_score(group: Group):
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
+
+    if in_random_rollout("issues.fixability.gpu-rollout-rate"):
+        connection_pool = fixability_connection_pool_gpu
+    else:
+        connection_pool = fixability_connection_pool
+
     response = make_signed_seer_api_request(
-        fixability_connection_pool,
+        connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
