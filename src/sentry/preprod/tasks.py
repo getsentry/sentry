@@ -163,33 +163,49 @@ def create_preprod_artifact(
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
-        commit_comparison = None
-        if head_sha and head_repo_name:
-            commit_comparison, _ = CommitComparison.objects.get_or_create(
-                organization_id=org_id,
-                head_sha=head_sha,
-                base_sha=base_sha,
-                provider=provider,
-                head_repo_name=head_repo_name,
-                base_repo_name=base_repo_name,
-                head_ref=head_ref,
-                base_ref=base_ref,
-                pr_number=pr_number,
-            )
+            commit_comparison = None
+            if head_sha and head_repo_name and provider and head_ref:
+                commit_comparison, _ = CommitComparison.objects.get_or_create(
+                    organization_id=org_id,
+                    head_sha=head_sha,
+                    base_sha=base_sha,
+                    provider=provider,
+                    head_repo_name=head_repo_name,
+                    base_repo_name=base_repo_name,
+                    head_ref=head_ref,
+                    base_ref=base_ref,
+                    pr_number=pr_number,
+                )
+            else:
+                logger.info(
+                    "Skipping commit comparison creation because required vcs information is not provided",
+                    extra={
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "head_sha": head_sha,
+                        "head_repo_name": head_repo_name,
+                        "provider": provider,
+                        "head_ref": head_ref,
+                        "base_sha": base_sha,
+                        "base_repo_name": base_repo_name,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
+                )
 
-        build_config = None
-        if build_configuration:
-            build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-                project=project,
-                name=build_configuration,
-            )
+            build_config = None
+            if build_configuration:
+                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                    project=project,
+                    name=build_configuration,
+                )
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
                 build_configuration=build_config,
                 state=PreprodArtifact.ArtifactState.UPLOADING,
-            commit_comparison=commit_comparison,
-        )
+                commit_comparison=commit_comparison,
+            )
 
             logger.info(
                 "Created preprod artifact row",

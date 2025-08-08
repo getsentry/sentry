@@ -84,18 +84,35 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
     def test_assemble_preprod_artifact_with_commit_comparison(self) -> None:
-        """Test that assemble_preprod_artifact creates CommitComparison when git info is provided"""
         content = b"test preprod artifact with commit comparison"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
             head_sha="a" * 40,
             base_sha="b" * 40,
             provider="github",
@@ -106,10 +123,9 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             pr_number=123,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
-        )
-        assert status == ChunkFileState.OK
+        # The main assemble_preprod_artifact task doesn't set assembly status
+        # Only the assemble_file function sets error status when there are problems
+        # So we should check the actual artifacts created instead
 
         # Verify CommitComparison was created
         commit_comparisons = CommitComparison.objects.filter(
