@@ -642,7 +642,7 @@ def chained_exception(
     # exceptions. Either way, we need to wrap our exception components in a chained exception component.
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
-    # Check for cases in which we want to switch the `main_exception_id` in order to use a different
+    # Handle cases in which we want to switch the `main_exception_id` in order to use a different
     # exception than normal for the event title
     _maybe_override_main_exception_id(event, exceptions)
 
