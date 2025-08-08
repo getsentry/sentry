@@ -50,6 +50,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
+        span_id=None,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -63,6 +64,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
             guid = uuid4().hex
         if subscription_id is None:
             subscription_id = f"sub-{uuid4().hex[:8]}"
+        if span_id is None:
+            span_id = uuid4().hex[:16]
 
         attributes_data = {
             "guid": guid,
@@ -75,6 +78,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "request_sequence": request_sequence,
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
+            "span_id": span_id,
         }
 
         if check_id is not None:
@@ -143,3 +147,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+        for result in uptime_results:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
+            result.item_id = result.item_id[::-1]
