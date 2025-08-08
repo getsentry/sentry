@@ -130,7 +130,7 @@ def deduplicate_actions(
     When duplicates are found, keeps the action with the lowest ID.
     """
     # Sort actions by ID to ensure consistent ordering for deduplication
-    # We sort reverse since diwe rely on overwritting the dedup_key_to_action_id dict
+    # We sort reverse since we rely on overwriting the dedup_key_to_action_id dict
     sorted_actions = sorted(actions_queryset, key=lambda a: a.id, reverse=True)
 
     dedup_key_to_action_id: dict[str, int] = defaultdict(int)
@@ -189,7 +189,6 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
-    # Fetch actions and deduplicate in a single query
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
     return deduplicate_actions(actions_queryset, action_to_workflow_ids)
 

@@ -59,20 +59,6 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
         },
     }
 
-    @staticmethod
-    def get_dedup_key(action: Action) -> str:
-        """
-        Returns a deduplication key for ticketing actions.
-        Ticketing actions are deduplicated by integration_id.
-        """
-        key_parts = [action.type]
-
-        # This is an invariant that we should have an integration_id for all integration actions
-        assert action.integration_id is not None
-        key_parts.append(str(action.integration_id))
-
-        return ":".join(key_parts)
-
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -101,3 +87,21 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
         detector: Detector,
     ) -> None:
         execute_via_issue_alert_handler(job, action, detector)
+
+    @staticmethod
+    def get_dedup_key(action: Action) -> str:
+        """
+        Returns a deduplication key for ticketing actions.
+        Ticketing actions are deduplicated by integration_id.
+        """
+        key_parts = [action.type]
+
+        # This is an invariant that we should have an integration_id for all integration actions
+        assert action.integration_id is not None
+        key_parts.append(str(action.integration_id))
+
+        # Include the stringified dynamic form field data
+        if action.data:
+            key_parts.append(str(action.data.get("dynamic_form_fields", "")))
+
+        return ":".join(key_parts)

@@ -358,7 +358,7 @@ class TestActionDeduplication(TestCase):
         assert pagerduty_action.id in result_ids
 
     def test_deduplicate_actions_ticketing_actions(self) -> None:
-        """Test that ticketing actions are deduplicated by integration_id only."""
+        """Test that ticketing actions are deduplicated by integration_id and dynamic form field data."""
         jira_integration = self.create_integration(
             organization=self.organization,
             provider="jira",
@@ -394,10 +394,52 @@ class TestActionDeduplication(TestCase):
 
         result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
 
-        # Only one action should remain since ticketing actions are deduplicated by integration_id
+        # Both actions should remain since ticketing actions are deduplicated by integration_id and dynamic form field data
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 2
+        assert jira_action_1.id in result_ids
+        assert jira_action_2.id in result_ids
+
+    def test_deduplicate_actions_ticketing_actions_same_integration_and_data(self) -> None:
+        jira_integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            name="Test Jira",
+            external_id="jira-123",
+        )
+
+        # Create two Jira actions for the same integration but different projects
+        jira_action_1 = self.create_action(
+            type=Action.Type.JIRA,
+            integration_id=jira_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+            },
+            data={
+                "dynamic_form_fields": [{"project": "PROJECT-1"}],
+            },
+        )
+
+        jira_action_2 = self.create_action(
+            type=Action.Type.JIRA,
+            integration_id=jira_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+            },
+            data={
+                "dynamic_form_fields": [{"project": "PROJECT-1"}],
+            },
+        )
+
+        actions_queryset = Action.objects.filter(id__in=[jira_action_1.id, jira_action_2.id])
+        action_to_workflow_ids = {jira_action_1.id: 1, jira_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Only 1 action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == min(jira_action_1.id, jira_action_2.id)
+        assert result_ids[0] == jira_action_1.id
 
     def test_deduplicate_actions_empty_queryset(self) -> None:
         """Test deduplication with empty queryset."""
