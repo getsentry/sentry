@@ -4,8 +4,9 @@ import concurrent.futures as cf
 import functools
 import logging
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
+import requests
 from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
@@ -34,7 +35,8 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.seer.signed_seer_api import make_signed_seer_request_simple
+from sentry.seer.signed_seer_api import make_signed_seer_request_simple, sign_with_seer_secret
+from sentry.utils import json
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -191,6 +193,38 @@ def fetch_rows_matching_pattern(
             for row in rows
         ],
     }
+
+
+def make_seer_request(
+    url: str,
+    data: dict[str, Any],
+) -> tuple[requests.Response | None, int]:
+    """
+    Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
+    Returns a tuple of (response, status code). If a request error occurred the response will be None.
+    XXX: Investigate migrating this to the shared util make_signed_seer_api_request, which uses connection pool.
+    """
+    str_data = json.dumps(data)
+
+    try:
+        response = requests.post(
+            url,
+            data=str_data,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(str_data.encode()),
+            },
+            timeout=settings.SEER_DEFAULT_TIMEOUT or 5,
+        )
+        # Don't raise for error status, just return response.
+
+    except requests.exceptions.Timeout:
+        return (None, 504)
+
+    except requests.exceptions.RequestException:
+        return (None, 502)
+
+    return (response, response.status_code)
 
 
 def delete_seer_replay_data(

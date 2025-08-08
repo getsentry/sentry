@@ -1,16 +1,10 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-import requests
-import responses
 from django.test import override_settings
 
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    make_signed_seer_request_simple,
-)
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.testutils.helpers import override_options
-from sentry.utils import json
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -118,84 +112,3 @@ def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:
             "endpoint": PATH,
         },
     )
-
-
-@pytest.mark.parametrize("data_type", ["dict", "str"])
-@patch("sentry.seer.signed_seer_api.sign_with_seer_secret")
-@patch("requests.post")
-def test_request_simple_success(mock_post: MagicMock, mock_sign: MagicMock, data_type: str) -> None:
-    mock_response = Mock(json=Mock(return_value={"foo": "bar"}), status_code=200)
-    mock_post.return_value = mock_response
-    mock_sign.return_value = {"Authorization": "my-signature"}
-
-    data = {"hello": "world"}
-    response, status = make_signed_seer_request_simple(
-        URL, data if data_type == "dict" else json.dumps(data), timeout=67
-    )
-    assert status == 200
-    assert response and response.json() == {"foo": "bar"}
-    assert response and response.status_code == 200
-
-    str_data = json.dumps(data)
-    mock_sign.assert_called_once_with(str_data.encode())
-
-    assert mock_post.call_count == 1
-    args, kwargs = mock_post.call_args
-    assert args[0] == URL
-    assert kwargs["data"] == str_data
-    assert kwargs["headers"]["Authorization"] == "my-signature"
-    assert kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
-    assert kwargs["timeout"] == 67
-
-
-@pytest.mark.parametrize("data_type", ["dict", "str"])
-@patch("sentry.seer.signed_seer_api.sign_with_seer_secret", Mock(return_value={}))
-@patch("requests.post")
-def test_request_simple_timeout_error(mock_post: MagicMock, data_type: str) -> None:
-    mock_post.side_effect = requests.exceptions.Timeout("Request timed out")
-
-    _, status = make_signed_seer_request_simple(
-        URL, {"hello": "world"} if data_type == "dict" else '{"hello": "world"}'
-    )
-    assert status == 504
-
-
-@pytest.mark.parametrize("data_type", ["dict", "str"])
-@patch("sentry.seer.signed_seer_api.sign_with_seer_secret", Mock(return_value={}))
-@patch("requests.post")
-def test_request_simple_connection_error(mock_post: MagicMock, data_type: str) -> None:
-    mock_post.side_effect = requests.exceptions.ConnectionError("Connection error")
-
-    _, status = make_signed_seer_request_simple(
-        URL, {"hello": "world"} if data_type == "dict" else '{"hello": "world"}'
-    )
-    assert status == 502
-
-
-@pytest.mark.parametrize("data_type", ["dict", "str"])
-@patch("sentry.seer.signed_seer_api.sign_with_seer_secret", Mock(return_value={}))
-@patch("requests.post")
-def test_request_simple_request_error(mock_post: MagicMock, data_type: str) -> None:
-    mock_post.side_effect = requests.exceptions.RequestException("Generic request error")
-
-    _, status = make_signed_seer_request_simple(
-        URL, {"hello": "world"} if data_type == "dict" else '{"hello": "world"}'
-    )
-    assert status == 502
-
-
-@pytest.mark.parametrize("data_type", ["dict", "str"])
-@pytest.mark.parametrize("expected_status", [400, 401, 403, 404, 429, 500, 502, 503, 504])
-@patch("sentry.seer.signed_seer_api.sign_with_seer_secret", Mock(return_value={}))
-@responses.activate
-def test_request_simple_http_errors(expected_status: int, data_type: str) -> None:
-    # Need a real response object to simulate raise_for_status().
-    responses.add(
-        responses.POST,
-        URL,
-        status=expected_status,
-    )
-    _, status = make_signed_seer_request_simple(
-        URL, {"hello": "world"} if data_type == "dict" else '{"hello": "world"}'
-    )
-    assert status == expected_status
