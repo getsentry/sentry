@@ -97,8 +97,7 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
             recording_event = parse_recording_event(message.payload.value)
             set_tag("org_id", recording_event["context"]["org_id"])
             set_tag("project_id", recording_event["context"]["project_id"])
-            res = process_recording_event(recording_event)
-            return res
+            return process_recording_event(recording_event)
         except DropSilently:
             return FilteredPayload()
         except Exception:
