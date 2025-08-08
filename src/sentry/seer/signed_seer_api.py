@@ -105,10 +105,7 @@ def make_signed_seer_request_simple(
                 },
                 timeout=timeout,
             )
-        response.raise_for_status()  # Raises HTTPError for 4xx and 5xx.
-
-    except requests.exceptions.HTTPError as e:
-        return (e.response, e.response.status_code) if e.response is not None else (None, 502)
+            # Don't raise for error status, just return response.
 
     except requests.exceptions.Timeout:
         return (None, 504)
