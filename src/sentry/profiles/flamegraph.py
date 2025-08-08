@@ -298,6 +298,7 @@ class FlamegraphExecutor:
         continuous_profile_candidates: list[ContinuousProfileCandidate] = []
 
         if max_continuous_profile_candidates > 0:
+            self.snuba_params.end = original_end
             continuous_profile_candidates, _ = self.get_chunks_for_profilers(
                 profiler_metas,
                 max_continuous_profile_candidates,
@@ -704,6 +705,7 @@ class FlamegraphExecutor:
         # If there are continuous profiles attached to transactions, we prefer those as
         # the active thread id gives us more user friendly flamegraphs than without.
         if profiler_metas and max_continuous_profile_candidates > 0:
+            self.snuba_params.end = original_end
             continuous_profile_candidates, continuous_duration = self.get_chunks_for_profilers(
                 profiler_metas, max_continuous_profile_candidates
             )
