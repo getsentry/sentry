@@ -3,7 +3,6 @@
  */
 const config = {
   plugins: ['@ianvs/prettier-plugin-sort-imports', '@prettier/plugin-oxc'],
-  importOrderCaseSensitive: false,
   importOrder: [
     // Side effect imports.
     String.raw`^\u0000`,
