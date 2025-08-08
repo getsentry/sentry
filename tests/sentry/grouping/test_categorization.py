@@ -225,20 +225,13 @@ def _strip_sensitive_keys(data: dict[str, Any], keep_keys: list[str]) -> bool:
 
     keys_stripped = False
 
-    for key in list(data):
-        if key not in keep_keys:
-            del data[key]
-            keys_stripped = True
-
-        elif data[key] is None:
-            del data[key]
-            keys_stripped = True
-
-        elif any(x in key.lower() for x in _DELETE_KEYWORDS):
-            del data[key]
-            keys_stripped = True
-
-        elif any(x in json.dumps(data[key]).lower() for x in _DELETE_KEYWORDS):
+    for key in data:
+        if (
+            key not in keep_keys
+            or data[key] is None
+            or any(x in key.lower() for x in _DELETE_KEYWORDS)
+            or any(x in json.dumps(data[key]).lower() for x in _DELETE_KEYWORDS)
+        ):
             del data[key]
             keys_stripped = True
 
