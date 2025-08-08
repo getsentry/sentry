@@ -186,17 +186,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           field,
         })),
         tableResults[i]?.meta
-      ).map((column, index) => {
-        return {
-          key: column.key,
-          width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
-          type: column.type === 'never' ? null : column.type,
-          sortable:
-            widget.widgetType === WidgetType.RELEASE
-              ? isAggregateField(column.key)
-              : true,
-        };
-      });
+      ).map((column, index) => ({
+        key: column.key,
+        width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
+        type: column.type === 'never' ? null : column.type,
+        sortable:
+          widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
+      }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
       const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
@@ -495,7 +491,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     const nameFormatter = (name: string) => {
-      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name)!;
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {
