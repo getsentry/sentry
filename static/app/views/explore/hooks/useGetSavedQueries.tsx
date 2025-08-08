@@ -149,10 +149,10 @@ export class SavedQuery {
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
   }
+}
 
-  get traceItemDataset(): TraceItemDataset {
-    return DATASET_TO_TRACE_ITEM_DATASET_MAP[this.dataset];
-  }
+export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
+  return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
 
 type Props = {
