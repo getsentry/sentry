@@ -16,6 +16,26 @@ type Props = {
 };
 
 function SplitDiff({className, base, target}: Props) {
+  function tokenizePreservingWhitespace(line: string): string[] {
+    const tokens: string[] = [];
+    let buffer = '';
+
+    for (const char of line) {
+      if (char === ' ' || char === '\t' || char === '\n') {
+        if (buffer) {
+          tokens.push(buffer);
+          buffer = '';
+        }
+        tokens.push(char); // preserve space, tab, or newline as token
+      } else {
+        buffer += char;
+      }
+    }
+
+    if (buffer) tokens.push(buffer);
+
+    return tokens;
+  }
   function tokenizeStackTrace(t: string): string[] {
     const trace = t.replace(/, line \d+,/g, ','); // this is ONLY FOR PYTHON
     const lines = trace.split('\n');
@@ -35,7 +55,7 @@ function SplitDiff({className, base, target}: Props) {
       }
 
       // Fallback: basic whitespace tokenization
-      return [...lineStr.trim().split(/\s+/).filter(Boolean), '\n'];
+      return [...tokenizePreservingWhitespace(lineStr), '\n'];
     });
   }
 
@@ -50,12 +70,12 @@ function SplitDiff({className, base, target}: Props) {
   ): Change[][] {
     for (const result of results) {
       if (result.value.includes('\n')) {
-        const lineResult = result.value.join(' ').split('\n');
+        const lineResult = result.value.join('').split('\n');
         // add the rest of the current line and push to aseembled line
         currentLine.push({
           added: result.added,
           removed: result.removed,
-          value: lineResult[0] ?? '====', // Should fix this probable
+          value: lineResult[0] ?? '====', // this never happens??
         });
         assembledLines.push(currentLine);
         currentLine = [];
@@ -82,7 +102,7 @@ function SplitDiff({className, base, target}: Props) {
         currentLine.push({
           added: result.added,
           removed: result.removed,
-          value: result.value.join(' '),
+          value: ' ' + result.value.join(''),
         });
       }
     }
