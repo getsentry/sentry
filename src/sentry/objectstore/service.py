@@ -138,7 +138,9 @@ class Client:
                 headers=headers,
                 preload_content=True,
                 decode_content=True,
-            ).json()
+            )
+            raise_for_status(response)
+            res = response.json()
 
             measurement.upload_size = body.tell()
             if compression != "none":
@@ -149,7 +151,7 @@ class Client:
                     unit="byte",
                 )
 
-            return response["key"]
+            return res["key"]
 
     def get(self, id: str, decompress: bool = True) -> GetResult:
         """
@@ -168,6 +170,7 @@ class Client:
             preload_content=False,
             decode_content=False,
         )
+        raise_for_status(response)
         # OR: should I use `response.stream()`?
         stream = cast(IO[bytes], response)
         metadata = Metadata.from_headers(response.headers)
@@ -190,8 +193,24 @@ class Client:
         """
         headers = self._make_headers("write")
 
-        self._pool.request(
+        response = self._pool.request(
             "DELETE",
             f"/{id}",
             headers=headers,
+        )
+        raise_for_status(response)
+
+
+class ClientError(Exception):
+    def __init__(self, message: str, status: int, response: str):
+        super().__init__(message)
+        self.status = status
+        self.response = response
+
+
+def raise_for_status(response: urllib3.BaseHTTPResponse):
+    if response.status >= 400:
+        res = str(response.data or response.read())
+        raise ClientError(
+            f"Objectstore request failed with status {response.status}", response.status, res
         )
