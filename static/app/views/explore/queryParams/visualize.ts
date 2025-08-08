@@ -19,6 +19,34 @@ export class Visualize {
     this.selectedChartType = options?.chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
   }
+
+  clone(): Visualize {
+    return new Visualize(this.yAxis, {
+      chartType: this.selectedChartType,
+    });
+  }
+
+  replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
+    return new Visualize(yAxis ?? this.yAxis, {
+      chartType: chartType ?? this.selectedChartType,
+    });
+  }
+
+  toJSON(): BaseVisualize {
+    const json: BaseVisualize = {
+      yAxes: [this.yAxis],
+    };
+
+    if (defined(this.selectedChartType)) {
+      json.chartType = this.selectedChartType;
+    }
+
+    return json;
+  }
+
+  static fromJSON(json: BaseVisualize): Visualize[] {
+    return json.yAxes.map(yAxis => new Visualize(yAxis, {chartType: json.chartType}));
+  }
 }
 
 export function getVisualizesFromLocation(
