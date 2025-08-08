@@ -134,6 +134,7 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(serialized_request.encode()),
         },
+        timeout=settings.SEER_DEFAULT_TIMEOUT or 5,
     )
 
     if response.status_code != 200:
