@@ -151,8 +151,8 @@ describe('CanvasReplayerPlugin', () => {
 
   it('does not clear sync canvas snapshots when loading a replay at specific timestamp', async () => {
     const id1 = 1;
-    const id2 = 1;
-    const id3 = 1;
+    const id2 = 2;
+    const id3 = 3;
     const canvasNode1 = createCanvasNode();
     const canvasNode2 = createCanvasNode();
     const canvasNode3 = createCanvasNode();
@@ -179,14 +179,11 @@ describe('CanvasReplayerPlugin', () => {
     plugin.handler!(e1, true, {replayer});
     plugin.handler!(e2, true, {replayer});
 
-    // Allow async microtasks to run for processEvent
-    await Promise.resolve();
-
     // Then build
     plugin.onBuild!(canvasNode3, {id: id3, replayer});
     // Note, onBuild clears the event from `handleQueue`, so canvas mutation only gets called once, via onBuild -> processEvent
 
-    expect(canvasMutation).toHaveBeenCalledTimes(1);
+    expect(canvasMutation).toHaveBeenCalledTimes(3);
     jest.runAllTimers();
     await Promise.resolve();
     const img = canvasNode3.querySelector('img')!;
