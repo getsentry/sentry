@@ -38,7 +38,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 // - Replacing * with \* does NOT work before JSON stringifying, because the \* is escaped to \\*, which actually ends up matching the wildcard and not the literal *
 //   - Thus, we want exactly one \ before *, so we replace after both JSON stringifying, but this also means that the actual wildcard must be added after the final JSON stringify
 
-// Key of this function is that the search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
+// The key of this function is that the search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
 function getSearchTermForLabel(label: string) {
   const exactMatchString = JSON.stringify(label);
   let toPassToSearch = JSON.stringify(exactMatchString);
@@ -51,6 +51,8 @@ function getSearchTermForLabel(label: string) {
 }
 
 function getSearchTermForLabelList(labels: string[]) {
+  // First sort to make it deterministic
+  labels.sort();
   const searchTerms = labels.map(label => getSearchTermForLabel(label));
   return `[${searchTerms.join(',')}]`;
 }
@@ -59,7 +61,7 @@ function getSearchTermForLabelList(labels: string[]) {
 // const exampleFilter = getSearchTermForLabelList(['Annoying*Wildcard']);
 
 // Now try it with a literal backslash before the *
-const exampleFilter = getSearchTermForLabelList(['Quote"And*Wildcard']);
+// const exampleFilter = getSearchTermForLabelList(['Quote"And*Wildcard']);
 
 export default function FeedbackSummary() {
   const {
@@ -90,49 +92,29 @@ export default function FeedbackSummary() {
     primaryLabel: string;
   }) => {
     // Create search terms for primary label and all associated labels
-    const allLabels = [category.primaryLabel, ...category.associatedLabels, 'Jira'];
+    const allLabels = [category.primaryLabel, ...category.associatedLabels];
 
-    const labelFilters = allLabels.map(label => `*${JSON.stringify(label)}*`);
-
-    // console.log('label filters', labelFilters);
+    const exactSearchTerm = getSearchTermForLabelList(allLabels);
 
     const newSearchConditions = new MutableSearch(currentQuery);
 
-    // Check if this category is already selected (all labels must be present)
-    const isSelected = labelFilters.every(filter => {
-      // console.log(
-      //   'filter',
-      //   newSearchConditions.getFilterValues('ai_categorization.labels')[0]
-      // );
-      // console.log('this is the EXAMPLEFILTER', exampleFilter);
-      // console.log(
-      //   'is it equal to the filter?',
-      //   newSearchConditions.getFilterValues('ai_categorization.labels')[0] ===
-      //     exampleFilter
-      // );
-
-      return newSearchConditions
-        .getFilterValues('ai_categorization.labels')
-        .includes(filter);
-    });
+    const isSelected = newSearchConditions
+      .getFilterValues('ai_categorization.labels')
+      .includes(exactSearchTerm);
 
     if (isSelected) {
-      // Remove all search terms if already selected
-      labelFilters.forEach(filter => {
-        newSearchConditions.removeFilterValue('ai_categorization.labels', filter);
-      });
+      // Remove search term
+      newSearchConditions.removeFilterValue('ai_categorization.labels', exactSearchTerm);
     } else {
       // Remove any existing ai_categorization.labels filters first
       newSearchConditions.removeFilter('ai_categorization.labels');
-      // Create a single search term that matches any of the labels using regex-like OR syntax
-      // const combinedFilter = `*${allLabels.map(label => JSON.stringify(label)).join('|')}*`;
 
-      // we want literal backslashes in the string
-      const filter = exampleFilter;
-
-      // console.log('this is the test filter', filter);
-
-      newSearchConditions.addFilterValue('ai_categorization.labels', filter, false);
+      // Whether the want to escape the exact string should always be false, since we want wildcards to work. Thus, we have to escape the string ourselves.
+      newSearchConditions.addFilterValue(
+        'ai_categorization.labels',
+        exactSearchTerm,
+        false
+      );
     }
 
     // Update URL with new search query
@@ -146,18 +128,18 @@ export default function FeedbackSummary() {
     });
   };
 
+  // XXX: what happens if the user manually adds the filters for TWO tags? will they both be shown as selected? what about if they click one, etc.
   const isTagSelected = (category: {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
     // Create search terms for primary label and all associated labels
-    const allLabels = [category.primaryLabel, ...category.associatedLabels, 'Jira'];
-    // Create the same combined filter pattern we use when adding
-    const combinedFilter = `*${allLabels.map(label => JSON.stringify(label)).join('|')}*`;
+    const allLabels = [category.primaryLabel, ...category.associatedLabels];
+    const exactSearchTerm = getSearchTermForLabelList(allLabels);
     const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
 
     // Check if our combined filter pattern is in the current filters
-    return currentFilters.includes(combinedFilter);
+    return currentFilters.includes(exactSearchTerm);
   };
 
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
