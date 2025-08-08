@@ -225,12 +225,16 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         return;
       }
 
-      trackAnalytics('trace.explorer.ai_query_submitted', {
+      trackAnalytics('trace.explorer.ai_query_applied', {
         organization,
-        natural_language_query: searchQuery.trim(),
+        query: searchQuery.trim(),
+        group_by_count: item.groupBys.length,
+        visualize_count: item.visualizations.length,
       });
       askSeerNLQueryRef.current = searchQuery.trim();
       applySeerSearchQuery(item);
+      setDisplayAskSeerFeedback(true);
+      setDisplayAskSeer(false);
       state.close();
     },
     children: item => {
@@ -296,6 +300,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
+              trackAnalytics('trace.explorer.ai_query_interface', {
+                organization,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -342,8 +350,18 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
-              state.close();
+
+              trackAnalytics('trace.explorer.ai_query_applied', {
+                organization,
+                query: searchQuery.trim(),
+                group_by_count: item.groupBys.length,
+                visualize_count: item.visualizations.length,
+              });
+              askSeerNLQueryRef.current = searchQuery.trim();
               applySeerSearchQuery(item);
+              setDisplayAskSeerFeedback(true);
+              setDisplayAskSeer(false);
+              state.close();
               return;
             }
 
