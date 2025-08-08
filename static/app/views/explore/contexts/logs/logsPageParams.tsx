@@ -168,6 +168,8 @@ export function LogsPageParamsProvider({
     }
   }
 
+  const title = getLogTitleFromLocation(location);
+  const id = getLogIdFromLocation(location);
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -211,6 +213,8 @@ export function LogsPageParamsProvider({
         search,
         setSearchForFrozenPages,
         sortBys,
+        title,
+        id,
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
@@ -430,6 +434,16 @@ export function useLogsFields() {
   return fields;
 }
 
+export function useLogsId() {
+  const {id} = useLogsPageParams();
+  return id;
+}
+
+export function useLogsTitle() {
+  const {title} = useLogsPageParams();
+  return title;
+}
+
 export function useLogsProjectIds() {
   const {projectIds} = useLogsPageParams();
   return projectIds;
@@ -497,6 +511,14 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
+}
+
+function getLogTitleFromLocation(location: Location): string {
+  return decodeScalar(location.query.title, '');
+}
+
+function getLogIdFromLocation(location: Location): string {
+  return decodeScalar(location.query.id, '');
 }
 
 function getLogCursorFromLocation(location: Location): string {
