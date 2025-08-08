@@ -1,4 +1,3 @@
-// eslint-disable-next-line simple-import-sort/imports
 import type {TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   filterTypeConfig,

@@ -1,4 +1,3 @@
-// eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/react';
 import type {Event} from '@sentry/core';
 
