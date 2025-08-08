@@ -13,13 +13,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
-from sentry.preprod.tasks import assemble_preprod_artifact
-from sentry.tasks.assemble import (
-    AssembleTask,
-    ChunkFileState,
-    get_assemble_status,
-    set_assemble_status,
-)
+from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
+from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -121,29 +116,39 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     }
                 )
 
-            # Check current assembly status
-            state, detail = get_assemble_status(AssembleTask.PREPROD_ARTIFACT, project.id, checksum)
-            if state is not None:
-                return Response({"state": state, "detail": detail, "missingChunks": []})
-
             # There is neither a known file nor a cached state, so we will
             # have to create a new file.  Assure that there are checksums.
             # If not, we assume this is a poll and report NOT_FOUND
             if not chunks:
                 return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
 
-            set_assemble_status(
-                AssembleTask.PREPROD_ARTIFACT, project.id, checksum, ChunkFileState.CREATED
+            artifact_id = create_preprod_artifact(
+                org_id=project.organization_id,
+                project_id=project.id,
+                checksum=checksum,
+                build_configuration=data.get("build_configuration"),
             )
+
+            if artifact_id is None:
+                return Response(
+                    {
+                        "state": ChunkFileState.ERROR,
+                        "detail": "Failed to create preprod artifact row.",
+                    }
+                )
+
             assemble_preprod_artifact.apply_async(
                 kwargs={
                     "org_id": project.organization_id,
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
+                    "artifact_id": artifact_id,
                 }
             )
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        return Response({"state": ChunkFileState.CREATED, "missingChunks": []})
+        return Response(
+            {"state": ChunkFileState.OK, "missingChunks": [], "artifactId": artifact_id}
+        )

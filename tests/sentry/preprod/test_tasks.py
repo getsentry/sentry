@@ -13,6 +13,7 @@ from sentry.preprod.tasks import (
     assemble_preprod_artifact,
     assemble_preprod_artifact_installable_app,
     assemble_preprod_artifact_size_analysis,
+    create_preprod_artifact,
 )
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -41,21 +42,26 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            git_sha="abc123def456",
-            build_configuration="release",
+            artifact_id=artifact_id,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
-        )
-        # Should succeed now that build_configuration is properly handled
-        assert status == ChunkFileState.OK
-        assert details is None
+        # The main assemble_preprod_artifact task doesn't set assembly status
+        # Only the assemble_file function sets error status when there are problems
+        # So we should check the actual artifacts created instead
 
         # Verify file was created
         files = File.objects.filter(type="preprod.artifact")
@@ -73,8 +79,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifacts[0].build_configuration == build_configs[0]
         assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
-        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
-
     def test_assemble_preprod_artifact_without_build_configuration(self) -> None:
         """Test that assemble_preprod_artifact succeeds without build_configuration"""
         content = b"test preprod artifact without build config"
@@ -83,19 +87,23 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
-        )
-        # Should succeed now, even without build_configuration
-        assert status == ChunkFileState.OK
-        assert details is None
+        # The main assemble_preprod_artifact task doesn't set assembly status
 
         # Verify file was created
         files = File.objects.filter(type="preprod.artifact")
@@ -107,8 +115,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifacts[0].build_configuration is None
         assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
-        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
-
     def test_assemble_preprod_artifact_generates_filename(self) -> None:
         """Test that assemble_preprod_artifact generates proper filename"""
         content = b"test preprod artifact with generated filename"
@@ -117,19 +123,23 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
-        )
-        # Should succeed and generate proper filename
-        assert status == ChunkFileState.OK
-        assert details is None
+        # The main assemble_preprod_artifact task doesn't set assembly status
 
         files = File.objects.filter(type="preprod.artifact")
         assert len(files) == 1
@@ -141,8 +151,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifacts[0].build_configuration is None
         assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
 
-        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
-
     def test_assemble_preprod_artifact_checksum_mismatch(self) -> None:
         content = b"test content for checksum mismatch"
         fileobj = ContentFile(content)
@@ -150,11 +158,20 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=wrong_checksum,
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=wrong_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
         )
 
         status, details = get_assemble_status(
@@ -169,11 +186,20 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         missing_checksum = "nonexistent" + "0" * 32
         total_checksum = sha1(b"test for missing chunks").hexdigest()
 
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact_id is not None
+
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[missing_checksum],
+            artifact_id=artifact_id,
         )
 
         status, details = get_assemble_status(
@@ -192,20 +218,28 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
         nonexistent_org_id = 99999
 
+        # Create preprod artifact with valid org first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact_id is not None
+
+        # Then try to assemble with nonexistent org
         assemble_preprod_artifact(
             org_id=nonexistent_org_id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
-        )
-        assert status == ChunkFileState.ERROR
-        assert details is not None
-
-        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+        # The task catches exceptions but doesn't set assembly status for database errors
+        # Check that the artifact was marked as failed instead
+        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        assert len(artifacts) == 1
+        assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
     def test_assemble_preprod_artifact_nonexistent_project(self) -> None:
         content = b"test content for nonexistent project"
@@ -215,24 +249,28 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
         nonexistent_project_id = 99999
 
+        # Create preprod artifact with valid project first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact_id is not None
+
+        # Then try to assemble with nonexistent project
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=nonexistent_project_id,
             checksum=total_checksum,
             chunks=[blob.checksum],
+            artifact_id=artifact_id,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT,
-            nonexistent_project_id,
-            total_checksum,
-        )
-        assert status == ChunkFileState.ERROR
-        assert details is not None
-
-        delete_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, nonexistent_project_id, total_checksum
-        )
+        # The task catches exceptions but doesn't set assembly status for database errors
+        # Check that the artifact was marked as failed instead
+        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        assert len(artifacts) == 1
+        assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
     # Note: Tests currently expect ERROR state because the task tries to access
     # assemble_result.build_configuration which doesn't exist
