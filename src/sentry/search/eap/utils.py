@@ -15,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.constants import SAMPLING_MODE_MAP, SENTRY_INTERNAL_PREFIX
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, SENTRY_INTERNAL_PREFIXES
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -201,7 +201,7 @@ def can_expose_attribute(
 
     # Omit internal attributes, unless explicitly requested. Usually, only
     # Sentry staff should see these.
-    if attribute.lower().startswith(SENTRY_INTERNAL_PREFIX.lower()):
+    if any(attribute.lower().startswith(prefix.lower()) for prefix in SENTRY_INTERNAL_PREFIXES):
         return include_internal
 
     return True

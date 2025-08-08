@@ -179,4 +179,4 @@ META_PREFIX = "sentry._meta"
 META_FIELD_PREFIX = f"{META_PREFIX}.fields"
 META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
 
-SENTRY_INTERNAL_PREFIX = "__sentry_internal"
+SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry.internal."]
