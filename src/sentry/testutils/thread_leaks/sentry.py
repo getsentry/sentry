@@ -21,7 +21,7 @@ def get_scope():
 
     sha: str | None
     branch: str | None
-    if environ.get("CI") == "true":
+    if environ.get("GITHUB_ACTIONS") == "true":
         sha = environ["GITHUB_SHA"]
         branch = environ.get("GITHUB_HEAD_REF")
         if branch:

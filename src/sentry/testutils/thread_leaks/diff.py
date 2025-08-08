@@ -8,10 +8,10 @@ from traceback import FrameSummary, StackSummary
 
 
 def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
-    """Filter stack frames to show only application code relevant for debugging.
+    """Filter stack frames to show only test and testutil code relevant for debugging.
 
-    Applies a series of filters to remove infrastructure code, keeping only
-    frames that help developers identify where threads were created. Each filter
+    Applies a series of filters to remove stdlib and system code, then focuses on
+    test and testutil frames where thread leak fixes typically need to go. Each filter
     is only applied if it doesn't remove all frames (fail-safe behavior).
 
     Returns the last 10 frames of application code with relative paths.
@@ -29,8 +29,9 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
         lambda frame: stdlib_dir
         and frame.filename.startswith(stdlib_dir + "/"),  # Remove Python stdlib
         lambda frame: frame.filename.startswith(sys.prefix),  # Remove system Python files
-        lambda frame: "/test_" not in frame.filename,  # Keep test files out of stack traces
-        lambda frame: "/testutils/" not in frame.filename,  # Remove testing infrastructure
+        # Keep only test/testutil frames (where fixes will need to go)
+        lambda frame: "/test_" not in frame.filename,  # NOTE: filter-not is a double negative
+        lambda frame: "/testutils/" not in frame.filename,
     ):
         filtered_stack = [frame for frame in stack if not filter(frame)]
         # Only apply the filter if it leaves some frames (fail-safe)
