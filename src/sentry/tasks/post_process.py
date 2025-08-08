@@ -32,6 +32,7 @@ from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
 
 locks = LockManager(
     build_instance_from_options_of_type(
@@ -603,6 +605,11 @@ def post_process_group(
 
             event = fetch_retry_policy(get_event_raise_exception)
 
+        track_event_since_received(
+            step="start_post_process",
+            event_data=event.data,
+        )
+
         set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
@@ -672,6 +679,13 @@ def post_process_group(
                     instance=event.data["platform"],
                     tags=metric_tags,
                 )
+
+                track_event_since_received(
+                    step="end_post_process",
+                    event_data=event.data,
+                    tags=metric_tags,
+                )
+
             else:
                 metrics.incr("events.missing_received", tags=metric_tags)
 

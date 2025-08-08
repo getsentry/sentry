@@ -302,7 +302,7 @@ def test_project_config_uses_filter_features(
         assert {"patterns": error_messages} == cfg_error_messages
         assert {"releases": releases} == cfg_releases
         assert {
-            "id": "gen_body",
+            "id": "log-message",
             "isEnabled": True,
             "condition": {
                 "op": "glob",

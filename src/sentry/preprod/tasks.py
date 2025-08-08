@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
@@ -50,6 +51,7 @@ def assemble_preprod_artifact(
     project_id,
     checksum,
     chunks,
+    artifact_id,
     **kwargs,
 ) -> None:
     """
@@ -70,10 +72,6 @@ def assemble_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-        )
-
         assemble_result = assemble_file(
             task=AssembleTask.PREPROD_ARTIFACT,
             org_or_project=project,
@@ -84,23 +82,37 @@ def assemble_preprod_artifact(
         )
 
         if assemble_result is None:
-            # Shouldn't we treat this as an error?
-            logger.warning(
-                "Assemble result is None, returning early",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                    "checksum": checksum,
-                },
+            raise RuntimeError(
+                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum}, preprod_artifact_id={artifact_id})"
             )
-            return
 
-        create_preprod_artifact(
-            org_id=org_id,
-            project_id=project_id,
-            checksum=checksum,
+        logger.info(
+            "Finished preprod artifact assembly",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+
+        PreprodArtifact.objects.filter(id=artifact_id).update(
             file_id=assemble_result.bundle.id,
-            build_configuration=kwargs.get("build_configuration"),
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+            head_sha=kwargs.get("head_sha"),
+            base_sha=kwargs.get("base_sha"),
+            provider=kwargs.get("provider"),
+            head_repo_name=kwargs.get("head_repo_name"),
+            base_repo_name=kwargs.get("base_repo_name"),
+            head_ref=kwargs.get("head_ref"),
+            base_ref=kwargs.get("base_ref"),
+            pr_number=kwargs.get("pr_number"),
         )
 
     except Exception as e:
@@ -111,22 +123,18 @@ def assemble_preprod_artifact(
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
             },
         )
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT,
-            project_id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail=str(e),
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED
         )
         return
 
-    # Mark assembly as successful since the artifact was created successfully
-    set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
     logger.info(
-        "Finished preprod artifact assembly",
+        "Finished preprod artifact row creation and kafka dispatch",
         extra={
+            "preprod_artifact_id": artifact_id,
             "project_id": project_id,
             "organization_id": org_id,
             "checksum": checksum,
@@ -138,53 +146,90 @@ def create_preprod_artifact(
     org_id,
     project_id,
     checksum,
-    file_id,
     build_configuration=None,
-):
-    organization = Organization.objects.get_from_cache(pk=org_id)
-    project = Project.objects.get(id=project_id, organization=organization)
-    bind_organization_context(organization)
+    head_sha=None,
+    base_sha=None,
+    provider=None,
+    head_repo_name=None,
+    base_repo_name=None,
+    head_ref=None,
+    base_ref=None,
+    pr_number=None,
+) -> str | None:
+    try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        project = Project.objects.get(id=project_id, organization=organization)
+        bind_organization_context(organization)
 
-    with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        build_config = None
-        if build_configuration:
-            build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # Create CommitComparison if git information is provided
+            commit_comparison = None
+            if head_sha and head_repo_name and provider and head_ref:
+                commit_comparison, _ = CommitComparison.objects.get_or_create(
+                    organization_id=org_id,
+                    head_sha=head_sha,
+                    base_sha=base_sha,
+                    provider=provider,
+                    head_repo_name=head_repo_name,
+                    base_repo_name=base_repo_name,
+                    head_ref=head_ref,
+                    base_ref=base_ref,
+                    pr_number=pr_number,
+                )
+            else:
+                logger.info(
+                    "Skipping commit comparison creation because required vcs information is not provided",
+                    extra={
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "head_sha": head_sha,
+                        "head_repo_name": head_repo_name,
+                        "provider": provider,
+                        "head_ref": head_ref,
+                        "base_sha": base_sha,
+                        "base_repo_name": base_repo_name,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
+                )
+
+            build_config = None
+            if build_configuration:
+                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                    project=project,
+                    name=build_configuration,
+                )
+
+            preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
-                name=build_configuration,
+                build_configuration=build_config,
+                state=PreprodArtifact.ArtifactState.UPLOADING,
+                commit_comparison=commit_comparison,
             )
 
-        preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
-            project=project,
-            file_id=file_id,
-            build_configuration=build_config,
-            state=PreprodArtifact.ArtifactState.UPLOADED,
-        )
+            logger.info(
+                "Created preprod artifact row",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                },
+            )
 
-        logger.info(
-            "Created preprod artifact",
+            return str(preprod_artifact.id)
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Failed to create preprod artifact row",
             extra={
-                "preprod_artifact_id": preprod_artifact.id,
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
             },
         )
-
-    produce_preprod_artifact_to_kafka(
-        project_id=project_id,
-        organization_id=org_id,
-        artifact_id=preprod_artifact.id,
-    )
-
-    logger.info(
-        "Finished preprod artifact row creation and kafka dispatch",
-        extra={
-            "preprod_artifact_id": preprod_artifact.id,
-            "project_id": project_id,
-            "organization_id": org_id,
-            "checksum": checksum,
-        },
-    )
+        return None
 
 
 def _assemble_preprod_artifact_file(
@@ -262,7 +307,7 @@ def _assemble_preprod_artifact_size_analysis(
         logger.exception(
             "PreprodArtifact not found during size analysis assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },

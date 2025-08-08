@@ -28,6 +28,7 @@ import {
   type TraceItemDetailsResponse,
   useTraceItemDetails,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -228,15 +229,17 @@ export function SpanNodeDetails(
             input={profiles?.type === 'resolved' ? profiles.data : null}
             traceID={profileId ?? profilerId ?? ''}
           >
-            <LogsPageParamsProvider
-              isTableFrozen
-              limitToTraceId={props.traceId}
-              limitToSpanId={spanId}
-              limitToProjectIds={project ? [Number(project.id)] : undefined}
-              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-            >
-              <LogsPageDataProvider>{content}</LogsPageDataProvider>
-            </LogsPageParamsProvider>
+            <LogsQueryParamsProvider source="state">
+              <LogsPageParamsProvider
+                isTableFrozen
+                limitToTraceId={props.traceId}
+                limitToSpanId={spanId}
+                limitToProjectIds={project ? [Number(project.id)] : undefined}
+                analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+              >
+                <LogsPageDataProvider>{content}</LogsPageDataProvider>
+              </LogsPageParamsProvider>
+            </LogsQueryParamsProvider>
           </ProfileGroupProvider>
         )}
       </ProfileContext.Consumer>
