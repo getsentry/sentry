@@ -41,6 +41,7 @@ def submit(consumer, message):
     consumer.terminate()
 
 
+@pytest.mark.django_db
 def test_recording_consumer(consumer) -> None:
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(b"")
@@ -60,15 +61,18 @@ def test_recording_consumer(consumer) -> None:
     }
 
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
-        submit(consumer, message)
+        with mock.patch("sentry.replays.consumers.recording.options.get", return_value=False):
+            submit(consumer, message)
 
-        # Message was successfully processed and the result was committed.
-        assert commit.called
+            # Message was successfully processed and the result was committed.
+            assert commit.called
 
 
+@pytest.mark.django_db
 def test_recording_consumer_invalid_message(consumer) -> None:
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
-        submit(consumer, {})
+        with mock.patch("sentry.replays.consumers.recording.options.get", return_value=False):
+            submit(consumer, {})
 
-        # Message was not successfully processed and the result was dropped.
-        assert not commit.called
+            # Message was not successfully processed and the result was dropped.
+            assert not commit.called
