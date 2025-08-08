@@ -117,7 +117,6 @@ class GroupingContext:
         self.config = strategy_config
         self.event = event
         self._push_context_layer()
-        self["variant_name"] = None
 
     def __setitem__(self, key: str, value: ContextValue) -> None:
         # Add the key-value pair to the context layer at the top of the stack
@@ -182,12 +181,15 @@ class GroupingContext:
         Invoke the delegate grouping strategy corresponding to the given interface, returning the
         grouping component for the variant set on the context.
         """
+        variant_name = self["variant_name"]
+        assert variant_name is not None
+
         components_by_variant = self._get_grouping_components_for_interface(
             interface, event=event, **kwargs
         )
 
         assert len(components_by_variant) == 1
-        return components_by_variant[self["variant_name"]]
+        return components_by_variant[variant_name]
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
@@ -484,7 +486,7 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    incoming_variant_name = context["variant_name"]
+    incoming_variant_name = context.get("variant_name")
 
     if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a delegate strategy. To
