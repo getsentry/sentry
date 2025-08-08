@@ -42,7 +42,7 @@ def get_scope():
     scope = sentry_sdk.get_current_scope().fork()
     scope.set_client(client)
     scope.update_from_kwargs(
-        level="warning",
+        # Don't set level - scope overrides event-level
         extras={"git-branch": branch, "git-sha": sha},
     )
     return scope
