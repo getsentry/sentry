@@ -18,8 +18,12 @@ class OrganizationEventsUptimeResultsEndpointTest(
             "organizations:uptime-eap-enabled": True,
         }
 
-    def build_expected_result(self, **kwargs):
-        return {"id": None, "project.name": None, **kwargs}
+    def build_expected_result(self, id=None, **kwargs):
+        # If id is not provided, we expect it to be present but don't care about the value
+        result = {"project.name": None, **kwargs}
+        if id is not None:
+            result["id"] = id
+        return result
 
     @pytest.mark.querybuilder
     def test_simple_uptime_query(self) -> None:
@@ -55,10 +59,16 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
-                check_status="success", http_status_code=200, region="us-east-1"
+                id=results[0].item_id.hex(),
+                check_status="success",
+                http_status_code=200,
+                region="us-east-1",
             ),
             self.build_expected_result(
-                check_status="failure", http_status_code=500, region="us-west-2"
+                id=results[1].item_id.hex(),
+                check_status="failure",
+                http_status_code=500,
+                region="us-west-2",
             ),
         ]
 
@@ -97,8 +107,12 @@ class OrganizationEventsUptimeResultsEndpointTest(
         data = response.data["data"]
 
         assert data == [
-            self.build_expected_result(check_status="success", http_status_code=200),
-            self.build_expected_result(check_status="success", http_status_code=201),
+            self.build_expected_result(
+                id=results[0].item_id.hex(), check_status="success", http_status_code=200
+            ),
+            self.build_expected_result(
+                id=results[2].item_id.hex(), check_status="success", http_status_code=201
+            ),
         ]
 
     @pytest.mark.querybuilder
@@ -144,6 +158,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[0].item_id.hex(),
                 check_status="success",
                 check_duration_us=150000,
                 request_duration_us=125000,
@@ -151,6 +166,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
                 tcp_connection_duration_us=15000,
             ),
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 check_duration_us=30000000,
                 request_duration_us=30000000,
@@ -201,6 +217,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 http_status_code=504,
                 dns_lookup_duration_us=150000,
@@ -259,6 +276,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_id=check_id,
                 request_sequence=1,
                 http_status_code=200,
@@ -311,6 +329,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 
         assert data == [
             self.build_expected_result(
+                id=results[1].item_id.hex(),
                 check_status="failure",
                 region="us-east-1",
                 http_status_code=500,
