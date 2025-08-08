@@ -45,6 +45,11 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "system.debug-files-renewal-age-threshold-days",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
@@ -359,6 +364,10 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# New `objectstore` service configuration
+register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+
 
 # Symbol server
 register(
@@ -3088,6 +3097,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_workflow.use_workflow_engine_pool",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
@@ -3315,13 +3330,6 @@ register(
 )
 
 register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "sentry.demo_mode.sync_debug_artifacts.enable",
     type=Bool,
     default=False,
@@ -3335,8 +3343,19 @@ register(
 
 # Taskbroker flags
 register(
+    "taskworker.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.route.overrides",
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3346,82 +3365,6 @@ register(
 )
 
 
-# Taskbroker rollout flags
-register(
-    "taskworker.deletions.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.deletions.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.tempest.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.relocation.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.relocation.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.auth.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.auth.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.demomode.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.options.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.options.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.sdk.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.sdk.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.selfhosted.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.workflow_engine.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.alerts.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sdk-deprecation.profile-chunk.python",
     default="2.24.1",
@@ -3440,169 +3383,6 @@ register(
 register(
     "sdk-deprecation.profile-chunk.cocoa.hard",
     default="8.49.0",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.crons.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.digests.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.hybridcloud.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.hybridcloud.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.replays.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.notifications.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.notifications.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.uptime.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.integrations.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.integrations.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.attachments.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.seer.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.relay.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.sentryapp.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.sentryapp.control.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.issues.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.export.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.buffer.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.performance.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.releasehealth.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.symbolication.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.profiling.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.reports.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.profiling.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.telemetry-experience.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.attachments.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.errors.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.errors.postprocess.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.transactions.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ai_agent_monitoring.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Flags for taskworker scheduler rollout
-register(
-    "taskworker.scheduler.rollout",
-    default=["sync_options_trial"],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "taskworker.postprocess.namespace.rollout",
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3661,3 +3441,14 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables saving the suspectCommitStrategy on GroupOwner
+register(
+    "issues.suspect-commit-strategy",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the new objectstore implementation is being used for attachments
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

@@ -14,19 +14,25 @@ from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, Feedba
 from sentry.feedback.usecases.label_generation import (
     AI_LABEL_TAG_PREFIX,
     MAX_AI_LABELS,
+    MAX_AI_LABELS_JSON_LENGTH,
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
+from sentry.feedback.usecases.title_generation import (
+    format_feedback_title,
+    get_feedback_title_from_seer,
+    should_get_ai_title,
+)
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
@@ -159,11 +165,8 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        try:
-            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            metrics.incr("feedback.create_feedback_issue.invalid_schema")
-            raise
+        metrics.incr("feedback.create_feedback_issue.invalid_schema")
+        raise
 
 
 def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
@@ -200,39 +203,6 @@ def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
             return True, "invalid_associated_event_id"
 
     return False, None
-
-
-def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
-    """
-    Generate a descriptive title for user feedback issues.
-    Format: "User Feedback: [first few words of message]"
-
-    Args:
-        feedback_message: The user's feedback message
-        max_words: Maximum number of words to include from the message
-
-    Returns:
-        A formatted title string
-    """
-    stripped_message = feedback_message.strip()
-
-    # Clean and split the message into words
-    words = stripped_message.split()
-
-    if len(words) <= max_words:
-        summary = stripped_message
-    else:
-        summary = " ".join(words[:max_words])
-        if len(summary) < len(stripped_message):
-            summary += "..."
-
-    title = f"User Feedback: {summary}"
-
-    # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 200:  # Conservative limit
-        title = title[:197] + "..."
-
-    return title
 
 
 def create_feedback_issue(
@@ -328,12 +298,18 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam
     )
     issue_fingerprint = [uuid4().hex]
+
+    ai_title = None
+    if not is_message_spam and should_get_ai_title(project.organization):
+        ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
+    formatted_title = format_feedback_title(ai_title or feedback_message)
+
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=get_feedback_title(feedback_message),
+        issue_title=formatted_title,
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
@@ -362,6 +338,7 @@ def create_feedback_issue(
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
+            # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(
                     "Feedback message has more than the maximum allowed labels.",
@@ -373,8 +350,15 @@ def create_feedback_issue(
                 )
                 labels = labels[:MAX_AI_LABELS]
 
+            # Truncate the labels so the serialized list is within the allowed length
+            while len(json.dumps(labels)) > MAX_AI_LABELS_JSON_LENGTH:
+                labels.pop()
+
+            labels.sort()
+
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.label.{idx}"] = label
+            event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
 

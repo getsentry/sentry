@@ -238,8 +238,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_get_expired_query(self) -> None:
         query = {
-            "start": before_now(days=90),
-            "end": before_now(days=61),
+            "start": before_now(days=90).isoformat(),
+            "end": before_now(days=61).isoformat(),
         }
         DiscoverSavedQuery.objects.create(
             organization=self.org,

@@ -110,6 +110,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def datetime(self) -> datetime:
+        # If we have millisecond precision timestamps, use them
+        column = self._get_column_name(Columns.TIMESTAMP_MS)
+        if column in self._snuba_data and self._snuba_data[column]:
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
+
+        # Otherwise, use the second precision timestamp
         column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
@@ -596,7 +602,7 @@ class Event(BaseEvent):
         state.pop("_groups_cache", None)
         return state
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
             id(self), self.event_id
         )

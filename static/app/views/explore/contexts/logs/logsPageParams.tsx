@@ -90,16 +90,25 @@ interface LogsPageParams {
   readonly groupBy?: string;
 
   /**
-   * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page
+   * The id of the query, if a saved query.
    */
-  readonly limitToTraceId?: string;
+  readonly id?: string;
+  /**
+   * If provided, add a 'trace:{trace id}' to all queries.
+   * Used in embedded views like error page and trace page.
+   * Can be an array of trace IDs on some pages (eg. replays)
+   */
+  readonly limitToTraceId?: string | string[];
 
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
   readonly projectIds?: number[];
+  /**
+   * The title of the query, if a saved query.
+   */
+  readonly title?: string;
 }
 
 type NullablePartial<T> = {
@@ -122,7 +131,7 @@ interface LogsPageParamsProviderProps {
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
-  limitToTraceId?: string;
+  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
@@ -143,14 +152,22 @@ export function LogsPageParamsProvider({
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
-  if (limitToSpanId && limitToTraceId) {
+
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
+
+  if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
-    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-  } else if (limitToTraceId) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    const traceIdValue = `[${traceIds.join(',')}]`;
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+    if (limitToSpanId) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+    }
   }
+
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -200,7 +217,7 @@ export function LogsPageParamsProvider({
         baseSearch,
         projectIds,
         analyticsPageSource,
-        limitToTraceId,
+        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,
@@ -215,7 +232,7 @@ export function LogsPageParamsProvider({
   );
 }
 
-const useLogsPageParams = _useLogsPageParams;
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
@@ -432,6 +449,16 @@ export function useSetLogsFields() {
   );
 }
 
+export function useSetLogsSavedQueryInfo() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (id: string, title: string) => {
+      setPageParams({id, title});
+    },
+    [setPageParams]
+  );
+}
+
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.
@@ -470,21 +497,6 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
-}
-
-export function useLogsMode() {
-  const {mode} = useLogsPageParams();
-  return mode;
-}
-
-export function useSetLogsMode() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (mode: Mode) => {
-      setPageParams({mode});
-    },
-    [setPageParams]
-  );
 }
 
 function getLogCursorFromLocation(location: Location): string {

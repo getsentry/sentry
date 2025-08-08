@@ -15,6 +15,11 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
+  'trace.explorer.ai_query_feedback': {
+    correct_query_results: 'yes' | 'no';
+    natural_language_query: string;
+    query: string;
+  };
   'trace.explorer.ai_query_interface': {
     action: 'opened' | 'closed' | 'consent_accepted';
   };
@@ -64,7 +69,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.metadata': {
+    eap_spans_count: number;
     has_exceeded_performance_usage_limit: boolean | null;
+    issues_count: number;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
@@ -92,6 +99,10 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_details.eap_span_has_details': {
+    has_logs_details: boolean;
+    has_profile_details: boolean;
   };
   'trace.trace_drawer_explore_search': {
     key: string;
@@ -205,6 +216,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
+  'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
@@ -214,6 +226,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

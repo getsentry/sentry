@@ -421,6 +421,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
+    "sentry.lang.dart.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -1523,6 +1524,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     # Used for tests
@@ -2666,6 +2668,9 @@ SENTRY_USE_UPTIME = False
 # This flag activates the taskbroker in devservices
 SENTRY_USE_TASKBROKER = False
 
+# This flag activates the objectstore in devservices
+SENTRY_USE_OBJECTSTORE = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2916,6 +2921,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "objectstore": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/objectstore:latest",
+            "ports": {"8888/tcp": 8888},
+            "environment": {},
+            "only_if": settings.SENTRY_USE_OBJECTSTORE,
         }
     ),
 }

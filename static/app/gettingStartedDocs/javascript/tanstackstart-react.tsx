@@ -80,7 +80,7 @@ const config = defineConfig({
 
 export default wrapVinxiConfigWithSentry(config, {
   org: "${params.organization.slug}",
-  project: "${params.projectSlug}",
+  project: "${params.project.slug}",
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
   // Only print logs for uploading source maps in CI
