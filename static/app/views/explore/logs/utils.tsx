@@ -399,7 +399,7 @@ export function getLogsUrl({
   );
 }
 
-function makeLogsPathname({
+export function makeLogsPathname({
   organization,
   path,
 }: {
@@ -409,10 +409,13 @@ function makeLogsPathname({
   return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
 }
 
-export function getLogsUrlFromSavedQueryUrl(
-  savedQuery: SavedQuery,
-  organization: Organization
-) {
+export function getLogsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
   const firstQuery = savedQuery.query[0];
   const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
   const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
