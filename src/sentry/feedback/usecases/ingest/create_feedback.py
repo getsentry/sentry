@@ -298,10 +298,12 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam
     )
     issue_fingerprint = [uuid4().hex]
+
     ai_title = None
-    if should_get_ai_title(project.organization):
+    if not is_message_spam and should_get_ai_title(project.organization):
         ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
     formatted_title = format_feedback_title(ai_title or feedback_message)
+
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
