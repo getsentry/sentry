@@ -732,9 +732,7 @@ def post_org_pending_deletion(
                     slug=updated_organization.slug,
                     user_id=request.user.id if request.user.is_authenticated else None,
                     deletion_request_datetime=entry.datetime.isoformat(),
-                    deletion_datetime=(
-                        django_timezone.now() + timedelta(seconds=ONE_DAY)
-                    ).isoformat(),
+                    deletion_datetime=(entry.datetime + timedelta(seconds=ONE_DAY)).isoformat(),
                 )
             )
         except Exception as e:
