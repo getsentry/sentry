@@ -4,6 +4,7 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   isGroupBy,
@@ -17,13 +18,72 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+interface SaveQueryParams {
+  aggregateFields: any[];
+  fields: string[];
+  mode: any;
+  query: string;
+  sortBys: any[];
+  aggregateFn?: string;
+  aggregateParam?: string;
+  groupBy?: string;
+  id?: string;
+  title?: string;
+}
+
+function getPageParamsForDataset(
+  dataset: TraceItemDataset,
+  explorePageParams: any,
+  logsPageParams: any
+): SaveQueryParams {
+  if (dataset === TraceItemDataset.LOGS) {
+    return {
+      aggregateFields:
+        logsPageParams.groupBy || logsPageParams.aggregateFn
+          ? [
+              ...(logsPageParams.groupBy ? [{groupBy: logsPageParams.groupBy}] : []),
+              ...(logsPageParams.aggregateFn && logsPageParams.aggregateParam
+                ? [
+                    {
+                      yAxis: `${logsPageParams.aggregateFn}(${logsPageParams.aggregateParam})`,
+                    },
+                  ]
+                : []),
+            ]
+          : [],
+      fields: logsPageParams.fields,
+      sortBys: logsPageParams.sortBys,
+      query: logsPageParams.search?.formatString() ?? '',
+      mode: logsPageParams.mode,
+      id: logsPageParams.id,
+      title: logsPageParams.title,
+      groupBy: logsPageParams.groupBy,
+      aggregateFn: logsPageParams.aggregateFn,
+      aggregateParam: logsPageParams.aggregateParam,
+    };
+  }
+
+  return {
+    aggregateFields: explorePageParams.aggregateFields,
+    fields: explorePageParams.fields,
+    sortBys: explorePageParams.sortBys,
+    query: explorePageParams.query,
+    mode: explorePageParams.mode,
+    id: explorePageParams.id,
+    title: explorePageParams.title,
+  };
+}
+
 export function useSaveQuery(dataset: TraceItemDataset) {
-  const {aggregateFields, sortBys, fields, query, mode, id, title} =
-    useExplorePageParams();
+  const explorePageParams = useExplorePageParams();
+  const logsPageParams = useLogsPageParams();
   const {selection} = usePageFilters();
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
   const [interval] = useChartInterval();
+
+  const {aggregateFields, sortBys, fields, query, mode, id, title} =
+    getPageParamsForDataset(dataset, explorePageParams, logsPageParams);
 
   const api = useApi();
   const organization = useOrganization();
