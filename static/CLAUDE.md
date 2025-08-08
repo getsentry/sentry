@@ -67,10 +67,11 @@ pnpm run fix
 
 ### React Component Pattern
 
-```typescript
+```tsx
 // static/app/components/myComponent.tsx
 import {useState} from 'react';
 import styled from '@emotion/styled';
+
 import {space} from 'sentry/styles/space';
 
 interface MyComponentProps {
@@ -154,9 +155,13 @@ const data = await api.requestPromise('/organizations/');
 
 ### Frontend
 
-```typescript
+```tsx
+// NO!
+
+import {Client} from 'sentry/api';
+
 // WRONG: Class component
-class MyComponent extends React.Component  // NO!
+class MyComponent extends React.Component {} // NO!
 
 // RIGHT: Function component
 function MyComponent() {}
