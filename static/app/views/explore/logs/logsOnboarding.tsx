@@ -222,7 +222,7 @@ const STEP_TITLES: Record<StepType, string> = {
   [StepType.VERIFY]: t('Verify Sentry'),
 };
 
-export function Onboarding({organization, project}: OnboardingProps) {
+function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
@@ -348,8 +348,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: true,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
