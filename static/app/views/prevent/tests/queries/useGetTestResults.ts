@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
 import {ALL_BRANCHES} from 'sentry/components/prevent/branchSelector/branchSelector';
-import {useCodecovContext} from 'sentry/components/prevent/context/preventContext';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {
   fetchDataQuery,
   type InfiniteData,
@@ -71,7 +71,7 @@ export function useInfiniteTestResults({
   cursor?: string | null;
   navigation?: 'next' | 'prev';
 }) {
-  const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
+  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
@@ -102,7 +102,7 @@ export function useInfiniteTestResults({
       {
         query: {
           branch: filterBranch,
-          codecovPeriod,
+          preventPeriod,
           signedSortBy,
           mappedFilterBy,
           term,
@@ -125,7 +125,7 @@ export function useInfiniteTestResults({
             query: {
               interval:
                 DATE_TO_QUERY_INTERVAL[
-                  codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
+                  preventPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
                 ],
               sortBy: signedSortBy,
               term,
@@ -153,7 +153,7 @@ export function useInfiniteTestResults({
         : undefined;
     },
     initialPageParam: null,
-    enabled: !!(integratedOrgId && repository && branch && codecovPeriod),
+    enabled: !!(integratedOrgId && repository && branch && preventPeriod),
   });
 
   const memoizedData = useMemo(
