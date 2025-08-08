@@ -34,7 +34,7 @@ logger = logging.getLogger()
 
 
 @instrumented_task(
-    name="sentry.replays.tasks.delete_recording_segments",
+    name="sentry.replays.tasks.delete_replay",
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
@@ -47,36 +47,17 @@ logger = logging.getLogger()
         ),
     ),
 )
-def delete_recording_segments(
+def delete_replay(
     project_id: int, replay_id: str, has_seer_data: bool = False, **kwargs: Any
 ) -> None:
     """Asynchronously delete a replay."""
-    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
     if has_seer_data:
         delete_seer_replay_data(project_id, [replay_id])
-    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
-
-
-@instrumented_task(
-    name="sentry.replays.tasks.delete_replay_recording_async",
-    queue="replays.delete_replay",
-    default_retry_delay=5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        processing_deadline_duration=120,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
-)
-def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
-    delete_replay_recording(project_id, replay_id)
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
 
 
 @instrumented_task(
@@ -123,6 +104,25 @@ def delete_replays_script_async(
     ).all()
     for segment_model in segments_from_django_models:
         segment_model.delete()
+
+
+@instrumented_task(
+    name="sentry.replays.tasks.delete_replay_recording_async",
+    queue="replays.delete_replay",
+    default_retry_delay=5,
+    max_retries=5,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks,
+        processing_deadline_duration=120,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
+)
+def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
+    delete_replay_recording(project_id, replay_id)
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
