@@ -262,27 +262,17 @@ class Strategy(Generic[ConcreteInterface]):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(
-        self, event: Event, context: GroupingContext
-    ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
-        """Create a grouping component using this strategy."""
-        interface = event.interfaces.get(self.interface_name)
-
-        if interface is None:
-            return None
-
-        with context:
-            return self(interface, event=event, context=context)
-
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
         """
-        components_by_variant = self.get_grouping_component(event, context)
-        if components_by_variant is None:
+        interface = event.interfaces.get(self.interface_name)
+
+        if interface is None:
             return {}
 
-        assert isinstance(components_by_variant, dict)
+        with context:
+            components_by_variant = self(interface, event=event, context=context)
 
         final_components_by_variant = {}
         priority_contributing_variants_by_hash = {}

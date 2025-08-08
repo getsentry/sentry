@@ -18,6 +18,7 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
+from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
@@ -329,9 +330,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def get_grouping_config(self) -> GroupingConfig:
         """Returns the event grouping config."""
-        from sentry.grouping.api import get_grouping_config_dict_for_event_data
 
-        return get_grouping_config_dict_for_event_data(self.data, self.project)
+        return self.data.get("grouping_config") or get_grouping_config_dict_for_project(
+            self.project
+        )
 
     def get_hashes_and_variants(
         self, config: StrategyConfiguration | None = None
