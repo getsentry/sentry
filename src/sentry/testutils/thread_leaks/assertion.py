@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from threading import Thread
 from traceback import StackSummary
 from typing import Any
+from unittest import mock
 
 from . import sentry
 from .diff import diff
@@ -40,8 +41,6 @@ def threading_remembers_where():
     def patched__init__(self: Thread, *a: Any, **k: Any) -> None:
         setattr(self, "_where", _where())
         __init__(self, *a, **k)
-
-    from unittest import mock
 
     with mock.patch.object(Thread, "__init__", patched__init__):
         yield
