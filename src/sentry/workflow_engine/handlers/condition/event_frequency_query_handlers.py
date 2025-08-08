@@ -101,8 +101,9 @@ class BaseEventFrequencyQueryHandler(ABC):
         referrer_suffix: str,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
     ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
+        kwargs = dict(
             model=model,
             keys=keys,
             start=start,
@@ -115,6 +116,16 @@ class BaseEventFrequencyQueryHandler(ABC):
             conditions=conditions,
             group_on_time=group_on_time,
         )
+        if project_ids:
+            try:
+                result: Mapping[int, int] = tsdb_function(project_ids=project_ids, **kwargs)
+            except TypeError as e:
+                if "project_ids" in str(e):
+                    result = tsdb_function(**kwargs)
+                else:
+                    raise
+        else:
+            result = tsdb_function(**kwargs)
         return result
 
     def get_chunked_result(
@@ -129,6 +140,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         referrer_suffix: str,
         filters: list[QueryFilter] | None = None,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -146,6 +158,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 referrer_suffix=referrer_suffix,
                 conditions=conditions,
                 group_on_time=group_on_time,
+                project_ids=project_ids,
             )
             batch_totals.update(result)
         return batch_totals
@@ -332,6 +345,8 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         batch_sums: QueryResult = defaultdict(int)
         category_group_ids = self.get_group_ids_by_category(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
+        # Build project_ids list from incoming groups
+        project_ids = list({g["project_id"] for g in groups}) if groups else []
 
         if not organization_id:
             return batch_sums
@@ -350,6 +365,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     referrer_suffix="wf_batch_alert_event_frequency",
                     filters=filters,
                     group_on_time=False,
+                    project_ids=project_ids,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
