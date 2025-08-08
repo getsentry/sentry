@@ -225,12 +225,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         return;
       }
 
-      trackAnalytics('trace.explorer.ai_query_applied', {
-        organization,
-        query: searchQuery.trim(),
-        group_by_count: item.groupBys.length,
-        visualize_count: item.visualizations.length,
-      });
       askSeerNLQueryRef.current = searchQuery.trim();
       applySeerSearchQuery(item);
       setDisplayAskSeerFeedback(true);
@@ -351,12 +345,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 return;
               }
 
-              trackAnalytics('trace.explorer.ai_query_applied', {
-                organization,
-                query: searchQuery.trim(),
-                group_by_count: item.groupBys.length,
-                visualize_count: item.visualizations.length,
-              });
               askSeerNLQueryRef.current = searchQuery.trim();
               applySeerSearchQuery(item);
               setDisplayAskSeerFeedback(true);

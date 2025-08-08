@@ -3,6 +3,7 @@ import {useCallback, useState} from 'react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -176,6 +177,12 @@ export const useApplySeerSearchQuery = () => {
         groupBy: groupBys,
         sort,
         mode,
+      });
+      trackAnalytics('trace.explorer.ai_query_applied', {
+        organization,
+        query,
+        group_by_count: groupBys.length,
+        visualize_count: visualizations.length,
       });
       navigate(url, {replace: true, preventScrollReset: true});
     },
