@@ -12,14 +12,13 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
-from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
-from sentry.workflow_engine.models import Detector
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -404,11 +403,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
-        assert Detector.objects.filter(
-            datasource__type=DATA_SOURCE_CRON_MONITOR,
-            datasource__source_id=str(monitor.id),
-        ).exists()
-
+        assert get_detector_for_monitor(monitor) is not None
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
