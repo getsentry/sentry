@@ -981,21 +981,16 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
     def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service) -> None:
         """
         Test the _get_profile_from_trace_tree method which finds a transaction
-        that contains the event's span_id or has a matching span_id.
+        that matches the event's transaction name and has a profile.
         """
-        # Setup mock event with span_id
+        # Setup mock event with transaction name
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
-        event.data = {
-            "contexts": {
-                "trace": {
-                    "span_id": "event-span-id",
-                }
-            }
-        }
+        event.transaction = "/api/users"
+        event.data = {"transaction": "/api/users"}
 
-        # Create a mock trace tree with a transaction that includes the event span_id in its span_ids
+        # Create a mock trace tree with a transaction that matches the event's transaction name
         profile_id = "profile123456789"
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
@@ -1005,8 +1000,8 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "span_id": "root-span-id",
                     "is_transaction": True,
                     "is_error": False,
+                    "transaction": "/api/users",
                     "profile_id": profile_id,
-                    "span_ids": ["some-span", "event-span-id", "another-span"],
                     "children": [
                         {
                             "event_id": "error-event-id",
@@ -1060,35 +1055,31 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_matching_span_id(
+    def test_get_profile_from_trace_tree_matching_transaction_name(
         self, mock_get_from_profiling_service
     ) -> None:
         """
-        Test _get_profile_from_trace_tree with a transaction whose own span_id
-        matches the event's span_id.
+        Test _get_profile_from_trace_tree with a transaction whose name
+        matches the event's transaction name.
         """
-        # Setup mock event with span_id
+        # Setup mock event with transaction name
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
-        event.data = {
-            "contexts": {
-                "trace": {
-                    "span_id": "tx-span-id",
-                }
-            }
-        }
+        event.transaction = "/api/orders"
+        event.data = {"transaction": "/api/orders"}
 
-        # Create a mock trace tree with a transaction whose span_id matches event span_id
+        # Create a mock trace tree with a transaction whose name matches event transaction name
         profile_id = "profile123456789"
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
             "events": [
                 {
                     "event_id": "tx-id",
-                    "span_id": "tx-span-id",  # This matches the event's span_id
+                    "span_id": "tx-span-id",
                     "is_transaction": True,
                     "is_error": False,
+                    "transaction": "/api/orders",  # This matches the event's transaction name
                     "profile_id": profile_id,
                     "children": [
                         {
@@ -1149,11 +1140,13 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         End-to-end: build a trace tree from span query results where the transaction has only
         profiler.id (continuous profile). Then verify we fetch a continuous profile and return an execution tree.
         """
-        # Base error event whose span_id should be found within the transaction's spans
+        # Base error event whose transaction name should match the transaction in the trace
         trace_id = "1234567890abcdef1234567890abcdef"
         error_span_id = "bbbbbbbbbbbbbbbb"  # 16-hex span id
         tx_span_id = "aaaaaaaaaaaaaaaa"  # 16-hex transaction span id
         data = load_data("python")
+        # Set transaction to match what we'll have in the trace tree
+        data["transaction"] = "/api/test"
         data.update({"contexts": {"trace": {"trace_id": trace_id, "span_id": error_span_id}}})
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -1172,7 +1165,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "precise.start_ts": tx_start,
                     "precise.finish_ts": tx_end,
                     "is_transaction": True,
-                    "transaction": "Root",
+                    "transaction": "/api/test",
                     "project.id": self.project.id,
                     "platform": "python",
                     "profile.id": None,
@@ -1267,19 +1260,14 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         """
         Test the behavior when the profiling service API returns an error.
         """
-        # Setup mock event with span_id
+        # Setup mock event with transaction name
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
-        event.data = {
-            "contexts": {
-                "trace": {
-                    "span_id": "event-span-id",
-                }
-            }
-        }
+        event.transaction = "/api/test"
+        event.data = {"transaction": "/api/test"}
 
-        # Create a mock trace tree with a transaction that includes the event span_id
+        # Create a mock trace tree with a transaction that matches the event transaction name
         profile_id = "profile123456789"
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
@@ -1289,8 +1277,8 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "span_id": "root-span-id",
                     "is_transaction": True,
                     "is_error": False,
+                    "transaction": "/api/test",
                     "profile_id": profile_id,
-                    "span_ids": ["event-span-id"],
                     "children": [
                         {
                             "event_id": "error-event-id",
@@ -1327,19 +1315,14 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         """
         Test that the function returns None when no matching transaction is found.
         """
-        # Setup mock event with span_id
+        # Setup mock event with transaction name
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
-        event.data = {
-            "contexts": {
-                "trace": {
-                    "span_id": "event-span-id",
-                }
-            }
-        }
+        event.transaction = "/api/different"
+        event.data = {"transaction": "/api/different"}
 
-        # Create a mock trace tree with a transaction that DOESN'T include the event span_id
+        # Create a mock trace tree with a transaction that DOESN'T match the event transaction name
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
             "events": [
@@ -1348,8 +1331,8 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "span_id": "root-span-id",
                     "is_transaction": True,
                     "is_error": False,
+                    "transaction": "/api/other",  # Doesn't match event's transaction name
                     "profile_id": "profile123456789",
-                    "span_ids": ["different-span-id"],  # Doesn't include event's span_id
                     "children": [
                         {
                             "event_id": "error-event-id",
@@ -1371,15 +1354,18 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         mock_get_from_profiling_service.assert_not_called()
 
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service) -> None:
+    def test_get_profile_from_trace_tree_no_transaction_name(
+        self, mock_get_from_profiling_service
+    ) -> None:
         """
-        Test the behavior when the event doesn't have a span_id.
+        Test the behavior when the event doesn't have a transaction name.
         """
-        # Setup mock event WITHOUT span_id
+        # Setup mock event WITHOUT transaction name
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
-        event.data = {"contexts": {"trace": {}}}  # No span_id
+        event.transaction = None
+        event.data = {}  # No transaction
 
         # Create a mock trace tree
         trace_tree = {
@@ -1390,6 +1376,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "span_id": "tx-span-id",
                     "is_transaction": True,
                     "is_error": False,
+                    "transaction": "/api/test",
                     "profile_id": "profile123456789",
                     "children": [],
                 }
@@ -1400,7 +1387,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
 
         assert profile_result is None
-        # API should not be called if event has no span_id
+        # API should not be called if event has no transaction name
         mock_get_from_profiling_service.assert_not_called()
 
 
