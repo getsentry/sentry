@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
+import preventPrComments from 'sentry-images/features/prevent-pr-comment.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -97,9 +97,7 @@ export default function PreventAIOnboarding() {
                 'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
                 {
                   organizationSettingsLink: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/security-and-privacy`}
-                    />
+                    <ExternalLink href={`/settings/${organization.slug}`} />
                   ),
                 }
               )}
