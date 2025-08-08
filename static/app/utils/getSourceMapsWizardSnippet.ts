@@ -6,8 +6,8 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 export function getSourceMapsWizardSnippet({
   isSelfHosted,
   organization,
-  projectSlug,
-}: Partial<Pick<DocsParams, 'isSelfHosted' | 'organization' | 'projectSlug'>>) {
+  project,
+}: Partial<Pick<DocsParams, 'isSelfHosted' | 'organization' | 'project'>>) {
   let command = 'npx @sentry/wizard@latest -i sourcemaps';
 
   if (!isSelfHosted) {
@@ -18,8 +18,8 @@ export function getSourceMapsWizardSnippet({
     command += ` --org ${organization.slug}`;
   }
 
-  if (projectSlug) {
-    command += ` --project ${projectSlug}`;
+  if (project?.slug) {
+    command += ` --project ${project.slug}`;
   }
 
   return command;

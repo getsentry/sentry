@@ -263,8 +263,7 @@ function SidebarContent() {
             activeProductSelection={PROFILING_ONBOARDING_STEPS}
             organization={organization}
             platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
+            project={currentProject}
           />
         ) : null}
       </Content>
@@ -276,8 +275,7 @@ interface ProfilingOnboardingContentProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
@@ -286,7 +284,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
-    projSlug: props.projectSlug,
+    projSlug: props.project.slug,
     platform: props.platform,
   });
 
@@ -347,8 +345,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,
-    projectId: props.projectId,
-    projectSlug: props.projectSlug,
+    project: props.project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,

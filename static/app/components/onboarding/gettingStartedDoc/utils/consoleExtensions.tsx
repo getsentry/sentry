@@ -71,8 +71,8 @@ function ConsolePlatformsContent(params: DocsParams) {
                 onClick={() => {
                   openPrivateGamingSdkAccessModal({
                     organization: params.organization,
-                    projectSlug: params.projectSlug,
-                    projectId: params.projectId,
+                    projectSlug: params.project.slug,
+                    projectId: params.project.id,
                     sdkName: consoleData.displayName,
                     gamingPlatform: consolePlatform,
                   });
