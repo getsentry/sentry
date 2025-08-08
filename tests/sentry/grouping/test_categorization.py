@@ -46,11 +46,11 @@ else like actual grouping happens elsewhere like test_variants.py.
 
 from __future__ import annotations
 
-import contextlib
 import json  # NOQA
 import os
 import uuid
 from collections.abc import Callable, Generator
+from contextlib import _GeneratorContextManager, contextmanager
 from typing import Any
 
 import pytest
@@ -133,7 +133,7 @@ INPUTS = [
 def test_categorization(
     input: CategorizationInput,
     insta_snapshot: InstaSnapshotter,
-    track_enhancers_coverage: Callable[[CategorizationInput], Any],
+    track_enhancers_coverage: Callable[[CategorizationInput], _GeneratorContextManager[None]],
 ) -> None:
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
@@ -146,13 +146,11 @@ def test_categorization(
 
 @pytest.fixture(scope="session", autouse=True)
 def track_enhancers_coverage() -> (
-    Generator[
-        Callable[[CategorizationInput], contextlib._GeneratorContextManager[None, None, None]]
-    ]
+    Generator[Callable[[CategorizationInput], _GeneratorContextManager[None]]]
 ):
     ran_tests = {}
 
-    @contextlib.contextmanager
+    @contextmanager
     def inner(input: CategorizationInput) -> Generator[None]:
         ran_tests[input.filename] = True
         yield
