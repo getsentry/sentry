@@ -14,8 +14,7 @@ type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
   configType?: ConfigType;
   newOrg?: boolean;
 };
@@ -23,16 +22,15 @@ type SdkDocumentationProps = {
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({
   platform,
-  projectSlug,
+  project,
   activeProductSelection,
   newOrg,
-  projectId,
   configType,
   organization,
 }: SdkDocumentationProps) {
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
-    projSlug: projectSlug,
+    projSlug: project.slug,
     platform,
   });
 
@@ -89,8 +87,7 @@ export function SdkDocumentation({
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}
-      projectId={projectId}
-      projectSlug={projectSlug}
+      project={project}
       configType={configType}
       projectKeyId={projectKeyId}
     />

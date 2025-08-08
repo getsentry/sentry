@@ -33,9 +33,9 @@ import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+const getInstallSnippet = ({isSelfHosted, organization, project}: Params) => {
   const urlParam = isSelfHosted ? '' : '--saas';
-  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 };
 
 const getInstallConfig = (params: Params) => {

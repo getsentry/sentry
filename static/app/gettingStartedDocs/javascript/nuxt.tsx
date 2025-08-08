@@ -43,7 +43,7 @@ const getInstallContent = (params: Params): ContentBlock[] => [
   {
     type: 'code',
     language: 'bash',
-    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
+    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.project.slug}`,
   },
 ];
 
