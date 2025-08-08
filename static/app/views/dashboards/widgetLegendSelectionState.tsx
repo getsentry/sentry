@@ -19,7 +19,7 @@ type LegendSelection = Record<string, boolean>;
 const SERIES_LIST_DELIMITER = ',';
 const WIDGET_ID_DELIMITER = ':';
 
-const SERIES_NAME_DELIMITER = ';';
+const SERIES_NAME_DELIMITER = '|~|';
 
 class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
@@ -177,7 +177,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series, true)
           )
         )
         .join(SERIES_LIST_DELIMITER)
