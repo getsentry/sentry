@@ -29,11 +29,13 @@ import {
   updateLocationWithAggregateSortBys,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
+import type {AggregateField} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
   getModeFromLocation,
   type Mode,
   updateLocationWithMode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const LOGS_PARAMS_VERSION = 2;
@@ -529,4 +531,26 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
+}
+
+/**
+ * Converts logs page parameters to AggregateField types compatible with explore page params
+ */
+export function logsPageParamsToAggregateFields(
+  groupBy?: string,
+  aggregateFn?: string,
+  aggregateParam?: string
+): AggregateField[] {
+  const fields: AggregateField[] = [];
+
+  if (groupBy) {
+    fields.push({groupBy});
+  }
+
+  if (aggregateFn && aggregateParam) {
+    const yAxis = `${aggregateFn}(${aggregateParam})`;
+    fields.push(new Visualize(yAxis));
+  }
+
+  return fields;
 }
