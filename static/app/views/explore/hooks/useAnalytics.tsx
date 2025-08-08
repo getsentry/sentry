@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -7,6 +8,7 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
@@ -416,9 +418,15 @@ export function useLogAnalytics({
   const tableError = logsTableResult.error?.message ?? '';
   const query_status = tableError ? 'error' : 'success';
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const previousAutorefreshEnabled = usePrevious(autorefreshEnabled);
 
   useEffect(() => {
-    if (logsTableResult.isPending || isLoadingSubscriptionDetails || autorefreshEnabled) {
+    if (
+      logsTableResult.isPending ||
+      isLoadingSubscriptionDetails ||
+      autorefreshEnabled ||
+      !isEqual(previousAutorefreshEnabled, autorefreshEnabled)
+    ) {
       // Auto-refresh causes constant metadata events, so we don't want to track them.
       return;
     }
@@ -465,6 +473,7 @@ export function useLogAnalytics({
     logsTableResult.isPending,
     logsTableResult.data?.length,
     search,
+    previousAutorefreshEnabled,
     autorefreshEnabled,
   ]);
 }
