@@ -3,25 +3,18 @@ import {Button} from 'sentry/components/core/button';
 import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useProjects from 'sentry/utils/useProjects';
 
 interface RequestSdkAccessButtonProps {
   organization: Organization;
-  projectSlug: string;
+  project: Project;
 }
 
 export function RequestSdkAccessButton({
   organization,
-  projectSlug,
+  project,
 }: RequestSdkAccessButtonProps) {
-  const {projects} = useProjects({slugs: [projectSlug]});
-  const project = projects[0];
-
-  if (!project) {
-    return null;
-  }
-
   return (
     <Button
       priority="default"

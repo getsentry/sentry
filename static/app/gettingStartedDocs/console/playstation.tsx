@@ -21,6 +21,7 @@ import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
+import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 type Params = DocsParams;
@@ -77,7 +78,7 @@ const onboardingRetail: OnboardingConfig = {
         },
         {
           type: 'custom',
-          content: <AddCredentialsButton projectSlug={params.projectSlug} />,
+          content: <AddCredentialsButton projectSlug={params.project.slug} />,
         },
         {
           type: 'text',
@@ -86,7 +87,7 @@ const onboardingRetail: OnboardingConfig = {
             {
               projectSettingsLink: (
                 <ExternalLink
-                  href={`/settings/projects/${params.projectSlug}/playstation/`}
+                  href={`/settings/projects/${params.project.slug}/playstation/`}
                   openInNewTab
                 />
               ),
@@ -289,7 +290,7 @@ const onboarding: OnboardingConfig = {
           content: (
             <RequestSdkAccessButton
               organization={params.organization}
-              projectSlug={params.projectSlug}
+              project={params.project}
             />
           ),
         },
