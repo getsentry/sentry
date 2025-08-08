@@ -589,7 +589,7 @@ describe('OnDemandBudgets', () => {
     ).toBeInTheDocument();
   });
 
-  it('always displays Seer warning alert in per-category section', () => {
+  it('displays original Seer warning copy by default in per-category section', () => {
     organization.features = ['seer-billing'];
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
@@ -640,6 +640,62 @@ describe('OnDemandBudgets', () => {
 
     expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
     expect(screen.getByTestId('shared-budget-radio')).not.toBeChecked();
+
+    expect(
+      screen.getByText(
+        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays new Seer warning copy when logs-billing is enabled', () => {
+    organization.features = ['seer-billing', 'logs-billing'];
+    const subscription = SubscriptionFixture({
+      plan: 'am1_business',
+      planTier: PlanTier.AM1,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am1_business')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        budgets: {
+          errors: 1000,
+          transactions: 2000,
+          attachments: 3000,
+          monitorSeats: 4000,
+        },
+        usedSpends: {},
+      },
+    });
+
+    const activePlan = subscription.planDetails;
+
+    const onDemandBudget = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
+      budgets: {
+        errors: 1000,
+        transactions: 2000,
+        attachments: 3000,
+        monitorSeats: 4000,
+      },
+    };
+
+    render(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
+    expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
 
     expect(
       screen.getByText(
