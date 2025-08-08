@@ -3,25 +3,18 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 interface AddCredentialsButtonProps {
-  projectSlug: string;
+  project: Project;
 }
 
-export function AddCredentialsButton({projectSlug}: AddCredentialsButtonProps) {
+export function AddCredentialsButton({project}: AddCredentialsButtonProps) {
   const organization = useOrganization();
   const hasWriteAccess = useHasTempestWriteAccess();
-
-  const {projects} = useProjects({slugs: [projectSlug]});
-  const project = projects[0];
-
-  if (!project) {
-    return null;
-  }
 
   return (
     <Tooltip
