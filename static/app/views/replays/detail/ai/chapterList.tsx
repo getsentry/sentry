@@ -47,7 +47,7 @@ export function ChapterList({timeRanges}: Props) {
           feedback,
           breadcrumbs:
             replay
-              ?.getChapterFrames()
+              ?.getSummaryChapterFrames()
               .filter(
                 breadcrumb =>
                   breadcrumb.timestampMs >= period_start &&
