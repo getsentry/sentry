@@ -305,13 +305,19 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that have logging onboarding checklist content
-export const withLoggingOnboarding: Set<PlatformKey> = new Set([
-  'javascript',
-  'javascript-react',
-]);
+export const withLoggingOnboarding: Set<PlatformKey> = new Set([]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set([]);
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
+]);
 
 export const profiling: PlatformKey[] = [
   'android',
