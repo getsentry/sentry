@@ -11,7 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -644,5 +644,15 @@ export const removeHiddenKeys = (
       result[key] = tagCollection[key];
     }
   }
+  return result;
+};
+
+export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
+  const result: Tag[] = [];
+  tagCollection.forEach(tag => {
+    if (keys.includes(tag.key) && tag.name) {
+      result.push(tag);
+    }
+  });
   return result;
 };
