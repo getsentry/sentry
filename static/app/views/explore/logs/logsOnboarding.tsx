@@ -184,19 +184,15 @@ function OnboardingPanel({
                 <Title>{t('Your Source for Log-ical Data')}</Title>
                 <SubTitle>
                   {t(
-                    'Query logs on the fly and see fine-grained logs alongside traces and errors — all in Sentry.'
+                    "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
                   )}
                 </SubTitle>
                 <BulletList>
+                  <li>{t('Access logs in real time and query them by any attribute')}</li>
                   <li>
-                    {t('Access detailed logs in real time to see what your app is doing')}
+                    {t('Correlate your logs with errors and traces for full context')}
                   </li>
-                  <li>
-                    {t(
-                      "Query logs on the fly with your own filters or Sentry's built-in filters"
-                    )}
-                  </li>
-                  <li>{t('Correlate logs with traces and errors for full context')}</li>
+                  <li>{t('Build alerts and dashboard widgets based on log queries')}</li>
                 </BulletList>
               </HeaderText>
               <Image src={connectDotsImg} />
