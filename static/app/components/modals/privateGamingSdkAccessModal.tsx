@@ -95,17 +95,14 @@ export function PrivateGamingSdkAccessModal({
       `GitHub Profile: ${githubProfile}`,
     ].join('\n');
 
-    const source = `${sdkName.toLowerCase()}-sdk-access`;
-
     try {
       await Sentry.sendFeedback(
         {
           message: messageBody,
           name: user.name,
           email: user.email,
-          source,
           tags: {
-            feature: source,
+            feature: 'console-sdk-access',
           },
         },
         {
