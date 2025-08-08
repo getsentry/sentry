@@ -372,6 +372,7 @@ const Metadata = styled('div')`
   margin-left: ${space(4)};
   margin-right: 100px;
   align-self: flex-start;
+  flex-shrink: 0;
 `;
 
 const AuthorInfo = styled('div')`
