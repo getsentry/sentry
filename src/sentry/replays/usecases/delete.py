@@ -198,6 +198,7 @@ def fetch_rows_matching_pattern(
 def make_seer_request(
     url: str,
     data: dict[str, Any],
+    timeout: int | tuple[int, int] | None = None,
 ) -> tuple[requests.Response | None, int]:
     """
     Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
@@ -214,7 +215,7 @@ def make_seer_request(
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(str_data.encode()),
             },
-            timeout=settings.SEER_DEFAULT_TIMEOUT or 5,
+            timeout=timeout or settings.SEER_DEFAULT_TIMEOUT or 5,
         )
         # Don't raise for error status, just return response.
 
