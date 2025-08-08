@@ -55,6 +55,7 @@ class TSDBFunction(Protocol):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
+        project_ids: list[int] | None = None,
     ) -> Mapping[TSDBKey, int]: ...
 
 
@@ -103,7 +104,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         group_on_time: bool = False,
         project_ids: list[int] | None = None,
     ) -> Mapping[int, int]:
-        kwargs = dict(
+        result: Mapping[int, int] = tsdb_function(
             model=model,
             keys=keys,
             start=start,
@@ -115,17 +116,8 @@ class BaseEventFrequencyQueryHandler(ABC):
             referrer_suffix=referrer_suffix,
             conditions=conditions,
             group_on_time=group_on_time,
+            project_ids=project_ids,
         )
-        if project_ids:
-            try:
-                result: Mapping[int, int] = tsdb_function(project_ids=project_ids, **kwargs)
-            except TypeError as e:
-                if "project_ids" in str(e):
-                    result = tsdb_function(**kwargs)
-                else:
-                    raise
-        else:
-            result = tsdb_function(**kwargs)
         return result
 
     def get_chunked_result(
