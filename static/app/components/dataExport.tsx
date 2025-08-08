@@ -128,41 +128,33 @@ function DataExport({
   }, []);
 
   return (
-    <Feature
-      features="organizations:discover-query"
-      hookName="feature-disabled:grid-editable-actions"
-      renderDisabled={props =>
-        typeof props.children === 'function' ? props.children(props) : props.children
-      }
-    >
-      {({hasFeature}) =>
-        inProgress ? (
-          <Button
-            size="sm"
-            priority="default"
-            title={t(
-              "You can get on with your life. We'll email you when your data's ready."
-            )}
-            disabled
-            icon={icon}
-          >
-            {t("We're working on it...")}
-          </Button>
-        ) : (
-          <Button
-            onClick={debounce(handleDataExport, 500)}
-            disabled={Boolean(disabled) || !hasFeature}
-            size="sm"
-            priority="default"
-            title={t(
-              "Put your data to work. Start your export and we'll email you when it's finished."
-            )}
-            icon={icon}
-          >
-            {children ? children : t('Export All to CSV')}
-          </Button>
-        )
-      }
+    <Feature features="organizations:discover-query">
+      {inProgress ? (
+        <Button
+          size="sm"
+          priority="default"
+          title={t(
+            "You can get on with your life. We'll email you when your data's ready."
+          )}
+          disabled
+          icon={icon}
+        >
+          {t("We're working on it...")}
+        </Button>
+      ) : (
+        <Button
+          onClick={debounce(handleDataExport, 500)}
+          disabled={disabled || false}
+          size="sm"
+          priority="default"
+          title={t(
+            "Put your data to work. Start your export and we'll email you when it's finished."
+          )}
+          icon={icon}
+        >
+          {children ? children : t('Export All to CSV')}
+        </Button>
+      )}
     </Feature>
   );
 }
