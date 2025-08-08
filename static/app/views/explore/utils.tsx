@@ -112,7 +112,7 @@ export function getExploreUrl({
   );
 }
 
-export function getExploreUrlFromSavedQueryUrl({
+function getExploreUrlFromSavedQueryUrl({
   savedQuery,
   organization,
 }: {
