@@ -187,13 +187,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         })),
         tableResults[i]?.meta
       ).map((column, index) => {
-        const parsedFunction = parseFunction(column.key);
-        let key = column.key;
-        if (parsedFunction) {
-          key = prettifyParsedFunction(parsedFunction);
-        }
         return {
-          key,
+          key: column.key,
           width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
           type: column.type === 'never' ? null : column.type,
           sortable:
@@ -205,6 +200,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
       const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
+
+      // Inject any prettified function names that aren't currently aliased into the aliases
+      for (const column of columns) {
+        const parsedFunction = parseFunction(column.key);
+        if (!aliases[column.key] && parsedFunction) {
+          aliases[column.key] = prettifyParsedFunction(parsedFunction);
+        }
+      }
 
       return (
         <TableWrapper key={`table:${result.title}`}>
