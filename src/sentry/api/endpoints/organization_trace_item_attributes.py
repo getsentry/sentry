@@ -100,7 +100,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",

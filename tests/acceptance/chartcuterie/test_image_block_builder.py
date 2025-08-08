@@ -57,7 +57,7 @@ class TestSlackImageBlockBuilder(
         return group
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_endpoint_regression(self):
+    def test_image_block_for_endpoint_regression(self) -> None:
         group = self._create_endpoint_regression_issue()
         image_block = ImageBlockBuilder(group=group).build_image_block()
 
@@ -83,7 +83,7 @@ class TestSlackImageBlockBuilder(
             assert image_block["image_url"] == image_url
 
     @with_feature("organizations:performance-use-metrics")
-    def test_image_block_for_function_regression(self):
+    def test_image_block_for_function_regression(self) -> None:
         hour_ago = (before_now(minutes=10) - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0
         )

@@ -49,6 +49,17 @@ def _requires_symbolicator() -> None:
         pytest.fail(service_message)
 
 
+@pytest.fixture(scope="session")
+def _requires_objectstore() -> None:
+    objectstore_conf = settings.SENTRY_DEVSERVICES["objectstore"](settings, {})
+    (port,) = objectstore_conf["ports"].values()
+
+    if not _service_available("127.0.0.1", port):
+        service_message = "requires 'objectstore' server running\n\t💡 Hint: run `devservices up --mode=objectstore`"
+        pytest.skip(service_message)
+
+
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
 requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
 requires_kafka = pytest.mark.usefixtures("_requires_kafka")
+requires_objectstore = pytest.mark.usefixtures("_requires_objectstore")

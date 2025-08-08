@@ -1,18 +1,15 @@
-from functools import wraps
-
-import sentry_sdk
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.taskworker.retry import retry_task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -53,11 +50,11 @@ def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
     group_id: int,
+    workflow_id: int | None = None,
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
     has_reappeared: bool = False,
     has_escalated: bool = False,
-    workflow_env_id: int | None = None,
 ) -> WorkflowEventData:
     """
     Build a WorkflowEventData object from individual parameters.
@@ -74,10 +71,12 @@ def build_workflow_event_data_from_event(
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
-    # Fetch environment if provided
-    workflow_env = None
-    if workflow_env_id:
-        workflow_env = Environment.objects.get(id=workflow_env_id)
+    # Fetch environment from workflow, if provided
+    workflow_env: Environment | None = None
+    if workflow_id:
+        workflow_env = (
+            Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
+        )
 
     return WorkflowEventData(
         event=group_event,
@@ -89,20 +88,15 @@ def build_workflow_event_data_from_event(
     )
 
 
-def retry_timeouts(func):
-    """
-    Schedule a task retry if the function raises ProcessingDeadlineExceeded.
-    This exists because the standard retry decorator doesn't allow BaseExceptions.
+def build_workflow_event_data_from_activity(
+    activity_id: int,
+    group_id: int,
+) -> WorkflowEventData:
 
-    TODO: This should be part of the standard retry config/decorator.
-    """
+    activity = Activity.objects.get(id=activity_id)
+    group = Group.objects.get(id=group_id)
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except ProcessingDeadlineExceeded:
-            sentry_sdk.capture_exception(level="info")
-            retry_task()
-
-    return wrapper
+    return WorkflowEventData(
+        event=activity,
+        group=group,
+    )

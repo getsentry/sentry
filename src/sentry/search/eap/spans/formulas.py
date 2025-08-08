@@ -66,9 +66,10 @@ def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
     key = cast(AttributeKey, args[2])
-    value = cast(str, args[3])
+    operator = cast(str, args[3])
+    value = cast(str, args[4])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -167,9 +168,10 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
 def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     key = cast(AttributeKey, args[0])
-    value = cast(str, args[1])
+    operator = cast(str, args[1])
+    value = cast(str, args[2])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -1066,6 +1068,10 @@ SPAN_FORMULA_DEFINITIONS = {
         infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=failure_rate_if,
@@ -1154,6 +1160,10 @@ SPAN_FORMULA_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=division_if,

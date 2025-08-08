@@ -11,7 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -610,64 +610,6 @@ function normalizeKey(key: string): string {
   return key.startsWith('!') ? key.slice(1) : key;
 }
 
-export function formatQueryToNaturalLanguage(query: string): string {
-  if (!query.trim()) return '';
-  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  const formattedTokens = tokens.map(formatToken);
-
-  return formattedTokens.reduce((result, token, index) => {
-    if (index === 0) return token;
-
-    const prevToken = formattedTokens[index - 1];
-    if (!prevToken) return `${result}, ${token}`;
-
-    const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
-    const prevIsLogicalOp =
-      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
-
-    if (isLogicalOp || prevIsLogicalOp) {
-      return `${result} ${token}`;
-    }
-
-    return `${result}, ${token}`;
-  }, '');
-}
-
-function formatToken(token: string): string {
-  const isNegated = token.startsWith('!') && token.includes(':');
-  const actualToken = isNegated ? token.slice(1) : token;
-
-  const operators = [
-    [':>=', 'greater than or equal to'],
-    [':<=', 'less than or equal to'],
-    [':!=', 'not'],
-    [':>', 'greater than'],
-    [':<', 'less than'],
-    ['>=', 'greater than or equal to'],
-    ['<=', 'less than or equal to'],
-    ['!=', 'not'],
-    ['!:', 'not'],
-    ['>', 'greater than'],
-    ['<', 'less than'],
-    [':', ''],
-  ] as const;
-
-  for (const [op, desc] of operators) {
-    if (actualToken.includes(op)) {
-      const [key, value] = actualToken.split(op);
-      const cleanKey = key?.trim() || '';
-      const cleanVal = value?.trim() || '';
-
-      const negation = isNegated ? 'not ' : '';
-      const description = desc ? `${negation}${desc}` : negation ? 'not' : '';
-
-      return `${cleanKey} is ${description} ${cleanVal}`.replace(/\s+/g, ' ').trim();
-    }
-  }
-
-  return token;
-}
-
 export function prettifyAggregation(aggregation: string): string | null {
   if (isEquation(aggregation)) {
     const expression = new Expression(stripEquationPrefix(aggregation));
@@ -702,5 +644,15 @@ export const removeHiddenKeys = (
       result[key] = tagCollection[key];
     }
   }
+  return result;
+};
+
+export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
+  const result: Tag[] = [];
+  tagCollection.forEach(tag => {
+    if (keys.includes(tag.key) && tag.name) {
+      result.push(tag);
+    }
+  });
   return result;
 };

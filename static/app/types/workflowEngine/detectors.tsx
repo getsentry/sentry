@@ -1,3 +1,4 @@
+import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataCondition,
   DataConditionGroup,
@@ -12,7 +13,7 @@ import type {
 /**
  * See SnubaQuerySerializer
  */
-interface SnubaQuery {
+export interface SnubaQuery {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes[];
@@ -131,9 +132,10 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
-  disabled: boolean;
+  enabled: boolean;
   id: string;
   lastTriggered: string;
+  latestGroup: SimpleGroup | null;
   name: string;
   owner: string | null;
   projectId: string;
@@ -191,12 +193,23 @@ interface UpdateUptimeDataSourcePayload {
   url: string;
 }
 
+interface UpdateCronDataSourcePayload {
+  checkinMargin: number | null;
+  failureIssueThreshold: number | null;
+  maxRuntime: number | null;
+  recoveryThreshold: number | null;
+  schedule: string | [number, string]; // Crontab or interval
+  scheduleType: 'crontab' | 'interval';
+  timezone: string;
+}
+
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  enabled?: boolean;
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
@@ -209,4 +222,10 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   config: MetricDetectorConfig;
   dataSource: UpdateSnubaDataSourcePayload;
   type: 'metric_issue';
+}
+
+export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  config: CronDetectorConfig;
+  dataSource: UpdateCronDataSourcePayload;
+  type: 'uptime_subscription';
 }
