@@ -18,12 +18,8 @@ class OrganizationEventsUptimeResultsEndpointTest(
             "organizations:uptime-eap-enabled": True,
         }
 
-    def build_expected_result(self, id=None, **kwargs):
-        # If id is not provided, we expect it to be present but don't care about the value
-        result = {"project.name": None, **kwargs}
-        if id is not None:
-            result["id"] = id
-        return result
+    def build_expected_result(self, **kwargs):
+        return {"project.name": None, **kwargs}
 
     @pytest.mark.querybuilder
     def test_simple_uptime_query(self) -> None:

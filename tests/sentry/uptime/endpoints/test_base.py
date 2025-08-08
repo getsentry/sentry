@@ -149,4 +149,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
         assert response.status_code == 200
 
         for result in uptime_results:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
             result.item_id = result.item_id[::-1]

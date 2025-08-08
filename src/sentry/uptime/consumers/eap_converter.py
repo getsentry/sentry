@@ -26,8 +26,6 @@ from sentry.uptime.types import IncidentStatus
 
 logger = logging.getLogger(__name__)
 
-# Custom namespace UUID for Sentry uptime monitoring
-# This ensures our UUIDs are unique to the uptime monitoring domain
 UPTIME_NAMESPACE = uuid.UUID("f8d7a4e2-5b3c-4a9d-8e1f-3c2b1a0d9f8e")
 
 
