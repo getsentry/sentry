@@ -18,7 +18,7 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSetLogsQuery} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useSetLogsSavedQueryInfo} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -49,7 +49,7 @@ function SaveQueryModal({
   const [starred, setStarred] = useState(true);
 
   const setExplorePageParams = useSetExplorePageParams();
-  const setLogsQuery = useSetLogsQuery();
+  const setLogsQuery = useSetLogsSavedQueryInfo();
 
   const updatePageIdAndTitle = useCallback(
     (id: string, title: string) => {

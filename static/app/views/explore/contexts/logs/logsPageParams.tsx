@@ -317,7 +317,7 @@ export function useSetLogsPageParams() {
   return useCallback(
     (pageParams: LogPageParamsUpdate) => {
       const target = setLogsPageParams(location, pageParams);
-      navigate(target, {replace: false});
+      navigate(target);
     },
     [location, navigate]
   );
@@ -449,7 +449,7 @@ export function useSetLogsFields() {
   );
 }
 
-export function useSetLogsQuery() {
+export function useSetLogsSavedQueryInfo() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(
     (id: string, title: string) => {

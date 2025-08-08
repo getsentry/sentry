@@ -16,7 +16,9 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
-  const hasLogsFeature = organization.features.includes('ourlogs-enabled');
+  const hasLogsFeature =
+    organization.features.includes('ourlogs-enabled') &&
+    organization.features.includes('ourlogs-saved-queries');
   const navigate = useNavigate();
 
   const items = [
