@@ -21,7 +21,7 @@ export interface BuildDetailsAppInfo {
   // icon?: string | null; // Uncomment when available
 }
 
-export interface BuildDetailsVcsInfo {
+interface BuildDetailsVcsInfo {
   base_ref?: string;
   base_repo_name?: string;
   base_sha?: string;
