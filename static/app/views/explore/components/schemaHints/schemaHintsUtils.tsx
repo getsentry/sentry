@@ -1,7 +1,7 @@
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKey} from 'sentry/utils/fields';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {removeHiddenKeys} from 'sentry/views/explore/utils';
+import {onlyShowKeys, removeHiddenKeys} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const USER_IDENTIFIER_KEY = 'user.key';
@@ -25,20 +25,16 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.MESSAGE,
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
-  OurLogKnownFieldKey.ORGANIZATION_ID,
-  OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.PARENT_SPAN_ID,
-  OurLogKnownFieldKey.TIMESTAMP,
+  OurLogKnownFieldKey.TEMPLATE,
+  OurLogKnownFieldKey.RELEASE,
+  OurLogKnownFieldKey.BROWSER_NAME,
+  OurLogKnownFieldKey.USER_ID,
+  OurLogKnownFieldKey.USER_EMAIL,
+  OurLogKnownFieldKey.USER_NAME,
+  OurLogKnownFieldKey.SERVER_ADDRESS,
 ];
 
-const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [
-  ...new Set([
-    ...FRONTEND_HINT_KEYS,
-    ...MOBILE_HINT_KEYS,
-    ...LOGS_HINT_KEYS,
-    ...COMMON_HINT_KEYS,
-  ]),
-];
+const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [...new Set([...LOGS_HINT_KEYS])];
 
 const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
   ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
@@ -72,4 +68,15 @@ export const removeHiddenSchemaHintsKeys = (
   tagCollection: TagCollection
 ): TagCollection => {
   return removeHiddenKeys(tagCollection, SCHEMA_HINTS_HIDDEN_KEYS);
+};
+
+export const onlyShowSchemaHintsKeys = (
+  tagCollection: Tag[],
+  source: SchemaHintsSources
+): Tag[] => {
+  if (source === SchemaHintsSources.LOGS) {
+    return onlyShowKeys(tagCollection, SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS);
+  }
+
+  return tagCollection;
 };

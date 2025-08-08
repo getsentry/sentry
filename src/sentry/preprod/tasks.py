@@ -12,7 +12,11 @@ from django.db import router, transaction
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -46,6 +50,7 @@ def assemble_preprod_artifact(
     project_id,
     checksum,
     chunks,
+    artifact_id,
     **kwargs,
 ) -> None:
     """
@@ -66,10 +71,6 @@ def assemble_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-        )
-
         assemble_result = assemble_file(
             task=AssembleTask.PREPROD_ARTIFACT,
             org_or_project=project,
@@ -80,40 +81,51 @@ def assemble_preprod_artifact(
         )
 
         if assemble_result is None:
-            logger.warning(
-                "Assemble result is None, returning early",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": org_id,
-                    "checksum": checksum,
-                },
+            raise RuntimeError(
+                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum}, preprod_artifact_id={artifact_id})"
             )
-            return
 
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        logger.exception(
-            "Failed to assemble preprod artifact",
+        logger.info(
+            "Finished preprod artifact assembly",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
             },
         )
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT,
-            project_id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail=str(e),
+
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            file_id=assemble_result.bundle.id,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+        )
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Failed to assemble and create preprod artifact",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED
         )
         return
 
-    # Mark assembly as successful since the artifact was created successfully
-    set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
     logger.info(
-        "Finished preprod artifact assembly",
+        "Finished preprod artifact row creation and kafka dispatch",
         extra={
+            "preprod_artifact_id": artifact_id,
             "project_id": project_id,
             "organization_id": org_id,
             "checksum": checksum,
@@ -125,28 +137,14 @@ def create_preprod_artifact(
     org_id,
     project_id,
     checksum,
-    # chunks,
-    git_sha=None,
     build_configuration=None,
-    **kwargs,
 ) -> str | None:
-    from sentry.models.files.file import File
-    from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
-
-    preprod_artifact = None
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
-
-            if existing_file is None:
-                raise ValueError(
-                    f"No existing file found for checksum when trying to create preprod artifact. checksum={checksum}"
-                )
-
             build_config = None
             if build_configuration:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
@@ -156,13 +154,12 @@ def create_preprod_artifact(
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
-                file_id=existing_file.id,
                 build_configuration=build_config,
-                state=PreprodArtifact.ArtifactState.UPLOADED,
+                state=PreprodArtifact.ArtifactState.UPLOADING,
             )
 
             logger.info(
-                "Created preprod artifact",
+                "Created preprod artifact row",
                 extra={
                     "preprod_artifact_id": preprod_artifact.id,
                     "project_id": project_id,
@@ -170,6 +167,8 @@ def create_preprod_artifact(
                     "checksum": checksum,
                 },
             )
+
+            return str(preprod_artifact.id)
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -182,26 +181,6 @@ def create_preprod_artifact(
             },
         )
         return None
-
-    if preprod_artifact:
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=preprod_artifact.id,
-        )
-
-        logger.info(
-            "Finished preprod artifact row creation and kafka dispatch",
-            extra={
-                "preprod_artifact_id": preprod_artifact.id,
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
-        )
-    # This will be a non-int display id in future so prepare for that
-    # by returning a string.
-    return str(preprod_artifact.id)
 
 
 def _assemble_preprod_artifact_file(
@@ -269,8 +248,6 @@ def _assemble_preprod_artifact_file(
 def _assemble_preprod_artifact_size_analysis(
     assemble_result: AssembleResult, project, artifact_id, org_id
 ):
-    from sentry.preprod.models import PreprodArtifactSizeMetrics
-
     try:
         preprod_artifact = PreprodArtifact.objects.get(
             project=project,
@@ -281,7 +258,7 @@ def _assemble_preprod_artifact_size_analysis(
         logger.exception(
             "PreprodArtifact not found during size analysis assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
