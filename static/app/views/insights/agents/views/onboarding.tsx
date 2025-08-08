@@ -21,11 +21,14 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   DocsPageLocation,
-  ProductSolution,
   StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {
+  PlatformOptionsControl,
+  useUrlPlatformOptions,
+} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -248,6 +251,26 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
+  // Local integration options for Agent Monitoring only
+  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const integrationOptions = {
+    integration: {
+      label: t('Integration'),
+      items: isPythonPlatform
+        ? [
+            {label: 'OpenAI SDK', value: 'openai'},
+            {label: 'OpenAI Agents SDK', value: 'openai_agents'},
+            {label: 'Manual', value: 'manual'},
+          ]
+        : [
+            {label: 'Vercel AI SDK', value: 'vercelai'},
+            {label: 'OpenAI SDK', value: 'openai'},
+            {label: 'Manual', value: 'manual'},
+          ],
+    },
+  };
+  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
@@ -314,7 +337,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     newOrg: false,
     urlPrefix,
@@ -337,6 +360,9 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <OptionsWrapper>
+        <PlatformOptionsControl platformOptions={integrationOptions} />
+      </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
         {steps
@@ -512,4 +538,8 @@ const DescriptionWrapper = styled('div')`
 
 const AdditionalInfo = styled(DescriptionWrapper)`
   margin-top: ${CONTENT_SPACING};
+`;
+
+const OptionsWrapper = styled('div')`
+  margin: ${space(2)} 0;
 `;
