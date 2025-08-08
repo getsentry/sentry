@@ -209,6 +209,7 @@ class ScheduleType:
         return dict(cls.as_choices())[value]
 
 
+@data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
 @region_silo_model
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
