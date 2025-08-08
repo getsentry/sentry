@@ -153,6 +153,7 @@ function McpToolCell({tool}: {tool: string}) {
     ],
     query: `span.op:mcp.server ${SpanFields.MCP_TOOL_NAME}:"${tool}"`,
     sort: `-count(span.duration)`,
+    field: ['span.description', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
   });
   return <Link to={link}>{tool}</Link>;
 }
