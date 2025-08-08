@@ -6,6 +6,8 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -90,21 +92,13 @@ export default function LogsContent() {
               </ButtonBar>
             </Layout.HeaderActions>
           </Layout.Header>
-          {defined(onboardingProject) ? (
-            <LogsTabOnboarding
-              organization={organization}
-              project={onboardingProject}
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
-          ) : (
-            <LogsTabContentWrapper
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
-          )}
+          <LogsTabContentWrapper
+            defaultPeriod={defaultPeriod}
+            maxPickableDays={maxPickableDays}
+            relativeOptions={relativeOptions}
+            onboardingProject={onboardingProject}
+            organization={organization}
+          />
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -112,10 +106,15 @@ export default function LogsContent() {
 }
 
 function LogsTabContentWrapper({
+  onboardingProject,
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
-}: PickableDays) {
+  organization,
+}: PickableDays & {
+  onboardingProject: Project | undefined;
+  organization: Organization;
+}) {
   return (
     <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
       <LogsQueryParamsProvider source="location">
@@ -123,11 +122,21 @@ function LogsTabContentWrapper({
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >
           <LogsPageDataProvider>
-            <LogsTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            {defined(onboardingProject) ? (
+              <LogsTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={relativeOptions}
+              />
+            ) : (
+              <LogsTabContent
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={relativeOptions}
+              />
+            )}
           </LogsPageDataProvider>
         </LogsPageParamsProvider>
       </LogsQueryParamsProvider>
