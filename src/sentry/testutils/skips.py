@@ -56,7 +56,7 @@ def _requires_objectstore() -> None:
 
     if not _service_available("127.0.0.1", port):
         service_message = "requires 'objectstore' server running\n\t💡 Hint: run `devservices up --mode=objectstore`"
-        pytest.fail(service_message)
+        pytest.skip(service_message)
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
