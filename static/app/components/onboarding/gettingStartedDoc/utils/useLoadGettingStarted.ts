@@ -39,6 +39,7 @@ export function useLoadGettingStarted({
   );
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
+
   const platformPath = getPlatformPath(platform);
 
   useEffect(() => {

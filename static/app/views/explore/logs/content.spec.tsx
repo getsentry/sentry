@@ -1,7 +1,12 @@
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 
 import LogsPage from './content';
@@ -77,6 +82,56 @@ describe('LogsPage', function () {
     expect(table).not.toHaveTextContent(/auto refresh/i);
     expect(table).toHaveTextContent(/Error occurred in authentication service/);
     expect(table).toHaveTextContent(/User login successful/);
+  });
+
+  it('should show onboarding when project is not onboarded', async function () {
+    ProjectsStore.reset();
+    const {
+      organization: onboardingOrganization,
+      project: onboardingProject,
+      setupPageFilters: onboardingSetupPageFilters,
+    } = initializeLogsTest({
+      project: {
+        hasLogs: false,
+        platform: 'javascript-react',
+      },
+    });
+    TeamStore.loadInitialData([TeamFixture()]);
+    const projectSlugMock = MockApiClient.addMockResponse({
+      url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+    const sdkMock = MockApiClient.addMockResponse({
+      url: `/organizations/${onboardingOrganization.slug}/sdks/`,
+      method: 'GET',
+      body: [],
+    });
+
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          project: onboardingProject,
+          isProjectActive: true,
+        };
+      });
+
+    onboardingSetupPageFilters();
+
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: `/organizations/${organization.slug}/explore/logs/`,
+      },
+    });
+
+    expect(projectSlugMock).toHaveBeenCalled();
+    expect(sdkMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getByText('Your Source for Log-ical Data')).toBeInTheDocument();
+    });
   });
 
   it('should call aggregates APIs as expected', async function () {
