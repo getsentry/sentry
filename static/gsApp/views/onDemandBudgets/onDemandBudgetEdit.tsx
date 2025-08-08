@@ -176,7 +176,7 @@ class OnDemandBudgetEdit extends Component<Props> {
             <Alert.Container>
               <Alert type="warning">
                 {t(
-                  "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+                  'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
                 )}
               </Alert>
             </Alert.Container>
