@@ -1,10 +1,12 @@
 """Test configuration for thread leak tests."""
 
+from collections.abc import Generator
+
 import pytest
 
 
 @pytest.fixture(scope="package", autouse=True)
-def thread_leak_test_environment():
+def thread_leak_test_environment() -> Generator[None]:
     """Set sentry environment to "selftest" for all tests in this package."""
     from sentry.testutils.thread_leaks.sentry import get_scope
 

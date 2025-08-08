@@ -9,6 +9,7 @@ proved essential when working to fix these things.
 import os
 import threading
 import traceback
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Thread
 from traceback import StackSummary
@@ -34,7 +35,7 @@ def _where(cwd: str = _cwd) -> StackSummary:
 
 
 @contextmanager
-def threading_remembers_where():
+def threading_remembers_where() -> Generator[None]:
     """Smuggle a ._where StackSummary attribute onto each Thread construction."""
     __init__ = Thread.__init__
 
@@ -47,12 +48,12 @@ def threading_remembers_where():
 
 
 @contextmanager
-def assert_none(strict=True):
+def assert_none(strict: bool = True) -> Generator[dict[str, Any]]:
     """Assert no thread leaks occurred during context execution."""
 
     with threading_remembers_where():
         expected = threading.enumerate()
-        result = {"events": {}}
+        result: dict[str, Any] = {"events": {}}
         yield result
         actual = threading.enumerate()
 

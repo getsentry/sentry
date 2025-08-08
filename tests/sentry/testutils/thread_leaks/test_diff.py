@@ -1,7 +1,7 @@
 from sentry.testutils.thread_leaks import diff
 
 
-def test_diff():
+def test_diff() -> None:
     """This bit was a bit tricky."""
     expected = [
         '<Thread(Thread-1 (worker), started daemon 123)>@module.Worker\n  File "test.py", line 10\n\n',

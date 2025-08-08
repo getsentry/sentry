@@ -1,18 +1,19 @@
 """Tests for thread leak Sentry integration."""
 
+from collections.abc import Iterable
 from traceback import FrameSummary
 from typing import Any
 
 from sentry.testutils.thread_leaks.sentry import event_from_stack
 
 
-def dict_from_stack(value: str, stack, strict: bool) -> dict[str, Any]:
+def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> dict[str, Any]:
     """Create Sentry event dict from stack (type-checker friendly wrapper)."""
     return dict(event_from_stack(value, stack, strict))
 
 
 class TestEventFromStack:
-    def test_simple(self):
+    def test_simple(self) -> None:
         stack = [
             FrameSummary("/app/test_xyz.py", 1, "func"),  # app code - in_app
             FrameSummary("/usr/lib/python3.13/threading.py", 100, "start"),  # stdlib - not in_app
@@ -57,19 +58,19 @@ class TestEventFromStack:
             },
         }
 
-    def test_empty_stack(self):
+    def test_empty_stack(self) -> None:
         event = dict_from_stack("test_value", [], strict=True)
 
         # Only assert what differs from full structure
         assert event["exception"]["values"][0]["stacktrace"]["frames"] == []
 
-    def test_non_strict(self):
+    def test_non_strict(self) -> None:
         # Non-strict mode - only level and handled differ
         event = dict_from_stack("test", [FrameSummary("/app/test.py", 1, "func")], strict=False)
         assert event["level"] == "warning"
         assert event["exception"]["values"][0]["mechanism"]["handled"] is True
 
-    def test_more_frames(self):
+    def test_more_frames(self) -> None:
         # Multiple frames - only frames differ
         stack = [
             FrameSummary("/app/caller.py", 10, "caller_func"),
@@ -81,7 +82,7 @@ class TestEventFromStack:
         assert frames[0]["filename"] == "/app/caller.py"
         assert frames[1]["filename"] == "/app/creator.py"
 
-    def test_missing_frame_data(self):
+    def test_missing_frame_data(self) -> None:
         # Frame without locals or line - only these fields differ
         frame_minimal = FrameSummary("/app/test.py", 42, "func")
         event = dict_from_stack("test", [frame_minimal], strict=True)

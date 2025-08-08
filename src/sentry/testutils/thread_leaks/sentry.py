@@ -13,11 +13,12 @@ import sentry_sdk.scope
 from .diff import get_relevant_frames
 
 if TYPE_CHECKING:
+    # this is *only* defined when TYPE_CHECKING =(
     from sentry_sdk._types import Event as SentryEvent
 
 
 @functools.cache
-def get_scope():
+def get_scope() -> sentry_sdk.scope.Scope:
     """Create configured Sentry scope for thread leak reporting."""
     from os import environ
 
@@ -58,12 +59,14 @@ def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEv
     with sentry_sdk.scope.use_scope(scope):
         for thread_leak in thread_leaks:
             event = get_thread_leak_event(thread_leak, strict)
-            events[scope.capture_event(event)] = event
+            event_id = scope.capture_event(event)
+            if event_id is not None:
+                events[event_id] = event
         scope.client.flush()
     return events
 
 
-def get_thread_leak_event(thread: Thread, strict=True) -> SentryEvent:
+def get_thread_leak_event(thread: Thread, strict: bool = True) -> SentryEvent:
     """Create Sentry event from leaked thread."""
     stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
     return event_from_stack(repr(thread), stack, strict)
