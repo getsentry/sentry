@@ -36,50 +36,62 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     return <Alert type="error">No build details found</Alert>;
   }
 
+  // TODO: Linkify
   const vcsInfoContentItems: KeyValueDataContentProps[] = [
     {
       item: {
         key: 'SHA',
         subject: 'SHA',
-        value: buildDetailsData.vcs_info?.commit_id ?? '-',
+        value: buildDetailsData.vcs_info.head_sha ?? '-',
       },
     },
     {
       item: {
         key: 'Base SHA',
         subject: 'Base SHA',
-        value: '-', // TODO: Implement in the future when available
-      },
-    },
-    {
-      item: {
-        key: 'Previous SHA',
-        subject: 'Previous SHA',
-        value: '-', // TODO: Implement in the future when available
+        value: buildDetailsData.vcs_info.base_sha ?? '-',
       },
     },
     {
       item: {
         key: 'PR Number',
         subject: 'PR Number',
-        value: '-', // TODO: Implement in the future when available
+        value: buildDetailsData.vcs_info.pr_number ?? '-',
       },
     },
     {
       item: {
         key: 'Branch',
         subject: 'Branch',
-        value: '-', // TODO: Implement in the future when available
+        value: buildDetailsData.vcs_info.head_ref ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Base Branch',
+        subject: 'Base Branch',
+        value: buildDetailsData.vcs_info.base_ref ?? '-',
       },
     },
     {
       item: {
         key: 'Repo Name',
         subject: 'Repo Name',
-        value: '-', // TODO: Implement in the future when available
+        value: buildDetailsData.vcs_info.head_repo_name ?? '-',
       },
     },
   ];
+
+  // Base repo name is only available for forks, so we shouldn't show it if it's not present
+  if (buildDetailsData.vcs_info.base_repo_name) {
+    vcsInfoContentItems.push({
+      item: {
+        key: 'Base Repo Name',
+        subject: 'Base Repo Name',
+        value: buildDetailsData.vcs_info.base_repo_name,
+      },
+    });
+  }
 
   return (
     <Flex direction="column" gap="2xl">
