@@ -10,8 +10,8 @@ from django.core.cache import cache
 from django.db import connections
 
 from sentry.silo.base import SiloMode
-from sentry.testutils import thread_leaks
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
+from sentry.testutils.thread_leaks import pytest as thread_leaks
 
 pytest_plugins = ["sentry.testutils.pytest"]
 
