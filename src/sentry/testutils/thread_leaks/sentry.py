@@ -1,5 +1,7 @@
 """Sentry integration for reporting thread leak events with proper context."""
 
+from __future__ import annotations
+
 import functools
 from collections.abc import Iterable
 from threading import Thread
@@ -48,23 +50,26 @@ def get_scope():
     return scope
 
 
-def capture_event(thread_leaks: set[Thread], strict: bool):
+def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEvent]:
     """Report thread leaks to Sentry with proper event formatting."""
     # Report to Sentry
     scope = get_scope()
+    events = {}
     with sentry_sdk.scope.use_scope(scope):
         for thread_leak in thread_leaks:
-            scope.capture_event(get_thread_leak_event(thread_leak, strict))
+            event = get_thread_leak_event(thread_leak, strict)
+            events[scope.capture_event(event)] = event
         scope.client.flush()
+    return events
 
 
-def get_thread_leak_event(thread: Thread, strict=True) -> "SentryEvent":
+def get_thread_leak_event(thread: Thread, strict=True) -> SentryEvent:
     """Create Sentry event from leaked thread."""
     stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
     return event_from_stack(repr(thread), stack, strict)
 
 
-def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> "SentryEvent":
+def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> SentryEvent:
     relevant_frames = get_relevant_frames(stack)
 
     # https://develop.sentry.dev/sdk/data-model/event-payloads/exception/
@@ -83,7 +88,7 @@ def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) ->
                     "function": frame.name,
                     "module": frame.locals.get("__name__") if frame.locals else None,
                     "lineno": frame.lineno,
-                    "context_line": frame.line.strip() if frame.line else None,
+                    "context_line": frame.line,
                     "in_app": frame in relevant_frames,
                 }
                 for frame in stack
