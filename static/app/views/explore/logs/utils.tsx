@@ -22,6 +22,8 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
+  LOGS_AGGREGATE_FN_KEY,
+  LOGS_AGGREGATE_PARAM_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -352,8 +354,12 @@ export function getLogsUrl({
   referrer,
   sortBy,
   title,
+  aggregateFn,
+  aggregateParam,
 }: {
   organization: Organization;
+  aggregateFn?: string;
+  aggregateParam?: string;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -382,6 +388,8 @@ export function getLogsUrl({
     mode,
     referrer,
     [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
+    [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
   };
 
@@ -406,6 +414,10 @@ export function getLogsUrlFromSavedQueryUrl(
   organization: Organization
 ) {
   const firstQuery = savedQuery.query[0];
+  const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
+  const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
+  const aggregateParam = visualize ? visualize.split('(')[1]?.split(')')[0] : undefined;
+
   return getLogsUrl({
     organization,
     field: firstQuery.fields,
@@ -416,6 +428,8 @@ export function getLogsUrlFromSavedQueryUrl(
     interval: savedQuery.interval,
     mode: firstQuery.mode,
     query: firstQuery.query,
+    aggregateFn,
+    aggregateParam,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
