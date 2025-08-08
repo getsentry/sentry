@@ -4,6 +4,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -14,8 +15,11 @@ import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {HOUR} from 'sentry/utils/formatters';
 import {type InfiniteData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -93,6 +97,7 @@ export function LogsTabContent({
   relativeOptions,
 }: LogsTabProps) {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
@@ -251,6 +256,28 @@ export function LogsTabContent({
     sortBys,
   });
 
+  /**
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 day.
+   */
+  const canManuallyRefresh = useMemo(() => {
+    if (pageFilters.selection.datetime.period) {
+      const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
+      if (parsedPeriod <= 1) {
+        return true;
+      }
+    }
+
+    if (pageFilters.selection.datetime.start && pageFilters.selection.datetime.end) {
+      const start = new Date(pageFilters.selection.datetime.start).getTime();
+      const end = new Date(pageFilters.selection.datetime.end).getTime();
+      const difference = end - start;
+      const oneDayInMs = HOUR;
+      return difference <= oneDayInMs;
+    }
+
+    return false;
+  }, [pageFilters.selection.datetime]);
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
@@ -341,12 +368,20 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
-                <Button
-                  onClick={refreshTable}
-                  icon={<IconRefresh />}
-                  size="sm"
-                  aria-label={t('Refresh')}
-                />
+                <Tooltip
+                  title={t(
+                    'Narrow your time range to 1hr or less for manually refreshing your logs.'
+                  )}
+                  disabled={canManuallyRefresh}
+                >
+                  <Button
+                    onClick={refreshTable}
+                    icon={<IconRefresh />}
+                    size="sm"
+                    aria-label={t('Refresh')}
+                    disabled={!canManuallyRefresh}
+                  />
+                </Tooltip>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
