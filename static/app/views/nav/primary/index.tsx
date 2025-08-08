@@ -13,7 +13,6 @@ import {
 } from 'sentry/icons';
 import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
@@ -29,6 +28,7 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
+import {COVERAGE_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
@@ -125,9 +125,9 @@ export function PrimaryNavigationItems() {
 
         <Feature features={['codecov-ui']}>
           <SidebarLink
-            to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
-            activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
-            analyticsKey="codecov"
+            to={`/${prefix}/${PREVENT_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+            activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+            analyticsKey="prevent"
             group={PrimaryNavGroup.PREVENT}
           >
             <IconPrevent />
