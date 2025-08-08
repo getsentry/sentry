@@ -175,38 +175,30 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             "organizations:new-organization-member-invite", organization, actor=request.user
         ):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
-        if not request.user.is_authenticated:
-            return Response(
-                status=403, data={"error": "Must be authenticated to use this endpoint."}
-            )
         if invited_member.idp_provisioned:
             return Response(
                 {"detail": "This invite is managed through your organization's identity provider."},
-                status=400,
+                status=403,
             )
         if invited_member.partnership_restricted:
             return Response(
                 {
                     "detail": "This invite is managed by an active partnership and cannot be modified until the end of the partnership."
                 },
-                status=400,
+                status=403,
             )
 
-        # with superuser read write separation, superuser read cannot hit this endpoint
-        # so we can keep this as is_active_superuser
         if not is_active_superuser(request):
-            try:
-                acting_member = OrganizationMember.objects.get(
-                    organization=organization, user_id=request.user.id
-                )
-            except OrganizationMember.DoesNotExist:
-                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
+            # acting_member exists, otherwise the user would have been prevented from accessing the endpoint
+            acting_member = OrganizationMember.objects.get(
+                organization=organization, user_id=request.user.id
+            )
 
             has_member_admin_scope = request.access.has_scope("member:admin")
-            can_invite_members = request.access.has_scope("member:invite")
+            has_member_invite_scope = request.access.has_scope("member:invite")
 
             if not has_member_admin_scope:
-                if can_invite_members:
+                if has_member_invite_scope:
                     return self._handle_deletion_by_member(request, invited_member, acting_member)
                 return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
             else:
@@ -215,19 +207,12 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 if not can_manage:
                     return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=403)
 
-        # prevents superuser read from deleting an invite or invite request
-        # superuser without member:admin scopes
-        elif not request.access.has_scope("member:admin"):
-            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
-
         api_key = get_api_key_for_audit_log(request)
-        if invited_member.invite_approved:
-            invited_member.remove_invite_from_db(
-                request.user, "INVITE_REMOVE", api_key, request.META["REMOTE_ADDR"]
-            )
-        else:
-            invited_member.remove_invite_from_db(
-                request.user, "INVITE_REQUEST_REMOVE", api_key, request.META["REMOTE_ADDR"]
-            )
+
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
+        invited_member.remove_invite_from_db(
+            request.user, event_name, api_key, request.META["REMOTE_ADDR"]
+        )
+
         # TODO(mifu67): replace all the magic numbers with status codes in a separate PR
         return Response(status=status.HTTP_204_NO_CONTENT)

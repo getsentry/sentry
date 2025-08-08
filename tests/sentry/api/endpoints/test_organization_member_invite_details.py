@@ -395,5 +395,8 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         other_user = self.create_user(email="other@email.com")
         self.login_as(other_user)
 
-        self.get_error_response(self.organization.slug, self.approved_invite.id, status_code=403)
+        response = self.get_error_response(
+            self.organization.slug, self.approved_invite.id, status_code=403
+        )
+        assert response.data["detail"] == "You do not have permission to perform this action."
         assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
