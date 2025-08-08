@@ -10,10 +10,11 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconTable} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {type InfiniteData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -63,7 +64,10 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
@@ -93,6 +97,7 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
   const mode = useQueryParamsMode();
+  const queryClient = useQueryClient();
   const sortBys = useLogsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
@@ -186,6 +191,23 @@ export function LogsTabContent({
   const supportedAggregates = useMemo(() => {
     return [];
   }, []);
+
+  const refreshTable = useCallback(async () => {
+    queryClient.setQueryData(
+      tableData.queryKey,
+      (data: InfiniteData<OurLogsResponseItem[]>) => {
+        if (data?.pages) {
+          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+          return {
+            pages: data.pages.slice(0, 1),
+            pageParams: data.pageParams.slice(0, 1),
+          };
+        }
+        return data;
+      }
+    );
+    await tableData.refetch();
+  }, [tableData, queryClient]);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -319,6 +341,12 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
+                <Button
+                  onClick={refreshTable}
+                  icon={<IconRefresh />}
+                  size="sm"
+                  aria-label={t('Refresh')}
+                />
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
