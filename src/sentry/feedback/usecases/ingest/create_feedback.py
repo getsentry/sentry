@@ -380,7 +380,7 @@ def create_feedback_issue(
     if event_fixed.get("release"):
         event_fixed["tags"]["release"] = event_fixed["release"]
 
-    event_fixed["tags"]["skipped_spam_filter"] = "true" if is_message_spam is None else "false"
+    event_fixed["tags"]["has_spam_filter"] = "true" if is_message_spam is not None else "false"
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)

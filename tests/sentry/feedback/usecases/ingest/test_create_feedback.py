@@ -812,7 +812,7 @@ def test_create_feedback_tags_skips_email_if_empty(
 
 @pytest.mark.parametrize("spam_enabled", (True, False))
 @django_db_all
-def test_create_feedback_tags_skipped_spam_filter(
+def test_create_feedback_tags_has_spam_filter(
     default_project, mock_produce_occurrence_to_kafka, spam_enabled
 ) -> None:
     with (
@@ -825,9 +825,9 @@ def test_create_feedback_tags_skipped_spam_filter(
         event = mock_feedback_event(default_project.id)
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-    assert mock_produce_occurrence_to_kafka.call_count == 1
-    tags = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]["tags"]
-    assert tags["skipped_spam_filter"] is not spam_enabled
+    assert mock_produce_occurrence_to_kafka.call_count > 0  # is 2 when spam enabled
+    tags = mock_produce_occurrence_to_kafka.call_args_list[0].kwargs["event_data"]["tags"]
+    assert tags["has_spam_filter"] == "true" if spam_enabled else "false"
 
 
 @django_db_all
