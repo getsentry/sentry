@@ -796,7 +796,7 @@ def test_create_feedback_tags_no_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags_skips_if_empty(
+def test_create_feedback_tags_skips_email_if_empty(
     default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     event = mock_feedback_event(default_project.id)
@@ -808,6 +808,26 @@ def test_create_feedback_tags_skips_if_empty(
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert "user.email" not in tags
+
+
+@pytest.mark.parametrize("spam_enabled", (True, False))
+@django_db_all
+def test_create_feedback_tags_skipped_spam_filter(
+    default_project, mock_produce_occurrence_to_kafka, spam_enabled
+) -> None:
+    with (
+        patch(
+            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+            return_value=spam_enabled,
+        ),
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+    ):
+        event = mock_feedback_event(default_project.id)
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    tags = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]["tags"]
+    assert tags["skipped_spam_filter"] is not spam_enabled
 
 
 @django_db_all
