@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -12,20 +12,14 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 // This is an example of a valid array filter with wildcards, and we want to exact-match the quotes around the labels, so we have one backslash to escape the quotes (this should go to the search API) but another backslash in JS to actually include the backslash in the string
-// const exampleFilter2 =
+// const exampleFilter =
 //   '["*\\"Sentry\\"*","*\\"User Interface\\"*","*\\"Integrations\\"*","\\"Annoying\\\"Quote\\""]';
-
-// exampleFilter2
-
-// const exampleFilter = '["*\\"Annoying\\\\\\"Quote\\"*"]';
-
-// const exampleFilter = '["*\\"Annoying\\*Wildcard\\"*", "*\\"User Interface\\"*"]';
 
 // Return exactly what we have to pass to the search API
 // We search against a JSON-serialized array of all labels, this means:
@@ -43,7 +37,9 @@ function getSearchTermForLabel(label: string) {
   const exactMatchString = JSON.stringify(label);
   let toPassToSearch = JSON.stringify(exactMatchString);
   // First, replace * with \* (this must be done after both JSON stringifies)
-  toPassToSearch = toPassToSearch.replace('*', '\\*');
+  // TODO: use escapeFilterValue here because I think this only escapes the first one? wait idk
+  // toPassToSearch = toPassToSearch.replace('*', '\\*');
+  toPassToSearch = escapeFilterValue(toPassToSearch);
   // Now, add the wildcards to the string (second spot and second-last spot, since we want them inside the second pair of quotes)
   // The first and last quotes are added by the JSON.stringify, we just manually add them back
   toPassToSearch = `"*${toPassToSearch.slice(1, -1)}*"`;
@@ -51,17 +47,10 @@ function getSearchTermForLabel(label: string) {
 }
 
 function getSearchTermForLabelList(labels: string[]) {
-  // First sort to make it deterministic
   labels.sort();
   const searchTerms = labels.map(label => getSearchTermForLabel(label));
   return `[${searchTerms.join(',')}]`;
 }
-
-// This works
-// const exampleFilter = getSearchTermForLabelList(['Annoying*Wildcard']);
-
-// Now try it with a literal backslash before the *
-// const exampleFilter = getSearchTermForLabelList(['Quote"And*Wildcard']);
 
 export default function FeedbackSummary() {
   const {
@@ -84,8 +73,11 @@ export default function FeedbackSummary() {
   const navigate = useNavigate();
 
   // Get current search query from URL
-  const currentQuery = decodeScalar(location.query.query, '');
-  const searchConditions = new MutableSearch(currentQuery);
+  const currentQuery = useMemo(
+    () => decodeScalar(location.query.query, ''),
+    [location.query.query]
+  );
+  const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
 
   const handleTagClick = (category: {
     associatedLabels: string[];
@@ -98,18 +90,15 @@ export default function FeedbackSummary() {
 
     const newSearchConditions = new MutableSearch(currentQuery);
 
-    const isSelected = newSearchConditions
-      .getFilterValues('ai_categorization.labels')
-      .includes(exactSearchTerm);
+    const isSelected = isTagOnlySelected(category);
 
     if (isSelected) {
       // Remove search term
       newSearchConditions.removeFilterValue('ai_categorization.labels', exactSearchTerm);
     } else {
-      // Remove any existing ai_categorization.labels filters first
       newSearchConditions.removeFilter('ai_categorization.labels');
 
-      // Whether the want to escape the exact string should always be false, since we want wildcards to work. Thus, we have to escape the string ourselves.
+      // Don't escape the search term, since we want wildcards to work. This means we escape the string ourselves before adding the wildcards
       newSearchConditions.addFilterValue(
         'ai_categorization.labels',
         exactSearchTerm,
@@ -119,7 +108,7 @@ export default function FeedbackSummary() {
 
     // Update URL with new search query
     navigate({
-      pathname: location.pathname,
+      ...location,
       query: {
         ...location.query,
         cursor: undefined,
@@ -129,7 +118,7 @@ export default function FeedbackSummary() {
   };
 
   // XXX: what happens if the user manually adds the filters for TWO tags? will they both be shown as selected? what about if they click one, etc.
-  const isTagSelected = (category: {
+  const isTagOnlySelected = (category: {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
@@ -138,8 +127,8 @@ export default function FeedbackSummary() {
     const exactSearchTerm = getSearchTermForLabelList(allLabels);
     const currentFilters = searchConditions.getFilterValues('ai_categorization.labels');
 
-    // Check if our combined filter pattern is in the current filters
-    return currentFilters.includes(exactSearchTerm);
+    // Only show a tag as selected if it is the only filter, and the search term matches exactly
+    return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
 
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
@@ -200,7 +189,7 @@ export default function FeedbackSummary() {
             {categories && categories.length > 0 && (
               <TagsContainer>
                 {categories.map((category, index) => {
-                  const selected = isTagSelected(category);
+                  const selected = isTagOnlySelected(category);
                   return (
                     <ClickableTag
                       key={index}
@@ -254,7 +243,7 @@ const SummaryContent = styled('p')`
 const TagsContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const ClickableTag = styled(Tag)<{selected: boolean}>`
