@@ -96,3 +96,13 @@ eb55184602940adb1fc09a9c0e33515cac92c7d8
 c8a00d1cf64a349276060458ca51dab9e2538f3e
 # ref: perform non-typing --py311-plus pyupgrades (#64164)
 b5e15e8611ff64f8d4e2cde8365f92f7769c9c20
+# feat(dx): Move dashboard endpoints to dashboard module #97394
+fe2eb237aee31a1fca51774660a91d13d1b3ecc5
+# ref(dx): Move avatar endpoint into core module (#97437)
+b4914e559b6e70675452d8ed750fbf70ec703f27
+# ref(dx): Move core team endpoints to core module (#97433)
+4a825dfd62b6d61e48982d014f7d7383f61982f2
+# ref(dx): Move project core endpoints to core module (#97419)
+7dcda5dd9a861130d657ccc2468eb61f55be76b9
+# feat(dx): Move various organization endpoints to "core" (#97407)
+8592e74bbd014d1d44b7cd973379e5278ceb5b41
