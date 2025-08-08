@@ -357,19 +357,19 @@ Retrieves a list of categories, which comprise of a primary label, along with th
     "success": true,
     "categories": [
       {
-        "primary_label": "User Interface",
-        "associated_labels": ["UI", "User Experience", "Look", "Display", "Navigation"],
-        "feedback_count": 450
+        "primaryLabel": "User Interface",
+        "associatedLabels": ["UI", "User Experience", "Look", "Display", "Navigation"],
+        "feedbackCount": 450
       },
       {
-        "primary_label": "Integrations",
-        "associated_labels": ["Jira", "GitHub", "Workflow", "Webhook", "GitLab"],
-        "feedback_count": 300
+        "primaryLabel": "Integrations",
+        "associatedLabels": ["Jira", "GitHub", "Workflow", "Webhook", "GitLab"],
+        "feedbackCount": 300
       },
       {
-        "primary_label": "Navigation",
-        "associated_labels": ["Discoverability", "Sidebar", "Selection"],
-        "feedback_count": 150
+        "primaryLabel": "Navigation",
+        "associatedLabels": ["Discoverability", "Sidebar", "Selection"],
+        "feedbackCount": 150
       }
     ],
     "numFeedbacksContext": 400
