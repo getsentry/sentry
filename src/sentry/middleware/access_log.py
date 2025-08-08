@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.encoding import force_str
 from rest_framework.authentication import get_authorization_header
@@ -12,6 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.options.rollout import in_random_rollout
 from sentry.types.ratelimit import RateLimitMeta, SnubaRateLimitMeta
 from sentry.utils import metrics
 
@@ -128,6 +130,10 @@ def _create_api_access_log(
             log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
+
+        if in_random_rollout("issues.log-access-logs") and not org_id:
+            sentry_sdk.capture_message("Acesss log created without org_id", level="debug")
+
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 
