@@ -644,7 +644,7 @@ def chained_exception(
 
     # Check for cases in which we want to switch the `main_exception_id` in order to use a different
     # exception than normal for the event title
-    determine_main_exception_id(event, exceptions)
+    _maybe_override_main_exception_id(event, exceptions)
 
     for exception in exceptions:
         for variant_name, component in exception_components_by_exception[id(exception)].items():
@@ -898,7 +898,7 @@ MAIN_EXCEPTION_ID_FUNCS = [
 ]
 
 
-def determine_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
+def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)
