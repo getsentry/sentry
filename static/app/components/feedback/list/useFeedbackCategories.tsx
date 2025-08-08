@@ -3,7 +3,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type FeedbackCategory = {
+export type FeedbackCategory = {
   associatedLabels: string[];
   feedbackCount: number;
   primaryLabel: string;

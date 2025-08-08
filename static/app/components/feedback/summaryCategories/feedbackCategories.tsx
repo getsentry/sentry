@@ -1,19 +1,10 @@
-import React, {useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
-import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconThumb} from 'sentry/icons';
-import {IconSeer} from 'sentry/icons/iconSeer';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {FeedbackCategory} from 'sentry/components/feedback/list/useFeedbackCategories';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -52,23 +43,11 @@ function getSearchTermForLabelList(labels: string[]) {
   return `[${searchTerms.join(',')}]`;
 }
 
-export default function FeedbackSummary() {
-  const {
-    isError: isSummaryError,
-    isPending: isSummaryPending,
-    summary,
-    tooFewFeedbacks: tooFewFeedbacksSummary,
-    numFeedbacksUsed,
-  } = useFeedbackSummary();
-
-  const {
-    isError: isCategoriesError,
-    isPending: isCategoriesPending,
-    categories,
-    tooFewFeedbacks: tooFewFeedbacksCategories,
-  } = useFeedbackCategories();
-
-  const openForm = useFeedbackForm();
+export default function FeedbackCategories({
+  categories,
+}: {
+  categories: FeedbackCategory[];
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -117,7 +96,6 @@ export default function FeedbackSummary() {
     });
   };
 
-  // XXX: what happens if the user manually adds the filters for TWO tags? will they both be shown as selected? what about if they click one, etc.
   const isTagOnlySelected = (category: {
     associatedLabels: string[];
     primaryLabel: string;
@@ -131,114 +109,24 @@ export default function FeedbackSummary() {
     return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
 
-  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
-    return openForm ? (
-      <Button
-        aria-label={t('Give feedback on the AI-powered summary')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
-        onClick={() =>
-          openForm({
-            messagePlaceholder:
-              type === 'positive'
-                ? t('What did you like about the AI-powered summary?')
-                : t('How can we make the summary work better for you?'),
-            tags: {
-              ['feedback.source']: 'feedback_ai_summary',
-              ['feedback.owner']: 'replay',
-              ['feedback.type']: type,
-              ['feedback.num_feedbacks_used']: numFeedbacksUsed,
-            },
-          })
-        }
-      />
-    ) : null;
-  };
-
-  const isPending = isSummaryPending || isCategoriesPending;
-  const isError = isSummaryError || isCategoriesError;
-  const tooFewFeedbacks = tooFewFeedbacksSummary || tooFewFeedbacksCategories;
-
   return (
-    <SummaryIconContainer>
-      <IconSeer size="xs" />
-      <SummaryContainer>
-        <Flex justify="between" align="center">
-          <SummaryHeader>{t('Summary')}</SummaryHeader>
-          <Flex gap="xs">
-            {feedbackButton({type: 'positive'})}
-            {feedbackButton({type: 'negative'})}
-          </Flex>
-        </Flex>
-
-        {isPending ? (
-          <LoadingContainer>
-            <StyledLoadingIndicator size={24} />
-            <SummaryContent>{t('Summarizing feedback received...')}</SummaryContent>
-          </LoadingContainer>
-        ) : tooFewFeedbacks ? (
-          <SummaryContent>
-            {t('Bummer... Not enough feedback to summarize (yet).')}
-          </SummaryContent>
-        ) : isError ? (
-          <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>
-        ) : (
-          <React.Fragment>
-            <SummaryContent>{summary}</SummaryContent>
-            {categories && categories.length > 0 && (
-              <TagsContainer>
-                {categories.map((category, index) => {
-                  const selected = isTagOnlySelected(category);
-                  return (
-                    <ClickableTag
-                      key={index}
-                      type={selected ? 'info' : 'default'}
-                      onClick={() => handleTagClick(category)}
-                      selected={selected}
-                    >
-                      {category.primaryLabel} ({category.feedbackCount})
-                    </ClickableTag>
-                  );
-                })}
-              </TagsContainer>
-            )}
-          </React.Fragment>
-        )}
-      </SummaryContainer>
-    </SummaryIconContainer>
+    <TagsContainer>
+      {categories.map((category, index) => {
+        const selected = isTagOnlySelected(category);
+        return (
+          <ClickableTag
+            key={index}
+            type={selected ? 'info' : 'default'}
+            onClick={() => handleTagClick(category)}
+            selected={selected}
+          >
+            {category.primaryLabel} ({category.feedbackCount})
+          </ClickableTag>
+        );
+      })}
+    </TagsContainer>
   );
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: ${space(0.5)} 0 0 0;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const SummaryContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  width: 100%;
-`;
-
-const SummaryHeader = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
-
-const SummaryContent = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin: 0;
-`;
 
 const TagsContainer = styled('div')`
   display: flex;
@@ -262,13 +150,4 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
     border-width: 2px;
     font-weight: ${p.theme.fontWeight.bold};
   `}
-`;
-
-const SummaryIconContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  align-items: baseline;
 `;
