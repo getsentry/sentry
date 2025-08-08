@@ -24,10 +24,6 @@ export function getUploadSourceMapsStep({
   guideLink?: string;
 }): OnboardingStep {
   function trackEvent(eventName: string) {
-    if (!organization || !project.id || !platformKey) {
-      return;
-    }
-
     trackAnalytics(eventName, {
       project_id: project.id,
       platform: platformKey,
