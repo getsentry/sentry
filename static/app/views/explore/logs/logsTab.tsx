@@ -369,13 +369,9 @@ export function LogsTabContent({
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
                 <Tooltip
-                  title={
-                    canManuallyRefresh
-                      ? t('Refresh logs')
-                      : t(
-                          'You can manually refresh logs for time ranges of 1 hour or less.'
-                        )
-                  }
+                  title={t(
+                    'Narrow your time range to 1hr or less for manually refreshing your logs.'
+                  )}
                   disabled={canManuallyRefresh}
                 >
                   <Button
