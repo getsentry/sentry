@@ -69,7 +69,6 @@ try {${logsCode}
 
 const getPerfomanceSnippet = () => `
 import 'package:sentry/sentry.dart';
-import { getPackageVersion } from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 final transaction = Sentry.startTransaction('processOrderBatch()', 'task');
 
