@@ -125,7 +125,9 @@ def get_stacktrace_render(data: dict[str, Any]) -> str:
 
 
 INPUTS = [
-    CategorizationInput(fname) for fname in os.listdir(_fixture_path) if fname.endswith(".json")
+    CategorizationInput(fname)
+    for fname in sorted(os.listdir(_fixture_path))
+    if fname.endswith(".json")
 ]
 
 
