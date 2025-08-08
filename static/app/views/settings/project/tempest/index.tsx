@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
@@ -65,11 +66,11 @@ export default function TempestSettings({organization, project}: Props) {
 
   if (!hasTempestAccess(organization)) {
     return (
-      <Alert.Container>
+      <Stack gap="xl">
         <Alert type="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
-      </Alert.Container>
+      </Stack>
     );
   }
 
@@ -119,7 +120,7 @@ export default function TempestSettings({organization, project}: Props) {
 
       {!isPS5WarningDismissed && (
         <div>
-          <Alert.Container>
+          <Stack gap="xl">
             <Alert
               type="warning"
               trailingItems={
@@ -138,7 +139,7 @@ export default function TempestSettings({organization, project}: Props) {
                 `Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!`
               )}
             </Alert>
-          </Alert.Container>
+          </Stack>
         </div>
       )}
 

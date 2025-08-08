@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -331,11 +332,11 @@ function ReviewAndConfirmBody({
         subscription={subscription}
       />
       {cardActionError && (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="error" showIcon={false}>
             {cardActionError}
           </Alert>
-        </Alert.Container>
+        </Stack>
       )}
       <ReviewAndConfirmItems previewData={previewData} />
       <PreviewTotal>

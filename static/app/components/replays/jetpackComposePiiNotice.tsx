@@ -1,5 +1,6 @@
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -17,7 +18,7 @@ export function JetpackComposePiiNotice() {
   }
 
   return (
-    <Alert.Container>
+    <Stack gap="xl">
       <Alert
         type="error"
         trailingItems={
@@ -43,7 +44,7 @@ export function JetpackComposePiiNotice() {
           }
         )}
       </Alert>
-    </Alert.Container>
+    </Stack>
   );
 }
 

@@ -5,6 +5,7 @@ import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Stack} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import List from 'sentry/components/list';
@@ -88,7 +89,7 @@ export default function PlayStationSettings({organization, project}: Props) {
   return (
     <Fragment>
       {credentialErrors && credentialErrors?.length > 0 && (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="error">
             {t('There was a problem with following credentials:')}
             <List symbol="bullet">
@@ -99,7 +100,7 @@ export default function PlayStationSettings({organization, project}: Props) {
               ))}
             </List>
           </Alert>
-        </Alert.Container>
+        </Stack>
       )}
 
       <ConfigForm organization={organization} project={project} />

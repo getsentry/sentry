@@ -13,6 +13,7 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -582,9 +583,9 @@ export class Results extends Component<Props, State> {
       return null;
     }
     return (
-      <Alert.Container>
+      <Stack gap="xl">
         <Alert type="error">{error}</Alert>
-      </Alert.Container>
+      </Stack>
     );
   }
 
@@ -599,18 +600,18 @@ export class Results extends Component<Props, State> {
       this.state.showMetricsAlert
     ) {
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
           </Alert>
-        </Alert.Container>
+        </Stack>
       );
     }
     if (this.state.showUnparameterizedBanner) {
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
@@ -621,7 +622,7 @@ export class Results extends Component<Props, State> {
               }
             )}
           </Alert>
-        </Alert.Container>
+        </Stack>
       );
     }
     return null;
@@ -631,7 +632,7 @@ export class Results extends Component<Props, State> {
     const {organization} = this.props;
     if (hasDatasetSelector(organization) && this.state.showQueryIncompatibleWithDataset) {
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert
             type="warning"
             trailingItems={
@@ -648,7 +649,7 @@ export class Results extends Component<Props, State> {
           >
             {t('Your query was updated to make it compatible with this dataset.')}
           </Alert>
-        </Alert.Container>
+        </Stack>
       );
     }
     return null;
@@ -666,7 +667,7 @@ export class Results extends Component<Props, State> {
         return null;
       }
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert
             type="warning"
             trailingItems={
@@ -686,7 +687,7 @@ export class Results extends Component<Props, State> {
               {splitDecision: DATASET_LABEL_MAP[splitDecision]}
             )}
           </Alert>
-        </Alert.Container>
+        </Stack>
       );
     }
     return null;
@@ -705,7 +706,7 @@ export class Results extends Component<Props, State> {
       dataset === DiscoverDatasets.TRANSACTIONS
     ) {
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert
             type="warning"
             trailingItems={
@@ -727,7 +728,7 @@ export class Results extends Component<Props, State> {
               }
             )}
           </Alert>
-        </Alert.Container>
+        </Stack>
       );
     }
     return null;
@@ -737,11 +738,11 @@ export class Results extends Component<Props, State> {
     const {tips} = this.state;
     if (tips) {
       return tips.map((tip, index) => (
-        <Alert.Container key={`tip-${index}`}>
+        <Stack gap="xl" key={`tip-${index}`}>
           <Alert type="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
-        </Alert.Container>
+        </Stack>
       ));
     }
     return null;

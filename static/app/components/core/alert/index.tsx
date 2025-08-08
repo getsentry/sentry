@@ -315,14 +315,3 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
 
   return null;
 }
-
-/**
- * Manages margins of Alert components
- */
-const Container = styled('div')`
-  > div {
-    margin-bottom: ${space(2)};
-  }
-`;
-
-Alert.Container = Container;

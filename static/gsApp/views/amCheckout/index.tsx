@@ -8,6 +8,7 @@ import moment from 'moment-timezone';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -675,7 +676,7 @@ class AMCheckout extends Component<Props, State> {
     }
 
     return (
-      <Alert.Container>
+      <Stack gap="xl">
         <Alert type="info">
           <PartnerAlertContent>
             <PartnerAlertTitle>
@@ -691,7 +692,7 @@ class AMCheckout extends Component<Props, State> {
             )}
           </PartnerAlertContent>
         </Alert>
-      </Alert.Container>
+      </Stack>
     );
   }
 
@@ -748,7 +749,7 @@ class AMCheckout extends Component<Props, State> {
           orgSlug={organization.slug}
         />
         {isOnSponsoredPartnerPlan && (
-          <Alert.Container>
+          <Stack gap="xl">
             <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
@@ -756,12 +757,12 @@ class AMCheckout extends Component<Props, State> {
                 moment(subscription.contractPeriodEnd).format('ll')
               )}
             </Alert>
-          </Alert.Container>
+          </Stack>
         )}
         {promotionDisclaimerText && (
-          <Alert.Container>
+          <Stack gap="xl">
             <Alert type="info">{promotionDisclaimerText}</Alert>
-          </Alert.Container>
+          </Stack>
         )}
         <SettingsPageHeader
           title="Change Subscription"

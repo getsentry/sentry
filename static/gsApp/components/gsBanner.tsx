@@ -21,6 +21,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -117,9 +118,9 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
     <Fragment>
       <Header>{'Action Required'}</Header>
       <Body>
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="warning">{t('Your account has been suspended')}</Alert>
-        </Alert.Container>
+        </Stack>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
           <li>
@@ -275,9 +276,9 @@ function NoticeModal({
         <h4>{t('Action Required')}</h4>
       </Header>
       <Body>
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type={alertType}>{title}</Alert>
-        </Alert.Container>
+        </Stack>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
       </Body>
@@ -1137,7 +1138,7 @@ class GSBanner extends Component<Props, State> {
       };
 
       return (
-        <Alert.Container>
+        <Stack gap="xl">
           <BannerAlert
             system
             data-test-id="banner-alert-past-due"
@@ -1174,7 +1175,7 @@ class GSBanner extends Component<Props, State> {
                   }
                 )}
           </BannerAlert>
-        </Alert.Container>
+        </Stack>
       );
     }
 
@@ -1202,7 +1203,7 @@ class GSBanner extends Component<Props, State> {
       return (
         <React.Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-          <Alert.Container>
+          <Stack gap="xl">
             <BannerAlert
               system
               type="muted"
@@ -1249,7 +1250,7 @@ class GSBanner extends Component<Props, State> {
                 }
               )}
             </BannerAlert>
-          </Alert.Container>
+          </Stack>
         </React.Fragment>
       );
     }

@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -441,11 +442,11 @@ function AutofixSolutionDisplay({
 
   if (!solution || solution.length === 0) {
     return (
-      <Alert.Container>
+      <Stack gap="xl">
         <Alert type="error" showIcon={false}>
           {t('No solution available.')}
         </Alert>
-      </Alert.Container>
+      </Stack>
     );
   }
 

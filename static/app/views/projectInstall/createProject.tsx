@@ -13,6 +13,7 @@ import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -589,7 +590,7 @@ export function CreateProject() {
             </div>
           </FormFieldGroup>
           {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
-            <Alert.Container>
+            <Stack gap="xl">
               <Alert type="error" showIcon={false}>
                 {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
@@ -598,7 +599,7 @@ export function CreateProject() {
                   </div>
                 ))}
               </Alert>
-            </Alert.Container>
+            </Stack>
           )}
         </List>
       </div>

@@ -1,4 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -110,7 +111,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: (
-            <Alert.Container>
+            <Stack gap="xl">
               <Alert type="warning" showIcon={false}>
                 {tct(
                   'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
@@ -119,7 +120,7 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </Alert>
-            </Alert.Container>
+            </Stack>
           ),
         },
       ],

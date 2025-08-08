@@ -15,6 +15,7 @@ resources:
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -35,22 +36,22 @@ To create a basic alert, wrap your message in an `<Alert>` component and specify
 Alerts come in five different types to convey different levels of importance and meaning: `muted`, `info`, `warning`, `success`, and `error`.
 
 <Storybook.Demo>
-  <Alert.Container>
+  <Stack gap="xl">
     <Alert type="muted">This is a muted alert for neutral information</Alert>
     <Alert type="info">This is an info alert for general information</Alert>
     <Alert type="warning">This is a warning alert for important notices</Alert>
     <Alert type="success">This is a success alert for positive feedback</Alert>
     <Alert type="error">This is an error alert for critical issues</Alert>
-  </Alert.Container>
+  </Stack>
 </Storybook.Demo>
 ```jsx
-<Alert.Container>
+<Stack gap="xl">
   <Alert type="muted">This is a muted alert for neutral information</Alert>
   <Alert type="info">This is an info alert for general information</Alert>
   <Alert type="warning">This is a warning alert for important notices</Alert>
   <Alert type="success">This is a success alert for positive feedback</Alert>
   <Alert type="error">This is an error alert for critical issues</Alert>
-</Alert.Container>
+</Stack>
 ```
 
 ### System Alerts
@@ -73,7 +74,7 @@ System alerts are full-width variants typically used for application-level notif
 By default, alerts display appropriate icons based on their type. You can hide icons by setting `showIcon={false}` or provide custom icons.
 
 <Storybook.Demo>
-  <Alert.Container>
+  <Stack gap="xl">
     <Alert type="info">Default info icon</Alert>
     <Alert type="warning" showIcon={false}>
       No icon
@@ -81,10 +82,10 @@ By default, alerts display appropriate icons based on their type. You can hide i
     <Alert type="success" icon={<IconAdd />}>
       Custom add icon
     </Alert>
-  </Alert.Container>
+  </Stack>
 </Storybook.Demo>
 ```jsx
-<Alert.Container>
+<Stack gap="xl">
   <Alert type="info">Default info icon</Alert>
   <Alert type="warning" showIcon={false}>
     No icon
@@ -92,7 +93,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
   <Alert type="success" icon={<IconAdd />}>
     Custom add icon
   </Alert>
-</Alert.Container>
+</Stack>
 ```
 
 ### Expandable Content
@@ -170,7 +171,7 @@ You can control the initial expansion state of alerts with the `defaultExpanded`
 Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
 
 <Storybook.Demo>
-  <Alert.Container>
+  <Stack gap="xl">
     <Alert
       type="info"
       trailingItems={
@@ -196,10 +197,10 @@ Add interactive elements like buttons or links to the right side of alerts using
     >
       This alert has multiple trailing actions
     </Alert>
-  </Alert.Container>
+  </Stack>
 </Storybook.Demo>
 ```jsx
-<Alert.Container>
+<Stack gap="xl">
   <Alert
     type="info"
     trailingItems={
@@ -225,26 +226,26 @@ Add interactive elements like buttons or links to the right side of alerts using
   >
     This alert has multiple trailing actions
   </Alert>
-</Alert.Container>
+</Stack>
 ```
 
 ## Container
 
-Use `Alert.Container` to properly manage spacing between multiple alerts.
+Use `Stack gap="xl"` to properly manage spacing between multiple alerts.
 
 <Storybook.Demo>
-  <Alert.Container>
+  <Stack gap="xl">
     <Alert type="info">First alert in a container</Alert>
     <Alert type="warning">Second alert in a container</Alert>
     <Alert type="success">Third alert in a container</Alert>
-  </Alert.Container>
+  </Stack>
 </Storybook.Demo>
 ```jsx
-<Alert.Container>
+<Stack gap="xl">
   <Alert type="info">First alert in a container</Alert>
   <Alert type="warning">Second alert in a container</Alert>
   <Alert type="success">Third alert in a container</Alert>
-</Alert.Container>
+</Stack>
 ```
 
 ## Alert Links
@@ -300,7 +301,7 @@ Use the `onClick` prop for custom actions that don't involve navigation.
 By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
 
 <Storybook.Demo>
-  <AlertLink.Container>
+  <Stack gap="xl">
     <AlertLink to="/settings">Default trailing chevron</AlertLink>
     <AlertLink to="/settings" trailingItems={<IconMail />}>
       Custom trailing icon
@@ -308,7 +309,7 @@ By default, AlertLink includes a right-pointing chevron icon. You can customize 
     <AlertLink to="/settings" trailingItems={null}>
       No trailing items
     </AlertLink>
-  </AlertLink.Container>
+  </Stack>
 </Storybook.Demo>
 ```jsx
 <AlertLink to="/settings">Default trailing chevron</AlertLink>

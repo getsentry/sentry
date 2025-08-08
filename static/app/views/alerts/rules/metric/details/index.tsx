@@ -7,6 +7,7 @@ import moment from 'moment-timezone';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Stack} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -247,13 +248,13 @@ class MetricAlertDetails extends Component<Props, State> {
 
     return (
       <Layout.Page withPadding>
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="error">
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
           </Alert>
-        </Alert.Container>
+        </Stack>
       </Layout.Page>
     );
   }
@@ -278,9 +279,9 @@ class MetricAlertDetails extends Component<Props, State> {
         forceProject={project}
       >
         {warning && (
-          <Alert.Container>
+          <Stack gap="xl">
             <Alert type="warning">{warning}</Alert>
-          </Alert.Container>
+          </Stack>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
 

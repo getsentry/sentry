@@ -5,6 +5,7 @@ import testsAnalyticsSummaryDark from 'sentry-images/features/test-analytics-sum
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -51,13 +52,13 @@ export default function TestPreOnboardingPage() {
   return (
     <LayoutGap>
       {!isUSStorage && (
-        <Alert.Container>
+        <Stack gap="xl">
           <Alert type="info">
             {t(
               'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
             )}
           </Alert>
-        </Alert.Container>
+        </Stack>
       )}
       <Panel>
         <IntroSection>

@@ -11,6 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
+import {Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -558,13 +559,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     return (
       <Fragment>
         {deprecateTransactionsAlertsWarning && (
-          <Alert.Container>
+          <Stack gap="xl">
             <Alert type="warning">
               {tctCode(
                 'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
               )}
             </Alert>
-          </Alert.Container>
+          </Stack>
         )}
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
@@ -593,13 +594,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 />
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert.Container>
+                <Stack gap="xl">
                   <Alert type="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}
                   </Alert>
-                </Alert.Container>
+                </Stack>
               )}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>

@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -162,7 +163,7 @@ export default function MetricDetailsBody({
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert.Container>
+            <Stack gap="xl">
               <Alert type="warning">
                 {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                   ? tct(
@@ -177,10 +178,10 @@ export default function MetricDetailsBody({
                       }
                     )}
               </Alert>
-            </Alert.Container>
+            </Stack>
           )}
           {deprecateTransactionsAlertsWarning && showTransactionsDeprecationAlert && (
-            <Alert.Container>
+            <Stack gap="xl">
               <Alert
                 type="warning"
                 trailingItems={
@@ -199,7 +200,7 @@ export default function MetricDetailsBody({
                   'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
                 )}
               </Alert>
-            </Alert.Container>
+            </Stack>
           )}
           <StyledSubHeader>
             <StyledTimeRangeSelector
