@@ -13,6 +13,7 @@ import {
   getSavedQueryTraceItemDataset,
   useGetSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {confirmDeleteSavedQuery} from 'sentry/views/explore/utils';
 
@@ -64,6 +65,12 @@ export function SavedQueryEditMenu() {
                   trackAnalytics('logs.delete_query', {
                     organization,
                   });
+                } else {
+                  navigate(
+                    getLogsUrl({
+                      organization,
+                    })
+                  );
                 }
               },
               savedQuery,
