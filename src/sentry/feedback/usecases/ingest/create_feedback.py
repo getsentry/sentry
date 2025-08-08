@@ -351,20 +351,6 @@ def create_feedback_issue(
                 )
                 labels = labels[:MAX_AI_LABELS]
 
-            # These are all used for client-side testing of the search API
-            labels = labels + [
-                'Annoying"Quote',
-                "Annoying*Wildcard",
-                # "AnnoyingMIDDLEWildcard",  # This is to test if a literal * in the search term will match the MIDDLE or if it means a literal *
-                'Quote\\"Backslash',
-                'Quote"And*Wildcard',
-                # "Wilcard\\*Backslash",  # there is a literal backslash here
-                "Wilcard\\MIDDLEBackslash",  # Used to test the literal * in the above search term, frontend logic for it
-                "Array[]Syntax",
-                "Comma,Syntax",
-                "RoundBrackets()Syntax)",
-            ]
-
             # Truncate the labels so the serialized list is within the allowed length
             while len(json.dumps(labels)) > MAX_AI_LABELS_JSON_LENGTH:
                 labels.pop()

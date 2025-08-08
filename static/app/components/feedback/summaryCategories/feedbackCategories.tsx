@@ -8,31 +8,22 @@ import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-// This is an example of a valid array filter with wildcards, and we want to exact-match the quotes around the labels, so we have one backslash to escape the quotes (this should go to the search API) but another backslash in JS to actually include the backslash in the string
-// const exampleFilter =
-//   '["*\\"Sentry\\"*","*\\"User Interface\\"*","*\\"Integrations\\"*","\\"Annoying\\\"Quote\\""]';
-
-// Return exactly what we have to pass to the search API
-// We search against a JSON-serialized array of all labels, this means:
-// - The first JSON.stringify is to give us the exact string we want to search for (since the array we are substring matching against has JSON-serialized strings, that have quotes on either side, and the JSON.stringify gives us those quotes on either side)
-// - But, the search API considers backslashes and quotes as special characters (similar to how JSON does), so we have to escape them again to indicate to search that they are exact matches, and not escape/special characters
-// Special case: if the label has a literal * in it, we have to escape it to indicate to search that it is a literal *. Since otherwise, anything will be matched on the *
-// Q: what if there is a literal \*, does escaping the backslash allow us to exact match on the backslash that's before the *?
-
-// Notes:
-// - Replacing * with \* does NOT work before JSON stringifying, because the \* is escaped to \\*, which actually ends up matching the wildcard and not the literal *
-//   - Thus, we want exactly one \ before *, so we replace after both JSON stringifying, but this also means that the actual wildcard must be added after the final JSON stringify
-
-// The key of this function is that the search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
 function getSearchTermForLabel(label: string) {
+  /**
+   * Return exactly what we have to pass to the search API
+   * The search API uses a very similar (almost exactly the same, except wildcards) escape logic to JSON.stringify, so doing it twice just "makes it work"
+   * We search against a JSON-serialized array of all labels, this means:
+   * - The first JSON.stringify is to give us the exact string we want to search for
+   * - The search API considers backslashes and quotes special characters (similar to JSON), so we have to escape them again to indicate that we want to match them exactly
+   * Special case: if the label has a literal * (asterisk) in it, we have to escape it to indicate that we want to match the literal *
+   * - The asterisk escape is added after both JSON conversions, since otherwise, the \* would be escaped to \\* and would match the wildcard instead of the literal *
+   */
+
   const exactMatchString = JSON.stringify(label);
   let toPassToSearch = JSON.stringify(exactMatchString);
-  // First, replace * with \* (this must be done after both JSON stringifies)
-  // TODO: use escapeFilterValue here because I think this only escapes the first one? wait idk
-  // toPassToSearch = toPassToSearch.replace('*', '\\*');
   toPassToSearch = escapeFilterValue(toPassToSearch);
   // Now, add the wildcards to the string (second spot and second-last spot, since we want them inside the second pair of quotes)
-  // The first and last quotes are added by the JSON.stringify, we just manually add them back
+  // The first and last quotes are added by the second JSON.stringify, we just manually add them back
   toPassToSearch = `"*${toPassToSearch.slice(1, -1)}*"`;
   return toPassToSearch;
 }
@@ -51,7 +42,6 @@ export default function FeedbackCategories({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get current search query from URL
   const currentQuery = useMemo(
     () => decodeScalar(location.query.query, ''),
     [location.query.query]
@@ -62,22 +52,20 @@ export default function FeedbackCategories({
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
-    // Create search terms for primary label and all associated labels
     const allLabels = [category.primaryLabel, ...category.associatedLabels];
 
     const exactSearchTerm = getSearchTermForLabelList(allLabels);
 
+    const isSelected = isCategoryOnlySelected(category);
+
     const newSearchConditions = new MutableSearch(currentQuery);
 
-    const isSelected = isTagOnlySelected(category);
-
     if (isSelected) {
-      // Remove search term
       newSearchConditions.removeFilterValue('ai_categorization.labels', exactSearchTerm);
     } else {
       newSearchConditions.removeFilter('ai_categorization.labels');
 
-      // Don't escape the search term, since we want wildcards to work. This means we escape the string ourselves before adding the wildcards
+      // Don't escape the search term, since we want wildcards to work; escape the string ourselves before adding the wildcards
       newSearchConditions.addFilterValue(
         'ai_categorization.labels',
         exactSearchTerm,
@@ -85,7 +73,6 @@ export default function FeedbackCategories({
       );
     }
 
-    // Update URL with new search query
     navigate({
       ...location,
       query: {
@@ -96,7 +83,7 @@ export default function FeedbackCategories({
     });
   };
 
-  const isTagOnlySelected = (category: {
+  const isCategoryOnlySelected = (category: {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
@@ -112,7 +99,7 @@ export default function FeedbackCategories({
   return (
     <TagsContainer>
       {categories.map((category, index) => {
-        const selected = isTagOnlySelected(category);
+        const selected = isCategoryOnlySelected(category);
         return (
           <ClickableTag
             key={index}
@@ -143,11 +130,4 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-
-  ${p =>
-    p.selected &&
-    `
-    border-width: 2px;
-    font-weight: ${p.theme.fontWeight.bold};
-  `}
 `;
