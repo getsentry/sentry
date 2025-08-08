@@ -23,10 +23,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {
-  useAutorefreshEnabledOrWithinPauseWindow,
-  useLogsAutoRefreshEnabled,
-} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
@@ -34,7 +31,10 @@ import {
   useLogsSortBys,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {
+  LOGS_INSTRUCTIONS_URL,
+  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
+} from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -90,6 +90,7 @@ export function LogsInfiniteTable({
   const search = useLogsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
+  const lastFetchTime = useRef<number | null>(null);
   const {
     isPending,
     isEmpty,
@@ -101,6 +102,7 @@ export function LogsInfiniteTable({
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
+    isRefetching,
   } = infiniteLogsQueryResult;
 
   // Use filtered items if provided, otherwise use original data
@@ -113,10 +115,8 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
-  const isAutorefreshEnabledOrWithinPauseWindow =
-    useAutorefreshEnabledOrWithinPauseWindow();
-  const scrollFetchDisabled =
-    isFunctionScrolling || !isAutorefreshEnabledOrWithinPauseWindow;
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -203,7 +203,13 @@ export function LogsInfiniteTable({
         lastItemIndex &&
         lastItemIndex >= data?.length - getDynamicLogsNextFetchThreshold(lastPageLength)
       ) {
-        fetchNextPage();
+        if (
+          lastFetchTime.current === null ||
+          Date.now() - lastFetchTime.current > MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS
+        ) {
+          fetchNextPage();
+          lastFetchTime.current = Date.now();
+        }
       }
     }
   }, [
@@ -217,6 +223,7 @@ export function LogsInfiniteTable({
     scrollOffset,
     isFunctionScrolling,
     scrollFetchDisabled,
+    lastFetchTime,
   ]);
 
   const handleExpand = useCallback((logItemId: string) => {
@@ -286,6 +293,7 @@ export function LogsInfiniteTable({
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" />
           )}
+          {isRefetching && <HoveringRowLoadingRenderer position="top" />}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
 
