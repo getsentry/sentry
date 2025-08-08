@@ -18,8 +18,23 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 // This is an example of a valid array filter with wildcards, and we want to exact-match the quotes around the labels, so we have one backslash to escape the quotes (this should go to the search API) but another backslash in JS to actually include the backslash in the string
-const exampleFilter =
-  '["*\\"Sentry\\"*","*\\"User Interface\\"*","*\\"Integrations\\"*"]';
+// const exampleFilter2 =
+//   '["*\\"Sentry\\"*","*\\"User Interface\\"*","*\\"Integrations\\"*","\\"Annoying\\\"Quote\\""]';
+
+// exampleFilter2
+
+const exampleFilter = '["*\\"Annoying\\\\\\"Quote\\"*"]';
+
+// Return exactly what we have to pass to the search API
+// We search against a JSON-serialized array of all labels, this means:
+// - Labels with a literal quote inside them have a literal backslash before the quote that we have to search for
+// - Quotes in the search API are used as array separators, so we have to escape any literal quotes in the label
+// - Backslashes are used as escape characters, and we need a literal backslash in the string
+// function getSearchTermForLabel(label: string) {
+//   return JSON.stringify(JSON.stringify(label));
+// }
+
+// const exampleFilter = `[${getSearchTermForLabel('*"Annoying"Quote"*')}]`;
 
 export default function FeedbackSummary() {
   const {
@@ -238,6 +253,7 @@ const TagsContainer = styled('div')`
 const ClickableTag = styled(Tag)<{selected: boolean}>`
   cursor: pointer;
   transition: all 0.2s ease;
+  max-width: none; /* Override the default max-width constraint */
 
   &:hover {
     transform: translateY(-1px);
