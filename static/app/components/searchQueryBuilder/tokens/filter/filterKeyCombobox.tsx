@@ -53,7 +53,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       if (
         newFilterValueType === currentFilterValueType &&
         // IS and HAS filters are strings, but treated differently and will break
-        // if we prevserve the value.
+        // if we preserve the value.
         keyName !== FieldKey.IS &&
         keyName !== FieldKey.HAS
       ) {
@@ -88,7 +88,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     [handleSelectKey]
   );
 
-  const onValueCommited = useCallback(
+  const onValueCommitted = useCallback(
     (keyName: string) => {
       const trimmedKeyName = keyName.trim();
 
@@ -117,7 +117,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         items={sortedFilterKeys}
         placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
-        onCustomValueCommitted={onValueCommited}
+        onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
         onExit={onExit}
         inputValue={inputValue}
