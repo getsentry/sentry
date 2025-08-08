@@ -23,18 +23,26 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 // exampleFilter2
 
-const exampleFilter = '["*\\"Annoying\\\\\\"Quote\\"*"]';
+// const exampleFilter = '["*\\"Annoying\\\\\\"Quote\\"*"]';
+
+// const exampleFilter = '["*\\"Annoying\\*Wildcard\\"*", "*\\"User Interface\\"*"]';
 
 // Return exactly what we have to pass to the search API
 // We search against a JSON-serialized array of all labels, this means:
-// - Labels with a literal quote inside them have a literal backslash before the quote that we have to search for
-// - Quotes in the search API are used as array separators, so we have to escape any literal quotes in the label
-// - Backslashes are used as escape characters, and we need a literal backslash in the string
-// function getSearchTermForLabel(label: string) {
-//   return JSON.stringify(JSON.stringify(label));
-// }
+// - The first JSON.stringify is to give us the exact string we want to search for (since the array we are substring matching against has JSON-serialized strings, that have quotes on either side, and the JSON.stringify gives us those quotes on either side)
+// - But, the search API considers backslashes and quotes as special characters (similar to how JSON does), so we have to escape them again to indicate to search that they are exact matches, and not escape/special characters
+// Special case: if the label has a literal * in it, we have to escape it to indicate to search that it is a literal *
+// Q: what if there is a literal \*, does escaping the backslash allow us to exact match on the backslash that's before the *?
+function getSearchTermForLabel(label: string) {
+  return JSON.stringify(`*${JSON.stringify(label)}*`);
+}
 
-// const exampleFilter = `[${getSearchTermForLabel('*"Annoying"Quote"*')}]`;
+function getSearchTermForLabelList(labels: string[]) {
+  const searchTerms = labels.map(label => getSearchTermForLabel(label));
+  return `[${searchTerms.join(',')}]`;
+}
+
+const exampleFilter = getSearchTermForLabelList(['Annoying*Wildcard']);
 
 export default function FeedbackSummary() {
   const {

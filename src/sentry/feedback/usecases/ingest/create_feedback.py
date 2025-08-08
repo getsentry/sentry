@@ -355,6 +355,8 @@ def create_feedback_issue(
             labels = labels + [
                 'Annoying"Quote',
                 "Annoying*Wildcard",
+                # "AnnoyingMIDDLEWildcard",  # This is to test if a literal * in the search term will match the MIDDLE or if it means a literal *
+                'Quote\\"Backslash',
                 'Quote"And*Wildcard',
                 "Wilcard\\*Backslash",  # there is a literal backslash here
                 "Array[]Syntax",
