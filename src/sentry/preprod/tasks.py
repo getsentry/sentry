@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
@@ -104,6 +105,14 @@ def assemble_preprod_artifact(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
+            head_sha=kwargs.get("head_sha"),
+            base_sha=kwargs.get("base_sha"),
+            provider=kwargs.get("provider"),
+            head_repo_name=kwargs.get("head_repo_name"),
+            base_repo_name=kwargs.get("base_repo_name"),
+            head_ref=kwargs.get("head_ref"),
+            base_ref=kwargs.get("base_ref"),
+            pr_number=kwargs.get("pr_number"),
         )
 
     except Exception as e:
@@ -138,6 +147,14 @@ def create_preprod_artifact(
     project_id,
     checksum,
     build_configuration=None,
+    head_sha=None,
+    base_sha=None,
+    provider=None,
+    head_repo_name=None,
+    base_repo_name=None,
+    head_ref=None,
+    base_ref=None,
+    pr_number=None,
 ) -> str | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -145,6 +162,37 @@ def create_preprod_artifact(
         bind_organization_context(organization)
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # Create CommitComparison if git information is provided
+            commit_comparison = None
+            if head_sha and head_repo_name and provider and head_ref:
+                commit_comparison, _ = CommitComparison.objects.get_or_create(
+                    organization_id=org_id,
+                    head_sha=head_sha,
+                    base_sha=base_sha,
+                    provider=provider,
+                    head_repo_name=head_repo_name,
+                    base_repo_name=base_repo_name,
+                    head_ref=head_ref,
+                    base_ref=base_ref,
+                    pr_number=pr_number,
+                )
+            else:
+                logger.info(
+                    "Skipping commit comparison creation because required vcs information is not provided",
+                    extra={
+                        "project_id": project_id,
+                        "organization_id": org_id,
+                        "head_sha": head_sha,
+                        "head_repo_name": head_repo_name,
+                        "provider": provider,
+                        "head_ref": head_ref,
+                        "base_sha": base_sha,
+                        "base_repo_name": base_repo_name,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
+                )
+
             build_config = None
             if build_configuration:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
@@ -156,6 +204,7 @@ def create_preprod_artifact(
                 project=project,
                 build_configuration=build_config,
                 state=PreprodArtifact.ArtifactState.UPLOADING,
+                commit_comparison=commit_comparison,
             )
 
             logger.info(

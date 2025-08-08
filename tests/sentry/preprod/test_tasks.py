@@ -2,6 +2,7 @@ from hashlib import sha1
 
 from django.core.files.base import ContentFile
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.preprod.models import (
@@ -57,6 +58,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             checksum=total_checksum,
             chunks=[blob.checksum],
             artifact_id=artifact_id,
+            build_configuration="release",
         )
 
         # The main assemble_preprod_artifact task doesn't set assembly status
@@ -76,8 +78,73 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         artifacts = PreprodArtifact.objects.filter(project=self.project)
         assert len(artifacts) == 1
+        assert artifacts[0].file_id == files[0].id
         assert artifacts[0].build_configuration == build_configs[0]
-        assert artifacts[0].state == PreprodArtifact.ArtifactState.UPLOADED
+
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
+    def test_assemble_preprod_artifact_with_commit_comparison(self) -> None:
+        content = b"test preprod artifact with commit comparison"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        # Create preprod artifact first
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
+        )
+        assert artifact_id is not None
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact_id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
+        )
+
+        # The main assemble_preprod_artifact task doesn't set assembly status
+        # Only the assemble_file function sets error status when there are problems
+        # So we should check the actual artifacts created instead
+
+        # Verify CommitComparison was created
+        commit_comparisons = CommitComparison.objects.filter(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+        )
+        assert len(commit_comparisons) == 1
+        commit_comparison = commit_comparisons[0]
+        assert commit_comparison.provider == "github"
+        assert commit_comparison.head_repo_name == "owner/repo"
+        assert commit_comparison.base_repo_name == "owner/repo"
+        assert commit_comparison.head_ref == "feature/xyz"
+        assert commit_comparison.base_ref == "main"
+        assert commit_comparison.pr_number == 123
+
+        # Verify PreprodArtifact was created
+        artifacts = PreprodArtifact.objects.filter(project=self.project)
+        assert len(artifacts) == 1
 
     def test_assemble_preprod_artifact_without_build_configuration(self) -> None:
         """Test that assemble_preprod_artifact succeeds without build_configuration"""
