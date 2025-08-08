@@ -17,6 +17,7 @@ from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.retry import RetryError, retry_task
+from sentry.taskworker.state import current_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
@@ -250,7 +251,15 @@ def retry(
                 raise
             except timeout_exceptions:
                 if timeouts:
-                    sentry_sdk.capture_exception(level="info")
+                    with sentry_sdk.isolation_scope() as scope:
+                        task_state = current_task()
+                        if task_state:
+                            scope.fingerprint = [
+                                "task.processing_deadline_exceeded",
+                                task_state.namespace,
+                                task_state.taskname,
+                            ]
+                        sentry_sdk.capture_exception(level="info")
                     retry_task()
                 else:
                     raise

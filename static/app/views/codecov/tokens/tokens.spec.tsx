@@ -79,7 +79,7 @@ describe('TokensPage', () => {
           },
         }
       );
-      await screen.findByText('Repository tokens');
+      expect(await screen.findByText('Repository tokens')).toBeInTheDocument();
     });
 
     it('displays the integrated organization name in the description', async () => {
@@ -135,9 +135,7 @@ describe('TokensPage', () => {
         }
       );
 
-      await waitFor(() => {
-        expect(screen.getByRole('table')).toBeInTheDocument();
-      });
+      expect(await screen.findByRole('table')).toBeInTheDocument();
     });
 
     it('renders the pagination component', async () => {
@@ -158,9 +156,7 @@ describe('TokensPage', () => {
         }
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('Pagination Component')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('Pagination Component')).toBeInTheDocument();
     });
 
     it('renders repository tokens and related data', async () => {
@@ -181,9 +177,7 @@ describe('TokensPage', () => {
         }
       );
 
-      await waitFor(() => {
-        expect(screen.getByRole('table')).toBeInTheDocument();
-      });
+      expect(await screen.findByRole('table')).toBeInTheDocument();
       expect(screen.getByText('test2')).toBeInTheDocument();
       expect(screen.getByText('test2Token')).toBeInTheDocument();
       expect(await screen.findAllByText('Regenerate token')).toHaveLength(2);
@@ -191,6 +185,16 @@ describe('TokensPage', () => {
 
     it('Creates new token when regenerate token button is clicked after opening the modal and clicking the Generate new token button', async () => {
       mockApiCall();
+
+      // Mock the regenerate token API call
+      const regenerateTokenMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prevent/owner/1/repository/test2/token/regenerate/',
+        method: 'POST',
+        body: {
+          token: 'new-generated-token-12345',
+        },
+      });
+
       render(
         <CodecovQueryParamsProvider>
           <TokensPage />
@@ -208,9 +212,7 @@ describe('TokensPage', () => {
       );
       renderGlobalModal();
 
-      await waitFor(() => {
-        expect(screen.getByRole('table')).toBeInTheDocument();
-      });
+      expect(await screen.findByRole('table')).toBeInTheDocument();
 
       const regenerateTokenButtons = await screen.findAllByText('Regenerate token');
       expect(regenerateTokenButtons).toHaveLength(2);
@@ -220,6 +222,9 @@ describe('TokensPage', () => {
 
       // Click the Generate new token button to open the modal
       await userEvent.click(screen.getByRole('button', {name: 'Generate new token'}));
+
+      // Wait for the API call to complete
+      await waitFor(() => expect(regenerateTokenMock).toHaveBeenCalled());
 
       // This is confirming all the new modal stuff
       expect(
@@ -231,10 +236,7 @@ describe('TokensPage', () => {
         )
       ).toBeInTheDocument();
 
-      expect(screen.getByDisplayValue('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
-      expect(
-        screen.getByDisplayValue('91b57316-b1ff-4884-8d55-92b9936a05a3')
-      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue('new-generated-token-12345')).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });

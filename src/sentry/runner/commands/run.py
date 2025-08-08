@@ -293,11 +293,16 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @run.command()
 @click.option(
     "--rpc-host",
-    help="The hostname for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
 )
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
+)
+@click.option(
+    "--rpc-host-list",
+    help="Provide a comma separated list of broker RPC host:ports. Use when your broker host names are not compatible with `rpc-host`",
+    default=None,
 )
 @click.option(
     "--max-child-task-count",
@@ -342,6 +347,7 @@ def taskworker(**options: Any) -> None:
 def run_taskworker(
     rpc_host: str,
     num_brokers: int | None,
+    rpc_host_list: str | None,
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
@@ -354,12 +360,14 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
+    from sentry.taskworker.client.client import make_broker_hosts
     from sentry.taskworker.worker import TaskWorker
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            rpc_host=rpc_host,
-            num_brokers=num_brokers,
+            broker_hosts=make_broker_hosts(
+                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+            ),
             max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,
