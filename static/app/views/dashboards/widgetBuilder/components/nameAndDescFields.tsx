@@ -37,7 +37,8 @@ function WidgetBuilderNameAndDescription({
         tooltipText={t('This will appear in the header of your widget.')}
       />
       <StyledTextField
-        name={t('Name')}
+        autoComplete="off"
+        name="widget-name"
         size="md"
         placeholder={t('Name')}
         title={t('Name')}
@@ -77,6 +78,7 @@ function WidgetBuilderNameAndDescription({
       )}
       {isDescSelected && (
         <TextArea
+          autoComplete="off"
           placeholder={t('Description')}
           aria-label={t('Description')}
           autosize
