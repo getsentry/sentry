@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-class OrganizationTraceItemsAttributesRankedEndpointTest(APITestCase, SnubaTestCase):
+class ProjectReplayBreadcrumbsEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details-breadcrumbs"
 
     def setUp(self):
