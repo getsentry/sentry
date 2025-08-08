@@ -160,7 +160,9 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
 
     def get_snuba_query(self, detector: Detector):
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        query_subscription = QuerySubscription.objects.get(id=data_source_detector.data_source.source_id)
+        query_subscription = QuerySubscription.objects.get(
+            id=data_source_detector.data_source.source_id
+        )
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         return snuba_query
 
