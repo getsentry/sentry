@@ -165,7 +165,12 @@ function menuIsOpen({
 
   // When a custom menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return openState && totalOptions > hiddenOptions.size;
+
+  if (totalOptions === 0) {
+    return false;
+  }
+
+  return openState && totalOptions >= hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
