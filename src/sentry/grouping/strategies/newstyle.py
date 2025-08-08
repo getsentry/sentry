@@ -300,6 +300,8 @@ def frame(
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
+    variant_name = context["variant_name"]
+    assert variant_name is not None
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -371,7 +373,7 @@ def frame(
     if context["is_recursion"]:
         frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant_name"]: frame_component}
+    return {variant_name: frame_component}
 
 
 def get_contextline_component(
@@ -409,7 +411,7 @@ def get_contextline_component(
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    assert context["variant_name"] is None
+    assert context.get("variant_name") is None
 
     return call_with_variants(
         _single_stacktrace_variant,
@@ -425,6 +427,7 @@ def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
     variant_name = context["variant_name"]
+    assert variant_name is not None
 
     frames = stacktrace.frames
 
@@ -467,7 +470,7 @@ def _single_stacktrace_variant(
         frame_components,
         raw_frames,
         event.platform,
-        exception_data=context["exception_data"],
+        exception_data=context.get("exception_data"),
     )
 
     # This context value is set by the grouping info endpoint, so that the frame order of the
