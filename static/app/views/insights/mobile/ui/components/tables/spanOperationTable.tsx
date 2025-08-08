@@ -37,7 +37,7 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: SpanOperationTableProps) {
-  const moduleURL = useModuleURL('mobile-ui');
+  const moduleURL = useModuleURL('mobile-vitals');
   const location = useLocation();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
@@ -161,8 +161,7 @@ export function SpanOperationTable({
   function renderBodyCell(column: any, row: any) {
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanFields.SPAN_DESCRIPTION];
-
-      const pathname = `${moduleURL}/spans/`;
+      const pathname = `${moduleURL}/details/`;
 
       const query = {
         ...location.query,
