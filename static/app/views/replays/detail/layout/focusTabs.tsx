@@ -81,7 +81,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
       >
         <TabList hideBorder>
           {tabs.map(([tab, label]) => (
-            <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
+            <TabList.Item
+              key={tab}
+              textValue={tab}
+              data-test-id={`replay-details-${tab}-btn`}
+            >
               {label}
             </TabList.Item>
           ))}
