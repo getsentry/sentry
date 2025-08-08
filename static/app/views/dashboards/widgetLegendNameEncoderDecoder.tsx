@@ -13,7 +13,7 @@ const WidgetLegendNameEncoderDecoder = {
     return `${seriesName}${SERIES_NAME_DELIMITER}${widgetId}`;
   },
 
-  decodeSeriesNameForLegend(encodedSeriesName: string) {
+  decodeSeriesNameForLegend(encodedSeriesName: string, skipPrettify = false) {
     let seriesName = encodedSeriesName.split(SERIES_NAME_DELIMITER)[0];
     if (!seriesName) {
       return '';
@@ -21,7 +21,7 @@ const WidgetLegendNameEncoderDecoder = {
 
     // If the series name contains an aggregate function, prettify it
     const functionMatch = seriesName.match(AGGREGATE_BASE);
-    if (functionMatch?.[0] && parseFunction(functionMatch[0])) {
+    if (!skipPrettify && functionMatch?.[0] && parseFunction(functionMatch[0])) {
       seriesName = seriesName.replace(
         functionMatch[0],
         prettifyParsedFunction(parseFunction(functionMatch[0])!)
