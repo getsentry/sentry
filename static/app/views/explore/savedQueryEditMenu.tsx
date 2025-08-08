@@ -39,21 +39,21 @@ export function SavedQueryEditMenu() {
             confirmDeleteSavedQuery({
               handleDelete: async () => {
                 await deleteQuery(savedQuery.id);
-                if (location.pathname.endsWith('compare/')) {
-                  navigate(
-                    normalizeUrl(
-                      `/organizations/${organization.slug}/explore/traces/compare/`
-                    )
-                  );
-                } else {
-                  navigate(
-                    normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
-                  );
-                }
                 if (
                   getSavedQueryTraceItemDataset(savedQuery.dataset) ===
                   TraceItemDataset.SPANS
                 ) {
+                  if (location.pathname.endsWith('compare/')) {
+                    navigate(
+                      normalizeUrl(
+                        `/organizations/${organization.slug}/explore/traces/compare/`
+                      )
+                    );
+                  } else {
+                    navigate(
+                      normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
+                    );
+                  }
                   trackAnalytics('trace_explorer.delete_query', {
                     organization,
                   });
