@@ -33,6 +33,8 @@ import {
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
+  parseFunction,
+  prettifyParsedFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -176,11 +178,16 @@ export function getTableSortOptions(
     .filter(field => !!field)
     .forEach(field => {
       let alias: any;
-      const label = stripEquationPrefix(field);
+      let label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
         equations += 1;
+      }
+
+      const parsedFunction = parseFunction(field);
+      if (parsedFunction) {
+        label = prettifyParsedFunction(parsedFunction);
       }
 
       options.push({label, value: alias ?? field});

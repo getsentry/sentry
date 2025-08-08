@@ -45,6 +45,8 @@ import {
   isAggregateField,
   isEquation,
   isEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {
   createOnDemandFilterWarning,
@@ -1323,6 +1325,14 @@ function ViewerTableV2({
       ? datasetConfig?.getFieldHeaderMap?.()
       : {}
   );
+
+  // Inject any prettified function names that aren't currently aliased into the aliases
+  for (const column of tableColumns) {
+    const parsedFunction = parseFunction(column.key);
+    if (!aliases[column.key] && parsedFunction) {
+      aliases[column.key] = prettifyParsedFunction(parsedFunction);
+    }
+  }
 
   if (loading) {
     return (
