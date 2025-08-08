@@ -59,7 +59,9 @@ export function SavedQueriesTable({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasLogsEnabled = organization.features.includes('ourlogs-enabled');
+  const hasLogsSavedQueriesEnabled =
+    organization.features.includes('ourlogs-enabled') &&
+    organization.features.includes('ourlogs-saved-queries');
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
@@ -171,7 +173,7 @@ export function SavedQueriesTable({
     <Container>
       <TableHeading>{title}</TableHeading>
       <SavedEntityTableWithColumns
-        hasLogsEnabled={hasLogsEnabled}
+        hasLogsEnabled={hasLogsSavedQueriesEnabled}
         pageSize={perPage}
         isLoading={isLoading}
         header={
@@ -180,7 +182,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell data-column="name">
               {t('Name')}
             </SavedEntityTable.HeaderCell>
-            {hasLogsEnabled && (
+            {hasLogsSavedQueriesEnabled && (
               <SavedEntityTable.HeaderCell data-column="dataset">
                 {t('Type')}
               </SavedEntityTable.HeaderCell>
@@ -232,7 +234,7 @@ export function SavedQueriesTable({
                 {query.name}
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
-            {hasLogsEnabled && (
+            {hasLogsSavedQueriesEnabled && (
               <SavedEntityTable.Cell data-column="dataset">
                 {getSavedQueryDatasetLabel(query.dataset)}
               </SavedEntityTable.Cell>

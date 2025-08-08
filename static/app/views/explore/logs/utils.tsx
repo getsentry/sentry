@@ -21,6 +21,12 @@ import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/query
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -344,7 +350,7 @@ export function getLogsUrl({
   interval,
   mode,
   referrer,
-  sort,
+  sortBy,
   title,
 }: {
   organization: Organization;
@@ -356,7 +362,7 @@ export function getLogsUrl({
   query?: string;
   referrer?: string;
   selection?: PageFilters;
-  sort?: string;
+  sortBy?: string;
   title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
@@ -367,15 +373,15 @@ export function getLogsUrl({
     statsPeriod,
     start,
     end,
-    query,
+    [LOGS_QUERY_KEY]: query,
     utc,
-    field,
-    groupBy,
+    [LOGS_FIELDS_KEY]: field,
+    [LOGS_GROUP_BY_KEY]: groupBy,
     id,
     interval,
     mode,
     referrer,
-    sort,
+    [LOGS_SORT_BYS_KEY]: sortBy,
     title,
   };
 
@@ -402,6 +408,13 @@ export function getLogsUrlFromSavedQueryUrl(
   const firstQuery = savedQuery.query[0];
   return getLogsUrl({
     organization,
+    field: firstQuery.fields,
+    groupBy: firstQuery.groupby,
+    sortBy: firstQuery.orderby,
+    title: savedQuery.name,
+    id: savedQuery.id,
+    interval: savedQuery.interval,
+    mode: firstQuery.mode,
     query: firstQuery.query,
     selection: {
       datetime: {

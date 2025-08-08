@@ -203,8 +203,9 @@ export function useSaveAsItems({
 
   return useMemo(() => {
     const saveAs = [];
-    // Add save query option first
-    saveAs.push(saveAsQuery);
+    if (organization.features.includes('ourlogs-saved-queries')) {
+      saveAs.push(saveAsQuery);
+    }
     if (organization.features.includes('ourlogs-alerts')) {
       saveAs.push(saveAsAlert);
     }

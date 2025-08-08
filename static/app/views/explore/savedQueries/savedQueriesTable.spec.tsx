@@ -192,12 +192,16 @@ describe('SavedQueriesTable', () => {
           },
           query: [
             {
-              fields: ['message', 'timestamp', 'custom_field'],
-              query: 'test:foo',
+              mode: 'samples',
+              fields: ['timestamp', 'message', 'user.email'],
               groupby: ['message'],
-              sort: 'timestamp',
+              query:
+                'message:"System time zone does not match user preferences time zone"',
+              orderby: 'user.email',
             },
           ],
+          range: '1h',
+          interval: '5m',
           dataset: 'logs',
         },
       ],
@@ -207,7 +211,7 @@ describe('SavedQueriesTable', () => {
     });
     expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?environment=production&project=1&query=test%3Afoo&field=message&field=timestamp&field=custom_field'
+      '/organizations/org-slug/explore/logs/?environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsGroupBy=message&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
     );
   });
 
