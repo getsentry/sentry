@@ -263,7 +263,6 @@ function convertLogsPageParamsToRequest(
     ? [
         {
           yAxes: [aggregate],
-          chartType: 0,
         },
       ]
     : undefined;
