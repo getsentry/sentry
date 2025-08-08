@@ -59,10 +59,7 @@ describe('PreventAIOnboarding', function () {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
-    expect(orgSettingsLink).toHaveAttribute(
-      'href',
-      '/settings/test-org/security-and-privacy'
-    );
+    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
 
     const githubIntegrationLink = screen.getByRole('link', {
       name: 'GitHub integration instructions',
