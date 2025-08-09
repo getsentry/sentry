@@ -293,29 +293,57 @@ def get_event_file_committers(
 
 
 def get_serialized_committers(project: Project, group_id: int) -> Sequence[AuthorCommitsSerialized]:
-    return get_serialized_event_file_committers(
-        project=project, event=None, group_id=group_id, fallback_to_release_based_strategy=False
-    )
+    group_owners = GroupOwner.objects.filter(
+        group_id=group_id,
+        project=project,
+        organization_id=project.organization_id,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        context__isnull=False,
+    ).order_by("-date_added")
+
+    if len(group_owners) > 0:
+        owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
+        if not owner:
+            return []
+        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit_author = commit.author
+
+        if not commit_author:
+            return []
+
+        author: NonMappableUser = {"email": commit_author.email, "name": commit_author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
+
+        return [
+            {
+                "author": author,
+                "commits": [
+                    serialize(
+                        commit,
+                        serializer=CommitSerializer(
+                            exclude=["author"],
+                            type=SuspectCommitType.INTEGRATION_COMMIT.value,
+                        ),
+                    )
+                ],
+            }
+        ]
 
 
 def get_serialized_event_file_committers(
     project: Project,
-    event: Event | GroupEvent | None,
+    event: Event | GroupEvent,
     frame_limit: int = 25,
-    group_id: int | None = None,
-    fallback_to_release_based_strategy: bool = True,
 ) -> Sequence[AuthorCommitsSerialized]:
-    if event is not None and group_id is not None:
-        raise ValueError("Cannot pass both 'event' and 'group_id' - use one or the other")
-
-    if not group_id and event and event.group_id is None:
+    if event.group_id is None:
         return []
 
-    if not group_id:
-        group_id = event.group_id
-
     group_owners = GroupOwner.objects.filter(
-        group_id=group_id,
+        group_id=event.group_id,
         project=project,
         organization_id=project.organization_id,
         type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -359,12 +387,12 @@ def get_serialized_event_file_committers(
     # We should refactor to query GroupOwner rather than recalculate.
     # But we need to store the commitId and a way to differentiate
     # if the Suspect Commit came from ReleaseCommits or CommitContext.
-    if fallback_to_release_based_strategy:
+    else:
         event_frames = get_frame_paths(event)
         sdk_name = get_sdk_name(event.data)
         committers = get_event_file_committers(
             project,
-            group_id,
+            event.group_id,
             event_frames,
             event.platform,
             frame_limit=frame_limit,
@@ -399,8 +427,6 @@ def get_serialized_event_file_committers(
             skip_internal=False,
         )
         return serialized_committers
-
-    return []
 
 
 def dedupe_commits(

@@ -1023,22 +1023,6 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_get_serialized_event_file_committers_rejects_both_params(self) -> None:
-        """Test that passing both event and group_id raises ValueError"""
-        event = self.store_event(
-            data={
-                "fingerprint": ["group1"],
-                "timestamp": before_now(seconds=1).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-
-        with pytest.raises(ValueError, match="Cannot pass both 'event' and 'group_id'"):
-            get_serialized_event_file_committers(
-                project=self.project, event=event, group_id=event.group.id
-            )
-
 
 class DedupeCommits(CommitTestCase):
     def setUp(self) -> None:
