@@ -325,7 +325,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         release = Release.objects.create(
             organization_id=org.id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880387, tzinfo=UTC),
         )
         release.add_project(project)
 
