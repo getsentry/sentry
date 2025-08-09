@@ -51,6 +51,7 @@ def record(
             Topic.SHARED_RESOURCES_USAGE,
         )["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config["client.id"] = "sentry.usage_accountant"
         producer = KafkaProducer(
             build_kafka_configuration(
                 default_config=producer_config,

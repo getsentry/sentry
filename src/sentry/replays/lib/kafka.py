@@ -20,6 +20,7 @@ def _get_eap_items_producer() -> KafkaProducer:
     """Get a Kafka producer for EAP TraceItems."""
     cluster_name = get_topic_definition(Topic.SNUBA_ITEMS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config["client.id"] = "sentry.replays.lib.kafka.eap_items"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -34,6 +35,7 @@ eap_producer = SingletonProducer(_get_eap_items_producer)
 def _get_ingest_replay_events_producer() -> KafkaProducer:
     config = get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
     producer_config = get_kafka_producer_cluster_options(config["cluster"])
+    producer_config["client.id"] = "sentry.replays.lib.kafka.ingest_replay_events"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -77,8 +79,14 @@ def initialize_replays_publisher(is_async: bool = False) -> KafkaPublisher:
 
 def _init_replay_publisher(is_async: bool) -> KafkaPublisher:
     config = get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
+    producer_config = get_kafka_producer_cluster_options(config["cluster"])
+    producer_config["client.id"] = (
+        "sentry.replays.lib.kafka.publisher.async"
+        if is_async
+        else "sentry.replays.lib.kafka.publisher.sync"
+    )
     return KafkaPublisher(
-        get_kafka_producer_cluster_options(config["cluster"]),
+        producer_config,
         asynchronous=is_async,
     )
 

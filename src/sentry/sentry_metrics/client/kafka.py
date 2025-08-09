@@ -52,6 +52,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         self.kafka_topic = ArroyoTopic(topic_defn["real_topic_name"])
         cluster_name = topic_defn["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config["client.id"] = "sentry.sentry_metrics.client.kafka"
         self.producer: Producer = KafkaProducer(
             build_kafka_configuration(default_config=producer_config)
         )
