@@ -10,7 +10,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
@@ -145,17 +144,15 @@ function ReleasesDetail({
         e => e?.status === 404 || e?.status === 403
       );
       return (
-        <SentryDocumentTitle title={pageTitle}>
-          <Layout.Page>
-            <Alert.Container>
-              <Alert type="error">
-                {possiblyWrongProject
-                  ? t('This release may not be in your selected project.')
-                  : t('There was an error loading the release details')}
-              </Alert>
-            </Alert.Container>
-          </Layout.Page>
-        </SentryDocumentTitle>
+        <Layout.Page title={pageTitle}>
+          <Alert.Container>
+            <Alert type="error">
+              {possiblyWrongProject
+                ? t('This release may not be in your selected project.')
+                : t('There was an error loading the release details')}
+            </Alert>
+          </Alert.Container>
+        </Layout.Page>
       );
     },
     [pageTitle]
@@ -174,11 +171,9 @@ function ReleasesDetail({
     isReleasePending || (isDeploysEnabled && isDeploysPending) || isSessionsPending;
   if (isPending) {
     return (
-      <SentryDocumentTitle title={pageTitle}>
-        <Layout.Page>
-          <LoadingIndicator />
-        </Layout.Page>
-      </SentryDocumentTitle>
+      <Layout.Page title={pageTitle}>
+        <LoadingIndicator />
+      </Layout.Page>
     );
   }
 
@@ -190,34 +185,32 @@ function ReleasesDetail({
   }
 
   return (
-    <SentryDocumentTitle title={pageTitle}>
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <ReleaseHeader
-            location={location}
-            organization={organization}
-            release={release}
-            project={project}
-            releaseMeta={releaseMeta}
-            refetchData={refetchData}
-          />
-          <ReleaseContext
-            value={{
-              release,
-              project,
-              deploys,
-              releaseMeta,
-              refetchData,
-              hasHealthData:
-                getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
-              releaseBounds,
-            }}
-          >
-            {children}
-          </ReleaseContext>
-        </NoProjectMessage>
-      </Layout.Page>
-    </SentryDocumentTitle>
+    <Layout.Page title={pageTitle}>
+      <NoProjectMessage organization={organization}>
+        <ReleaseHeader
+          location={location}
+          organization={organization}
+          release={release}
+          project={project}
+          releaseMeta={releaseMeta}
+          refetchData={refetchData}
+        />
+        <ReleaseContext
+          value={{
+            release,
+            project,
+            deploys,
+            releaseMeta,
+            refetchData,
+            hasHealthData:
+              getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
+            releaseBounds,
+          }}
+        >
+          {children}
+        </ReleaseContext>
+      </NoProjectMessage>
+    </Layout.Page>
   );
 }
 
@@ -253,7 +246,7 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
 
   if (isPending) {
     return (
-      <Layout.Page>
+      <Layout.Page title={null}>
         <LoadingIndicator />
       </Layout.Page>
     );
@@ -262,7 +255,7 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
   if (isError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
-      <Layout.Page withPadding>
+      <Layout.Page title={null} withPadding>
         <Alert.Container>
           <Alert type="error">{t('This release could not be found.')}</Alert>
         </Alert.Container>

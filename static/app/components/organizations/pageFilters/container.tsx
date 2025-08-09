@@ -200,7 +200,7 @@ function PageFiltersContainer({
   // would speed up orgs with tons of projects
   if (!isReady || !hasInitialized) {
     return (
-      <Layout.Page withPadding>
+      <Layout.Page title={null} withPadding>
         <LoadingIndicator />
       </Layout.Page>
     );

@@ -15,7 +15,7 @@ interface WorkflowEngineListLayoutProps {
 function WorkflowEngineListLayout({children, actions}: WorkflowEngineListLayoutProps) {
   const title = useDocumentTitle();
   return (
-    <Layout.Page>
+    <Layout.Page title={null}>
       <Layout.Header unified>
         <Layout.HeaderContent>
           <Layout.Title>{title}</Layout.Title>

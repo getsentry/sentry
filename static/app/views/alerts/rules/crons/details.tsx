@@ -13,7 +13,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -138,7 +137,7 @@ function MonitorDetails({params, location}: Props) {
 
   if (!monitor) {
     return (
-      <Layout.Page>
+      <Layout.Page title={null}>
         <LoadingIndicator />
       </Layout.Page>
     );
@@ -147,8 +146,7 @@ function MonitorDetails({params, location}: Props) {
   const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
-    <Layout.Page>
-      <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
+    <Layout.Page title={`${monitor.name} — Alerts`}>
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
         <TimezoneProvider timezone={timezoneOverride}>
