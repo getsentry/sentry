@@ -148,7 +148,6 @@ class PostProcessForwarderTest(TestCase):
                 is_regression=None,
                 queue="post_process_errors",
                 is_new_group_environment=False,
-                group_states=None,
                 occurrence_id=None,
                 eventstream_type=EventStreamEventType.Error.value,
             )
