@@ -14,7 +14,9 @@ resources:
 
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -167,31 +169,24 @@ You can control the initial expansion state of alerts with the `defaultExpanded`
 
 ### Trailing Items
 
-Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
+Add interactive elements like buttons, links or badges to the right side of alerts using the `trailingItems` prop.
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert
-      type="info"
-      trailingItems={
-        <Button size="xs" priority="primary">
-          Take Action
-        </Button>
-      }
-    >
-      This alert has a trailing action button
+    <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
+      This alert has a trailing bagde
     </Alert>
     <Alert
       type="error"
       trailingItems={
-        <div>
-          <Button size="xs" priority="danger" icon={<IconDelete />}>
+        <Flex gap="sm">
+          <Button size="zero" priority="danger" icon={<IconDelete />}>
             Delete
           </Button>
-          <Button size="xs" priority="muted" icon={<IconEdit />}>
+          <Button size="zero" priority="muted" icon={<IconEdit />}>
             Edit
           </Button>
-        </div>
+        </Flex>
       }
     >
       This alert has multiple trailing actions
@@ -203,24 +198,24 @@ Add interactive elements like buttons or links to the right side of alerts using
   <Alert
     type="info"
     trailingItems={
-      <Button size="xs" priority="primary">
+      <Button size="zero" priority="primary">
         Take Action
       </Button>
     }
   >
-    This alert has a trailing action button
+    This alert has a trailing badge
   </Alert>
   <Alert
     type="error"
     trailingItems={
-      <div>
-        <Button size="xs" priority="danger" icon={<IconDelete />}>
+      <Flex gap="sm">
+        <Button size="zero" priority="danger" icon={<IconDelete />}>
           Delete
         </Button>
-        <Button size="xs" priority="muted" icon={<IconEdit />}>
+        <Button size="zero" priority="muted" icon={<IconEdit />}>
           Edit
         </Button>
-      </div>
+      </Flex>
     }
   >
     This alert has multiple trailing actions
