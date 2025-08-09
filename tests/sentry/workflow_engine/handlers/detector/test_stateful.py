@@ -98,7 +98,7 @@ class TestStatefulDetectorHandler(TestCase):
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
     def setUp(self) -> None:
-        self.group_key: DetectorGroupKey = None
+        self.group_key: DetectorGroupKey = "test_group"
         self.detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
@@ -193,6 +193,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             "id": str(key),
             "dedupe": key,
             "group_vals": {self.group_key: result.name},
+            "value": result.name,
         }
         return DataPacket(source_id=str(key), packet=packet)
 
@@ -390,6 +391,21 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
+
+    def test_evaluate__without_grouping(self):
+        self.handler.has_grouping = False
+
+        self.handler._thresholds[Level.HIGH] = 1
+        full_result = self.handler.evaluate(self.packet(2, Level.HIGH))
+        result = full_result[None]
+
+        assert result
+        assert isinstance(result.result, IssueOccurrence)
+        assert result.result.evidence_data
+
+        evidence_data = result.result.evidence_data
+        assert evidence_data.get("detector_id") == self.detector.id
+        assert evidence_data.get("value") == Level.HIGH.name
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):

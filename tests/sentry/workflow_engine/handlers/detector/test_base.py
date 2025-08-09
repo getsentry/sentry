@@ -11,6 +11,7 @@ from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
+    DetectorThresholds,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
@@ -55,6 +56,18 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
+    def __init__(
+        self,
+        detector: Detector,
+        thresholds: DetectorThresholds | None = None,
+        has_grouping: bool = True,
+    ):
+        """
+        Tests have `has_grouping` enabled by default.
+        This is to ensure consistency in tests, when the flag was introduced.
+        """
+        super().__init__(detector, thresholds, has_grouping)
+
     def test_get_empty_counter_state(self):
         return {name: None for name in self.state_manager.counter_names}
 
@@ -62,10 +75,10 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
         return data_packet.packet.get("dedupe", 0)
 
     def extract_value(self, data_packet: DataPacket[dict]) -> int:
-        if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+        if self.has_grouping:
+            return data_packet.packet.get("group_vals", 0)
 
-        return data_packet.packet.get("group_vals", 0)
+        return data_packet.packet["value"]
 
     def create_occurrence(
         self,
