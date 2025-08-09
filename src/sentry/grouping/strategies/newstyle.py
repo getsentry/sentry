@@ -370,9 +370,6 @@ def frame(
         ):
             frame_component.update(contributes=False, hint="ignored low quality javascript frame")
 
-    if context["is_recursion"]:
-        frame_component.update(contributes=False, hint="ignored due to recursion")
-
     return {variant_name: frame_component}
 
 
@@ -437,9 +434,9 @@ def _single_stacktrace_variant(
     found_in_app_frame = False
 
     for frame in frames:
-        with context:
-            context["is_recursion"] = _is_recursive_frame(frame, prev_frame)
-            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        if _is_recursive_frame(frame, prev_frame):
+            frame_component.update(contributes=False, hint="ignored due to recursion")
 
         if variant_name == "app":
             if frame.in_app:
