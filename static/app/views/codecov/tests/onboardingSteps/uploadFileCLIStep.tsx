@@ -21,27 +21,29 @@ export function UploadFileCLIStep({previousStep, step}: UploadFileCLIStepProps) 
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <StyledP>
-          {t(
-            'The following snippet instructs the CLI to upload this report to Sentry Prevent.'
-          )}
-        </StyledP>
-        <StyledCodeSnippet dark language="bash">
-          {SNIPPET}
-        </StyledCodeSnippet>
-        <StyledP>
-          {tct(
-            'Be sure to specify [reportType] as [testResults] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
-            {
-              reportType: <PinkText>--report-type</PinkText>,
-              testResults: <PinkText>test_results</PinkText>,
-              previousStep,
-            }
-          )}
-        </StyledP>
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <StyledP>
+            {t(
+              'The following snippet instructs the CLI to upload this report to Sentry Prevent.'
+            )}
+          </StyledP>
+          <StyledCodeSnippet dark language="bash">
+            {SNIPPET}
+          </StyledCodeSnippet>
+          <StyledP>
+            {tct(
+              'Be sure to specify [reportType] as [testResults] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
+              {
+                reportType: <PinkText>--report-type</PinkText>,
+                testResults: <PinkText>test_results</PinkText>,
+                previousStep,
+              }
+            )}
+          </StyledP>
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }
@@ -53,6 +55,10 @@ const StyledP = styled('p')`
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.md};
+
+  code {
+    text-wrap: wrap;
+  }
 `;
 
 const PinkText = styled('span')`
