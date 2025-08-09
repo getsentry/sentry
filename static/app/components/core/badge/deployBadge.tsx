@@ -15,6 +15,8 @@ interface DeployBadgeProps {
 }
 
 export function DeployBadge(props: DeployBadgeProps) {
+  const tooltipTitle = `${t('Open In Issues')}: ${props.deploy.environment}`;
+  
   return (
     <Link
       to={{
@@ -26,7 +28,7 @@ export function DeployBadge(props: DeployBadgeProps) {
         },
       }}
     >
-      <Tooltip title={t('Open In Issues')} skipWrapper>
+      <Tooltip title={tooltipTitle} skipWrapper>
         <TruncatedTag type="highlight">{props.deploy.environment}</TruncatedTag>
       </Tooltip>
     </Link>
@@ -35,4 +37,7 @@ export function DeployBadge(props: DeployBadgeProps) {
 
 const TruncatedTag = styled(Tag)`
   max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
