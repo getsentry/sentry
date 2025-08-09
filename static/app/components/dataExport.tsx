@@ -5,7 +5,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -71,14 +70,11 @@ export function useDataExport({
         if (unmountedRef?.current) {
           return;
         }
-        const isSelfHosted = ConfigStore.get('isSelfHosted');
         const message =
-          err?.status === 404 && !isSelfHosted
-            ? t('Data export requires Business Plan')
-            : (err?.responseJSON?.detail ??
-              t(
-                "We tried our hardest, but we couldn't export your data. Give it another go."
-              ));
+          err?.responseJSON?.detail ??
+          t(
+            "We tried our hardest, but we couldn't export your data. Give it another go."
+          );
 
         addErrorMessage(message);
         inProgressCallback?.(false);
