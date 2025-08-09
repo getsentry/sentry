@@ -74,10 +74,6 @@ export function FeatureListFixture(): Record<string, Feature> {
       name: 'Discover Query Builder',
       description: 'Build and save custom queries using Discover.',
     },
-    'global-views': {
-      name: 'Cross project visibility',
-      description: 'View data across all projects in your organization.',
-    },
     invoices: {
       name: 'Invoicing',
       description: 'Standard invoicing for your accounting department.',
