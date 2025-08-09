@@ -16,16 +16,19 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
-    <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-      <table>
-        <tbody>{children}</tbody>
-      </table>
-    </LogsPageParamsProvider>
+    <LogsQueryParamsProvider source="location">
+      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
+        <table>
+          <tbody>{children}</tbody>
+        </table>
+      </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 

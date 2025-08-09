@@ -373,11 +373,6 @@ export function useLogsAggregate() {
   return `${aggregateFn}(${aggregateParam})`;
 }
 
-export function useLogsGroupBy() {
-  const {groupBy} = useLogsPageParams();
-  return groupBy;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;

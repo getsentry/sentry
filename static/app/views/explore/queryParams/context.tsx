@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -64,4 +65,14 @@ export function useSetQueryParamsMode() {
     },
     [setQueryParams]
   );
+}
+
+export function useQueryParamsGroupBys(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.groupBys;
+}
+
+export function useQueryParamsTopEventsLimit(): number | undefined {
+  const groupBys = useQueryParamsGroupBys();
+  return groupBys.every(groupBy => groupBy === '') ? undefined : TOP_EVENTS_LIMIT;
 }
