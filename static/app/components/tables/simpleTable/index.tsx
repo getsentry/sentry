@@ -23,8 +23,18 @@ export function SimpleTable({children, ...props}: TableProps) {
   );
 }
 
-function Header({children}: {children: React.ReactNode}) {
-  return <StyledPanelHeader role="row">{children}</StyledPanelHeader>;
+function Header({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.DetailedHTMLProps<
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+>) {
+  return (
+    <StyledPanelHeader {...props} role="row">
+      {children}
+    </StyledPanelHeader>
+  );
 }
 
 function HeaderCell({
