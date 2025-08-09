@@ -95,3 +95,110 @@ class FindReferencedGroupsTest(TestCase):
         assert len(groups) == 2
         assert group in groups
         assert group2 in groups
+
+    def test_sentry_url_resolution(self):
+        group = self.create_group()
+        group2 = self.create_group()
+
+        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
+
+        # Test single URL resolution
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://sentry.io/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
+        # Test multiple URL resolution
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://sentry.io/issues/{group.id} https://sentry.io/issues/{group2.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 2
+        assert group in groups
+        assert group2 in groups
+
+        # Test mixed URL and short ID resolution
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://sentry.io/issues/{group.id} {group2.qualified_short_id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 2
+        assert group in groups
+        assert group2 in groups
+
+        # Test HTTPS URL resolution
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nResolves https://hyreas.sentry.io/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
+        # Test different .io subdomain
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://mycompany.sentry.io/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
+    def test_sentry_url_validation(self):
+        """Test that only Sentry-like URLs are processed"""
+        group = self.create_group()
+        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
+
+        # Test that random URLs are ignored
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://github.com/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 0
+
+        # Test that only .io Sentry URLs are processed
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://hyreas.sentry.io/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
+        # Test that .com URLs are ignored (not hosted Sentry)
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes https://sentry.company.com/issues/{group.id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 0
