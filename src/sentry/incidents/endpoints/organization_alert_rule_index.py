@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -44,7 +44,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -770,5 +770,23 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            alert_count = (
+                AlertRule.objects.filter(
+                    organization=organization,
+                )
+                .exclude(status=AlertRuleStatus.SNAPSHOT.value)
+                .count()
+            )
+            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
+
+            if alert_limit >= 0 and alert_count >= alert_limit:
+                return Response(
+                    f"You may not exceed {alert_limit} metric alerts on your current plan.",
+                    status=400,
+                )
+
         self.check_can_create_alert(request, organization)
         return create_metric_alert(request, organization)

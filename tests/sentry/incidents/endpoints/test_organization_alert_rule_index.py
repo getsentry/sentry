@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -1639,6 +1640,59 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
+        # Set limit to 2 alert rules
+        mock_get_limit.return_value = 2
+
+        # Create 2 existing metric alert rules (1 active, 1 to be deleted)
+        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.PENDING)
+        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.SNAPSHOT)
+
+        # Create another alert rule, it should succeed
+        data = deepcopy(self.alert_rule_dict)
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
+
+        # Create another alert rule, it should fail
+        data = deepcopy(self.alert_rule_dict)
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            **data,
+        )
+        assert resp.data == "You may not exceed 2 metric alerts on your current plan."
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_metric_alert_limit_unlimited_plan(self, mock_get_limit: MagicMock) -> None:
+        # Set limit to -1 (unlimited)
+        mock_get_limit.return_value = -1
+
+        # Create many alert rules
+        for _ in range(5):
+            self.create_alert_rule(organization=self.organization)
+
+        # Creating another alert rule, it should succeed
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        mock_get_limit.assert_called_once_with(self.organization.id)
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.name == "JustAValidTestRule"
 
 
 @freeze_time()
