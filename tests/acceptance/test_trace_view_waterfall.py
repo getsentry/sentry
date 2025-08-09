@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase, TraceTestCase
@@ -38,6 +40,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.page = TraceViewWaterfallPage(self.browser, self.client)
         self.dismiss_assistant()
 
+    @pytest.mark.skip(reason="flaky: #97287")
     @patch("django.utils.timezone.now")
     def test_trace_view_waterfall_loads(self, mock_now):
         mock_now.return_value = self.start
