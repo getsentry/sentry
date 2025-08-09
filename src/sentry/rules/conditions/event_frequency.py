@@ -351,34 +351,19 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         group_on_time: bool = False,
         project_ids: list[int] | None = None,
     ) -> Mapping[int, int]:
-        kwargs = {
-            "model": model,
-            "keys": keys,
-            "start": start,
-            "end": end,
-            "environment_id": environment_id,
-            "use_cache": True,
-            "jitter_value": group_id,
-            "tenant_ids": {"organization_id": organization_id},
-            "referrer_suffix": referrer_suffix,
-            "group_on_time": group_on_time,
-        }
-
-        # Try to pass project_ids if provided, but fall back gracefully if not supported
-        result: Mapping[int, int]
-        if project_ids is not None:
-            try:
-                kwargs["project_ids"] = project_ids
-                result = tsdb_function(**kwargs)
-            except TypeError as e:
-                if "project_ids" in str(e):
-                    # Function doesn't support project_ids, try without it
-                    kwargs.pop("project_ids", None)
-                    result = tsdb_function(**kwargs)
-                else:
-                    raise
-        else:
-            result = tsdb_function(**kwargs)
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group_id,
+            tenant_ids={"organization_id": organization_id},
+            referrer_suffix=referrer_suffix,
+            group_on_time=group_on_time,
+            project_ids=project_ids,
+        )
         return result
 
     def get_chunked_result(
