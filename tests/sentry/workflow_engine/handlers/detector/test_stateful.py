@@ -98,7 +98,7 @@ class TestStatefulDetectorHandler(TestCase):
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
     def setUp(self) -> None:
-        self.group_key: DetectorGroupKey = None
+        self.group_key: DetectorGroupKey = "test_group"
         self.detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
@@ -392,23 +392,18 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert state_data.is_triggered is True
         assert state_data.status == Level.LOW
 
-    def test_evaluate__with_grouping(self):
-        self.handler.has_grouping = True
-        self.group_key = "test_group"
+    def test_evaluate__without_grouping(self):
+        self.handler.has_grouping = False
 
         self.handler._thresholds[Level.HIGH] = 1
-        result = self.handler.evaluate(self.packet(2, Level.HIGH))
+        full_result = self.handler.evaluate(self.packet(2, Level.HIGH))
+        result = full_result[None]
 
         assert result
-        group_result = result[self.group_key]
+        assert isinstance(result.result, IssueOccurrence)
+        assert result.result.evidence_data
 
-        assert group_result
-        assert group_result.result
-
-        assert isinstance(group_result.result, IssueOccurrence)
-        assert group_result.result.evidence_data
-        evidence_data = group_result.result.evidence_data
-
+        evidence_data = result.result.evidence_data
         assert evidence_data.get("detector_id") == self.detector.id
         assert evidence_data.get("value") == Level.HIGH.name
 
