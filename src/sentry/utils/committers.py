@@ -292,8 +292,52 @@ def get_event_file_committers(
     return _get_committers(annotated_frames, relevant_commits)
 
 
+def get_serialized_committers(project: Project, group_id: int) -> Sequence[AuthorCommitsSerialized]:
+    group_owners = GroupOwner.objects.filter(
+        group_id=group_id,
+        project=project,
+        organization_id=project.organization_id,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        context__isnull=False,
+    ).order_by("-date_added")
+
+    if len(group_owners) > 0:
+        owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
+        if not owner:
+            return []
+        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit_author = commit.author
+
+        if not commit_author:
+            return []
+
+        author: NonMappableUser = {"email": commit_author.email, "name": commit_author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
+
+        return [
+            {
+                "author": author,
+                "commits": [
+                    serialize(
+                        commit,
+                        serializer=CommitSerializer(
+                            exclude=["author"],
+                            type=SuspectCommitType.INTEGRATION_COMMIT.value,
+                        ),
+                    )
+                ],
+            }
+        ]
+
+
 def get_serialized_event_file_committers(
-    project: Project, event: Event | GroupEvent, frame_limit: int = 25
+    project: Project,
+    event: Event | GroupEvent,
+    frame_limit: int = 25,
 ) -> Sequence[AuthorCommitsSerialized]:
     if event.group_id is None:
         return []
