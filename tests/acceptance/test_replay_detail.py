@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import pytest
+
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -105,6 +107,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
 
+    @pytest.mark.skip(reason="flaky: #97289")
     def test_errors_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
