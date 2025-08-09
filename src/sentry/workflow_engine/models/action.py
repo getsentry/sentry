@@ -112,6 +112,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
     def get_dedup_key(self) -> str:
         key_parts = [self.type]
+
+        if self.integration_id:
+            key_parts.append(str(self.integration_id))
+
         if self.config:
             config = self.config.copy()
             config.pop("channel_name", None)

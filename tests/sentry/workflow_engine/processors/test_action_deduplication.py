@@ -43,19 +43,16 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-    def test_deduplicate_actions_different_types(self) -> None:
-        """Test that actions of different types are not deduplicated."""
-        # Create actions of different types
-        slack_action = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
+        # Common Jira integration used across Jira tests
+        self.jira_integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            name="Test Jira",
+            external_id="jira-123",
         )
 
+    def test_deduplicate_actions_different_types(self) -> None:
+        """Test that actions of different types are not deduplicated."""
         email_action = self.create_action(
             type=Action.Type.EMAIL,
             config={
@@ -64,30 +61,20 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(id__in=[slack_action.id, email_action.id])
-        action_to_workflow_ids = {slack_action.id: 1, email_action.id: 2}
+        actions_queryset = Action.objects.filter(id__in=[self.slack_action.id, email_action.id])
+        action_to_workflow_ids = {self.slack_action.id: 1, email_action.id: 2}
 
         result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
 
         # Both actions should remain since they're different types
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 2
-        assert slack_action.id in result_ids
+        assert self.slack_action.id in result_ids
         assert email_action.id in result_ids
 
     def test_deduplicate_actions_same_slack_channels(self) -> None:
         """Test that Slack actions to the same channel are deduplicated."""
-        # Create two Slack actions to the same channel
-        slack_action_1 = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
-
+        slack_action_1 = self.slack_action
         slack_action_2 = self.create_action(
             type=Action.Type.SLACK,
             integration_id=self.slack_integration.id,
@@ -110,23 +97,44 @@ class TestActionDeduplication(TestCase):
 
     def test_deduplicate_actions_different_slack_channels(self) -> None:
         """Test that Slack actions to different channels are not deduplicated."""
-        # Create two Slack actions to different channels
-        slack_action_1 = self.create_action(
+        slack_action_1 = self.slack_action
+
+        integration_2 = self.create_integration(
+            organization=self.organization, external_id="slack-456"
+        )
+
+        # config is the exact same as the first slack action
+        slack_action_2 = self.create_action(
             type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
+            integration_id=integration_2.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
                 "target_identifier": "channel-123",
-                "target_display": "Test Channel 1",
+                "target_display": "Test Channel",
             },
         )
+
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
+        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Both actions should remain since they target different channels
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 2
+        assert slack_action_1.id in result_ids
+        assert slack_action_2.id in result_ids
+
+    def test_deduplicate_multiple_slack_actions_same_channel_different_name(self) -> None:
+        """Test that Slack actions to the same channel but different names are not deduplicated."""
+        slack_action_1 = self.slack_action
 
         slack_action_2 = self.create_action(
             type=Action.Type.SLACK,
             integration_id=self.slack_integration.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-456",
+                "target_identifier": "channel-123",
                 "target_display": "Test Channel 2",
             },
         )
@@ -144,6 +152,41 @@ class TestActionDeduplication(TestCase):
 
     def test_deduplicate_actions_same_slack_different_data(self) -> None:
         """Test that Slack actions with same config but different data are not deduplicated."""
+        slack_action_1 = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=self.slack_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "channel-123",
+                "target_display": "Test Channel",
+            },
+            data={"notes": "first action"},
+        )
+
+        slack_action_2 = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=self.slack_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "channel-123",
+                "target_display": "Test Channel",
+            },
+            data={"notes": "second action"},
+        )
+
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
+        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Both actions should remain since they have different data
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 2
+        assert slack_action_1.id in result_ids
+        assert slack_action_2.id in result_ids
+
+    def test_deduplicate_actions_different_slack_integrations(self) -> None:
+        """Test that Slack actions with different integrations are not deduplicated."""
         # Create two Slack actions with same config but different data
         slack_action_1 = self.create_action(
             type=Action.Type.SLACK,
@@ -323,16 +366,8 @@ class TestActionDeduplication(TestCase):
             external_id="pd-123",
         )
 
-        # Create Slack and PagerDuty actions with same target identifier
-        slack_action = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
+        # Use setup Slack action and create PagerDuty action with same target identifier
+        slack_action = self.slack_action
 
         pagerduty_action = self.create_action(
             type=Action.Type.PAGERDUTY,
@@ -357,17 +392,10 @@ class TestActionDeduplication(TestCase):
 
     def test_deduplicate_actions_ticketing_actions(self) -> None:
         """Test that ticketing actions are deduplicated by integration_id and dynamic form field data."""
-        jira_integration = self.create_integration(
-            organization=self.organization,
-            provider="jira",
-            name="Test Jira",
-            external_id="jira-123",
-        )
-
         # Create two Jira actions for the same integration but different projects
         jira_action_1 = self.create_action(
             type=Action.Type.JIRA,
-            integration_id=jira_integration.id,
+            integration_id=self.jira_integration.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
             },
@@ -378,7 +406,7 @@ class TestActionDeduplication(TestCase):
 
         jira_action_2 = self.create_action(
             type=Action.Type.JIRA,
-            integration_id=jira_integration.id,
+            integration_id=self.jira_integration.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
             },
@@ -399,17 +427,10 @@ class TestActionDeduplication(TestCase):
         assert jira_action_2.id in result_ids
 
     def test_deduplicate_actions_ticketing_actions_same_integration_and_data(self) -> None:
-        jira_integration = self.create_integration(
-            organization=self.organization,
-            provider="jira",
-            name="Test Jira",
-            external_id="jira-123",
-        )
-
         # Create two Jira actions for the same integration but different projects
         jira_action_1 = self.create_action(
             type=Action.Type.JIRA,
-            integration_id=jira_integration.id,
+            integration_id=self.jira_integration.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
             },
@@ -420,7 +441,7 @@ class TestActionDeduplication(TestCase):
 
         jira_action_2 = self.create_action(
             type=Action.Type.JIRA,
-            integration_id=jira_integration.id,
+            integration_id=self.jira_integration.id,
             config={
                 "target_type": ActionTarget.SPECIFIC,
             },
@@ -451,15 +472,7 @@ class TestActionDeduplication(TestCase):
 
     def test_deduplicate_actions_single_action(self) -> None:
         """Test deduplication with single action."""
-        single_action = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
+        single_action = self.slack_action
 
         actions_queryset = Action.objects.filter(id=single_action.id)
         action_to_workflow_ids = {single_action.id: 1}
@@ -473,15 +486,7 @@ class TestActionDeduplication(TestCase):
 
     def test_deduplicate_actions_preserves_action_with_lower_id(self) -> None:
         # Create two identical Slack actions
-        slack_action_1 = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
+        slack_action_1 = self.slack_action
 
         slack_action_2 = self.create_action(
             type=Action.Type.SLACK,
