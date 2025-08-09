@@ -5,7 +5,17 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
+from sentry.analytics.events.alert_edited import AlertEditedEvent
+from sentry.analytics.events.issue_assigned import IssueAssignedEvent
+from sentry.analytics.events.issue_deleted import IssueDeletedEvent
+from sentry.analytics.events.issue_escalating import IssueEscalatingEvent
+from sentry.analytics.events.issue_mark_reviewed import IssueMarkReviewedEvent
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
+from sentry.analytics.events.issue_unignored import IssueUnignoredEvent
+from sentry.analytics.events.plugin_enabled import PluginEnabledEvent
+from sentry.analytics.events.repo_linked import RepoLinkedEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
@@ -56,6 +66,8 @@ from sentry.signals import (
     transaction_processed,
     user_feedback_received,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
@@ -207,11 +219,12 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = None
         default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
     analytics.record(
-        "issue.assigned",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
+        IssueAssignedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+        )
     )
 
 
@@ -289,10 +302,11 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
         default_user_id = organization.get_default_owner().id
 
     analytics.record(
-        "advanced_search.feature_gated",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=organization.id,
+        AdvancedSearchFeatureGateEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=organization.id,
+        )
     )
 
 
@@ -388,25 +402,26 @@ def record_alert_rule_edited(
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "alert.edited",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        rule_id=rule.id,
-        rule_type=rule_type,
-        is_api_token=is_api_token,
+        AlertEditedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            rule_id=rule.id,
+            rule_type=rule_type,
+            is_api_token=is_api_token,
+        )
     )
 
 
 @plugin_enabled.connect(weak=False)
-def record_plugin_enabled(plugin, project, user, **kwargs):
+def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
     analytics.record(
-        "plugin.enabled",
-        user_id=user.id if user else None,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        plugin=plugin.slug,
+        PluginEnabledEvent(
+            user_id=user.id if user else None,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            plugin=plugin.slug,
+        )
     )
     if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
         FeatureAdoption.objects.record(
@@ -460,12 +475,13 @@ def record_repo_linked(repo, user, **kwargs):
         default_user_id = Organization.objects.get(id=repo.organization_id).get_default_owner().id
 
     analytics.record(
-        "repo.linked",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=repo.organization_id,
-        repository_id=repo.id,
-        provider=repo.provider,
+        RepoLinkedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=repo.organization_id,
+            repository_id=repo.id,
+            provider=repo.provider,
+        )
     )
 
 
@@ -539,14 +555,21 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_escalating.connect(weak=False)
-def record_issue_escalating(project, group, event, was_until_escalating, **kwargs):
+def record_issue_escalating(
+    project: Project,
+    group: Group,
+    event: GroupEvent | None,
+    was_until_escalating: bool,
+    **kwargs,
+):
     analytics.record(
-        "issue.escalating",
-        organization_id=project.organization_id,
-        project_id=project.id,
-        group_id=group.id,
-        event_id=event.event_id if event else None,
-        was_until_escalating=was_until_escalating,
+        IssueEscalatingEvent(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            group_id=group.id,
+            event_id=event.event_id if event else None,
+            was_until_escalating=was_until_escalating,
+        )
     )
 
 
@@ -582,17 +605,18 @@ def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "issue.unignored",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        transition_type=transition_type,
+        IssueUnignoredEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+            transition_type=transition_type,
+        )
     )
 
 
 @issue_mark_reviewed.connect(weak=False)
-def record_issue_reviewed(project, user, group, **kwargs):
+def record_issue_reviewed(project: Project, user: RpcUser | User | None, group: Group, **kwargs):
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -600,11 +624,12 @@ def record_issue_reviewed(project, user, group, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "issue.mark_reviewed",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
+        IssueMarkReviewedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+        )
     )
 
 
@@ -713,13 +738,14 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         user_id = None
         default_user_id = group.project.organization.get_default_owner().id
     analytics.record(
-        "issue.deleted",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=group.project.organization_id,
-        group_id=group.id,
-        project_id=group.project_id,
-        delete_type=delete_type,
+        IssueDeletedEvent(
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=group.project.organization_id,
+            group_id=group.id,
+            project_id=group.project_id,
+            delete_type=delete_type,
+        )
     )
 
 
