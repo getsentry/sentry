@@ -10,12 +10,14 @@ import {
   replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
+import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
 import {
   type AutofixData,
   type AutofixProgressItem,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,6 +30,7 @@ const animationProps: AnimationProps = {
   animate: {opacity: 1},
   transition: testableTransition({duration: 0.3}),
 };
+
 interface StepProps {
   groupId: string;
   hasErroredStepBefore: boolean;
@@ -144,6 +147,21 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
+  const {repos, codebases} = useAutofixRepos(groupId);
+
+  // Collect all codebases with coding agent states
+  const codebasesWithAgents = Object.values(codebases || {}).filter(
+    codebase => codebase.coding_agent_state
+  );
+
+  // Map coding agent states to their corresponding repositories
+  const codingAgentData = codebasesWithAgents.map(codebase => {
+    const repo = repos?.find(r => r.external_id === codebase.repo_external_id);
+    return {
+      codingAgentState: codebase.coding_agent_state!,
+      repo,
+    };
+  });
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -249,6 +267,13 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           </div>
         );
       })}
+      {codingAgentData.map(({codingAgentState, repo}) => (
+        <CodingAgentCard
+          key={`coding-agent-${codingAgentState.id}`}
+          codingAgentState={codingAgentState}
+          repo={repo}
+        />
+      ))}
       {shouldShowOutputStream && (
         <AutofixOutputStream
           stream={lastStep!.output_stream ?? ''}

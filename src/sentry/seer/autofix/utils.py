@@ -1,3 +1,4 @@
+import enum
 import logging
 from datetime import UTC, datetime
 from typing import TypedDict
@@ -36,11 +37,35 @@ class FileChange(BaseModel):
     is_deleted: bool = False
 
 
+class CodingAgentStatus(str, enum.Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CodingAgentResult(BaseModel):
+    description: str
+    pr_url: str | None = None
+
+
+class CodingAgentState(BaseModel):
+    id: str
+    status: CodingAgentStatus = CodingAgentStatus.PENDING
+    agent_url: str | None = None
+    pr_url: str | None = None
+    branch_name: str | None = None
+    name: str
+    started_at: datetime
+    result: CodingAgentResult | None = None
+
+
 class CodebaseState(BaseModel):
     repo_external_id: str | None = None
     file_changes: list[FileChange] = []
     is_readable: bool | None = None
     is_writeable: bool | None = None
+    coding_agent_state: CodingAgentState | None = None
 
 
 class AutofixState(BaseModel):
