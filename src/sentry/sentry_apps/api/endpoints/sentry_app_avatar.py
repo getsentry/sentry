@@ -8,6 +8,7 @@ from sentry.api.bases.avatar import AvatarMixin
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_avatar import SentryAppAvatarParser
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
 
@@ -27,7 +28,12 @@ class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoin
             request, access=request.access, serializer=SentryAppSerializer(), **kwargs
         )
 
-    def put(self, request: Request, **kwargs) -> Response:
+    def put(self, request: Request, sentry_app: SentryApp, **kwargs) -> Response:
+        if not request.user.is_staff and sentry_app.is_published:
+            return Response(
+                "Please contact partners@sentry.io to update the logo or icon of a published integration.",
+                status=403,
+            )
         return super().put(
             request, access=request.access, serializer=SentryAppSerializer(), **kwargs
         )

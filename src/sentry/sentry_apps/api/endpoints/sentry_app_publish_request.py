@@ -77,8 +77,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         ), "User must be authenticated to update a Sentry App"
         SentryAppUpdater(
             sentry_app=sentry_app,
+            user=request.user,
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-        ).run(user=request.user)
+        ).run()
 
         org_mapping = OrganizationMapping.objects.filter(
             organization_id=sentry_app.owner_id

@@ -42,6 +42,7 @@ from sentry.sentry_apps.models.sentry_app import (
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps.service_hook_manager import (
@@ -94,6 +95,7 @@ def _is_elevated_user(user) -> bool:
 @dataclasses.dataclass
 class SentryAppUpdater:
     sentry_app: SentryApp
+    user: User
     name: str | None = None
     author: str | None = None
     status: str | None = None
@@ -109,7 +111,7 @@ class SentryAppUpdater:
     popularity: int | None = None
     features: list[int] | None = None
 
-    def run(self, user: User | RpcUser) -> SentryApp:
+    def run(self) -> SentryApp:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_UPDATE,
@@ -117,8 +119,8 @@ class SentryAppUpdater:
             with transaction.atomic(router.db_for_write(User)):
                 self._update_name()
                 self._update_author()
-                self._update_features(user=user)
-                self._update_status(user=user)
+                self._update_features()
+                self._update_status()
                 self._update_scopes()
                 self._update_events()
                 self._update_webhook_url()
@@ -128,16 +130,22 @@ class SentryAppUpdater:
                 self._update_overview()
                 self._update_allowed_origins()
                 new_schema_elements = self._update_schema()
-                self._update_popularity(user=user)
+                self._update_popularity()
                 self.sentry_app.save()
             self._update_service_hooks()
-            self.record_analytics(user, new_schema_elements)
+            self.record_analytics(new_schema_elements)
             return self.sentry_app
 
-    def _update_features(self, user: User | RpcUser) -> None:
+    def _update_features(self) -> None:
         if self.features is not None:
-            if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
-                raise APIError("Cannot update features on a published integration.")
+            if (
+                not _is_elevated_user(self.user)
+                and self.sentry_app.status == SentryAppStatus.PUBLISHED
+            ):
+                raise SentryAppError(
+                    message="Please contact partners@sentry.io to update the features of a published integration.",
+                    status_code=403,
+                )
 
             IntegrationFeature.objects.clean_update(
                 incoming_features=self.features,
@@ -146,6 +154,11 @@ class SentryAppUpdater:
             )
 
     def _update_name(self) -> None:
+        if not _is_elevated_user(self.user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            raise SentryAppError(
+                message="Please contact partners@sentry.io to update the name of a published integration.",
+                status_code=403,
+            )
         if self.name is not None:
             self.sentry_app.name = self.name
 
@@ -153,9 +166,9 @@ class SentryAppUpdater:
         if self.author is not None:
             self.sentry_app.author = self.author
 
-    def _update_status(self, user: User | RpcUser) -> None:
+    def _update_status(self) -> None:
         if self.status is not None:
-            if _is_elevated_user(user):
+            if _is_elevated_user(self.user):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -169,7 +182,10 @@ class SentryAppUpdater:
             if self.sentry_app.status == SentryAppStatus.PUBLISHED and set(
                 self.sentry_app.scope_list
             ) != set(self.scopes):
-                raise APIError("Cannot update permissions on a published integration.")
+                raise SentryAppError(
+                    message="Please contact partners@sentry.io to update the permissions of a published integration.",
+                    status_code=403,
+                )
 
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
             # Because we're using bulk_update here to update all the tokens for the SentryApp,
@@ -251,9 +267,9 @@ class SentryAppUpdater:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
-    def _update_popularity(self, user: User | RpcUser) -> None:
+    def _update_popularity(self) -> None:
         if self.popularity is not None:
-            if _is_elevated_user(user):
+            if _is_elevated_user(self.user):
                 self.sentry_app.popularity = self.popularity
 
     def _update_schema(self) -> set[str] | None:
@@ -281,10 +297,10 @@ class SentryAppUpdater:
                     type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
                 )
 
-    def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+    def record_analytics(self, new_schema_elements: set[str] | None) -> None:
         analytics.record(
             "sentry_app.updated",
-            user_id=user.id,
+            user_id=self.user.id,
             organization_id=self.sentry_app.owner_id,
             sentry_app=self.sentry_app.slug,
             created_alert_rule_ui_component="alert-rule-action" in (new_schema_elements or set()),

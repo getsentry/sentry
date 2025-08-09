@@ -147,8 +147,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             assert isinstance(
                 request.user, (User, RpcUser)
             ), "User must be authenticated to update a Sentry App"
+
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
+                user=request.user,
                 name=result.get("name"),
                 author=result.get("author"),
                 features=result.get("features"),
@@ -163,7 +165,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
                 popularity=result.get("popularity"),
-            ).run(user=request.user)
+            ).run()
 
             return Response(
                 serialize(
