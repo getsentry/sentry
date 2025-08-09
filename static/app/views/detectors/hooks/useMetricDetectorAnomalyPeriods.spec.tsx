@@ -96,7 +96,7 @@ describe('useMetricDetectorAnomalyPeriods', () => {
           environment: undefined,
           projectId: '1',
           statsPeriod: TimePeriod.SEVEN_DAYS,
-          timePeriod: 900, // 15 minutes
+          interval: 900, // 15 minutes
           thresholdType: AlertRuleThresholdType.ABOVE,
           sensitivity: AlertRuleSensitivity.MEDIUM,
           enabled: true,
