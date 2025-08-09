@@ -25,6 +25,8 @@ from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -237,6 +239,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else AttributeKey.Type.TYPE_STRING
         )
 
+        include_internal = is_active_superuser(request) or is_active_staff(request)
+
         def data_fn(offset: int, limit: int):
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
@@ -253,7 +257,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if use_sentry_conventions:
                 attribute_keys = {}
                 for attribute in rpc_response.attributes:
-                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type):
+                    if attribute.name and can_expose_attribute(
+                        attribute.name, trace_item_type, include_internal=include_internal
+                    ):
                         attr_key = as_attribute_key(
                             attribute.name, serialized["attribute_type"], trace_item_type
                         )
@@ -280,7 +286,10 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             attribute.name, serialized["attribute_type"], trace_item_type
                         )
                         for attribute in rpc_response.attributes
-                        if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+                        if attribute.name
+                        and can_expose_attribute(
+                            attribute.name, trace_item_type, include_internal=include_internal
+                        )
                     ],
                 )
             )
