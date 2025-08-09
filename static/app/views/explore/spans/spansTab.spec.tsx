@@ -1,7 +1,14 @@
 import type {ReactNode} from 'react';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
@@ -55,7 +62,15 @@ const datePageFilterProps: PickableDays = {
 };
 
 describe('SpansTabContent', function () {
-  const {organization, project} = initializeOrg();
+  const {organization, project} = initializeOrg({
+    organization: {
+      features: [
+        'gen-ai-features',
+        'gen-ai-explore-traces',
+        'gen-ai-explore-traces-consent-ui',
+      ],
+    },
+  });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -267,6 +282,45 @@ describe('SpansTabContent', function () {
       expect(screen.getByText('numberTag1')).toBeInTheDocument();
       expect(screen.getByText('numberTag2')).toBeInTheDocument();
       expect(screen.getByText('See full list')).toBeInTheDocument();
+    });
+  });
+
+  describe('Ask Seer', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+    });
+
+    it('brings along only the submitted query', async function () {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, 'span.duration:>10ms{enter}');
+      await userEvent.type(input, ' random');
+
+      const askSeer = await screen.findByText(/Ask Seer/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+      });
     });
   });
 });
