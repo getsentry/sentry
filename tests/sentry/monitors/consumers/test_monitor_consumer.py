@@ -573,7 +573,7 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
-        get_detector_for_monitor(monitor_environment.monitor)
+        assert get_detector_for_monitor(monitor_environment.monitor) is not None
 
     def test_monitor_create_owner(self) -> None:
         self.send_checkin(
