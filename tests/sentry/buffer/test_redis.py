@@ -5,22 +5,14 @@ import random
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
-from unittest.mock import MagicMock, Mock
 
 import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import (
-    BufferHookEvent,
-    RedisBuffer,
-    _get_model_key,
-    redis_buffer_registry,
-    redis_buffer_router,
-)
+from sentry.buffer.redis import RedisBuffer, _get_model_key, redis_buffer_router
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
