@@ -178,6 +178,80 @@ describe('SavedQueriesTable', () => {
     );
   });
 
+  it('should link to a single query view for logs dataset', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Logs Query Name',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              mode: 'samples',
+              fields: ['timestamp', 'message', 'user.email'],
+              groupby: ['message'],
+              query:
+                'message:"System time zone does not match user preferences time zone"',
+              orderby: 'user.email',
+            },
+          ],
+          range: '1h',
+          interval: '5m',
+          dataset: 'logs',
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />, {
+      deprecatedRouterMocks: true,
+    });
+    expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/logs/?environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsGroupBy=message&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
+    );
+  });
+
+  it('should link to a single query view for logs dataset with aggregate', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'ABC',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {
+            name: 'User1',
+          },
+          query: [
+            {
+              mode: 'samples',
+              fields: ['timestamp', 'tags[amount,number]'],
+              groupby: ['message'],
+              query: 'message:foo',
+              orderby: 'user.email',
+              visualize: [{yAxes: ['avg(tags[amount,number])']}],
+            },
+          ],
+          range: '1h',
+          interval: '5m',
+          dataset: 'logs',
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />, {
+      deprecatedRouterMocks: true,
+    });
+    expect(await screen.findByText('ABC')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/logs/?environment=production&id=1&interval=5m&logsAggregate=avg&logsAggregateParam=tags%5Bamount%2Cnumber%5D&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsGroupBy=message&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
+    );
+  });
+
   it('should display starred status', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,

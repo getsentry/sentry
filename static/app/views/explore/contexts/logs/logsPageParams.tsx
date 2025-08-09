@@ -90,16 +90,25 @@ interface LogsPageParams {
   readonly groupBy?: string;
 
   /**
+   * The id of the query, if a saved query.
+   */
+  readonly id?: string;
+  /**
    * If provided, add a 'trace:{trace id}' to all queries.
    * Used in embedded views like error page and trace page.
    * Can be an array of trace IDs on some pages (eg. replays)
    */
   readonly limitToTraceId?: string | string[];
+
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
   readonly projectIds?: number[];
+  /**
+   * The title of the query, if a saved query.
+   */
+  readonly title?: string;
 }
 
 type NullablePartial<T> = {
@@ -159,6 +168,8 @@ export function LogsPageParamsProvider({
     }
   }
 
+  const title = getLogTitleFromLocation(location);
+  const id = getLogIdFromLocation(location);
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -202,6 +213,8 @@ export function LogsPageParamsProvider({
         search,
         setSearchForFrozenPages,
         sortBys,
+        title,
+        id,
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
@@ -223,7 +236,7 @@ export function LogsPageParamsProvider({
   );
 }
 
-const useLogsPageParams = _useLogsPageParams;
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
@@ -416,6 +429,16 @@ export function useLogsFields() {
   return fields;
 }
 
+export function useLogsId() {
+  const {id} = useLogsPageParams();
+  return id;
+}
+
+export function useLogsTitle() {
+  const {title} = useLogsPageParams();
+  return title;
+}
+
 export function useLogsProjectIds() {
   const {projectIds} = useLogsPageParams();
   return projectIds;
@@ -432,6 +455,16 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
+  );
+}
+
+export function useSetLogsSavedQueryInfo() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (id: string, title: string) => {
+      setPageParams({id, title});
+    },
+    [setPageParams]
   );
 }
 
@@ -473,6 +506,14 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
+}
+
+function getLogTitleFromLocation(location: Location): string {
+  return decodeScalar(location.query.title, '');
+}
+
+function getLogIdFromLocation(location: Location): string {
+  return decodeScalar(location.query.id, '');
 }
 
 function getLogCursorFromLocation(location: Location): string {
