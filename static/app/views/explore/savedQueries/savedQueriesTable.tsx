@@ -177,7 +177,7 @@ export function SavedQueriesTable({
         header={
           <SavedEntityTable.Header>
             <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name">
+            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
@@ -197,7 +197,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-visited" noBorder>
+            <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="actions" />

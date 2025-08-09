@@ -62,7 +62,7 @@ export function DashboardTable({
         header={
           <SavedEntityTable.Header>
             <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name">
+            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="project">
@@ -83,7 +83,7 @@ export function DashboardTable({
             <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="created" noBorder>
+            <SavedEntityTable.HeaderCell data-column="created">
               {t('Date Created')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="actions" />
