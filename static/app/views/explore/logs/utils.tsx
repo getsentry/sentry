@@ -445,3 +445,36 @@ export function getLogsUrlFromSavedQueryUrl({
     },
   });
 }
+
+export function ourlogToJson(ourlog: OurLogsResponseItem): string {
+  const copy = {...ourlog};
+  let warned = false;
+  const warnOnce = (key: string) => {
+    if (!warned) {
+      warned = true;
+      warn(
+        fmt`Found sentry. prefix in ${key} while copying [project_id: ${ourlog.project_id}, user_email: ${ourlog.user_email}]`
+      );
+    }
+  };
+  // Trimming any sentry. prefixes
+  for (const key in copy) {
+    if (key.startsWith('sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnOnce(key);
+        delete copy[key];
+        copy[key.replace('sentry.', '')] = value;
+      }
+    }
+    if (key.startsWith('tags[sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnOnce(key);
+        delete copy[key];
+        copy[key.replace('tags[sentry.', 'tags[')] = value;
+      }
+    }
+  }
+  return JSON.stringify(copy, null, 2);
+}

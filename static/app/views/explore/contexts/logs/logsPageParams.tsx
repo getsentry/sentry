@@ -552,3 +552,25 @@ function getLogsParamsStorageKey(version: number) {
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
 }
+
+export function useLogsAddSearchFilter() {
+  const setLogsSearch = useSetLogsSearch();
+  const search = useLogsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
+}
