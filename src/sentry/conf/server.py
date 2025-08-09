@@ -2206,6 +2206,8 @@ SENTRY_TSDB_ROLLUPS = (
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
+SENTRY_METRICS_PRECISE_BACKEND: str | None = None
+SENTRY_METRICS_PRECISE_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
