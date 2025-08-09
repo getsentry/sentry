@@ -150,6 +150,9 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
+    assert safe.get_path(
+        cfg, "config", "downsampledEventRetention"
+    ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
 
 @django_db_all
