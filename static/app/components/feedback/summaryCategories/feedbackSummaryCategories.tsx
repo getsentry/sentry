@@ -1,18 +1,32 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
+import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconThumb} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 export default function FeedbackSummary() {
-  const {isError, isPending, summary, tooFewFeedbacks, numFeedbacksUsed} =
-    useFeedbackSummary();
+  const {
+    isError: isSummaryError,
+    isPending: isSummaryPending,
+    summary,
+    tooFewFeedbacks: tooFewFeedbacksSummary,
+    numFeedbacksUsed,
+  } = useFeedbackSummary();
+
+  const {
+    isError: isCategoriesError,
+    isPending: isCategoriesPending,
+    categories,
+    tooFewFeedbacks: tooFewFeedbacksCategories,
+  } = useFeedbackCategories();
 
   const openForm = useFeedbackForm();
 
@@ -41,6 +55,10 @@ export default function FeedbackSummary() {
     ) : null;
   };
 
+  const isPending = isSummaryPending || isCategoriesPending;
+  const isError = isSummaryError || isCategoriesError;
+  const tooFewFeedbacks = tooFewFeedbacksSummary || tooFewFeedbacksCategories;
+
   return (
     <SummaryIconContainer>
       <IconSeer size="xs" />
@@ -65,28 +83,32 @@ export default function FeedbackSummary() {
         ) : isError ? (
           <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>
         ) : (
-          <SummaryContent>{summary}</SummaryContent>
+          <React.Fragment>
+            <SummaryContent>{summary}</SummaryContent>
+            {categories && categories.length > 0 && (
+              <FeedbackCategories categories={categories} />
+            )}
+          </React.Fragment>
         )}
       </SummaryContainer>
     </SummaryIconContainer>
   );
 }
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: ${space(0.5)} 0 0 0;
+  margin: ${p => p.theme.space.xs} 0 0 0;
 `;
 
 const LoadingContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const SummaryContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
 `;
 
@@ -104,8 +126,8 @@ const SummaryContent = styled('p')`
 
 const SummaryIconContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   align-items: baseline;
