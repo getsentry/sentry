@@ -9,11 +9,11 @@ from typing import ClassVar
 
 from celery import Task
 
-from sentry import buffer, options
-from sentry.buffer.base import BufferField
-from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
+from sentry import options
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.utils import metrics
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 logger = logging.getLogger("sentry.delayed_processing")
@@ -47,12 +47,19 @@ class DelayedProcessingBase(ABC):
     def processing_task(self) -> Task:
         raise NotImplementedError
 
+    @staticmethod
+    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+        raise NotImplementedError
+
 
 delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
 
 def fetch_group_to_event_data(
-    project_id: int, model: type[models.Model], batch_key: str | None = None
+    buffer: LazyServiceWrapper[Buffer],
+    project_id: int,
+    model: type[models.Model],
+    batch_key: str | None = None,
 ) -> dict[str, str]:
     field: dict[str, models.Model | int | str] = {
         "project_id": project_id,
@@ -61,7 +68,7 @@ def fetch_group_to_event_data(
     if batch_key:
         field["batch_key"] = batch_key
 
-    return buffer.backend.get_hash(model=model, field=field)
+    return buffer.get_hash(model=model, field=field)
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -71,7 +78,9 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_in_batches(project_id: int, processing_type: str) -> None:
+def process_in_batches(
+    buffer: LazyServiceWrapper[Buffer], project_id: int, processing_type: str
+) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
 
@@ -100,7 +109,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     task = processing_info.processing_task
     filters: dict[str, BufferField] = asdict(hash_args.filters)
 
-    event_count = buffer.backend.get_hash_length(model=hash_args.model, field=filters)
+    event_count = buffer.get_hash_length(model=hash_args.model, field=filters)
     metrics.incr(
         f"{processing_type}.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
     )
@@ -118,7 +127,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
         )
 
     # if the dictionary is large, get the items and chunk them.
-    alertgroup_to_event_data = fetch_group_to_event_data(project_id, hash_args.model)
+    alertgroup_to_event_data = fetch_group_to_event_data(buffer, project_id, hash_args.model)
 
     with metrics.timer(f"{processing_type}.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
@@ -126,14 +135,14 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
         while batch := dict(islice(items, batch_size)):
             batch_key = str(uuid.uuid4())
 
-            buffer.backend.push_to_hash_bulk(
+            buffer.push_to_hash_bulk(
                 model=hash_args.model,
                 filters={**filters, "batch_key": batch_key},
                 data=batch,
             )
 
             # remove the batched items from the project alertgroup_to_event_data
-            buffer.backend.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
+            buffer.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
 
             task.apply_async(
                 kwargs={"project_id": project_id, "batch_key": batch_key},
@@ -150,6 +159,8 @@ def process_buffer() -> None:
             logger.info(log_name, extra={"option": handler.option})
             continue
 
+        buffer = handler.buffer_backend()
+
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
             # We need to use a very fresh timestamp here; project scores (timestamps) are
             # updated with each relevant event, and some can be updated every few milliseconds.
@@ -157,7 +168,7 @@ def process_buffer() -> None:
             # and the more likely we'll have frequently updated projects that are never actually
             # retrieved and processed here.
             fetch_time = datetime.now(tz=timezone.utc)
-            project_ids = buffer.backend.get_sorted_set(
+            project_ids = buffer.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()
             )
             if should_emit_logs:
@@ -168,10 +179,6 @@ def process_buffer() -> None:
                 logger.info(log_name, extra={"project_ids": log_str})
 
             for project_id, _ in project_ids:
-                process_in_batches(project_id, processing_type)
+                process_in_batches(buffer, project_id, processing_type)
 
-            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time.timestamp())
-
-
-if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
-    redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
+            buffer.delete_key(handler.buffer_key, min=0, max=fetch_time.timestamp())
