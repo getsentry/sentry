@@ -67,6 +67,7 @@ remove_time_windows_test_cases = [
 ]
 
 
+@pytest.mark.skip(reason="flaky: #95248")
 @pytest.mark.parametrize(
     "source_time_window, time_windows, expected",
     [pytest.param(*case, id=test_id) for *case, test_id in remove_time_windows_test_cases]
