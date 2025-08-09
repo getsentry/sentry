@@ -324,6 +324,7 @@ describe('NotificationSettingsByType', function () {
         'am3-tier',
         'continuous-profiling-billing',
         'seer-billing',
+        'logs-billing',
       ],
     });
     renderComponent({
@@ -343,6 +344,7 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -494,6 +496,7 @@ describe('NotificationSettingsByType', function () {
         'am3-tier',
         // No continuous-profiling-billing feature
         // No seer-billing feature
+        // No logs-billing feature
       ],
     });
     renderComponent({
@@ -517,5 +520,6 @@ describe('NotificationSettingsByType', function () {
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
   });
 });
