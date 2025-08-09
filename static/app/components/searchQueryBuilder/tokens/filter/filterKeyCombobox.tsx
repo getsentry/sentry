@@ -16,7 +16,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {FieldKey} from 'sentry/utils/fields';
 
 type KeyComboboxProps = {
@@ -27,7 +26,7 @@ type KeyComboboxProps = {
 
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
@@ -53,7 +52,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       if (
         newFilterValueType === currentFilterValueType &&
         // IS and HAS filters are strings, but treated differently and will break
-        // if we prevserve the value.
+        // if we preserve the value.
         keyName !== FieldKey.IS &&
         keyName !== FieldKey.HAS
       ) {
@@ -88,7 +87,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     [handleSelectKey]
   );
 
-  const onValueCommited = useCallback(
+  const onValueCommitted = useCallback(
     (keyName: string) => {
       const trimmedKeyName = keyName.trim();
 
@@ -115,12 +114,12 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
-        placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
-        onCustomValueCommitted={onValueCommited}
+        onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
         onExit={onExit}
         inputValue={inputValue}
+        placeholder={getKeyLabel(token.key)}
         token={token}
         inputLabel={t('Edit filter key')}
         onInputChange={e => setInputValue(e.target.value)}
@@ -144,5 +143,5 @@ const EditingWrapper = styled('div')`
   height: 100%;
   align-items: center;
   max-width: 400px;
-  padding-left: ${space(0.25)};
+  padding-left: ${p => p.theme.space['2xs']};
 `;
