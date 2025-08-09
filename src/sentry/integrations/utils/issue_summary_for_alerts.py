@@ -16,7 +16,9 @@ from sentry.seer.seer_setup import get_seer_org_acknowledgement
 logger = logging.getLogger(__name__)
 
 
-def _get_issue_summary_with_cleanup(group: Group, source: SeerAutomationSource) -> tuple[dict[str, Any], int]:
+def _get_issue_summary_with_cleanup(
+    group: Group, source: SeerAutomationSource
+) -> tuple[dict[str, Any], int]:
     """
     Wrapper for get_issue_summary that ensures database connections are properly closed.
     This is needed when running in a thread to prevent connection leaks.
