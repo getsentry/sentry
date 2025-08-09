@@ -2,10 +2,8 @@ import {useMemo} from 'react';
 
 import getDuration from 'sentry/utils/duration/getDuration';
 import {TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {
-  DetectorDataset,
-  type MetricDetectorFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {type MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 const baseIntervals: TimeWindow[] = [
   TimeWindow.ONE_MINUTE,
