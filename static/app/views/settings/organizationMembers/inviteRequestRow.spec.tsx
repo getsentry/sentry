@@ -173,7 +173,7 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    void TeamStore.loadInitialData([
+    TeamStore.loadInitialData([
       TeamFixture({id: '1', slug: 'one'}),
       TeamFixture({id: '2', slug: 'two'}),
     ]);

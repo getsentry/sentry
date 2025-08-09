@@ -109,7 +109,7 @@ Object.defineProperty(window, 'matchMedia', {
 describe('Flamegraph', function () {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
-    act(() => void ProjectsStore.loadInitialData([project]));
+    act(() => ProjectsStore.loadInitialData([project]));
     setWindowLocation('http://localhost/');
   });
   it('renders a missing profile', async function () {
