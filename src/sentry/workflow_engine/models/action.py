@@ -118,7 +118,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         if self.config:
             config = self.config.copy()
-            config.pop("channel_name", None)
+            config.pop("target_display", None)
             key_parts.append(str(config))
 
         if self.data:

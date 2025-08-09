@@ -126,7 +126,7 @@ class TestActionDeduplication(TestCase):
         assert slack_action_2.id in result_ids
 
     def test_deduplicate_multiple_slack_actions_same_channel_different_name(self) -> None:
-        """Test that Slack actions to the same channel but different names are not deduplicated."""
+        """Test that Slack actions to the same channel but different names are deduplicated."""
         slack_action_1 = self.slack_action
 
         slack_action_2 = self.create_action(
@@ -144,11 +144,10 @@ class TestActionDeduplication(TestCase):
 
         result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
 
-        # Both actions should remain since they target different channels
+        # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
-        assert len(result_ids) == 2
-        assert slack_action_1.id in result_ids
-        assert slack_action_2.id in result_ids
+        assert len(result_ids) == 1
+        assert result_ids[0] == slack_action_1.id
 
     def test_deduplicate_actions_same_slack_different_data(self) -> None:
         """Test that Slack actions with same config but different data are not deduplicated."""
@@ -251,9 +250,8 @@ class TestActionDeduplication(TestCase):
         # We keep the action with the lowest ID
         assert result_ids[0] == min(email_action_1.id, email_action_2.id)
 
-    def test_deduplicate_actions_email_different_targets(self) -> None:
-        """Test that email actions with different targets are not deduplicated."""
-        # Create two email actions with different targets
+    def test_deduplicate_actions_email_different_target_identifier(self) -> None:
+        """Test that email actions with different target identifiers are not deduplicated."""
         email_action_1 = self.create_action(
             type=Action.Type.EMAIL,
             config={
@@ -280,6 +278,103 @@ class TestActionDeduplication(TestCase):
         assert len(result_ids) == 2
         assert email_action_1.id in result_ids
         assert email_action_2.id in result_ids
+
+    def test_deduplicate_actions_email_different_target_type(self) -> None:
+        """Test that email actions with different target types are not deduplicated."""
+        email_action_1 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.TEAM,
+                "target_identifier": "team-123",
+            },
+        )
+
+        email_action_2 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "user-123",
+            },
+        )
+
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
+        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Both actions should remain since they have different targets
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 2
+        assert email_action_1.id in result_ids
+        assert email_action_2.id in result_ids
+
+    def test_deduplicate_actions_email_different_fallthrough_type(self) -> None:
+        """Test that email actions with different fallthrough types are not deduplicated."""
+        email_action_1 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "user-123@example.com",
+            },
+            data={
+                "fallthroughType": "team",
+            },
+        )
+
+        email_action_2 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "user-123@example.com",
+            },
+            data={
+                "fallthroughType": "none",
+            },
+        )
+
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
+        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Both actions should remain since they have different targets
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 2
+        assert email_action_1.id in result_ids
+        assert email_action_2.id in result_ids
+
+    def test_deduplicate_actions_email_everything_is_same(self) -> None:
+        email_action_1 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "user-123@example.com",
+            },
+            data={
+                "fallthroughType": "team",
+            },
+        )
+
+        email_action_2 = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "user-123@example.com",
+            },
+            data={
+                "fallthroughType": "team",
+            },
+        )
+
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
+        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
+
+        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+
+        # Only one action should remain
+        result_ids = list(result.values_list("id", flat=True))
+        assert len(result_ids) == 1
+        assert result_ids[0] == email_action_1.id
 
     def test_deduplicate_actions_sentry_app_same_identifier(self) -> None:
         """Test that Sentry App actions with same identifier are deduplicated."""
