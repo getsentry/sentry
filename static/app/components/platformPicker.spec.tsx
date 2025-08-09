@@ -78,6 +78,7 @@ describe('PlatformPicker', function () {
       'Angular',
       'Astro',
       'Browser JavaScript',
+      'Dart',
       'Ember',
       'Flutter',
       'Gatsby',

@@ -112,6 +112,7 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
   ],
+  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],

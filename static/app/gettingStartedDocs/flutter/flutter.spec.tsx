@@ -76,6 +76,9 @@ describe('flutter onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/options.tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.tracesSampleRate = 1\.0/))
+    ).toBeInTheDocument();
+    expect(
       await screen.findByText(
         textWithMarkupMatcher(
           /You'll be able to monitor the performance of your app using the SDK./
@@ -104,6 +107,9 @@ describe('flutter onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/options.profilesSampleRate/))
     ).toBeInTheDocument();
     expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.profilesSampleRate = 1\.0/))
+    ).toBeInTheDocument();
+    expect(
       await screen.findByText(
         textWithMarkupMatcher(/Flutter Profiling alpha is available/)
       )
@@ -128,10 +134,14 @@ describe('flutter onboarding docs', function () {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.sessionSampleRate/))
+      await screen.findByText(
+        textWithMarkupMatcher(/options\.replay\.sessionSampleRate = 0\.1/)
+      )
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.onErrorSampleRate/))
+      await screen.findByText(
+        textWithMarkupMatcher(/options\.replay\.onErrorSampleRate = 1\.0/)
+      )
     ).toBeInTheDocument();
   });
 
@@ -151,6 +161,11 @@ describe('flutter onboarding docs', function () {
     // Should include logs configuration
     expect(
       await screen.findByText(textWithMarkupMatcher(/options\.enableLogs = true/))
+    ).toBeInTheDocument();
+
+    // Should include a log call in the verify snippet
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
     ).toBeInTheDocument();
 
     // Should include logging next step
