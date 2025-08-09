@@ -5,6 +5,7 @@ from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
     NotificationTarget,
     NotificationTargetResourceType,
 )
@@ -49,6 +50,14 @@ class NotificationProvider[RenderableT](Protocol):
                 f"Supported resource types: {', '.join(t.value for t in cls.target_resource_types)}"
             )
         return
+
+    @classmethod
+    def validate_rendered_template(cls, *, rendered_template: NotificationRenderedTemplate) -> None:
+        """
+        Validates that a given rendered template is permissible for the provider.
+        This adheres to provider-specific constrains such as character limits.
+        """
+        ...
 
     @classmethod
     def get_renderer(
