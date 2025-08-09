@@ -1,7 +1,6 @@
-from unittest import TestCase
-
 import pytest
 
+from sentry.testutils.cases import TestCase
 from sentry.utils.urls import (
     add_params_to_url,
     non_standard_url_join,
