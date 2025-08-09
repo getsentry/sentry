@@ -291,6 +291,7 @@ def get_shared_context(rule, org, project: Project, group, event):
         "tags": event.tags,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": absolute_uri(snooze_alert_url),
+        "enhanced_privacy": org.flags.enhanced_privacy,
     }
 
 
@@ -323,7 +324,11 @@ class MailPreview:
     def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
-            context={"preview": self, "format": request.GET.get("format")},
+            context={
+                "preview": self,
+                "format": request.GET.get("format"),
+                "enhanced_privacy": request.GET.get("enhanced_privacy", False),
+            },
         )
 
 
@@ -453,11 +458,17 @@ def alert(request):
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
 
+    org.flags.enhanced_privacy = request.GET.get("enhanced_privacy", False)
+
     event = make_error_event(request, project, platform)
     group = event.group
 
     group.substatus = random.choice(
-        [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
+        [
+            GroupSubStatus.ESCALATING,
+            GroupSubStatus.NEW,
+            GroupSubStatus.REGRESSED,
+        ]
     )
 
     rule = Rule(id=1, label="An example rule")
@@ -485,6 +496,7 @@ def alert(request):
             "issue_type": group.issue_type.description,
             "replay_id": REPLAY_ID,
             "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
+            "enhanced_privacy": org.flags.enhanced_privacy,
         },
     ).render(request)
 
