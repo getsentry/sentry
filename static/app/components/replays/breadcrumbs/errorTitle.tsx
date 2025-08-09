@@ -16,7 +16,7 @@ export default function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
 
   return (
     <Fragment>
-      {frame.data.level ?? 'Error'}:{' '}
+      {frame.data.level || 'Error'}:{' '}
       <Link
         to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
       >
