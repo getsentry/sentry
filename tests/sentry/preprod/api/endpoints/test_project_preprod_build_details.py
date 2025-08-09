@@ -39,7 +39,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             app_name="TestApp",
             build_version="1.0.0",
             build_number=42,
-            build_configuration_id=None,
+            build_configuration=None,
             installable_app_file_id=1234,
             commit_comparison=commit_comparison,
         )
