@@ -1302,29 +1302,23 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        # TODO: 1:1014 in the minified source file is _unmapped_.
+        # 1:1014 in the minified source file is _unmapped_.
         # There are no tokens in the sourcemap for line 1.
-        # Previous versions of JS symbolication erroneously returned
-        # wrong values here. This needs to be enabled once Symbolicator
-        # is updated.
-        # assert frame_list[3].abs_path == "app:///dist.bundle.js"
-        # assert frame_list[3].function == "Object.<anonymous>"
-        # assert frame_list[3].lineno == 1
-        # assert frame_list[3].colno == 1014
+        assert frame_list[3].abs_path == "app:///dist.bundle.js"
+        assert frame_list[3].function == "Object.<anonymous>"
+        assert frame_list[3].lineno == 1
+        assert frame_list[3].colno == 1014
 
         assert_abs_path(frame_list[4].abs_path)
         assert frame_list[4].function == "__webpack_require__"
         assert frame_list[4].lineno == 19
 
-        # TODO: 18:63 in the minified source file is _unmapped_.
+        # 18:63 in the minified source file is _unmapped_.
         # There are no tokens in the sourcemap for line 18.
-        # Previous versions of JS symbolication erroneously returned
-        # wrong values here. This needs to be enabled once Symbolicator
-        # is updated.
-        # assert frame_list[5].abs_path == "app:///dist.bundle.js"
-        # assert frame_list[5].function == "Object.<anonymous>"
-        # assert frame_list[5].lineno == 18
-        # assert frame_list[5].colno ==  63
+        assert frame_list[5].abs_path == "app:///dist.bundle.js"
+        assert frame_list[5].function == "<unknown>"
+        assert frame_list[5].lineno == 18
+        assert frame_list[5].colno == 63
 
     @responses.activate
     def test_no_fetch_from_http(self) -> None:
