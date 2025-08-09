@@ -148,7 +148,11 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return AutofixState.validate(result.get("state", None))
+    state = result.get("state", None)
+    if state is None:
+        return None
+
+    return AutofixState.validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
