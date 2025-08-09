@@ -34,11 +34,3 @@ class PluginActionHandler(ActionHandler):
         detector: Detector,
     ) -> None:
         execute_via_group_type_registry(job, action, detector)
-
-    @staticmethod
-    def get_dedup_key(action: Action) -> str:
-        """
-        Returns a deduplication key for plugin actions.
-        Plugin actions are deduplicated by target_identifier.
-        """
-        return action.type

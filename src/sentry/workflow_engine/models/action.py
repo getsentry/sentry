@@ -113,16 +113,16 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     def get_dedup_key(self) -> str:
         key_parts = [self.type]
         if self.config:
-            temp = self.config.copy()
-            temp.pop("channel_name", None)
-            key_parts.append(str(temp))
+            config = self.config.copy()
+            config.pop("channel_name", None)
+            key_parts.append(str(config))
 
         if self.data:
-            temp = self.data.copy()
-            if "dynamic_form_fields" in temp:
-                temp = temp["dynamic_form_fields"]
+            data = self.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
 
-            key_parts.append(str(temp))
+            key_parts.append(str(data))
 
         return ":".join(key_parts)
 

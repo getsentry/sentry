@@ -13,32 +13,6 @@ logger = logging.getLogger(__name__)
 class IntegrationActionHandler(ActionHandler, ABC):
     provider_slug: IntegrationProviderSlug
 
-    @staticmethod
-    def get_dedup_key(action: Action) -> str:
-        """
-        Returns a deduplication key for integration actions.
-        Integration actions are deduplicated by integration_id and target_identifier (channel).
-        """
-        key_parts = [action.type]
-
-        # This is an invariant that we should have an integration_id for all integration actions
-        assert action.integration_id is not None
-        key_parts.append(str(action.integration_id))
-
-        # For integration actions, target_identifier is the channel ID
-        target_identifier = action.config.get("target_identifier")
-
-        # This is an invariant that we should have a target_identifier for all integration actions
-        assert target_identifier is not None
-
-        key_parts.append(str(target_identifier))
-
-        # Include the stringified data
-        if action.data:
-            key_parts.append(str(action.data))
-
-        return ":".join(key_parts)
-
 
 class TicketingActionHandler(IntegrationActionHandler, ABC):
     config_schema = {
@@ -87,21 +61,3 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
         detector: Detector,
     ) -> None:
         execute_via_issue_alert_handler(job, action, detector)
-
-    @staticmethod
-    def get_dedup_key(action: Action) -> str:
-        """
-        Returns a deduplication key for ticketing actions.
-        Ticketing actions are deduplicated by integration_id.
-        """
-        key_parts = [action.type]
-
-        # This is an invariant that we should have an integration_id for all integration actions
-        assert action.integration_id is not None
-        key_parts.append(str(action.integration_id))
-
-        # Include the stringified dynamic form field data
-        if action.data:
-            key_parts.append(str(action.data.get("dynamic_form_fields", "")))
-
-        return ":".join(key_parts)
