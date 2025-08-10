@@ -184,5 +184,5 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
         return Response(
-            {"state": ChunkFileState.OK, "missingChunks": [], "artifactId": artifact_id}
+            {"state": ChunkFileState.CREATED, "missingChunks": [], "artifactId": artifact_id}
         )
