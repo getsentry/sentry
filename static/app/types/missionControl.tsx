@@ -38,6 +38,12 @@ export interface MissionControlCard {
    * Cards with higher priority appear first in the queue
    */
   priority?: number;
+
+  /**
+   * Optional URL for navigation functionality
+   * When provided, enables the navigate button
+   */
+  url?: string;
 }
 
 /**

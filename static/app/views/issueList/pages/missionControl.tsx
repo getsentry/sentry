@@ -7,6 +7,7 @@ import {Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {CardPrimaryAction, MissionControlCard} from 'sentry/types/missionControl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {getCardRenderer} from './missionControl/cardRenderers';
 
@@ -17,6 +18,7 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     type: 'changelog',
     createdAt: '2024-01-15T10:00:00Z',
     priority: 10,
+    url: 'https://blog.sentry.io/performance-monitoring-2-0/',
     data: {
       id: '1',
       title: 'Trigger alerts and build dashboards for Logs (in beta)',
@@ -42,6 +44,7 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     type: 'issue',
     createdAt: '2024-01-20T16:45:00Z',
     priority: 15,
+    url: '/issues/6564458657/',
     data: {
       issueId: '6564458657',
       reason: 'escalating',
@@ -71,6 +74,7 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     type: 'ultragroup',
     createdAt: '2024-01-23T10:15:00Z',
     priority: 13,
+    url: '/issues/?query=bad%20github%20branch%20state',
     data: {
       title: 'Bad GitHub branch state issues',
       description:
@@ -85,6 +89,7 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
 ];
 
 function MissionControl() {
+  const navigate = useNavigate();
   const user = ConfigStore.get('user');
   const userName = user?.name || user?.email || 'there';
 
@@ -108,12 +113,16 @@ function MissionControl() {
       : null;
 
   // Combine welcome card with example cards
-  const cards = welcomeCard ? [welcomeCard, ...EXAMPLE_CARDS] : [];
+  const [cards, setCards] = useState<MissionControlCard[]>(
+    welcomeCard ? [welcomeCard, ...EXAMPLE_CARDS] : []
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [primaryAction, setPrimaryAction] = useState<CardPrimaryAction | null>(null);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
-  const [dismissDirection, setDismissDirection] = useState<'left' | 'right' | null>(null);
+  const [dismissDirection, setDismissDirection] = useState<
+    'left' | 'right' | 'up' | 'down' | null
+  >(null);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -172,6 +181,62 @@ function MissionControl() {
     setPrimaryAction(action);
   }, []);
 
+  const handleMoveToBack = useCallback(() => {
+    if (!currentCard || isTransitioning) return;
+
+    setIsTransitioning(true);
+    setDismissDirection('up');
+
+    // Clear any existing timeout
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
+    animationTimeoutRef.current = setTimeout(() => {
+      setCards(prevCards => {
+        const newCards = [...prevCards];
+        const cardToMove = newCards[currentIndex];
+        if (cardToMove) {
+          // Remove from current position and add to end
+          newCards.splice(currentIndex, 1);
+          newCards.push(cardToMove);
+        }
+        return newCards;
+      });
+
+      // Don't increment currentIndex since we removed the current card
+      setDismissDirection(null);
+      setPrimaryAction(null);
+      setTimeout(() => setIsTransitioning(false), 50);
+    }, 300);
+  }, [currentCard, currentIndex, isTransitioning]);
+
+  const handleNavigate = useCallback(() => {
+    if (!currentCard?.url || isTransitioning) return;
+
+    setIsTransitioning(true);
+    setDismissDirection('down');
+
+    // Clear any existing timeout
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
+    // Open URL in new tab for external links, navigate internally for relative URLs
+    if (currentCard.url.startsWith('http')) {
+      window.open(currentCard.url, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(currentCard.url);
+    }
+
+    animationTimeoutRef.current = setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+      setDismissDirection(null);
+      setPrimaryAction(null);
+      setTimeout(() => setIsTransitioning(false), 50);
+    }, 300);
+  }, [currentCard, isTransitioning, navigate]);
+
   // Keyboard hotkey support
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -180,17 +245,32 @@ function MissionControl() {
         return;
       }
 
-      if (
-        event.key === 'Enter' &&
-        primaryAction &&
-        !isActionLoading &&
-        !isTransitioning
-      ) {
-        event.preventDefault();
-        handlePrimaryAction();
-      } else if (event.key === 'Backspace' && !isActionLoading && !isTransitioning) {
-        event.preventDefault();
-        handleDismiss();
+      if (!isActionLoading && !isTransitioning) {
+        switch (event.key) {
+          case 'ArrowLeft':
+            event.preventDefault();
+            handleDismiss();
+            break;
+          case 'ArrowRight':
+            if (primaryAction) {
+              event.preventDefault();
+              handlePrimaryAction();
+            }
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            handleMoveToBack();
+            break;
+          case 'ArrowDown':
+            if (currentCard?.url) {
+              event.preventDefault();
+              handleNavigate();
+            }
+            break;
+          default:
+            // Do nothing for other keys
+            break;
+        }
       }
     };
 
@@ -199,7 +279,10 @@ function MissionControl() {
   }, [
     handlePrimaryAction,
     handleDismiss,
+    handleMoveToBack,
+    handleNavigate,
     primaryAction,
+    currentCard,
     isActionLoading,
     isTransitioning,
   ]);
@@ -268,23 +351,41 @@ function MissionControl() {
           disabled={isActionLoading || dismissDirection !== null}
         >
           Dismiss
-          <KeyHint>⌫</KeyHint>
+          <KeyHint>←</KeyHint>
         </Button>
 
-        {primaryAction && (
-          <Button
-            size="md"
-            priority="primary"
-            onClick={handlePrimaryAction}
-            disabled={isActionLoading || dismissDirection !== null}
-            busy={isActionLoading}
-          >
-            {isActionLoading && primaryAction.loadingLabel
+        <Button
+          size="md"
+          onClick={handleMoveToBack}
+          disabled={isActionLoading || dismissDirection !== null}
+        >
+          Move to back
+          <KeyHint>↑</KeyHint>
+        </Button>
+
+        <Button
+          size="md"
+          onClick={handleNavigate}
+          disabled={!currentCard?.url || isActionLoading || dismissDirection !== null}
+        >
+          View full details
+          <KeyHint>↓</KeyHint>
+        </Button>
+
+        <Button
+          size="md"
+          priority="primary"
+          onClick={handlePrimaryAction}
+          disabled={!primaryAction || isActionLoading || dismissDirection !== null}
+          busy={isActionLoading}
+        >
+          {primaryAction
+            ? isActionLoading && primaryAction.loadingLabel
               ? primaryAction.loadingLabel
-              : primaryAction.label}
-            <KeyHint>↵</KeyHint>
-          </Button>
-        )}
+              : primaryAction.label
+            : 'No Action'}
+          <KeyHint>→</KeyHint>
+        </Button>
       </ButtonContainer>
     </Container>
   );
@@ -308,6 +409,28 @@ const slideRight = keyframes`
   }
   to {
     transform: translateX(100vw) rotate(10deg);
+    opacity: 0;
+  }
+`;
+
+const slideUp = keyframes`
+  from {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100vh) rotate(-5deg);
+    opacity: 0;
+  }
+`;
+
+const slideDown = keyframes`
+  from {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100vh) rotate(5deg);
     opacity: 0;
   }
 `;
@@ -340,7 +463,7 @@ const CardStack = styled('div')`
 `;
 
 const CardContainer = styled('div')<{
-  dismissDirection?: 'left' | 'right' | null;
+  dismissDirection?: 'left' | 'right' | 'up' | 'down' | null;
   isCurrent?: boolean;
   isNext?: boolean;
   isTransitioning?: boolean;
@@ -385,6 +508,16 @@ const CardContainer = styled('div')<{
       css`
         animation: ${slideRight} 0.3s ease-in-out forwards;
       `}
+
+      ${p.dismissDirection === 'up' &&
+      css`
+        animation: ${slideUp} 0.3s ease-in-out forwards;
+      `}
+
+      ${p.dismissDirection === 'down' &&
+      css`
+        animation: ${slideDown} 0.3s ease-in-out forwards;
+      `}
     `}
 `;
 
@@ -394,6 +527,11 @@ const ButtonContainer = styled('div')`
   justify-content: center;
   margin-top: ${space(1)};
   padding-top: ${space(3)};
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: ${space(1)};
+  }
 `;
 
 const CompletionContainer = styled('div')`

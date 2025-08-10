@@ -82,15 +82,27 @@ function WelcomeCardRenderer({
 
           <KeyboardHints>
             <HintRow>
-              <KeyBadge>Backspace</KeyBadge>
+              <KeyBadge>←</KeyBadge>
               <Text size="xs" variant="muted">
-                Dismiss item
+                Dismiss
               </Text>
             </HintRow>
             <HintRow>
-              <KeyBadge>Enter</KeyBadge>
+              <KeyBadge>↑</KeyBadge>
               <Text size="xs" variant="muted">
-                Use recommended action
+                Move to back
+              </Text>
+            </HintRow>
+            <HintRow>
+              <KeyBadge>↓</KeyBadge>
+              <Text size="xs" variant="muted">
+                Navigate
+              </Text>
+            </HintRow>
+            <HintRow>
+              <KeyBadge>→</KeyBadge>
+              <Text size="xs" variant="muted">
+                Take action
               </Text>
             </HintRow>
           </KeyboardHints>
@@ -131,6 +143,12 @@ const KeyboardHints = styled('div')`
   display: flex;
   gap: ${space(3)};
   margin-top: ${space(1)};
+  flex-wrap: wrap;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    gap: ${space(2)};
+  }
 `;
 
 const HintRow = styled('div')`
