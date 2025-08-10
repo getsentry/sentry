@@ -86,29 +86,6 @@ class ActionHandler:
         # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
-    @staticmethod
-    def get_dedup_key(action: Action) -> str:
-        """
-        Returns a string key used for deduplicating actions.
-        Actions with the same dedup_key will be considered duplicates.
-        Default implementation uses action type and integration_id.
-        """
-        key_parts = [action.type]
-
-        # Include integration_id for integration-based actions
-        if action.integration_id:
-            key_parts.append(str(action.integration_id))
-
-        # Include the stringified config
-        if action.config:
-            key_parts.append(str(action.config))
-
-        # Include the stringified data
-        if action.data:
-            key_parts.append(str(action.data))
-
-        return ":".join(key_parts)
-
 
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
