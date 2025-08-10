@@ -188,7 +188,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                "state": ChunkFileState.OK,
+                "state": ChunkFileState.CREATED,
                 "missingChunks": [],
                 "artifact_url": artifact_url,
             }
