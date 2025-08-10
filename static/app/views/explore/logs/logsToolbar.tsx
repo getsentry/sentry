@@ -70,7 +70,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
   let aggregateParam = useLogsAggregateParam();
   const groupBys = useQueryParamsGroupBys();
-  const groupBy = groupBys[0] ?? '';
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
@@ -130,25 +129,31 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         <SectionHeader>
           <Label>{t('Group By')}</Label>
         </SectionHeader>
-        <Select
-          options={[
-            {
-              label: '\u2014',
-              value: '',
-              textValue: '\u2014',
-            },
-            ...Object.keys(stringTags ?? {}).map(key => ({
-              label: key,
-              value: key,
-            })),
-          ]}
-          onChange={val =>
-            setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
-          }
-          value={groupBy ?? ''}
-          searchable
-          triggerProps={{style: {width: '100%'}}}
-        />
+        {groupBys.map((groupBy, index) => {
+          return (
+            <Select
+              key={index}
+              options={[
+                {
+                  label: '\u2014',
+                  value: '',
+                  textValue: '\u2014',
+                },
+                ...Object.keys(stringTags ?? {}).map(key => ({
+                  label: key,
+                  value: key,
+                })),
+              ]}
+              onChange={val =>
+                // TODO: save the group bys separately
+                setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
+              }
+              value={groupBy}
+              searchable
+              triggerProps={{style: {width: '100%'}}}
+            />
+          );
+        })}
       </ToolbarItem>
     </Container>
   );
