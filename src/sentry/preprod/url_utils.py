@@ -3,7 +3,7 @@ from __future__ import annotations
 from sentry.models.organization import Organization
 
 
-def get_preprod_artifact_url(organization_id: int, artifact_id: int) -> str:
+def get_preprod_artifact_url(organization_id: int, artifact_id: str) -> str:
     """
     Build a region/customer-domain aware absolute URL for the preprod artifact UI.
     """

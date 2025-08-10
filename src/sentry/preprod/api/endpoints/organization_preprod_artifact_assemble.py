@@ -190,6 +190,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             {
                 "state": ChunkFileState.CREATED,
                 "missingChunks": [],
-                "artifact_url": artifact_url,
+                "artifactUrl": artifact_url,
             }
         )
