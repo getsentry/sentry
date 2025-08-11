@@ -3,8 +3,9 @@ import {useCallback, useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface QueryParamsContextValue {
@@ -65,6 +66,11 @@ export function useSetQueryParamsMode() {
     },
     [setQueryParams]
   );
+}
+
+export function useQueryParamsVisualizes(): readonly Visualize[] {
+  const queryParams = useQueryParams();
+  return queryParams.visualizes;
 }
 
 export function useQueryParamsGroupBys(): readonly string[] {
