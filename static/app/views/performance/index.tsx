@@ -1,22 +1,19 @@
-import type {Location} from 'history';
+import {Outlet} from 'react-router-dom';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  children: React.ReactNode;
-  location: Location;
-  organization: Organization;
-};
+function PerformanceContainer() {
+  const organization = useOrganization();
+  const location = useLocation();
 
-function PerformanceContainer({organization, location, children}: Props) {
   function renderNoAccess() {
     return (
       <Layout.Page withPadding>
@@ -38,11 +35,13 @@ function PerformanceContainer({organization, location, children}: Props) {
     >
       <NoProjectMessage organization={organization}>
         <MetricsCardinalityProvider location={location} organization={organization}>
-          <MEPSettingProvider>{children}</MEPSettingProvider>
+          <MEPSettingProvider>
+            <Outlet />
+          </MEPSettingProvider>
         </MetricsCardinalityProvider>
       </NoProjectMessage>
     </Feature>
   );
 }
 
-export default withOrganization(PerformanceContainer);
+export default PerformanceContainer;

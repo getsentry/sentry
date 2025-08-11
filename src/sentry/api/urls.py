@@ -71,6 +71,7 @@ from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates im
 )
 from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
+from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
 from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
@@ -89,6 +90,25 @@ from sentry.core.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.core.endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from sentry.core.endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from sentry.core.endpoints.organization_users import OrganizationUsersEndpoint
+from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
+from sentry.core.endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
+from sentry.core.endpoints.project_environments import ProjectEnvironmentsEndpoint
+from sentry.core.endpoints.project_index import ProjectIndexEndpoint
+from sentry.core.endpoints.project_key_details import ProjectKeyDetailsEndpoint
+from sentry.core.endpoints.project_key_stats import ProjectKeyStatsEndpoint
+from sentry.core.endpoints.project_keys import ProjectKeysEndpoint
+from sentry.core.endpoints.project_stats import ProjectStatsEndpoint
+from sentry.core.endpoints.project_team_details import ProjectTeamDetailsEndpoint
+from sentry.core.endpoints.project_teams import ProjectTeamsEndpoint
+from sentry.core.endpoints.project_transfer import ProjectTransferEndpoint
+from sentry.core.endpoints.project_users import ProjectUsersEndpoint
+from sentry.core.endpoints.team_details import TeamDetailsEndpoint
+from sentry.core.endpoints.team_members import TeamMembersEndpoint
+from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
+from sentry.core.endpoints.team_release_count import TeamReleaseCountEndpoint
+from sentry.core.endpoints.team_stats import TeamStatsEndpoint
+from sentry.core.endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
+from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
@@ -255,6 +275,7 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.group_attachments import GroupAttachmentsEndpoint
 from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
@@ -266,6 +287,10 @@ from sentry.issues.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoin
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.issues.endpoints.group_user_reports import GroupUserReportsEndpoint
 from sentry.issues.endpoints.grouping_configs import GroupingConfigsEndpoint
+from sentry.issues.endpoints.organization_codeowners_associations import (
+    OrganizationCodeOwnersAssociationsEndpoint,
+)
+from sentry.issues.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -276,6 +301,11 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
+from sentry.issues.endpoints.organization_issues_resolved_in_release import (
+    OrganizationIssuesResolvedInReleaseEndpoint,
+)
+from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
+from sentry.issues.endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -511,7 +541,6 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.avatar import OrganizationAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -538,7 +567,6 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
     InternalBeaconEndpoint,
@@ -561,11 +589,7 @@ from .endpoints.organization_artifactbundle_assemble import (
 )
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_codeowners_associations import (
-    OrganizationCodeOwnersAssociationsEndpoint,
-)
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
-from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -601,9 +625,6 @@ from .endpoints.organization_events_trends import (
 )
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
-from .endpoints.organization_issues_resolved_in_release import (
-    OrganizationIssuesResolvedInReleaseEndpoint,
-)
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
@@ -673,17 +694,10 @@ from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesE
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
-from .endpoints.project_details import ProjectDetailsEndpoint
-from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
-from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
-from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
-from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
-from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
-from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
@@ -718,22 +732,17 @@ from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndp
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
-from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
-from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
-from .endpoints.project_teams import ProjectTeamsEndpoint
 from .endpoints.project_trace_item_details import ProjectTraceItemDetailsEndpoint
 from .endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
-from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
-from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
@@ -750,15 +759,6 @@ from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
-from .endpoints.team_details import TeamDetailsEndpoint
-from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
-from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_projects import TeamProjectsEndpoint
-from .endpoints.team_release_count import TeamReleaseCountEndpoint
-from .endpoints.team_stats import TeamStatsEndpoint
-from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
-from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint

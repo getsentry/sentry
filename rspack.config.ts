@@ -188,7 +188,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.41.0',
+    coreJs: '3.45.0',
     targets: packageJson.browserslist.production,
     shippedProposals: true,
   },

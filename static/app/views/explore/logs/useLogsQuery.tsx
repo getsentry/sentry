@@ -10,11 +10,13 @@ import {
   type ApiQueryKey,
   fetchDataQuery,
   type InfiniteData,
+  Query,
   type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -263,10 +265,19 @@ export function useLogsQuery({
   disabled,
   limit,
   referrer,
+  refetchInterval,
 }: {
   disabled?: boolean;
   limit?: number;
   referrer?: string;
+  refetchInterval?: (
+    query: Query<
+      ApiResult<EventsLogsResult>,
+      RequestError,
+      ApiResult<EventsLogsResult>,
+      ApiQueryKey
+    >
+  ) => number;
 }) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
@@ -276,17 +287,21 @@ export function useLogsQuery({
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval,
   });
 
   return {
     isPending: queryResult.isPending,
+    isRefetching: queryResult.isRefetching,
     isError: queryResult.isError,
     isLoading: queryResult.isLoading,
     queryResult,
     data: queryResult?.data?.data,
+    refetch: queryResult.refetch,
     infiniteData: queryResult?.data?.data,
     error: queryResult.error,
     meta: queryResult?.data?.meta,
+    queryKey,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
@@ -552,7 +567,7 @@ export function useInfiniteLogsQuery({
     isFetching,
     isFetchingNextPage,
     isFetchingPreviousPage,
-    isPending,
+    refetch,
   } = queryResult;
 
   useEffect(() => {
@@ -636,22 +651,29 @@ export function useInfiniteLogsQuery({
   const _fetchNextPage = useCallback(
     () =>
       hasNextPage && nextPageHasData
-        ? !isFetchingNextPage && !isError && fetchNextPage()
+        ? !isFetching && !isError && fetchNextPage()
         : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetchingNextPage, isError, nextPageHasData]
+    [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
   return {
     error,
     isError,
     isFetching,
-    isPending,
+    isPending: queryResult.isPending,
     data: _data,
     meta: _meta,
-    isEmpty: !isPending && !isError && _data.length === 0,
+    isRefetching: queryResult.isRefetching,
+    isEmpty:
+      !queryResult.isPending &&
+      !queryResult.isRefetching &&
+      !isError &&
+      _data.length === 0,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
+    refetch,
     hasNextPage,
+    queryKey: queryKeyWithInfinite,
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,

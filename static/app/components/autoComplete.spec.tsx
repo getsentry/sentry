@@ -45,7 +45,7 @@ describe('AutoComplete', function () {
     itemCount: number;
     registerItemCount: (count?: number) => void;
   }) {
-    useEffect(() => void registerItemCount(itemCount), [itemCount, registerItemCount]);
+    useEffect(() => registerItemCount(itemCount), [itemCount, registerItemCount]);
     return <ul {...props} />;
   }
 
