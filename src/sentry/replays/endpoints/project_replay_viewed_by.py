@@ -16,9 +16,8 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
-from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
-from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
+from sentry.replays.usecases.replay import get_replay
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
@@ -68,24 +67,21 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
-        # If no rows were found then the replay does not exist and a 404 is returned.
-        viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(
-            project_id=project.id,
+        replay = get_replay(
+            project_ids=[project.id],
             replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            request_user_id=request.user.id,
-            organization=project.organization,
+            timestamp_start=filter_params["start"],
+            timestamp_stop=filter_params["end"],
+            fields={"viewed_by_ids"},
+            requesting_user_id=request.user.id,
+            referrer="project.replay_viewed_by.details",
+            tenant_ids={"organization_id": project.organization_id},
         )
-        if not viewed_by_ids_response:
+        if not replay:
             return Response(status=404)
 
-        viewed_by_ids = viewed_by_ids_response[0]["viewed_by_ids"]
-        if viewed_by_ids == []:
-            return Response({"data": {"viewed_by": []}}, status=200)
-
         serialized_users = user_service.serialize_many(
-            filter=dict(user_ids=viewed_by_ids, organization_id=project.organization.id),
+            filter=dict(user_ids=replay["viewed_by_ids"], organization_id=project.organization.id),
             as_user=serialize_generic_user(request.user),
         )
 
@@ -115,22 +111,21 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
         # make a query to avoid overwriting the `finished_at` column
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
-        finished_at_response = execute_query(
-            query=make_full_aggregation_query(
-                fields=["finished_at"],
-                replay_ids=[replay_id],
-                project_ids=[project.id],
-                period_start=filter_params["start"],
-                period_end=filter_params["end"],
-                request_user_id=request.user.id,
-            ),
-            tenant_id={"organization_id": project.organization.id} if project.organization else {},
-            referrer="replays.endpoints.viewed_by_post",
-        )["data"]
-        if not finished_at_response:
+
+        replay = get_replay(
+            project_ids=[project.id],
+            replay_id=replay_id,
+            timestamp_start=filter_params["start"],
+            timestamp_stop=filter_params["end"],
+            requesting_user_id=request.user.id,
+            fields={"finished_at"},
+            referrer="project.replay.viewed_by.create",
+            tenant_ids={"organization_id": project.organization_id},
+        )
+        if not replay:
             return Response(status=404)
 
-        finished_at = finished_at_response[0]["finished_at"]
+        finished_at = replay["finished_at"]
         finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
 
         message = viewed_event(
