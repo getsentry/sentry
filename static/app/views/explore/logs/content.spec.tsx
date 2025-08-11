@@ -111,6 +111,11 @@ describe('LogsPage', function () {
       },
     });
     TeamStore.loadInitialData([TeamFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/`,
+      method: 'GET',
+      body: [],
+    });
     const projectSlugMock = MockApiClient.addMockResponse({
       url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/keys/`,
       method: 'GET',
