@@ -278,7 +278,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     analyticsPlatform,
   ]);
 
-  const logsDocs = docs?.onboarding;
+  const logsDocs = docs?.logsOnboarding ?? docs?.onboarding;
 
   if (isLoading) {
     return <LoadingIndicator />;

@@ -179,42 +179,28 @@ export const getJavascriptLogsOnboarding = <
       content: [
         {
           type: 'text',
-          text: t(
-            'Enable Sentry logs by adding enableLogs: true to your Sentry.init configuration.'
+          text: tct(
+            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            {code: <code />}
           ),
         },
         {
+          label: 'React',
           type: 'code',
-          tabs: [
-            {
-              label: 'Baseline',
-              language: 'javascript',
-              code: `
-import * as Sentry from "${sdkPackage}";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  enableLogs: true,
-});
-`,
-            },
-            {
-              label: 'Logger Integration',
-              language: 'javascript',
-              code: `
+          language: 'javascript',
+          code: `
 import * as Sentry from "${sdkPackage}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // Send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
+  // Enable logs to be sent to Sentry
   enableLogs: true,
 });
 `,
-            },
-          ],
         },
       ],
     },
@@ -232,7 +218,7 @@ Sentry.init({
           tabs: [
             {
               label: 'React',
-              language: 'javascript',
+              language: 'jsx',
               code: `import * as Sentry from "${sdkPackage}";
 
 function LogButton() {
@@ -242,7 +228,7 @@ function LogButton() {
         Sentry.logger.info('User triggered test log', { action: 'test_log_button_click' })
       }
     >
-      Send test log
+      Click this button to send a test log
     </button>
   );
 }`,
