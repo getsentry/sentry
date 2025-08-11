@@ -299,6 +299,7 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
+from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -757,7 +758,6 @@ from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
