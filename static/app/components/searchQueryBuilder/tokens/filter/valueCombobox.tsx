@@ -844,6 +844,8 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
           const hiddenOptions = new Set(props.hiddenOptions);
           hiddenOptions.delete(ASK_SEER_ITEM_KEY);
           hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
