@@ -17,7 +17,7 @@ describe('utils.teams', function () {
   });
 
   afterEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => TeamStore.loadInitialData([]));
   });
 
   it('sends projects to children', function () {

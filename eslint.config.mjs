@@ -485,6 +485,7 @@ export default typescript.config([
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
   },

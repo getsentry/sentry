@@ -15,7 +15,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for project with no user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project]));
+    act(() => ProjectsStore.loadInitialData([project]));
 
     render(<UserFeedbackEmpty />);
 
@@ -25,7 +25,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([projectWithReports]));
+    act(() => ProjectsStore.loadInitialData([projectWithReports]));
 
     render(<UserFeedbackEmpty />);
 
@@ -35,7 +35,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for projects with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty />);
 
@@ -45,7 +45,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project query with user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[projectWithReports.id]} />);
 
@@ -55,7 +55,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for project query without any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id]} />);
 
@@ -65,7 +65,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for multi project query with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithReports.id]} />);
 
@@ -75,7 +75,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for multi project query without any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithoutReports]));
+    act(() => ProjectsStore.loadInitialData([project, projectWithoutReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithoutReports.id]} />);
 

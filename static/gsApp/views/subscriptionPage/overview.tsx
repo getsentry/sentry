@@ -159,7 +159,7 @@ function Overview({location, subscription, promotionData}: Props) {
   }, [organization, location.query, subscription, promotionData, api, navigate]);
 
   useEffect(
-    () => void trackSubscriptionView(organization, subscription, 'overview'),
+    () => trackSubscriptionView(organization, subscription, 'overview'),
     [subscription, organization]
   );
 

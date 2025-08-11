@@ -30,7 +30,7 @@ function BaseRRWebReplayerComponent({events, className}: Props) {
     });
   }, [events]);
 
-  useEffect(() => void initPlayer(), [initPlayer]);
+  useEffect(() => initPlayer(), [initPlayer]);
 
   return <div ref={playerEl} className={className} />;
 }

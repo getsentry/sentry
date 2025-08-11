@@ -64,7 +64,7 @@ describe('OrganizationTeams', function () {
           isMember: false,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -90,7 +90,7 @@ describe('OrganizationTeams', function () {
       });
 
       const mockTeams = [team];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
 
       createWrapper({access: new Set([])});
       await userEvent.click(screen.getByLabelText('Join Team'));
@@ -102,7 +102,7 @@ describe('OrganizationTeams', function () {
 
     it('cannot leave idp-provisioned team', function () {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper();
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
@@ -112,7 +112,7 @@ describe('OrganizationTeams', function () {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -150,7 +150,7 @@ describe('OrganizationTeams', function () {
           isMember: false,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({access: new Set([])});
 
       expect(screen.getByLabelText('Request Access')).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe('OrganizationTeams', function () {
           isMember: true,
         }),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -178,7 +178,7 @@ describe('OrganizationTeams', function () {
       const mockTeams = [
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });
@@ -188,7 +188,7 @@ describe('OrganizationTeams', function () {
 
     it('cannot leave idp-provisioned team', function () {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      act(() => TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
       });

@@ -24,7 +24,7 @@ jest.mock('sentry/views/insights/pages/useFilters', () => ({
 
 function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 }
 
