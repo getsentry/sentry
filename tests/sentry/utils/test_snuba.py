@@ -14,7 +14,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
@@ -475,7 +474,6 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling(self, mock_snuba_query) -> None:
         """
         Test error handling for rate limit errors creates a RateLimitExceeded exception
@@ -515,7 +513,6 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query) -> None:
         """
         Test that error handling gracefully handles malformed message
@@ -542,7 +539,6 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    @override_options({"issues.use-snuba-error-data": 1.0})
     def test_rate_limit_error_handling_with_stats_but_no_quota_details(
         self, mock_snuba_query
     ) -> None:
