@@ -46,7 +46,7 @@ def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> Outp
     return OutputSpan(
         payload={
             "data": {
-                "__sentry_internal_span_buffer_outcome": "different",
+                "sentry._internal.span_buffer_segment_id_outcome": "different",
             },
             "span_id": span_id.decode("ascii"),
             "segment_id": segment_id.decode("ascii"),

@@ -110,9 +110,14 @@ export function Attributes({
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
     );
 
-    // `__sentry_internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
+    // `sentry._internal` attributes are used to track internal system behavior (e.g., the span buffer outcomes). Only show these to Sentry staff.
     const onlyAllowedAttributes = onlyVisibleAttributes.filter(attribute => {
-      if (attribute.name.startsWith('__sentry_internal') && !isSentryEmployee) {
+      if (
+        (attribute.name.startsWith('sentry._internal') ||
+          attribute.name.startsWith('sentry._meta') ||
+          attribute.name.startsWith('__sentry_internal')) &&
+        !isSentryEmployee
+      ) {
         return false;
       }
 
