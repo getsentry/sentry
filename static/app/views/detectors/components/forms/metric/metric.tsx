@@ -32,7 +32,6 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
@@ -44,6 +43,7 @@ import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualiz
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 

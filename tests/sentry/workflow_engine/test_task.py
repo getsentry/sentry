@@ -3,6 +3,7 @@ from unittest import mock
 import sentry_sdk
 from google.api_core.exceptions import RetryError
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.status_change_consumer import process_status_change_message, update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -91,10 +92,10 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test(self) -> None:
         detector = self.create_detector(project=self.project)
-        group = self.create_group(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
         activity = Activity(
             project=self.project,
             group=group,
@@ -124,7 +125,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
 class TestProcessWorkflowActivity(TestCase):
     def setUp(self) -> None:
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, type=MetricIssue.type_id)
         self.activity = Activity(
             project=self.project,
             group=self.group,
@@ -132,7 +133,7 @@ class TestProcessWorkflowActivity(TestCase):
             data={"fingerprint": ["test_fingerprint"]},
         )
         self.activity.save()
-        self.detector = self.create_detector()
+        self.detector = self.create_detector(type=MetricIssue.slug)
 
     def test_process_workflow_activity__no_workflows(self) -> None:
         with mock.patch(
@@ -208,7 +209,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
@@ -248,6 +249,7 @@ class TestProcessWorkflowActivity(TestCase):
                 sample_rate=1.0,
             )
 
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")

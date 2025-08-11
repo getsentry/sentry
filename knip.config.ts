@@ -26,6 +26,8 @@ const productionEntryPoints = [
 ];
 
 const testingEntryPoints = [
+  'static/**/*.spec.{js,mjs,ts,tsx}',
+  'tests/js/**/*.spec.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
@@ -52,7 +54,7 @@ const config: KnipConfig = {
     '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/stories/*.{js,mjs,ts,tsx}!',
+    '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

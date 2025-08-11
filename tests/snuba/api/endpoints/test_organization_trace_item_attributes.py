@@ -206,7 +206,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
-    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
+    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
 ):
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
@@ -520,6 +520,43 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
             {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
         ]
+
+    def test_sentry_internal_attributes(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            "normal_attr": "normal_value",
+                            "__sentry_internal_span_buffer_outcome": "different",
+                            "__sentry_internal_test": "internal_value",
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" not in attribute_names
+        assert "__sentry_internal_test" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" in attribute_names
+        assert "__sentry_internal_test" in attribute_names
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):

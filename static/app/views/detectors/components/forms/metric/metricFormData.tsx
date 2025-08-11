@@ -22,24 +22,15 @@ import {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
-
-/**
- * Dataset types for detectors
- */
-export const enum DetectorDataset {
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  SPANS = 'spans',
-  RELEASES = 'releases',
-  LOGS = 'logs',
-}
 
 /**
  * Snuba query types that correspond to the backend SnubaQuery.Type enum.
  * These values are defined in src/sentry/snuba/models.py:
  */
-const enum SnubaQueryType {
+export const enum SnubaQueryType {
   ERROR = 0,
   PERFORMANCE = 1,
   CRASH_RATE = 2,
@@ -319,11 +310,13 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     }
   };
 
+  const datasetConfig = getDatasetConfig(data.dataset);
+
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
     query: data.query,
-    aggregate: data.aggregateFunction,
+    aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
     environment: data.environment ? data.environment : null,
     eventTypes: getEventTypes(data.dataset),
@@ -449,6 +442,8 @@ export function metricSavedDetectorToFormData(
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
 
+  const datasetConfig = getDatasetConfig(dataset);
+
   return {
     // Core detector fields
     name: detector.name,
@@ -458,7 +453,8 @@ export function metricSavedDetectorToFormData(
     owner: detector.owner || '',
     query: snubaQuery?.query || '',
     aggregateFunction:
-      snubaQuery?.aggregate || DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
+      datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
+      DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
     dataset,
     interval: snubaQuery?.timeWindow ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.interval,
 
