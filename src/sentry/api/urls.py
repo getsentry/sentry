@@ -301,11 +301,11 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
-from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
-from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
 from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from sentry.issues.endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
