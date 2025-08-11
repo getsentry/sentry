@@ -59,7 +59,6 @@ describe('FeedbackCategories', () => {
         isPending: true,
         categories: null,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 0,
       });
 
       render(<FeedbackCategories />);
@@ -73,7 +72,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: null,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 0,
       });
 
       render(<FeedbackCategories />);
@@ -87,7 +85,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: null,
         tooFewFeedbacks: true,
-        numFeedbacksContext: 0,
       });
 
       render(<FeedbackCategories />);
@@ -103,7 +100,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: [],
         tooFewFeedbacks: false,
-        numFeedbacksContext: 0,
       });
 
       render(<FeedbackCategories />);
@@ -117,7 +113,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: mockCategories,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -135,7 +130,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: mockCategories,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -166,7 +160,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: mockCategories,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -198,7 +191,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: mockCategories,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -244,7 +236,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: categoriesWithAsterisks,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -282,7 +273,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: categoriesWithQuotes,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -323,7 +313,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: categoriesWithComplexLabels,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -361,7 +350,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: categoriesWithNoAssociatedLabels,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
@@ -397,7 +385,6 @@ describe('FeedbackCategories', () => {
         isPending: false,
         categories: testCategories,
         tooFewFeedbacks: false,
-        numFeedbacksContext: 35,
       });
 
       render(<FeedbackCategories />);
