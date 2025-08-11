@@ -100,10 +100,10 @@ function QuotaExceededContent({
         {usageCategories.length > 0 && (
           <Description>
             {tct(
-              'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor] are paused until your quota resets.',
+              'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor]are paused until your quota resets.',
               {
                 usageCategoryList,
-                descriptor: usageCategories.length > 1 ? t('for these features') : '',
+                descriptor: usageCategories.length > 1 ? t('for these features ') : '',
               }
             )}
           </Description>
