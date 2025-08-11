@@ -124,7 +124,7 @@ export function ScreenLoadEventSamples({
         'measurements.time_to_full_display',
       ],
     },
-    'api.starfish.mobile-event-samples'
+    'api.insights.mobile-event-samples'
   );
 
   return (

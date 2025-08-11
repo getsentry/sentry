@@ -1,6 +1,7 @@
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -56,7 +57,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         'count()',
       ],
     },
-    'api.performance.browser.web-vitals.timeseries-scores'
+    Referrer.WEB_VITAL_TIMESERIES_SCORES
   );
 
   const multiplyBy100 = (data: SeriesDataUnit[]) =>

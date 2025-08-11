@@ -109,7 +109,7 @@ export function EventSamples({
         SpanFields.SPAN_DURATION,
       ],
     },
-    'api.starfish.mobile-startup-event-samples'
+    'api.insights.mobile-startup-event-samples'
   );
 
   return (

@@ -110,7 +110,7 @@ export function DatabaseLandingPage() {
       limit: LIMIT,
       cursor,
     },
-    'api.starfish.use-span-list'
+    'api.insights.use-span-list'
   );
 
   const {isPending: isThroughputDataLoading, data: throughputData} =

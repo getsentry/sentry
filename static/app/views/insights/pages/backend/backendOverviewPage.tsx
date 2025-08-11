@@ -39,6 +39,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -180,7 +181,7 @@ function EAPBackendOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.BACKEND_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [...selectedBackendProjects, ...selectedOtherProjects].map(

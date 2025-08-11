@@ -172,7 +172,7 @@ const initializeMockRequests = () => {
     match: [
       (_, options) => {
         const match =
-          options.query?.referrer === 'api.starfish.span-summary-panel-samples-table-avg';
+          options.query?.referrer === 'api.insights.span-summary-panel-samples-table-avg';
         return match;
       },
     ],
@@ -193,7 +193,7 @@ const initializeMockRequests = () => {
       (_, options) => {
         const match =
           options.query?.referrer ===
-          'api.starfish.span-summary-panel-samples-table-transactions';
+          'api.insights.span-summary-panel-samples-table-transactions';
         return match;
       },
     ],
@@ -212,7 +212,7 @@ const initializeMockRequests = () => {
       (_, options) => {
         const {query} = options;
         return (
-          query?.referrer === 'api.starfish.sidebar-span-metrics' &&
+          query?.referrer === 'api.insights.sidebar-span-metrics' &&
           query?.yAxis === 'avg(span.self_time)'
         );
       },

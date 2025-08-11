@@ -108,7 +108,7 @@ describe('CacheLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
-          referrer: 'api.performance.cache.landing-cache-throughput-chart',
+          referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'epm()',
@@ -136,7 +136,7 @@ describe('CacheLandingPage', function () {
           per_page: 20,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
-          referrer: 'api.performance.cache.landing-cache-transaction-list',
+          referrer: 'api.insights.cache.landing-cache-transaction-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -155,7 +155,7 @@ describe('CacheLandingPage', function () {
           noPagination: true,
           project: [],
           query: 'transaction:["my-transaction"] AND is_transaction:true',
-          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          referrer: 'api.insights.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
       })
@@ -169,7 +169,7 @@ describe('CacheLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.cache.landing-cache-transaction-list',
+          referrer: 'api.insights.cache.landing-cache-transaction-list',
         }),
       ],
       body: {
@@ -216,7 +216,7 @@ describe('CacheLandingPage', function () {
           per_page: 50,
           project: [],
           query: 'transaction:["transaction with \\"quote\\""] AND is_transaction:true',
-          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          referrer: 'api.insights.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
       })
@@ -301,7 +301,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-hit-miss-chart',
+        referrer: 'api.insights.cache.landing-cache-hit-miss-chart',
       }),
     ],
     body: {
@@ -324,7 +324,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
+        referrer: 'api.insights.cache.samples-cache-hit-miss-chart',
       }),
     ],
     body: {
@@ -347,7 +347,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-throughput-chart',
+        referrer: 'api.insights.cache.landing-cache-throughput-chart',
       }),
     ],
     body: {
@@ -370,7 +370,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-transaction-list',
+        referrer: 'api.insights.cache.landing-cache-transaction-list',
       }),
     ],
     body: {
@@ -405,7 +405,7 @@ const setRequestMocks = (organization: Organization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-transaction-duration',
+        referrer: 'api.insights.cache.landing-cache-transaction-duration',
       }),
     ],
     body: {

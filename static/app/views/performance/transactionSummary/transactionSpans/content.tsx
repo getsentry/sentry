@@ -148,7 +148,7 @@ function SpansContent(props: Props) {
         eventView={totalsView}
         orgSlug={organization.slug}
         location={location}
-        referrer="api.performance.transaction-spans"
+        referrer="api.insights.transaction-spans"
         cursor="0:0:1"
         noPagination
       >

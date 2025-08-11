@@ -234,7 +234,7 @@ function EAPOverviewPage() {
         'sum_if(span.duration,is_transaction,equals,true)',
       ],
     },
-    'api.performance.landing-table'
+    'api.insights.frontend.landing-table'
   );
 
   const searchBarProjectsIds = [

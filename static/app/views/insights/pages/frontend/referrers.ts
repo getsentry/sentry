@@ -3,4 +3,5 @@ export enum Referrer {
   TIME_CONSUMING_REQUESTS = 'api.insights.frontend.overview.time-consuming-domains',
   TRANSACTION_THROUGHPUT_CHART = 'api.insights.frontend.overview.transaction-throughput',
   TRANSACTION_DURATION_CHART = 'api.insights.frontend.overview.transaction-duration',
+  FRONTEND_LANDING_TABLE = 'api.insights.frontend.landing-table',
 }

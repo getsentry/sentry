@@ -42,6 +42,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
@@ -147,7 +148,7 @@ export function NewFrontendOverviewPage() {
         'sum_if(span.duration,is_transaction,equals,true)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.FRONTEND_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [

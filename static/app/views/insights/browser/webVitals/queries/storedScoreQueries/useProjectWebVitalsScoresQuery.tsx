@@ -1,6 +1,7 @@
 import type {Tag} from 'sentry/types/group';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -66,7 +67,7 @@ export const useProjectWebVitalsScoresQuery = ({
           : [`sum(measurements.score.weight.${weightWebVital})` as const]),
       ],
     },
-    'api.performance.browser.web-vitals.project-scores'
+    Referrer.WEB_VITAL_PROJECT_SCORES
   );
 
   const finalData: Array<
