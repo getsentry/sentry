@@ -463,6 +463,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
     <PulsingIndicator />
   </div>
 ))`
+  padding-top: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
   position: relative;
@@ -483,6 +484,7 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
     {t("We've received this project's first log!")}
   </div>
 ))`
+  padding-top: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
   flex-grow: 1;

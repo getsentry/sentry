@@ -243,25 +243,20 @@ Sentry.init({
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'React',
-              language: 'jsx',
-              code: `import * as Sentry from "${sdkPackage}";
+          language: 'jsx',
+          code: `import * as Sentry from "${sdkPackage}";
 
 function LogButton() {
-  return (
-    <button
-      onClick={() =>
-        Sentry.logger.info('User triggered test log', { action: 'test_log_button_click' })
-      }
-    >
-      Click this button to send a test log
-    </button>
-  );
+return (
+<button
+  onClick={() =>
+    Sentry.logger.info('User triggered test log', { action: 'test_log_button_click' })
+  }
+>
+  Click this button to send a test log
+</button>
+);
 }`,
-            },
-          ],
         },
       ],
     },
