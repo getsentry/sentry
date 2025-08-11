@@ -12,7 +12,6 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -147,9 +146,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
   const panelContent = AlertWizardPanelContent[alertOption];
   return (
-    <Layout.Page>
-      <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
-
+    <Layout.Page title={t('Alert Creation Wizard')}>
       <Layout.Header>
         <StyledHeaderContent>
           <BuilderBreadCrumbs

@@ -24,7 +24,7 @@ export default function DetectorNewSettings() {
 
   if (isFetchingProjects) {
     return (
-      <Layout.Page>
+      <Layout.Page title={t('New Detector Settings')}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <LoadingIndicator />

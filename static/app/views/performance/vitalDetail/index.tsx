@@ -5,7 +5,6 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -112,22 +111,25 @@ class VitalDetail extends Component<Props, State> {
       : undefined;
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <PageFiltersContainer>
-            <Layout.Page>
-              <VitalDetailContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                router={router}
-                vitalName={vitalName || WebVital.LCP}
-                api={api}
-              />
-            </Layout.Page>
-          </PageFiltersContainer>
-        </PerformanceEventViewProvider>
-      </SentryDocumentTitle>
+      <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
+        <PageFiltersContainer>
+          <Layout.Page
+            title={{
+              title: this.getDocumentTitle(),
+              orgSlug: organization.slug,
+            }}
+          >
+            <VitalDetailContent
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              router={router}
+              vitalName={vitalName || WebVital.LCP}
+              api={api}
+            />
+          </Layout.Page>
+        </PageFiltersContainer>
+      </PerformanceEventViewProvider>
     );
   }
 }

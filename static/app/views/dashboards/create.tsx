@@ -27,7 +27,7 @@ function CreateDashboard(props: Props) {
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
     return (
-      <Layout.Page withPadding>
+      <Layout.Page title={t('Create Dashboard')} withPadding>
         <Alert.Container>
           <Alert type="warning" showIcon={false}>
             {t("You don't have access to this feature")}

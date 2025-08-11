@@ -17,7 +17,7 @@ function PreprodContainer({children}: Props) {
       features={['organizations:preprod-frontend-routes']}
       organization={organization}
       renderDisabled={() => (
-        <Layout.Page withPadding>
+        <Layout.Page withPadding title={null}>
           <Alert.Container>
             <Alert type="warning" showIcon={false}>
               {t("You don't have access to this feature")}

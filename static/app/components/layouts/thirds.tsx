@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Tabs} from 'sentry/components/core/tabs';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import SentryDocumentTitle, {
+  type DocumentTitleOptions,
+} from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -12,14 +14,18 @@ import {space} from 'sentry/styles/space';
  */
 interface PageProps {
   children: NonNullable<React.ReactNode>;
-  title: string | null;
+  title: string | DocumentTitleOptions | null;
   withPadding?: boolean;
 }
 
-export function Page(props: PageProps) {
+export const Page = styled((props: PageProps) => {
   return (
     <Fragment>
-      {props.title ? <SentryDocumentTitle title={props.title} /> : null}
+      {props.title === null ? null : typeof props.title === 'string' ? (
+        <SentryDocumentTitle title={props.title} />
+      ) : (
+        <SentryDocumentTitle {...props.title} />
+      )}
       <Flex
         direction="column"
         flex={1}
@@ -29,7 +35,7 @@ export function Page(props: PageProps) {
       </Flex>
     </Fragment>
   );
-}
+})``;
 
 /**
  * Header container for header content and header actions.

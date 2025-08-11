@@ -10,7 +10,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -246,7 +245,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const {error} = this.state;
 
     return (
-      <Layout.Page withPadding>
+      <Layout.Page title={t('Alert Rule')} withPadding>
         <Alert.Container>
           <Alert type="error">
             {error?.status === 404
@@ -282,22 +281,23 @@ class MetricAlertDetails extends Component<Props, State> {
             <Alert type="warning">{warning}</Alert>
           </Alert.Container>
         )}
-        <SentryDocumentTitle title={rule?.name ?? ''} />
 
-        <DetailsHeader
-          hasMetricRuleDetailsError={hasError}
-          organization={organization}
-          rule={rule}
-          project={project}
-          onSnooze={this.onSnooze}
-        />
-        <MetricDetailsBody
-          rule={rule}
-          project={project}
-          incidents={incidents}
-          timePeriod={timePeriod}
-          selectedIncident={selectedIncident}
-        />
+        <Layout.Page title={rule?.name ?? t('Alert Rule')} withPadding>
+          <DetailsHeader
+            hasMetricRuleDetailsError={hasError}
+            organization={organization}
+            rule={rule}
+            project={project}
+            onSnooze={this.onSnooze}
+          />
+          <MetricDetailsBody
+            rule={rule}
+            project={project}
+            incidents={incidents}
+            timePeriod={timePeriod}
+            selectedIncident={selectedIncident}
+          />
+        </Layout.Page>
       </PageFiltersContainer>
     );
   }

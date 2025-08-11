@@ -1,11 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -52,8 +51,8 @@ export default function AutomationNew() {
   });
 
   return (
-    <SentryDocumentTitle title={t('New Automation')} noSuffix>
-      <Layout.Page>
+    <Fragment>
+      <Layout.Page title={t('New Automation')}>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <AutomationBreadcrumbs />
@@ -100,7 +99,7 @@ export default function AutomationNew() {
           </LinkButton>
         </Flex>
       </StickyFooter>
-    </SentryDocumentTitle>
+    </Fragment>
   );
 }
 

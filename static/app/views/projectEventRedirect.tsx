@@ -70,7 +70,7 @@ function ProjectEventRedirect({router}: Props) {
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
   ) : (
-    // @ts-expect-error: Layout.Page accepts NonNullable<React.ReactNode>
+    // @ts-expect-error: Layout.Page should never be used without children
     <Layout.Page title={null} withPadding />
   );
 }
