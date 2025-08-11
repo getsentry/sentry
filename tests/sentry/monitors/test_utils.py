@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.db import IntegrityError
 
+from sentry.issues.grouptype import MonitorIncidentType
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector
 from sentry.testutils.cases import TestCase
@@ -28,7 +29,7 @@ class EnsureCronDetectorTest(TestCase):
         )
         assert data_source is not None
         detector = Detector.objects.get(
-            type="monitor_check_in_failure",
+            type=MonitorIncidentType.slug,
             project_id=self.monitor.project_id,
             name=self.monitor.name,
         )
@@ -48,7 +49,7 @@ class EnsureCronDetectorTest(TestCase):
             source_id=str(self.monitor.id),
         )
         detector = Detector.objects.get(
-            type="monitor_check_in_failure",
+            type=MonitorIncidentType.slug,
             project_id=self.monitor.project_id,
             name=self.monitor.name,
         )
@@ -63,7 +64,7 @@ class EnsureCronDetectorTest(TestCase):
             source_id=str(self.monitor.id),
         )
         detector_after = Detector.objects.get(
-            type="monitor_check_in_failure",
+            type=MonitorIncidentType.slug,
             project_id=self.monitor.project_id,
             name=self.monitor.name,
         )
@@ -80,7 +81,7 @@ class EnsureCronDetectorTest(TestCase):
         self.monitor.save()
         ensure_cron_detector(self.monitor)
         detector = Detector.objects.get(
-            type="monitor_check_in_failure",
+            type=MonitorIncidentType.slug,
             project_id=self.monitor.project_id,
         )
         assert detector.owner_user_id == self.user.id
@@ -90,7 +91,7 @@ class EnsureCronDetectorTest(TestCase):
         ensure_cron_detector(self.monitor)
 
         detector = Detector.objects.get(
-            type="monitor_check_in_failure",
+            type=MonitorIncidentType.slug,
             project_id=self.monitor.project_id,
         )
         assert detector.owner_user_id is None

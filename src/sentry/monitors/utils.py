@@ -392,6 +392,8 @@ def update_issue_alert_rule(
 
 
 def ensure_cron_detector(monitor: Monitor):
+    from sentry.issues.grouptype import MonitorCheckInFailure
+
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -401,7 +403,7 @@ def ensure_cron_detector(monitor: Monitor):
             )
             if created:
                 detector = Detector.objects.create(
-                    type="monitor_check_in_failure",
+                    type=MonitorCheckInFailure.slug,
                     project_id=monitor.project_id,
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
