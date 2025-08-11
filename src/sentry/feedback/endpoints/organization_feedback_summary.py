@@ -1,5 +1,4 @@
 import logging
-import time
 from datetime import timedelta
 from typing import TypedDict
 
@@ -70,8 +69,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
         ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
             return Response(status=403)
-
-        time.sleep(5)
 
         try:
             start, end = get_date_range_from_stats_period(
