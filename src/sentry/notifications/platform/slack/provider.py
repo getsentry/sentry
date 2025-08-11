@@ -1,4 +1,14 @@
-from typing import Any
+from typing import TypedDict
+
+from slack_sdk.models.blocks import (
+    ActionsBlock,
+    Block,
+    ButtonElement,
+    HeaderBlock,
+    ImageBlock,
+    MarkdownTextObject,
+    SectionBlock,
+)
 
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
@@ -13,18 +23,39 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
-# TODO(ecosystem): Figure out a way to use 'SlackBlock' type
-type SlackRenderable = Any
+
+class SlackRenderable(TypedDict):
+    blocks: list[Block]
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.DISCORD
+    provider_key = NotificationProviderKey.SLACK
 
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        return {}
+        subject = HeaderBlock(text=MarkdownTextObject(text=rendered_template.subject))
+        body = SectionBlock(text=MarkdownTextObject(text=rendered_template.body))
+
+        actions_block = ActionsBlock(elements=[])
+        for action in rendered_template.actions:
+            actions_block.elements.append(
+                ButtonElement(
+                    text=action.get("label", ""), url=action.get("link", ""), type="button"
+                )
+            )
+
+        blocks = [subject, body, actions_block]
+
+        if rendered_template.footer:
+            footer = SectionBlock(text=MarkdownTextObject(text=rendered_template.footer))
+            blocks.append(footer)
+        if rendered_template.chart:
+            chart = ImageBlock(image_url=rendered_template.chart, alt_text="chart")
+            blocks.append(chart)
+
+        return SlackRenderable(blocks=blocks)
 
 
 @provider_registry.register(NotificationProviderKey.SLACK)
