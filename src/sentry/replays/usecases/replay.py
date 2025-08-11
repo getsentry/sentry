@@ -245,7 +245,7 @@ QUERY_MAP: dict[str, Expression] = {
     "trace_ids": Function(
         "arrayMap",
         parameters=[
-            Lambda(["trace_id"], strip_dashes("trace_id", alias="trace_id")),
+            Lambda(["trace_id"], strip_dashes("trace_id")),
             Function("groupUniqArrayArray", parameters=[Column("trace_ids")]),
         ],
         alias="traceIds",
@@ -374,6 +374,7 @@ class Replay(TypedDict):
     user: User
     warning_ids: list[str]
     replay_type: str
+    viewed_by_ids: list[int]
 
 
 def get_replay(
@@ -536,6 +537,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
                 },
             },
             "warning_ids": get("warning_ids", []),
+            "viewed_by_ids": get("viewed_by_ids", []),
         }
 
     # If the data indicated the replay was archived we can ignore nearly all of the data we were
