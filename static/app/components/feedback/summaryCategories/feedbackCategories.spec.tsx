@@ -53,7 +53,7 @@ describe('FeedbackCategories', () => {
   });
 
   describe('Component Rendering', () => {
-    it('renders loading state with skeleton', () => {
+    it('renders loading state', () => {
       mockUseFeedbackCategories.mockReturnValue({
         isError: false,
         isPending: true,
