@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: uv sync --only-dev --frozen
+          install-cmd: uv sync --only-dev --frozen --active
 
       - name: test-tools
         run: make test-tools
@@ -71,7 +71,7 @@ jobs:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
           # technically we can just use --only-dev but more cache is nice
-          install-cmd: uv sync --frozen
+          install-cmd: uv sync --frozen --active
 
       - name: devenv sync
         run: |
