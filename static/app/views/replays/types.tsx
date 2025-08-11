@@ -20,18 +20,6 @@ export type HydratedReplayRecord = {
     name: null | string;
     version: null | string;
   };
-  clicks: Array<{
-    ['click.alt']: string | null;
-    ['click.class']: string | null;
-    ['click.component_name']: string | null;
-    ['click.id']: string | null;
-    ['click.label']: string | null;
-    ['click.role']: string | null;
-    ['click.tag']: string | null;
-    ['click.testid']: string | null;
-    ['click.text']: string | null;
-    ['click.title']: string | null;
-  }>;
   /**
    * The number of dead clicks associated with the replay.
    */
@@ -138,7 +126,6 @@ type ArchivedReplayRecord = {
     name: null;
     version: null;
   };
-  clicks: never[];
   count_dead_clicks: null;
   count_errors: null;
   count_infos: null;
@@ -266,7 +253,6 @@ export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
   | 'browser'
-  | 'clicks'
   | 'count_dead_clicks'
   | 'count_errors'
   | 'count_infos'
