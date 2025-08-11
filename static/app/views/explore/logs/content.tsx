@@ -1,14 +1,12 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone, IconOpen} from 'sentry/icons';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,11 +18,12 @@ import {
   useLogsTitle,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function FeedbackButton() {
@@ -58,6 +57,8 @@ export default function LogsContent() {
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     logsPickableDays(organization);
 
+  const onboardingProject = useOnboardingProject({property: 'hasLogs'});
+
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
       <PageFiltersContainer
@@ -79,11 +80,21 @@ export default function LogsContent() {
               <LogsHeader />
               <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
                 <LogsPageDataProvider>
-                  <LogsTabContent
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
-                  />
+                  {defined(onboardingProject) ? (
+                    <LogsTabOnboarding
+                      organization={organization}
+                      project={onboardingProject}
+                      defaultPeriod={defaultPeriod}
+                      maxPickableDays={maxPickableDays}
+                      relativeOptions={relativeOptions}
+                    />
+                  ) : (
+                    <LogsTabContent
+                      defaultPeriod={defaultPeriod}
+                      maxPickableDays={maxPickableDays}
+                      relativeOptions={relativeOptions}
+                    />
+                  )}
                 </LogsPageDataProvider>
               </TraceItemAttributeProvider>
             </Layout.Page>
@@ -95,7 +106,6 @@ export default function LogsContent() {
 }
 
 function LogsHeader() {
-  const organization = useOrganization();
   const prefersStackedNav = usePrefersStackedNav();
 
   const pageId = useLogsId();
@@ -122,20 +132,6 @@ function LogsHeader() {
       <Layout.HeaderActions>
         <ButtonBar>
           <FeedbackButton />
-          <LinkButton
-            icon={<IconOpen />}
-            priority="primary"
-            href={LOGS_INSTRUCTIONS_URL}
-            external
-            size="xs"
-            onMouseDown={() => {
-              trackAnalytics('logs.doc_link.clicked', {
-                organization,
-              });
-            }}
-          >
-            {t('Set Up Logs')}
-          </LinkButton>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

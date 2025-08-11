@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.explore_logs import ExploreLogsPage
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, OurLogTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -33,7 +34,11 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
         self.project = self.create_project(
-            organization=self.organization, teams=[self.team], name="Bengal"
+            organization=self.organization,
+            teams=[self.team],
+            name="Bengal",
+            flags=Project.flags.has_logs
+            | Project.flags.has_transactions,  # Bitfields should be set to avoid onboarding.
         )
         self.features = {
             "organizations:ourlogs-enabled": True,

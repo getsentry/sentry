@@ -72,6 +72,7 @@ export function LogFixtureMeta(
 }
 
 interface LogsTestInitOptions {
+  isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
   organization?: Partial<Organization>;
   ourlogs?: boolean;
@@ -92,7 +93,7 @@ type LocationConfig = {
  */
 export function initializeLogsTest({
   organization: orgOverrides = {},
-  project: projectOverrides = {},
+  project: projectOverrides,
   ourlogs = true,
   liveRefresh: hasLiveRefreshFlag = false,
   routerQuery = {},
@@ -128,12 +129,13 @@ export function initializeLogsTest({
     baseFeatures.push('ourlogs-live-refresh');
   }
 
+  const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
     organization: {
       features: baseFeatures,
       ...orgOverrides,
     },
-    project: projectOverrides,
+    projects: [forcedProject],
   });
 
   const initialLocation: LocationConfig = {
