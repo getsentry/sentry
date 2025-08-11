@@ -42,7 +42,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     <GroupList
       endpointPath={path}
       queryParams={queryParams}
-      query={`release:"${escapeDoubleQuotes (releaseDetails?.versionInfo.version.raw)}"`}
+      query={`release:"${escapeDoubleQuotes(releaseDetails?.versionInfo.version.raw)}"`}
       canSelectGroups={false}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
