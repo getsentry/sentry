@@ -7,7 +7,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -122,7 +121,7 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap, organization);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 
   let rendered = renderer(data, {
     location,
@@ -192,14 +191,13 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>,
-  organization: Organization
+  projects: Record<string, Project>
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
   if (field === 'span.description') {
-    return spanDescriptionRenderFunc(projects, organization);
+    return spanDescriptionRenderFunc(projects);
   }
   return getFieldRenderer(field, meta, false);
 }
@@ -216,10 +214,7 @@ function eventIdRenderFunc(field: string) {
   return renderer;
 }
 
-function spanDescriptionRenderFunc(
-  projects: Record<string, Project>,
-  organization: Organization
-) {
+function spanDescriptionRenderFunc(projects: Record<string, Project>) {
   function renderer(data: EventData) {
     const project = projects[data.project];
 
@@ -243,8 +238,7 @@ function spanDescriptionRenderFunc(
               />
             )}
             <WrappingText>
-              {!organization.features.includes('discover-cell-actions-v2') &&
-              isUrl(value) ? (
+              {isUrl(value) ? (
                 <ExternalLink href={value}>{value}</ExternalLink>
               ) : (
                 nullableValue(value)
