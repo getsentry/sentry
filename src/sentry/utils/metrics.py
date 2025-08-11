@@ -31,6 +31,7 @@ __all__ = [
     "timing",
     "gauge",
     "backend",
+    "precise_backend",  # just for mocking in tests
     "MutableTags",
     "ensure_crash_rate_in_bounds",
 ]
@@ -171,11 +172,16 @@ def timing(
 ) -> None:
     try:
         backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
-        if precise and precise_backend:
-            precise_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
+
+    if precise and precise_backend:
+        try:
+            precise_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+        except Exception:
+            logger = logging.getLogger("sentry.errors")
+            logger.exception("Unable to record precise metric")
 
 
 def distribution(
@@ -190,13 +196,18 @@ def distribution(
 ) -> None:
     try:
         backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
-        if precise and precise_backend:
-            precise_backend.distribution(
-                key, value, instance, tags, sample_rate, unit, stacklevel + 1
-            )
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
+
+    if precise and precise_backend:
+        try:
+            precise_backend.distribution(
+                key, value, instance, tags, sample_rate, unit, stacklevel + 1, precise=True
+            )
+        except Exception:
+            logger = logging.getLogger("sentry.errors")
+            logger.exception("Unable to record precise metric")
 
 
 @contextmanager
