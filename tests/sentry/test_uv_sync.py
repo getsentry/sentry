@@ -18,7 +18,7 @@ def test_uv_lock_in_sync() -> None:
 
     uv_reqs = set()
 
-    for line in out.stdout.decode().splitlines():
+    for line in out.decode().splitlines():
         spec = line.split(" ")[0]
         uv_reqs.add(spec)
 
