@@ -250,12 +250,18 @@ def boost_low_volume_projects_of_org(
     Task to adjust the sample rates of the projects of a single organization specified by an
     organization ID. Transaction counts and rates have to be provided.
     """
-    logger.info(
-        "boost_low_volume_projects_of_org",
-        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
-    )
+
     rebalanced_projects = calculate_sample_rates_of_projects(
         org_id, projects_with_tx_count_and_rates
+    )
+
+    logger.info(
+        "boost_low_volume_projects_of_org",
+        extra={
+            "traceparent": sentry_sdk.get_traceparent(),
+            "baggage": sentry_sdk.get_baggage(),
+            "org_id": org_id,
+        },
     )
     if rebalanced_projects is not None:
         store_rebalanced_projects(org_id, rebalanced_projects)
@@ -439,6 +445,15 @@ def calculate_sample_rates_of_projects(
         org_id=org_id,
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
+    should_log_project_config = features.has("organizations:log-project-config", organization)
+
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: calculate_sample_rates_of_projects for org %s",
+            org_id,
+            extra={"org": org_id, "target_sample_rate": sample_rate, "success": success},
+        )
+
     if success:
         sample_function(
             function=log_sample_rate_source,
@@ -470,6 +485,14 @@ def calculate_sample_rates_of_projects(
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
+
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: calculate_sample_rates_of_projects for org %s",
+            org_id,
+            extra={"projects_with_counts": projects_with_counts, "sample_rate": sample_rate},
+        )
+
     # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
     if not any(projects_with_counts.values()):
         return None
