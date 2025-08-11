@@ -132,14 +132,13 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
-            # return Response(
-            #     {
-            #         "categories": categories_cache["categories"],
-            #         "success": True,
-            #         "numFeedbacksContext": categories_cache["numFeedbacksContext"],
-            #     }
-            # )
-            pass
+            return Response(
+                {
+                    "categories": categories_cache["categories"],
+                    "success": True,
+                    "numFeedbacksContext": categories_cache["numFeedbacksContext"],
+                }
+            )
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -151,13 +150,13 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
             logger.error("Too few feedbacks to generate categories")
-            # return Response(
-            #     {
-            #         "categories": None,
-            #         "success": False,
-            #         "numFeedbacksContext": 0,
-            #     }
-            # )
+            return Response(
+                {
+                    "categories": None,
+                    "success": False,
+                    "numFeedbacksContext": 0,
+                }
+            )
 
         context_feedbacks = []
         total_chars = 0
