@@ -109,7 +109,7 @@
     "classnames": "2.3.1",
     "color": "^4.2.3",
     "compression-webpack-plugin": "11.1.0",
-    "core-js": "^3.41.0",
+    "core-js": "3.45.0",
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
     "diff": "5.2.0",
