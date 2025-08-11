@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 from typing import TypedDict
 
-import requests
 from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -22,11 +21,19 @@ from sentry.feedback.lib.label_query import (
 )
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+SEER_LABEL_GROUPS_ENDPOINT_URL = "v1/automation/summarize/feedback/label-groups"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
 
 
 MIN_FEEDBACKS_CONTEXT = 10
@@ -187,9 +194,31 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             feedbacks_context=context_feedbacks,
         )
 
-        label_groups: list[FeedbackLabelGroup] = json.loads(
-            make_seer_request(seer_request).decode("utf-8")
-        )["data"]
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=seer_connection_pool,
+                path=SEER_LABEL_GROUPS_ENDPOINT_URL,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+            response_data = json.loads(response.data.decode("utf-8"))
+        except Exception as e:
+            logger.exception(
+                "Failed to generate label groups",
+                extra={
+                    "error": type(e).__name__,
+                },
+            )
+            raise Exception("Seer label groups endpoint failed")
+        if response.status < 200 or response.status >= 300:
+            logger.error(
+                "Failed to generate label groups",
+                extra={
+                    "status_code": response.status,
+                    "response_data": response.data if response else None,
+                },
+            )
+            raise Exception(f"Seer label groups endpoint returned status {response.status}")
+        label_groups = response_data["data"]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories
         if len(label_groups) != len(top_10_labels):
@@ -254,30 +283,3 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 "numFeedbacksContext": len(context_feedbacks),
             }
         )
-
-
-def make_seer_request(request: LabelGroupsRequest) -> bytes:
-    serialized_request = json.dumps(request)
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/label-groups",
-        data=serialized_request,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(serialized_request.encode()),
-        },
-    )
-
-    if response.status_code != 200:
-        logger.error(
-            "Failed to generate label groups",
-            extra={
-                "status_code": response.status_code,
-                "response": response.text,
-                "content": response.content,
-            },
-        )
-
-    response.raise_for_status()
-
-    return response.content
