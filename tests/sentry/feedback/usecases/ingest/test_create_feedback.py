@@ -1043,12 +1043,16 @@ def test_create_feedback_adds_ai_labels(
     mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
+    # Explicitly disable hide_ai_features to ensure AI features are enabled
+    default_project.organization.update_option("sentry:hide_ai_features", False)
+
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
             "organizations:gen-ai-features": True,
         }
     ):
+        mock_get_seer_org_acknowledgement.return_value = True
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
@@ -1086,6 +1090,9 @@ def test_create_feedback_handles_label_generation_errors(
     mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
+    # Explicitly disable hide_ai_features to ensure AI features are enabled
+    default_project.organization.update_option("sentry:hide_ai_features", False)
+
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
@@ -1128,6 +1135,9 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
     mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
+    # Explicitly disable hide_ai_features to ensure AI features are enabled
+    default_project.organization.update_option("sentry:hide_ai_features", False)
+
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
@@ -1194,6 +1204,9 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
     mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
+    # Explicitly disable hide_ai_features to ensure AI features are enabled
+    default_project.organization.update_option("sentry:hide_ai_features", False)
+
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
@@ -1243,6 +1256,9 @@ def test_create_feedback_no_ai_labels_when_seer_consent_not_given(
     mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue does not generate AI labels when Seer consent is not given, even if other AI features are enabled."""
+    # Explicitly disable hide_ai_features to ensure AI features are enabled
+    default_project.organization.update_option("sentry:hide_ai_features", False)
+
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,

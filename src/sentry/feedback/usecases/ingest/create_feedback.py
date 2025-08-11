@@ -336,6 +336,7 @@ def create_feedback_issue(
         not is_message_spam
         and features.has("organizations:user-feedback-ai-categorization", project.organization)
         and features.has("organizations:gen-ai-features", project.organization)
+        and not project.organization.get_option("sentry:hide_ai_features")
         and get_seer_org_acknowledgement(project.organization_id)
     ):
         try:
