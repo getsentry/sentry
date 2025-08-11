@@ -25,6 +25,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
     DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
@@ -438,8 +439,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert project_ids
         assert project_ids[0][0] == self.project.id
@@ -469,8 +474,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert project_ids[0][0] == self.project.id
 
@@ -549,8 +558,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert project_ids[0][0] == self.project.id
 
@@ -576,8 +589,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert not project_ids
 
@@ -586,8 +603,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert project_ids[0][0] == self.project.id
 
@@ -736,8 +757,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         enqueue_workflows(queue_items)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=timezone.now().timestamp(),
         )
         assert project_ids
         assert project_ids[0][0] == self.project.id
@@ -774,8 +799,9 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @patch("random.randrange", return_value=5)
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
-        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
+        self, mock_randrange, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
         enqueue_workflows(
             {
@@ -791,7 +817,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
         mock_push_to_sorted_set.assert_called_once_with(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            key=f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{5}",
             value=[self.group_event.project_id],
         )
 

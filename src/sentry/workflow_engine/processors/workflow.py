@@ -1,3 +1,4 @@
+import random
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -31,6 +32,7 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 logger = log_context.get_logger(__name__)
 
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
+WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS = 8
 DetectorId = int | None
 DataConditionGroupId = int
 
@@ -125,9 +127,8 @@ def enqueue_workflows(
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
-    buffer.backend.push_to_sorted_set(
-        key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
-    )
+    sharded_key = f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{random.randrange(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS)}"
+    buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(
         "workflow_engine.workflows.enqueued",
