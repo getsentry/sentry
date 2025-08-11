@@ -3,7 +3,6 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.db import close_old_connections
 
 from sentry import features, options
 from sentry.issues.grouptype import GroupCategory
@@ -14,19 +13,6 @@ from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 
 logger = logging.getLogger(__name__)
-
-
-def _get_issue_summary_with_cleanup(
-    group: Group, source: SeerAutomationSource
-) -> tuple[dict[str, Any], int]:
-    """
-    Wrapper for get_issue_summary that ensures database connections are properly closed.
-    This is needed when running in a thread to prevent connection leaks.
-    """
-    try:
-        return get_issue_summary(group, source=source)
-    finally:
-        close_old_connections()
 
 
 def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
@@ -66,7 +52,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         with sentry_sdk.start_span(op="ai_summary.fetch_issue_summary_for_alert"):
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(
-                    _get_issue_summary_with_cleanup, group, SeerAutomationSource.ALERT
+                    get_issue_summary, group, source=SeerAutomationSource.ALERT
                 )
                 summary_result, status_code = future.result(timeout=timeout)
 
