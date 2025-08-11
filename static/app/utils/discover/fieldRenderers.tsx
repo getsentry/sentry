@@ -327,7 +327,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data, baggage) => {
+    renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -335,11 +335,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      // In the future, external linking will be done through CellAction component instead of the default renderer
-      if (
-        !baggage?.organization.features.includes('discover-cell-actions-v2') &&
-        isUrl(value)
-      ) {
+      if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -505,7 +501,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: (data, {organization}) => {
+    renderFunc: data => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -533,8 +529,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {!organization.features.includes('discover-cell-actions-v2') &&
-            isUrl(value) ? (
+            {isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)
