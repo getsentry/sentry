@@ -226,6 +226,7 @@ Then, use it to run sync this time:
                     "sync",
                     "--frozen",
                     "--quiet",
+                    "--active",
                 ),
                 {},
             ),
