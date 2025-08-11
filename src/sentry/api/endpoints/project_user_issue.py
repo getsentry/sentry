@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,8 +9,9 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.issues.grouptype import WebVitalsGroup
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
@@ -20,6 +21,9 @@ from sentry.models.project import Project
 class BaseUserIssueFormatter:
     def __init__(self, data: dict):
         self.data = data
+
+    def get_issue_type(self) -> type[GroupType]:
+        raise NotImplementedError
 
     def get_issue_title(self) -> str:
         raise NotImplementedError
@@ -38,6 +42,9 @@ class BaseUserIssueFormatter:
 
 
 class DefaultUserIssueFormatter(BaseUserIssueFormatter):
+    def get_issue_type(self) -> type[GroupType]:
+        return ErrorGroupType
+
     def get_issue_title(self) -> str:
         return f"{self.data.get('transaction')}"
 
@@ -69,6 +76,9 @@ class DefaultUserIssueFormatter(BaseUserIssueFormatter):
 
 
 class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
+    def get_issue_type(self) -> type[GroupType]:
+        return WebVitalsGroup
+
     def get_issue_title(self) -> str:
         vital = self.data.get("vital", "")
         return f"{vital.upper()} score needs improvement"
@@ -130,19 +140,18 @@ ISSUE_TYPE_CHOICES = [
 ]
 
 
-class OrganizationUserIssueRequestSerializer(serializers.Serializer):
+class ProjectUserIssueRequestSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True)
-    projectId = serializers.IntegerField(required=True)
     issueType = serializers.ChoiceField(required=True, choices=ISSUE_TYPE_CHOICES)
 
 
-class WebVitalsIssueDataSerializer(OrganizationUserIssueRequestSerializer):
+class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     score = serializers.IntegerField(required=True, min_value=0, max_value=100)
     vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "fid", "ttfb"])
 
 
 @region_silo_endpoint
-class OrganizationUserIssueEndpoint(OrganizationEndpoint):
+class ProjectUserIssueEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -156,7 +165,7 @@ class OrganizationUserIssueEndpoint(OrganizationEndpoint):
     def get_serializer(self, data: dict) -> serializers.Serializer:
         if data.get("issueType") == WebVitalsGroup.slug:
             return WebVitalsIssueDataSerializer(data=data)
-        return OrganizationUserIssueRequestSerializer(data=data)
+        return ProjectUserIssueRequestSerializer(data=data)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
@@ -167,10 +176,12 @@ class OrganizationUserIssueEndpoint(OrganizationEndpoint):
             "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a user defined issue.
         """
+
+        organization = project.organization
 
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -181,13 +192,10 @@ class OrganizationUserIssueEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         validated_data = serializer.validated_data
-        project_id = validated_data.get("projectId")
-        project = Project.objects.get(id=project_id)
-
-        if not request.access.has_project_access(project):
-            return Response(status=status.HTTP_403_FORBIDDEN)
 
         formatter = self.get_formatter(validated_data)
+
+        issue_type = formatter.get_issue_type()
 
         fingerprint = formatter.create_fingerprint()
 
@@ -199,7 +207,7 @@ class OrganizationUserIssueEndpoint(OrganizationEndpoint):
 
         event_data = {
             "event_id": event_id,
-            "project_id": project_id,
+            "project_id": project.id,
             "platform": project.platform,
             "timestamp": now.isoformat(),
             "received": now.isoformat(),
@@ -211,14 +219,14 @@ class OrganizationUserIssueEndpoint(OrganizationEndpoint):
         occurence = IssueOccurrence(
             id=uuid4().hex,
             event_id=event_id,
-            project_id=project_id,
+            project_id=project.id,
             fingerprint=fingerprint,
             issue_title=formatted_title,
             subtitle=formatted_subtitle,
             resource_id=None,
             evidence_data=evidence_data,
             evidence_display=evidence_display,
-            type=WebVitalsGroup,
+            type=issue_type,
             detection_time=now,
             culprit=validated_data.get("transaction"),
             level="info",

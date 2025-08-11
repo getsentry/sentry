@@ -10,8 +10,8 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class OrganizationUserIssueEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-user-issue"
+class ProjectUserIssueEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-project-user-issue"
     method = "post"
 
     def setUp(self):

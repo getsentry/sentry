@@ -48,12 +48,12 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.organization_user_issue import OrganizationUserIssueEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
 from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
+from sentry.api.endpoints.project_user_issue import ProjectUserIssueEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -1783,11 +1783,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-page-web-vitals-summary",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/user-issue/$",
-        OrganizationUserIssueEndpoint.as_view(),
-        name="sentry-api-0-organization-user-issue",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/measurements-meta/$",
         OrganizationMeasurementsMeta.as_view(),
         name="sentry-api-0-organization-measurements-meta",
@@ -3072,6 +3067,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/preferences/$",
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
+    ),
+    # User Issue
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/user-issue/$",
+        ProjectUserIssueEndpoint.as_view(),
+        name="sentry-api-0-project-user-issue",
     ),
     *preprod_urls.preprod_urlpatterns,
 ]
