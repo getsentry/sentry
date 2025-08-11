@@ -3,7 +3,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export type FeedbackCategory = {
+type FeedbackCategory = {
   associatedLabels: string[];
   feedbackCount: number;
   primaryLabel: string;
@@ -39,7 +39,6 @@ export default function useFeedbackCategories(): {
     ],
     {
       staleTime: 5000,
-      enabled: Boolean(normalizedDateRange),
       retry: 1,
     }
   );
