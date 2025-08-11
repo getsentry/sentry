@@ -28,11 +28,10 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
 
   const results = diffFn(base, target, {newlineIsToken: true});
 
-  // split one change that includes multiple linse into one change per line (for formatting)
-  const processResults = (
-    currentLine: Change[] = [],
-    processedLines: Change[][] = []
-  ): Change[][] => {
+  // split one change that includes multiple lines into one change per line (for formatting)
+  const processResults = (): Change[][] => {
+    let currentLine: Change[] = [];
+    const processedLines: Change[][] = [];
     for (const change of results) {
       const lines = change.value.split('\n');
       for (let i = 0; i < lines.length; i++) {
@@ -50,7 +49,6 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
         }
       }
     }
-    // Push remaining changes if any
     if (currentLine.length > 0) {
       processedLines.push(currentLine);
     }
@@ -66,11 +64,33 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
           const highlightAdded = line.find(result => result.added);
           const highlightRemoved = line.find(result => result.removed);
 
+          // Apply word-level diffing only to lines that have changes
+          const displayData =
+            highlightAdded || highlightRemoved
+              ? (() => {
+                  const leftText = line.reduce(
+                    (acc, result) => (result.added ? acc : acc + result.value),
+                    ''
+                  );
+                  const rightText = line.reduce(
+                    (acc, result) => (result.removed ? acc : acc + result.value),
+                    ''
+                  );
+
+                  // Handle edge cases where text might be empty
+                  if (!leftText && !rightText) {
+                    return line; // Return original line if both texts are empty
+                  }
+
+                  return diffWords(leftText, rightText);
+                })()
+              : line;
+
           return (
             <tr key={j}>
               <Cell isRemoved={highlightRemoved}>
                 <Line>
-                  {line
+                  {displayData
                     .filter(result => !result.added)
                     .map((result, i) => (
                       <Word key={i} isRemoved={result.removed}>
@@ -84,7 +104,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
 
               <Cell isAdded={highlightAdded}>
                 <Line>
-                  {line
+                  {displayData
                     .filter(result => !result.removed)
                     .map((result, i) => (
                       <Word key={i} isAdded={result.added}>
