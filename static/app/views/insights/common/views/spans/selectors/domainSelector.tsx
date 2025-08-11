@@ -135,12 +135,14 @@ export function DomainSelector({
     });
   }
 
+  const cacheKey = additionalQuery.join(' ');
+
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
       domainList
         .filter(domain => Boolean(domain?.label))
         .filter(domain => domain.value !== EMPTY_OPTION_VALUE),
-      query
+      cacheKey
     );
 
   useEffect(() => {
