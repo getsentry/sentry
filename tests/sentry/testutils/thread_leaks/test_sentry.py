@@ -1,0 +1,91 @@
+"""Tests for thread leak Sentry integration."""
+
+from collections.abc import Iterable
+from traceback import FrameSummary
+from typing import Any
+
+from sentry.testutils.thread_leaks.sentry import event_from_stack
+
+
+def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> dict[str, Any]:
+    """Create Sentry event dict from stack (type-checker friendly wrapper)."""
+    return dict(event_from_stack(value, stack, strict))
+
+
+class TestEventFromStack:
+    def test_simple(self) -> None:
+        stack = [
+            FrameSummary("/app/test_xyz.py", 1, "func"),  # app code - in_app
+            FrameSummary("/usr/lib/python3.13/threading.py", 100, "start"),  # stdlib - not in_app
+        ]
+        event = dict_from_stack("test", stack, strict=True)
+
+        assert event == {
+            "level": "error",
+            "message": "Thread leak detected",
+            "exception": {
+                "values": [
+                    {
+                        "mechanism": {
+                            "type": "sentry.testutils.thread_leaks.sentry",
+                            "handled": False,
+                            "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
+                        },
+                        "type": "ThreadLeakAssertionError",
+                        "value": "test",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "/app/test_xyz.py",
+                                    "function": "func",
+                                    "module": None,
+                                    "lineno": 1,
+                                    "context_line": "",
+                                    "in_app": True,
+                                },
+                                {
+                                    "filename": "/usr/lib/python3.13/threading.py",
+                                    "function": "start",
+                                    "module": None,
+                                    "lineno": 100,
+                                    "context_line": "",
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+    def test_empty_stack(self) -> None:
+        event = dict_from_stack("test_value", [], strict=True)
+
+        # Only assert what differs from full structure
+        assert event["exception"]["values"][0]["stacktrace"]["frames"] == []
+
+    def test_non_strict(self) -> None:
+        # Non-strict mode - only level and handled differ
+        event = dict_from_stack("test", [FrameSummary("/app/test.py", 1, "func")], strict=False)
+        assert event["level"] == "warning"
+        assert event["exception"]["values"][0]["mechanism"]["handled"] is True
+
+    def test_more_frames(self) -> None:
+        # Multiple frames - only frames differ
+        stack = [
+            FrameSummary("/app/caller.py", 10, "caller_func"),
+            FrameSummary("/app/creator.py", 20, "create_thread"),
+        ]
+        event = dict_from_stack("test", stack, strict=True)
+        frames = event["exception"]["values"][0]["stacktrace"]["frames"]
+        assert len(frames) == 2
+        assert frames[0]["filename"] == "/app/caller.py"
+        assert frames[1]["filename"] == "/app/creator.py"
+
+    def test_missing_frame_data(self) -> None:
+        # Frame without locals or line - only these fields differ
+        frame_minimal = FrameSummary("/app/test.py", 42, "func")
+        event = dict_from_stack("test", [frame_minimal], strict=True)
+        stack_frame = event["exception"]["values"][0]["stacktrace"]["frames"][0]
+        assert stack_frame["module"] is None
+        assert stack_frame["context_line"] == ""

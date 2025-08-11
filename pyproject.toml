@@ -217,6 +217,7 @@ markers = [
   "sentry_metrics: test requires access to sentry metrics",
   "symbolicator: test requires access to symbolicator",
   "querybuilder: smoke tests for QueryBuilders",
+  "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.
@@ -583,6 +584,7 @@ module = [
     "sentry.testutils.pytest.json_report_reruns",
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.skips",
+    "sentry.testutils.thread_leaks.*",
     "sentry.toolbar.utils.*",
     "sentry.types.*",
     "sentry.uptime.migrations.*",
@@ -774,6 +776,7 @@ module = [
     "tests.sentry.tasks.test_delete_seer_grouping_records",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.testutils.helpers.*",
+    "tests.sentry.testutils.thread_leaks.*",
     "tests.sentry.types.*",
     "tests.sentry.usage_accountant.*",
     "tests.sentry.users.api.bases.*",
