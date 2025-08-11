@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -515,6 +514,9 @@ class SubscriptionProcessor:
                     results = self.process_results_workflow_engine(
                         subscription_update, aggregation_value, organization
                     )
+            else:
+                # XXX: after we fully migrate to single processing we can return early here like line 545
+                metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
 
             if has_metric_issue_single_processing:
                 # don't go through the legacy system
@@ -539,7 +541,6 @@ class SubscriptionProcessor:
                     return
 
             if aggregation_value is None:
-                metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 return
 
             fired_incident_triggers: list[IncidentTrigger] = []

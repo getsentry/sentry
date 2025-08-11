@@ -210,12 +210,14 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             processor.process_update(message)
         return processor
 
-    # assert active incident: assert that open period exists
-    # which means occurrence created, open period for its group, date_ended is null
-    # query for occurrence evidence_data["detector_id"] == self.detector.id?
-    # wait but we can't even filter. sigh.
-    # I guess I can check the detector status. ugh.
-    # I can also check that there's no open periods for the *project*, but idk how helpful that is
+    def assert_no_open_period(self, rule, subscription=None):
+        # TODO: inverse of below
+        pass
+
+    def assert_open_period(self, rule, subscription=None):
+        # TODO: once we are writing to IncidentGroupOpenPeriod look up the GroupOpenPeriod
+        pass
+
     def get_detector_state(self, detector: Detector) -> DetectorPriorityLevel:
         detector_state = DetectorState.objects.get(detector=detector)
         return int(detector_state.state)
