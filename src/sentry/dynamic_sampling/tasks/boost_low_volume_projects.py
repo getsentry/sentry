@@ -441,17 +441,25 @@ def calculate_sample_rates_of_projects(
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
     # issues.
+
+    default_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+    should_log_project_config = features.has("organizations:log-project-config", organization)
+
     sample_rate, success = get_org_sample_rate(
         org_id=org_id,
-        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        default_sample_rate=default_sample_rate,
     )
-    should_log_project_config = features.has("organizations:log-project-config", organization)
 
     if should_log_project_config:
         logger.info(
             "log-project-config: calculate_sample_rates_of_projects for org %s",
             org_id,
-            extra={"org": org_id, "target_sample_rate": sample_rate, "success": success},
+            extra={
+                "org": org_id,
+                "target_sample_rate": sample_rate,
+                "success": success,
+                "default_sample_rate": default_sample_rate,
+            },
         )
 
     if success:
@@ -525,6 +533,12 @@ def calculate_sample_rates_of_projects(
     rebalanced_projects: list[RebalancedItem] | None = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: rebalanced_projects for org %s",
+            org_id,
+            extra={"rebalanced_projects": rebalanced_projects, "sample_rate": sample_rate},
+        )
 
     return rebalanced_projects
 
