@@ -419,6 +419,7 @@ def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
         return Detector.objects.get(
             datasource__type=DATA_SOURCE_CRON_MONITOR,
             datasource__source_id=str(monitor.id),
+            datasource__organization_id=monitor.organization_id,
         )
     except Detector.DoesNotExist:
         return None
