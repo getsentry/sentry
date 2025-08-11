@@ -16,7 +16,7 @@ import {
   HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
 } from 'sentry/views/alerts/utils/timePeriods';
-import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {isEapDataset} from 'sentry/views/detectors/datasetConfig/utils/isEapDataset';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 
