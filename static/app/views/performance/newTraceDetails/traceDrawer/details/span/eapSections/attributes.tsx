@@ -117,7 +117,8 @@ export function Attributes({
           attribute.name.startsWith('sentry._meta') ||
           attribute.name.startsWith('__sentry_internal')) &&
         !isSentryEmployee
-      ) {        return false;
+      ) {
+        return false;
       }
 
       return true;
