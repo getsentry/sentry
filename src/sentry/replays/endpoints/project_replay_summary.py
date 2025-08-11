@@ -99,6 +99,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     "content-type": "application/json;charset=utf-8",
                     **sign_with_seer_secret(data.encode()),
                 },
+                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
             )
             response.raise_for_status()  # Raises HTTPError for 4xx and 5xx.
 
