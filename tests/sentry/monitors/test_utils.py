@@ -28,6 +28,7 @@ class EnsureCronDetectorTest(TestCase):
     def test_idempotent_for_existing_data_source(self):
         ensure_cron_detector(self.monitor)
         detector = get_detector_for_monitor(self.monitor)
+        assert detector
         ensure_cron_detector(self.monitor)
         detector_after = get_detector_for_monitor(self.monitor)
         assert detector.id == detector_after.id
