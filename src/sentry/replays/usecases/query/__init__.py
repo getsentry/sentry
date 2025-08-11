@@ -16,7 +16,7 @@ found in the function.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Literal, cast
 
 import sentry_sdk
@@ -394,50 +394,6 @@ def _query_using_aggregated_strategy(
     )
 
     return (query, "replays.query.browse_aggregated_conditions_subquery", "aggregated-subquery")
-
-
-def make_full_aggregation_query(
-    fields: list[str],
-    replay_ids: list[str],
-    project_ids: list[int],
-    period_start: datetime,
-    period_end: datetime,
-    request_user_id: int | None,
-) -> Query:
-    """Return a query to fetch every replay in the set.
-
-    Arguments:
-        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
-    """
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
-
-    def _select_from_fields() -> list[Column | Function]:
-        if fields:
-            return select_from_fields(list(set(fields)), user_id=request_user_id)
-        else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
-
-    return Query(
-        match=Entity("replays"),
-        select=_select_from_fields(),
-        where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            # Replay-ids were pre-calculated so no having clause and no aggregating significant
-            # amounts of data.
-            Condition(Column("replay_id"), Op.IN, replay_ids),
-            # We can scan an extended time range to account for replays which span either end of
-            # the range.  These timestamps are an optimization and could be removed with minimal
-            # performance impact.  It's a point query.  Its super fast.
-            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
-        ],
-        # NOTE: Refer to this note: "make_scalar_search_conditions_query".
-        #
-        # This condition ensures that every replay shown to the user is valid.
-        having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("replay_id")],
-        granularity=Granularity(3600),
-    )
 
 
 def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
