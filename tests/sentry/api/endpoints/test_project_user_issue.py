@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from django.urls import reverse
+
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.producer import PayloadType
 from sentry.testutils.cases import APITestCase
@@ -16,25 +18,35 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.login_as(self.user)
+        self.user = self.create_user(email="user@example.com")
+        self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
+        self.login_as(self.user)
+
+        self.url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
     def test_create_web_vitals_issue_success(self):
         data = {
             "transaction": "/test-transaction",
-            "projectId": self.project.id,
             "issueType": WebVitalsGroup.slug,
             "score": 75,
             "vital": "lcp",
         }
 
         with patch(
-            "sentry.api.endpoints.organization_user_issue.produce_occurrence_to_kafka"
+            "sentry.api.endpoints.project_user_issue.produce_occurrence_to_kafka"
         ) as mock_produce:
             response = self.get_success_response(
                 self.organization.slug,
+                self.project.slug,
                 status_code=200,
                 **data,
             )
@@ -69,36 +81,17 @@ class ProjectUserIssueEndpointTest(APITestCase):
     def test_no_access(self):
         data = {
             "transaction": "/test-transaction",
-            "projectId": self.project.id,
             "issueType": WebVitalsGroup.slug,
         }
 
         response = self.get_error_response(
             self.organization.slug,
+            self.project.slug,
             status_code=404,
             **data,
         )
 
         assert response.status_code == 404
-
-    @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    @with_feature("organizations:issue-web-vitals-ingest")
-    def test_invalid_project_id(self):
-        data = {
-            "transaction": "/test-transaction",
-            "projectId": 99999,
-            "issueType": WebVitalsGroup.slug,
-            "score": 75,
-            "vital": "lcp",
-        }
-
-        response = self.get_error_response(
-            self.organization.slug,
-            status_code=500,
-            **data,
-        )
-
-        assert response.status_code == 500
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
@@ -109,12 +102,12 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
+            self.project.slug,
             status_code=400,
             **data,
         )
 
         assert response.status_code == 400
-        assert "projectId" in response.data
         assert "issueType" in response.data
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
@@ -122,7 +115,6 @@ class ProjectUserIssueEndpointTest(APITestCase):
     def test_invalid_web_vitals_fields(self):
         data = {
             "transaction": "/test-transaction",
-            "projectId": self.project.id,
             "issueType": WebVitalsGroup.slug,
             "score": 150,
             "vital": "invalid_vital",
@@ -130,6 +122,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
+            self.project.slug,
             status_code=400,
             **data,
         )
@@ -142,22 +135,23 @@ class ProjectUserIssueEndpointTest(APITestCase):
     def test_web_vitals_issue_fingerprint_consistency(self):
         data = {
             "transaction": "/test-transaction",
-            "projectId": self.project.id,
             "issueType": WebVitalsGroup.slug,
             "score": 75,
             "vital": "lcp",
         }
 
         with patch(
-            "sentry.api.endpoints.organization_user_issue.produce_occurrence_to_kafka"
+            "sentry.api.endpoints.project_user_issue.produce_occurrence_to_kafka"
         ) as mock_produce:
             response1 = self.get_success_response(
                 self.organization.slug,
+                self.project.slug,
                 status_code=200,
                 **data,
             )
             response2 = self.get_success_response(
                 self.organization.slug,
+                self.project.slug,
                 status_code=200,
                 **data,
             )
