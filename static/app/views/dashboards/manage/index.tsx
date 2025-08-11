@@ -578,10 +578,7 @@ function ManageDashboards() {
                         size="sm"
                         priority="primary"
                         icon={<IconAdd />}
-                        disabled={
-                          organization.features.includes('dashboards-plan-limits') &&
-                          (hasReachedDashboardLimit || isLoadingDashboardsLimit)
-                        }
+                        disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                         title={limitMessage}
                       >
                         {t('Create Dashboard')}
