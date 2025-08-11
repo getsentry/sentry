@@ -7,11 +7,7 @@ interface Options {
   projectId?: string[];
 }
 
-export function useOrganizationSDKUpdates({projectId, enabled}: Options): {
-  isError: boolean;
-  isFetching: boolean;
-  data?: ProjectSdkUpdates[];
-} {
+export function useOrganizationSDKUpdates({projectId, enabled}: Options) {
   const organization = useOrganization();
 
   return useApiQuery<ProjectSdkUpdates[]>(
