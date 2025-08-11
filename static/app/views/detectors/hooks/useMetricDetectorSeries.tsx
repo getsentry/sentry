@@ -4,8 +4,8 @@ import type {Series} from 'sentry/types/echarts';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
 
 interface UseMetricDetectorSeriesProps {

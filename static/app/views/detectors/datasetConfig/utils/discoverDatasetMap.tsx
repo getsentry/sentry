@@ -1,5 +1,5 @@
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export const DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP: Record<
   DetectorDataset,
