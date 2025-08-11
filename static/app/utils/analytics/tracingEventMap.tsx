@@ -69,7 +69,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.metadata': {
+    eap_spans_count: number;
     has_exceeded_performance_usage_limit: boolean | null;
+    issues_count: number;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
@@ -97,6 +99,10 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_details.eap_span_has_details': {
+    has_logs_details: boolean;
+    has_profile_details: boolean;
   };
   'trace.trace_drawer_explore_search': {
     key: string;
@@ -220,6 +226,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

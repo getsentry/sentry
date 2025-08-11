@@ -21,18 +21,18 @@ monitors: 0008_fix_processing_error_keys
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0001_move_notifications_models
+notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0013_binary_uuid
+preprod: 0014_commitcomparisons_fk
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0962_json_fields_too_big
+sentry: 0965_gzippeddict_big_tables
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0001_squashed_0002_make_message_type_nullable
 
-uptime: 0001_squashed_0042_extra_uptime_indexes
+uptime: 0043_uptime_django_json_field
 
-workflow_engine: 0082_disconnect_error_detector_cron_workflows
+workflow_engine: 0083_add_status_to_action

@@ -1,3 +1,4 @@
+import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataCondition,
   DataConditionGroup,
@@ -12,7 +13,7 @@ import type {
 /**
  * See SnubaQuerySerializer
  */
-interface SnubaQuery {
+export interface SnubaQuery {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes[];
@@ -134,6 +135,7 @@ type BaseDetector = Readonly<{
   enabled: boolean;
   id: string;
   lastTriggered: string;
+  latestGroup: SimpleGroup | null;
   name: string;
   owner: string | null;
   projectId: string;

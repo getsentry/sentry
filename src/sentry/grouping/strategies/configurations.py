@@ -1,5 +1,4 @@
 from sentry.grouping.strategies.base import (
-    RISK_LEVEL_HIGH,
     StrategyConfiguration,
     create_strategy_configuration_class,
 )
@@ -28,9 +27,6 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     initial_context={
-        # This key in the context tells the system which variant should
-        # be produced.  TODO: phase this out.
-        "variant_name": None,
         # This is a flag that can be used by any delegate to respond to
         # a detected recursion.  This is currently used by the frame
         # strategy to disable itself.  Recursion is detected by the outer
@@ -41,8 +37,6 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
         "normalize_message": True,
         # Platforms for which context line should be taken into account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # Stacktrace is produced in the context of this exception
-        "exception_data": None,
     },
 )
 
@@ -65,21 +59,12 @@ register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Better rules for when to take context lines into account for
-          JavaScript platforms for grouping purposes.
-        * Better support for PHP7 anonymous classes.
-        * Added new language/platform specific stack trace grouping enhancements rules
-          that should make the default grouping experience better.
-          This includes JavaScript, Python, PHP, Go, Java and Kotlin.
-        * Added ChukloadErrors via new built-in fingerprinting support.
-    """,
+    #
     # There's nothing in the initial context because this config uses all the default values. If we
     # change grouping behavior in a future config, it should be gated by a config feature, that
     # feature should be defaulted to False in the base config, and then the `initial_context` in the
     # new config is where we'd flip it to True.
     initial_context={},
-    enhancements_base="newstyle:2023-01-11",
+    enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )

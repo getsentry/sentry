@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
@@ -17,9 +16,13 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import Enhancements, get_enhancements_version
+from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
+    Enhancements,
+    get_enhancements_version,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.base import GroupingContext
 from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.utils import (
     expand_title_template,
@@ -176,11 +179,6 @@ def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     """
     loader = PrimaryGroupingConfigLoader()
     return loader.get_config_dict(project)
-
-
-def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) -> GroupingConfig:
-    """Returns the grouping config for an event dictionary."""
-    return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
 def _get_default_base64_enhancements(config_id: str | None = None) -> str:
