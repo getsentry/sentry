@@ -50,6 +50,16 @@ def get_org_sample_rate(
 
     # fallback to sliding window calculation
     sample_rate, is_custom = _get_sliding_window_org_sample_rate(org_id, default_sample_rate)
+    if features.has("organizations:log-project-config", org):
+        logger.info(
+            "log-project-config: _get_sliding_window_org_sample_rate for org %s",
+            org_id,
+            extra={
+                "sample_rate": sample_rate,
+                "is_custom": is_custom,
+                "default_sample_rate": default_sample_rate,
+            },
+        )
     return sample_rate, is_custom
 
 
