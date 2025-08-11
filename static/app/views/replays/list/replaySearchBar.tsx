@@ -3,6 +3,7 @@ import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -25,9 +26,6 @@ import useApi from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
-
-// copied from static/app/components/events/contexts/knownContext/user.tsx
-const EMAIL_PATTERN = /[^@]+@[^\.]+\..+/;
 
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(
@@ -214,7 +212,7 @@ function ReplaySearchBar(props: Props) {
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_PATTERN}]}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
       initialQuery={props.query ?? props.defaultQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}

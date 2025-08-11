@@ -4,6 +4,7 @@ import union from 'lodash/union';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -26,9 +27,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-
-// copied from static/app/components/events/contexts/knownContext/user.tsx
-const EMAIL_PATTERN = /[^@]+@[^\.]+\..+/;
 
 const EXCLUDED_TAGS: string[] = [
   // These are found in issue platform and redundant (= __.name, ex os.name)
@@ -287,7 +285,7 @@ export default function FeedbackSearch() {
       onSearch={onSearch}
       searchSource={'feedback-list'}
       placeholder={t('Search Feedback')}
-      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_PATTERN}]}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
     />
   );
 }
