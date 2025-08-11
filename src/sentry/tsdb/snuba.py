@@ -839,6 +839,7 @@ class SnubaTSDB(BaseTSDB):
         rollup=None,
         environment_id=None,
         tenant_ids=None,
+        project_ids: Sequence[int] | None = None,
     ):
         result = self.get_data(
             model,
@@ -871,6 +872,7 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix=None,
         conditions=None,
         group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
         return self.get_data(
             model,
@@ -897,6 +899,7 @@ class SnubaTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         result = self.get_data(
             model,
