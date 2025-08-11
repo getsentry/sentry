@@ -38,6 +38,10 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     ]
 
     @classmethod
+    def validate_rendered_template(cls, *, rendered_template: NotificationRenderedTemplate) -> None:
+        pass
+
+    @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False

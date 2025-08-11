@@ -46,6 +46,14 @@ class NotificationService[T: NotificationData]:
         template_cls = template_registry.get(self.data.source)
         template = template_cls()
         rendered_template = template.render(data=self.data)
+        try:
+            provider.validate_rendered_template(rendered_template=rendered_template)
+        except Exception as e:
+            raise NotificationServiceError(
+                f"Rendered template is invalid for provider {provider.key}: {e}"
+            )
+
+        # Step 5: Create the provider-specific renderable
         renderer = provider.get_renderer(data=self.data, category=template.category)
         renderable = renderer.render(data=self.data, rendered_template=rendered_template)
 

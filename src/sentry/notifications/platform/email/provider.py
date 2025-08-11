@@ -35,6 +35,10 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     target_resource_types = [NotificationTargetResourceType.EMAIL]
 
     @classmethod
+    def validate_rendered_template(cls, *, rendered_template: NotificationRenderedTemplate) -> None:
+        pass
+
+    @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         return True
 
