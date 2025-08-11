@@ -28,26 +28,26 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
 
   const results = diffFn(base, target, {newlineIsToken: true});
 
+  // split one change that includes multiple linse into one change per line (for formatting)
   const processResults = (
     currentLine: Change[] = [],
     processedLines: Change[][] = []
   ): Change[][] => {
     for (const change of results) {
-      if (change.value.includes('\n')) {
-        // multiple lines if it should be
-        const lines = change.value.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          const lineValue = lines[i];
-          if (lineValue !== undefined && lineValue !== '') {
-            currentLine.push({...change, value: lineValue});
-          }
-          if (i < lines.length - 1) {
-            processedLines.push(currentLine);
-            currentLine = [];
-          }
+      const lines = change.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const lineValue = lines[i];
+        if (lineValue !== undefined && lineValue !== '') {
+          currentLine.push({
+            value: lineValue,
+            added: change.added,
+            removed: change.removed,
+          });
         }
-      } else {
-        currentLine.push(change);
+        if (i < lines.length - 1) {
+          processedLines.push(currentLine);
+          currentLine = [];
+        }
       }
     }
     // Push remaining changes if any
@@ -57,7 +57,6 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
     return processedLines;
   };
 
-  // Call the function and store the result
   const groupedChanges = processResults();
 
   return (
