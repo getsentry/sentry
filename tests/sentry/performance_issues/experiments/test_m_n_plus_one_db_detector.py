@@ -198,7 +198,6 @@ class MNPlusOneDBDetectorTest(TestCase):
             ],
             "transaction_name": "GET /products",
             "pattern_size": num_spans_in_pattern,
-            "pattern_span_ids": pattern_span_ids,
             "num_pattern_repetitions": num_pattern_repetitions,
         }
 

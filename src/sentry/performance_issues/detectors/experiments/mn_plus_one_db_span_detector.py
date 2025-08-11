@@ -260,7 +260,6 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 ],
                 "number_repeating_spans": str(len(offender_spans)),
                 "pattern_size": len(self.pattern),
-                "pattern_span_ids": [span["span_id"] for span in self.pattern],
                 "num_pattern_repetitions": times_occurred,
             },
             evidence_display=[
