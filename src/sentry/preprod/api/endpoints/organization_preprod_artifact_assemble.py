@@ -55,7 +55,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
         "build_configuration": "The build_configuration field must be a string.",
         "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
-        "provider": "The provider field must be a string with maximum length of 255 characters.",
+        "provider": "The provider field must be a string with maximum length of 255 characters containing the domain of the VCS provider (ex. github.com)",
         "head_repo_name": "The head_repo_name field must be a string with maximum length of 255 characters.",
         "base_repo_name": "The base_repo_name field must be a string with maximum length of 255 characters.",
         "head_ref": "The head_ref field must be a string with maximum length of 255 characters.",
