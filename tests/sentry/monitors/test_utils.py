@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.db import IntegrityError
 
-from sentry.issues.grouptype import MonitorIncidentType
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.testutils.cases import TestCase
