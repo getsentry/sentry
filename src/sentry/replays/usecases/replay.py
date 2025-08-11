@@ -192,7 +192,12 @@ QUERY_MAP: dict[str, Expression] = {
     "started_at": Function(
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
-    "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+    "finished_at": conditional_function(
+        "maxIf",
+        Column("timestamp"),
+        Condition(Column("segment_id"), Op.IS_NOT_NULL),
+        alias="finished_at",
+    ),
     "duration": Function(
         "dateDiff",
         parameters=["second", Column("started_at"), Column("finished_at")],
