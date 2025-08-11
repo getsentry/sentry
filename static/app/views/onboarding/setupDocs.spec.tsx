@@ -204,9 +204,10 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {
@@ -255,9 +256,10 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
 
     it('only session replay checked', async function () {
@@ -306,9 +308,10 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
 
     it('only error monitoring checked', async function () {
@@ -359,9 +362,10 @@ describe('Onboarding Setup Docs', function () {
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
   });
 

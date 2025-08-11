@@ -1,16 +1,8 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,85 +35,20 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {
   FilterBarContainer,
   StyledPageFilterBar,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
-import {useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import type {PickableDays} from 'sentry/views/explore/utils';
-
-type SampleButtonProps = {
-  api: Client;
-  errorMessage: React.ReactNode;
-  loadingMessage: React.ReactNode;
-  organization: Organization;
-  project: Project;
-  triggerText: React.ReactNode;
-};
-
-function SampleButton({
-  triggerText,
-  loadingMessage,
-  errorMessage,
-  project,
-  organization,
-  api,
-}: SampleButtonProps) {
-  const navigate = useNavigate();
-  // TODO: Fix this to create a sample log
-  return (
-    <Button
-      data-test-id="create-sample-transaction-btn"
-      onClick={async () => {
-        trackAnalytics('logs.onboarding_create_sample_log', {
-          platform: project.platform,
-          organization,
-        });
-        addLoadingMessage(loadingMessage, {
-          duration: 15000,
-        });
-        const url = `/projects/${organization.slug}/${project.slug}/create-sample-log/`;
-        try {
-          const eventData = await api.requestPromise(url, {method: 'POST'});
-          // TODO: Update with logs url function with item id / trace id
-          const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
-
-          navigate({
-            pathname: '/explore/logs/',
-            query: {
-              [LOGS_QUERY_KEY]: `trace:${traceSlug}`,
-            },
-          });
-          clearIndicators();
-        } catch (error) {
-          Sentry.withScope(scope => {
-            scope.setExtra('error', error);
-            Sentry.captureException(new Error('Failed to create sample log'));
-          });
-          clearIndicators();
-          addErrorMessage(errorMessage);
-          return;
-        }
-      }}
-    >
-      {triggerText}
-    </Button>
-  );
-}
 
 type OnboardingProps = {
   organization: Organization;
@@ -227,17 +154,6 @@ function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [received, setReceived] = useState<boolean>(false);
-  const logsQuery = useLogsQuery({
-    disabled: !received,
-    limit: 1,
-    refetchInterval: query => {
-      const logId = query.state.data?.[0]?.data?.[0]?.id;
-      return logId ? 0 : 5000; // 5s
-    },
-  });
-  const logId = logsQuery.data?.[0]?.id;
-
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -278,7 +194,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     analyticsPlatform,
   ]);
 
-  const logsDocs = docs?.onboarding;
+  const logsDocs = docs?.logsOnboarding ?? docs?.onboarding;
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -371,22 +287,6 @@ function Onboarding({organization, project}: OnboardingProps) {
 
   const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
-  const eventWaitingIndicator = (
-    <EventWaiter
-      api={api}
-      organization={organization}
-      project={project}
-      eventType="log"
-      onIssueReceived={() => {
-        setReceived(true);
-      }}
-    >
-      {({firstIssue}) =>
-        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
-      }
-    </EventWaiter>
-  );
-
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
@@ -410,39 +310,9 @@ function Onboarding({organization, project}: OnboardingProps) {
                 <ConfigurationRenderer configuration={step} />
               </RenderBlocksOrFallback>
               {index === steps.length - 1 ? (
-                <Fragment>
-                  {eventWaitingIndicator}
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    {received ? (
-                      <Button
-                        priority="primary"
-                        busy={!logId}
-                        title={logId ? undefined : t('Processing logs\u2026')}
-                        onClick={() => {
-                          const params = new URLSearchParams(window.location.search);
-                          params.set('table', Tab.TRACE);
-                          params.set('query', `trace:${logId}`);
-                          params.delete('guidedStep');
-                          testableWindowLocation.assign(
-                            `${window.location.pathname}?${params.toString()}`
-                          );
-                        }}
-                      >
-                        {t('Take me to my logs')}
-                      </Button>
-                    ) : (
-                      <SampleButton
-                        triggerText={t('Take me to an example log')}
-                        loadingMessage={t('Processing sample logs...')}
-                        errorMessage={t('Failed to create sample logs')}
-                        organization={organization}
-                        project={project}
-                        api={api}
-                      />
-                    )}
-                  </GuidedSteps.ButtonWrapper>
-                </Fragment>
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                </GuidedSteps.ButtonWrapper>
               ) : (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
@@ -456,39 +326,6 @@ function Onboarding({organization, project}: OnboardingProps) {
     </OnboardingPanel>
   );
 }
-
-const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
-  <div {...p}>
-    {t("Waiting for this project's first log")}
-    <PulsingIndicator />
-  </div>
-))`
-  display: flex;
-  align-items: center;
-  position: relative;
-  z-index: 10;
-  flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
-`;
-
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  margin-left: ${space(1)};
-`;
-
-const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
-  <div {...p}>
-    {'🎉 '}
-    {t("We've received this project's first log!")}
-  </div>
-))`
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
-`;
 
 const SubTitle = styled('div')`
   margin-bottom: ${space(1)};
