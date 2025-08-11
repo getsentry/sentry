@@ -24,7 +24,10 @@ from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import process_data_source, process_detectors
 from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -433,8 +436,12 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_5)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.get_sharded_sorted_set(
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            separator=":",
+            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+            min=0,
+            max=timezone.now().timestamp(),
         )
 
         process_delayed_workflows(project_ids[0][0])
@@ -474,8 +481,12 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.get_sorted_set(
-                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            project_ids = buffer.backend.get_sharded_sorted_set(
+                WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+                separator=":",
+                shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+                min=0,
+                max=timezone.now().timestamp(),
             )
 
             process_delayed_workflows(project_ids[0][0])
@@ -487,8 +498,12 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_4)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.get_sorted_set(
-                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            project_ids = buffer.backend.get_sharded_sorted_set(
+                WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+                separator=":",
+                shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+                min=0,
+                max=timezone.now().timestamp(),
             )
 
             process_delayed_workflows(project_ids[0][0])
