@@ -1,7 +1,7 @@
 from sentry.sentry_apps.logic import consolidate_events, expand_events
-from sentry.sentry_apps.models.sentry_app import EVENT_EXPANSION
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import RpcServiceHook, hook_service
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -43,10 +43,10 @@ class TestHookService(TestCase):
 
     def test_expands_resource_events_to_specific_events(self) -> None:
         service_hook = self.call_create_hook(events=["issue"])
-        assert service_hook.events == EVENT_EXPANSION["issue"]
+        assert service_hook.events == EVENT_EXPANSION[SentryAppResourceType.ISSUE]
 
     def test_expand_events(self) -> None:
-        assert expand_events(["issue"]) == EVENT_EXPANSION["issue"]
+        assert expand_events(["issue"]) == EVENT_EXPANSION[SentryAppResourceType.ISSUE]
 
     def test_expand_events_multiple(self) -> None:
         ret = expand_events(["unrelated", "issue", "comment", "unrelated"])
