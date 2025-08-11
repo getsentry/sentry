@@ -15,7 +15,6 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 SEER_TITLE_GENERATION_ENDPOINT_URL = "v1/automation/summarize/feedback/title"
-SEER_TITLE_GENERATION_URL = f"{settings.SEER_AUTOFIX_URL}/{SEER_TITLE_GENERATION_ENDPOINT_URL}"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -110,8 +109,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     except (TimeoutError, MaxRetryError):
         logger.warning("Seer title generation endpoint timed out")
         metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "seer_timeout"},
+            "feedback.ai_title_generation.timeout",
         )
         return None
     except Exception:
