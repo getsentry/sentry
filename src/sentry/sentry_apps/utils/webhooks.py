@@ -40,9 +40,6 @@ class InstallationActionType(SentryAppActionType):
     DELETED = "deleted"
 
 
-_sentry_app_webhook_mapping: dict[str, list[str]] = {}
-
-
 class SentryAppResourceType(StrEnum):
 
     @staticmethod
@@ -82,8 +79,4 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = (
-    SentryAppResourceType.ISSUE,
-    SentryAppResourceType.ERROR,
-    SentryAppResourceType.COMMENT,
-)
+VALID_EVENT_RESOURCES = EVENT_EXPANSION.keys()
