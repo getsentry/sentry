@@ -9,7 +9,6 @@ import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -39,11 +38,6 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
-
-function AutomationDocumentTitle() {
-  const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
-}
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   const title = useFormField('name');
@@ -151,8 +145,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       initialData={initialData}
       onSubmit={handleFormSubmit}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
+      <Layout.Page title={useFormField('name') ?? t('Edit Automation')}>
         <StyledLayoutHeader>
           <Layout.HeaderContent>
             <AutomationBreadcrumbs automationId={params.automationId} />

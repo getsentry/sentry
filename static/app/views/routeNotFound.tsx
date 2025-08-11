@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import NotFound from 'sentry/components/errors/notFound';
 import Footer from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -45,26 +44,22 @@ function RouteNotFound({location}: Props) {
 
   if (!prefersStackedNav) {
     return (
-      <SentryDocumentTitle title={t('Page Not Found')}>
-        <div className="app">
-          <Sidebar />
-          <Layout.Page withPadding>
-            <NotFound />
-          </Layout.Page>
-          <Footer />
-        </div>
-      </SentryDocumentTitle>
+      <div className="app">
+        <Sidebar />
+        <Layout.Page title={t('Page Not Found')} withPadding>
+          <NotFound />
+        </Layout.Page>
+        <Footer />
+      </div>
     );
   }
 
   return (
-    <SentryDocumentTitle title={t('Page Not Found')}>
-      <OrganizationLayout>
-        <Layout.Page withPadding>
-          <NotFound />
-        </Layout.Page>
-      </OrganizationLayout>
-    </SentryDocumentTitle>
+    <OrganizationLayout>
+      <Layout.Page title={t('Page Not Found')} withPadding>
+        <NotFound />
+      </Layout.Page>
+    </OrganizationLayout>
   );
 }
 

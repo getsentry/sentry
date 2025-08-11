@@ -8,7 +8,6 @@ import {
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -111,8 +110,7 @@ function ScreenDetailsPage() {
 
   return (
     <PageFiltersContainer>
-      <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
-      <Layout.Page>
+      <Layout.Page title={{title: t('Mobile Vitals'), orgSlug: organization.slug}}>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
             <MobileHeader

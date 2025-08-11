@@ -34,7 +34,7 @@ function GettingStarted({params}: Props) {
 
   return (
     <OnboardingContextProvider>
-      <GettingStartedLayout withPadding>
+      <GettingStartedLayout withPadding title={null}>
         {loadingProjects ? (
           <LoadingIndicator />
         ) : project ? (

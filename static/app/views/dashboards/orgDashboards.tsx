@@ -152,7 +152,7 @@ function OrgDashboards(props: Props) {
 
   if (isDashboardsPending || isSelectedDashboardLoading) {
     return (
-      <Layout.Page withPadding>
+      <Layout.Page withPadding title={null}>
         <LoadingIndicator />
       </Layout.Page>
     );
@@ -168,7 +168,7 @@ function OrgDashboards(props: Props) {
     // the URL does not contain filters yet. The filters can either match the
     // saved filters, or can be different (i.e. sharing an unsaved state)
     return (
-      <Layout.Page withPadding>
+      <Layout.Page withPadding title={null}>
         <LoadingIndicator />
       </Layout.Page>
     );

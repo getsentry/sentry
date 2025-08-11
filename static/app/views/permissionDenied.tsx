@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -24,21 +23,19 @@ function PermissionDenied() {
   }, []);
 
   return (
-    <SentryDocumentTitle title={t('Permission Denied')}>
-      <Layout.Page withPadding>
-        <LoadingError
-          message={tct(
-            `Your role does not have the necessary permissions to access this
+    <Layout.Page title={t('Permission Denied')} withPadding>
+      <LoadingError
+        message={tct(
+          `Your role does not have the necessary permissions to access this
              resource, please read more about [link:organizational roles]`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
-              ),
-            }
-          )}
-        />
-      </Layout.Page>
-    </SentryDocumentTitle>
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
+            ),
+          }
+        )}
+      />
+    </Layout.Page>
   );
 }
 

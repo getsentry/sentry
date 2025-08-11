@@ -1,5 +1,5 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -41,28 +41,26 @@ export default function BuildDetails() {
     );
 
   return (
-    <SentryDocumentTitle title="Build details">
-      <Layout.Page>
-        <Layout.Header>
-          <BuildDetailsHeaderContent buildDetailsQuery={buildDetailsQuery} />
-        </Layout.Header>
+    <Layout.Page title={{title: t('Build details')}}>
+      <Layout.Header>
+        <BuildDetailsHeaderContent buildDetailsQuery={buildDetailsQuery} />
+      </Layout.Header>
 
-        <Layout.Body>
-          <UrlParamBatchProvider>
-            <Layout.Main>
-              <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
-            </Layout.Main>
+      <Layout.Body>
+        <UrlParamBatchProvider>
+          <Layout.Main>
+            <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
+          </Layout.Main>
 
-            <Layout.Side>
-              <BuildDetailsSidebarContent
-                buildDetailsQuery={buildDetailsQuery}
-                artifactId={artifactId}
-                projectId={projectId}
-              />
-            </Layout.Side>
-          </UrlParamBatchProvider>
-        </Layout.Body>
-      </Layout.Page>
-    </SentryDocumentTitle>
+          <Layout.Side>
+            <BuildDetailsSidebarContent
+              buildDetailsQuery={buildDetailsQuery}
+              artifactId={artifactId}
+              projectId={projectId}
+            />
+          </Layout.Side>
+        </UrlParamBatchProvider>
+      </Layout.Body>
+    </Layout.Page>
   );
 }

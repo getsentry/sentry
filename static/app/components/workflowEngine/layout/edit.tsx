@@ -27,7 +27,7 @@ interface WorkflowEngineEditLayoutProps {
 function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
   return (
     <FullHeightForm hideFooter {...formProps}>
-      <StyledPage>{children}</StyledPage>
+      <StyledPage title={null}>{children as NonNullable<React.ReactNode>}</StyledPage>
     </FullHeightForm>
   );
 }

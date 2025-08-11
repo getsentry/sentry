@@ -293,7 +293,13 @@ function PageLayout(props: Props) {
               specificProjectSlugs={defined(project) ? [project.slug] : []}
             >
               <Tabs value={tab} onChange={onTabChange}>
-                <Layout.Page>
+                <Layout.Page
+                  title={{
+                    title: getDocumentTitle(transactionName),
+                    orgSlug: organization.slug,
+                    projectSlug: project?.slug,
+                  }}
+                >
                   <TransactionHeader
                     eventView={eventView}
                     location={location}

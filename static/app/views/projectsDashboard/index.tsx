@@ -281,7 +281,7 @@ function Dashboard() {
 function OrganizationDashboard() {
   const organization = useOrganization();
   return (
-    <Layout.Page>
+    <Layout.Page title={null}>
       <NoProjectMessage organization={organization}>
         <Dashboard />
       </NoProjectMessage>

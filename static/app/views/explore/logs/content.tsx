@@ -4,7 +4,6 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -59,38 +58,36 @@ export default function LogsContent() {
     logsPickableDays(organization);
 
   return (
-    <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
-      <PageFiltersContainer
-        maxPickableDays={maxPickableDays}
-        defaultSelection={{
-          datetime: {
-            period: defaultPeriod,
-            start: null,
-            end: null,
-            utc: null,
-          },
-        }}
-      >
-        <LogsQueryParamsProvider source="location">
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <Layout.Page>
-              <LogsHeader />
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <LogsPageDataProvider>
-                  <LogsTabContent
-                    defaultPeriod={defaultPeriod}
-                    maxPickableDays={maxPickableDays}
-                    relativeOptions={relativeOptions}
-                  />
-                </LogsPageDataProvider>
-              </TraceItemAttributeProvider>
-            </Layout.Page>
-          </LogsPageParamsProvider>
-        </LogsQueryParamsProvider>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
+    <PageFiltersContainer
+      maxPickableDays={maxPickableDays}
+      defaultSelection={{
+        datetime: {
+          period: defaultPeriod,
+          start: null,
+          end: null,
+          utc: null,
+        },
+      }}
+    >
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <Layout.Page title={{title: t('Logs'), orgSlug: organization?.slug}}>
+            <LogsHeader />
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <LogsPageDataProvider>
+                <LogsTabContent
+                  defaultPeriod={defaultPeriod}
+                  maxPickableDays={maxPickableDays}
+                  relativeOptions={relativeOptions}
+                />
+              </LogsPageDataProvider>
+            </TraceItemAttributeProvider>
+          </Layout.Page>
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
+    </PageFiltersContainer>
   );
 }
 

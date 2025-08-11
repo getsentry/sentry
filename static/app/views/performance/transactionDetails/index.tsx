@@ -1,5 +1,4 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -21,26 +20,25 @@ function EventDetails(props: Props) {
   };
 
   const {organization, location, params} = props;
-  const documentTitle = t('Performance Details');
   const eventSlug = getEventSlug();
   const projectSlug = eventSlug.split(':')[0];
 
   return (
-    <SentryDocumentTitle
-      title={documentTitle}
-      orgSlug={organization.slug}
-      projectSlug={projectSlug}
+    <Layout.Page
+      title={{
+        title: t('Performance Details'),
+        orgSlug: organization.slug,
+        projectSlug,
+      }}
     >
-      <Layout.Page>
-        <EventDetailsContent
-          organization={organization}
-          location={location}
-          params={params}
-          eventSlug={eventSlug}
-          projects={projects}
-        />
-      </Layout.Page>
-    </SentryDocumentTitle>
+      <EventDetailsContent
+        organization={organization}
+        location={location}
+        params={params}
+        eventSlug={eventSlug}
+        projects={projects}
+      />
+    </Layout.Page>
   );
 }
 

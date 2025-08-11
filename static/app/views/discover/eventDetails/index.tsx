@@ -2,7 +2,6 @@ import omit from 'lodash/omit';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -23,33 +22,26 @@ function EventDetails({organization, location, params}: Props) {
     isHomepage ? {...location, query: omit(location.query, 'id')} : location
   );
   const eventName = eventView.name;
+  const projectSlug = eventSlug.split(':')[0];
 
   const documentTitle =
     typeof eventName === 'string' && String(eventName).trim().length > 0
-      ? [String(eventName).trim(), t('Discover')]
-      : [t('Discover')];
-
-  const projectSlug = eventSlug.split(':')[0];
+      ? [String(eventName).trim(), t('Discover'), organization.slug, projectSlug]
+      : [t('Discover'), organization.slug, projectSlug];
 
   return (
-    <SentryDocumentTitle
-      title={documentTitle.join(' — ')}
-      orgSlug={organization.slug}
-      projectSlug={projectSlug}
-    >
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <EventDetailsContent
-            organization={organization}
-            location={location}
-            params={params}
-            eventView={eventView}
-            eventSlug={eventSlug}
-            isHomepage={isHomepage}
-          />
-        </NoProjectMessage>
-      </Layout.Page>
-    </SentryDocumentTitle>
+    <Layout.Page title={documentTitle.filter(Boolean).join(' — ')}>
+      <NoProjectMessage organization={organization}>
+        <EventDetailsContent
+          organization={organization}
+          location={location}
+          params={params}
+          eventView={eventView}
+          eventSlug={eventSlug}
+          isHomepage={isHomepage}
+        />
+      </NoProjectMessage>
+    </Layout.Page>
   );
 }
 

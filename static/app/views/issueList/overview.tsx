@@ -1082,7 +1082,7 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <Layout.Page>
+    <Layout.Page title={null}>
       {prefersStackedNav ? (
         <IssueViewsHeader
           selectedProjectIds={selection.projects}

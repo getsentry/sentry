@@ -21,7 +21,7 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
       features="dashboards-edit"
       organization={organization}
       renderDisabled={() => (
-        <Layout.Page withPadding>
+        <Layout.Page title={t('Widget Builder')} withPadding>
           <Alert.Container>
             <Alert type="warning" showIcon={false}>
               {t("You don't have access to this feature")}

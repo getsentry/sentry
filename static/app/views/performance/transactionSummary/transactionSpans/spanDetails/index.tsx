@@ -1,7 +1,6 @@
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
@@ -43,34 +42,34 @@ export default function SpanDetails(props: Props) {
   });
 
   return (
-    <SentryDocumentTitle
-      title={getDocumentTitle(transactionName)}
-      orgSlug={organization.slug}
-      projectSlug={project?.slug}
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
     >
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
+      <PageFiltersContainer
+        shouldForceProject={defined(project)}
+        forceProject={project}
+        specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
-        <PageFiltersContainer
-          shouldForceProject={defined(project)}
-          forceProject={project}
-          specificProjectSlugs={defined(project) ? [project.slug] : []}
+        <Layout.Page
+          title={{
+            title: getDocumentTitle(transactionName),
+            orgSlug: organization.slug,
+            projectSlug: project?.slug,
+          }}
         >
-          <Layout.Page>
-            <SpanDetailsContent
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              project={project}
-              transactionName={transactionName}
-              spanSlug={spanSlug}
-            />
-          </Layout.Page>
-        </PageFiltersContainer>
-      </Feature>
-    </SentryDocumentTitle>
+          <SpanDetailsContent
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            project={project}
+            transactionName={transactionName}
+            spanSlug={spanSlug}
+          />
+        </Layout.Page>
+      </PageFiltersContainer>
+    </Feature>
   );
 }
 

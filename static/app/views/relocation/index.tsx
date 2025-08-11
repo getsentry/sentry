@@ -14,7 +14,7 @@ export default function RelocationOnboardingContainer(props: Props) {
       features={['relocation:enabled']}
       organizationAllowNull
       renderDisabled={() => (
-        <Layout.Page withPadding>
+        <Layout.Page title={null} withPadding>
           <Alert.Container>
             <Alert type="warning" showIcon={false}>
               {t("You don't have access to this feature")}
