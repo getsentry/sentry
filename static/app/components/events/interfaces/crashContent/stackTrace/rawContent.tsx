@@ -3,7 +3,7 @@ import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-function getJavaScriptFrame(frame: Frame, includeLocation = true): string {
+function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
   if (defined(frame.function)) {
     result += '  at ' + frame.function + '(';
@@ -25,7 +25,7 @@ function getJavaScriptFrame(frame: Frame, includeLocation = true): string {
   return result;
 }
 
-function getRubyFrame(frame: Frame, includeLocation = true): string {
+function getRubyFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  from ';
   if (defined(frame.filename)) {
     result += frame.filename;
@@ -46,7 +46,7 @@ function getRubyFrame(frame: Frame, includeLocation = true): string {
   return result;
 }
 
-function getPHPFrame(frame: Frame, idx: number, includeLocation = true): string {
+function getPHPFrame(frame: Frame, idx: number, includeLocation: boolean): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
   let result = `#${idx} ${frame.filename || frame.module}`;
   if (includeLocation && defined(frame.lineNo) && frame.lineNo >= 0) {
@@ -56,7 +56,7 @@ function getPHPFrame(frame: Frame, idx: number, includeLocation = true): string 
   return result;
 }
 
-function getPythonFrame(frame: Frame, includeLocation = true): string {
+function getPythonFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
   if (defined(frame.filename)) {
     result += '  File "' + frame.filename + '"';
@@ -84,7 +84,7 @@ function getPythonFrame(frame: Frame, includeLocation = true): string {
   return result;
 }
 
-export function getJavaFrame(frame: Frame, includeLocation = true): string {
+export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
   let result = '    at';
 
   if (defined(frame.module)) {
@@ -106,7 +106,7 @@ export function getJavaFrame(frame: Frame, includeLocation = true): string {
 function getDartFrame(
   frame: Frame,
   frameIdxFromEnd: number,
-  includeLocation = true
+  includeLocation: boolean
 ): string {
   let result = `  #${frameIdxFromEnd}`;
 
@@ -138,7 +138,7 @@ function ljust(str: string, len: number) {
   return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
-function getNativeFrame(frame: Frame, includeLocation = true): string {
+function getNativeFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  ';
   if (defined(frame.package)) {
     result += ljust(trimPackage(frame.package), 20);
@@ -179,7 +179,7 @@ function getFrame(
   frameIdx: number,
   frameIdxFromEnd: number,
   platform: string | undefined,
-  includeLocation = true
+  includeLocation: boolean
 ): string {
   if (frame.platform) {
     platform = frame.platform;
