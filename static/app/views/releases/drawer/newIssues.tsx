@@ -1,5 +1,6 @@
 import GroupList from 'sentry/components/issues/groupList';
 import {t} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +29,9 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     limit: 10,
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
-    query: new MutableSearch([`first-release:${release}`]).formatString(),
+    query: new MutableSearch([
+      `first-release:${escapeDoubleQuotes(release)}`,
+    ]).formatString(),
   };
 
   const renderEmptyMessage = () => {
