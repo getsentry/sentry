@@ -51,6 +51,7 @@ from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotS
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.errors import RetryAggregated
 from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.usecases.replay import get_replays
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
@@ -294,24 +295,19 @@ def query_using_optimized_search(
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
-    #
-    # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
-    # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = execute_query(
-        make_full_aggregation_query(
-            fields=fields,
-            replay_ids=replay_ids,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_end=period_stop,
-            request_user_id=request_user_id,
-        ),
-        tenant_id,
+    replays = get_replays(
+        project_ids,
+        replay_ids,
+        timestamp_start=period_start,
+        timestamp_end=period_stop,
+        fields=set(fields),
+        requesting_user_id=request_user_id,
         referrer="replays.query.browse_query",
-    )["data"]
+        tenant_ids={"organization_id": organization.id},
+    )
 
     return QueryResponse(
-        response=_make_ordered(replay_ids, results),
+        response=_make_ordered(replay_ids, replays),
         has_more=has_more,
         source=source,
     )
@@ -485,6 +481,7 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
 
 
 def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
+    replay_ids = [replay_id.replace("-", "") for replay_id in replay_ids]
     if not replay_ids:
         return []
     elif not results:
@@ -499,7 +496,7 @@ def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
 
     ordered_results = [None] * len(replay_id_to_index)
     for result in results:
-        index = replay_id_to_index[result["replay_id"]]
+        index = replay_id_to_index[result["id"]]
         ordered_results[index] = result
 
     return list(filter(None, ordered_results))
