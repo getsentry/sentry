@@ -30,6 +30,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -335,6 +336,7 @@ def create_feedback_issue(
         not is_message_spam
         and features.has("organizations:user-feedback-ai-categorization", project.organization)
         and features.has("organizations:gen-ai-features", project.organization)
+        and get_seer_org_acknowledgement(org_id=project.organization_id)
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)

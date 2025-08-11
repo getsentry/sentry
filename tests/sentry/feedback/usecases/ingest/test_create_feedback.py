@@ -1036,7 +1036,12 @@ def test_create_feedback_issue_title_from_seer_none(
 
 
 @django_db_all
-def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka) -> None:
+@patch(
+    "sentry.feedback.usecases.ingest.create_feedback.get_seer_org_acknowledgement",
+)
+def test_create_feedback_adds_ai_labels(
+    mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     with Feature(
         {
@@ -1076,8 +1081,9 @@ def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence
 
 
 @django_db_all
+@patch("sentry.feedback.usecases.ingest.create_feedback.get_seer_org_acknowledgement")
 def test_create_feedback_handles_label_generation_errors(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
     with Feature(
@@ -1086,6 +1092,7 @@ def test_create_feedback_handles_label_generation_errors(
             "organizations:gen-ai-features": True,
         }
     ):
+        mock_get_seer_org_acknowledgement.return_value = True
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "This is a valid feedback message"
 
@@ -1114,8 +1121,11 @@ def test_create_feedback_handles_label_generation_errors(
 
 
 @django_db_all
+@patch(
+    "sentry.feedback.usecases.ingest.create_feedback.get_seer_org_acknowledgement",
+)
 def test_create_feedback_truncates_ai_labels_max_list_length(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     with Feature(
@@ -1124,6 +1134,7 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
             "organizations:gen-ai-features": True,
         }
     ):
+        mock_get_seer_org_acknowledgement.return_value = True
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"][
             "message"
@@ -1176,8 +1187,11 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
 
 
 @django_db_all
+@patch(
+    "sentry.feedback.usecases.ingest.create_feedback.get_seer_org_acknowledgement",
+)
 def test_create_feedback_truncates_ai_labels_max_json_length(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
     with Feature(
@@ -1186,6 +1200,7 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
             "organizations:gen-ai-features": True,
         }
     ):
+        mock_get_seer_org_acknowledgement.return_value = True
         event = mock_feedback_event(default_project.id)
 
         event["contexts"]["feedback"][
@@ -1218,3 +1233,49 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
         assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
             ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
         )
+
+
+@django_db_all
+@patch(
+    "sentry.feedback.usecases.ingest.create_feedback.get_seer_org_acknowledgement",
+)
+def test_create_feedback_no_ai_labels_when_seer_consent_not_given(
+    mock_get_seer_org_acknowledgement, default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that create_feedback_issue does not generate AI labels when Seer consent is not given, even if other AI features are enabled."""
+    with Feature(
+        {
+            "organizations:user-feedback-ai-categorization": True,
+            "organizations:gen-ai-features": True,
+        }
+    ):
+        # Mock that the user has NOT accepted Seer consent
+        mock_get_seer_org_acknowledgement.return_value = False
+
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+        # Mock generate_labels to return labels (but they shouldn't be used)
+        def mock_generate_labels(*args, **kwargs):
+            return ["User Interface", "Authentication", "Performance"]
+
+        with patch(
+            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+            mock_generate_labels,
+        ):
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        tags = produced_event["tags"]
+
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
+        assert len(ai_labels) == 0, "Should have no AI labels when Seer consent is not given"
+
+        assert (
+            f"{AI_LABEL_TAG_PREFIX}.labels" not in tags
+        ), "Should not have ai_labels list when Seer consent is not given"
