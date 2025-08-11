@@ -17,9 +17,9 @@ from sentry.api.helpers.group_index.update import (
     handle_is_subscribed,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
