@@ -182,7 +182,7 @@ export function TagValueTable({
       return dataRow.tags_key;
     }
 
-    const allowActions = [Actions.ADD, Actions.EXCLUDE];
+    const allowActions = [Actions.ADD, Actions.EXCLUDE, Actions.OPEN_INTERNAL_LINK];
 
     if (column.key === 'tagValue') {
       const actionRow = {...dataRow, id: dataRow.tags_key};

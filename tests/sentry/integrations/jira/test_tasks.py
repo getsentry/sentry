@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class SyncMetadataTest(TestCase):
     @responses.activate
-    def test_no_sync_with_no_org(self):
+    def test_no_sync_with_no_org(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="jira",
@@ -25,7 +25,7 @@ class SyncMetadataTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    def test_success(self):
+    def test_success(self) -> None:
         responses.add(
             responses.GET,
             "https://acme.atlassian.net/rest/api/2/serverInfo",

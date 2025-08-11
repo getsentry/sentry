@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseCommitsListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)

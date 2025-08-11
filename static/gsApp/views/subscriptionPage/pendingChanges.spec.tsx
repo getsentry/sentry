@@ -280,10 +280,6 @@ describe('Subscription > PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 1000,
-          transactionsBudget: 2000,
-          attachmentsBudget: 3000,
-          replaysBudget: 0,
           budgets: {errors: 1000, transactions: 2000, attachments: 3000},
         },
         effectiveDate: '2021-02-01',
@@ -392,16 +388,11 @@ describe('Subscription > PendingChanges', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        replaysBudget: 0,
-        transactionsBudget: 0,
-        attachmentsBudget: 0,
         budgets: {
           errors: 1000,
+          transactions: 0,
+          attachments: 0,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
       pendingChanges: PendingChangesFixture({
@@ -429,7 +420,7 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(
       screen.getByText(
-        'Pay-as-you-go budget change from per-category on-demand budget (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, uptime monitors at $0, continuous profile hours at $0, and UI profile hours at $0) to shared pay-as-you-go budget of $50'
+        'Pay-as-you-go budget change from per-category on-demand budget (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, uptime monitors at $0, logs at $0, continuous profile hours at $0, and UI profile hours at $0) to shared pay-as-you-go budget of $50'
       )
     ).toBeInTheDocument();
   });

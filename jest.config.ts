@@ -228,7 +228,7 @@ if (
     'jest-balance.json'
   );
   try {
-    balance = require(BALANCE_RESULTS_PATH);
+    balance = (await import(BALANCE_RESULTS_PATH, {with: {type: 'json'}})).default;
   } catch (err) {
     // Just ignore if balance results doesn't exist
   }

@@ -171,8 +171,10 @@ export const gaming: PlatformKey[] = [
   'godot',
   'native',
   'nintendo-switch',
+  'playstation',
   'unity',
   'unreal',
+  'xbox',
 ];
 
 export const sourceMaps: PlatformKey[] = [
@@ -298,6 +300,23 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'playstation',
+  'xbox',
+]);
+
+// List of platforms that have logging onboarding checklist content
+export const withLoggingOnboarding: Set<PlatformKey> = new Set([]);
+
+// List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
 ]);
 
 export const profiling: PlatformKey[] = [

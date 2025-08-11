@@ -37,14 +37,9 @@ import {
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {
-  ModuleName,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
 type Props = {
   primaryRelease?: string;
@@ -68,13 +63,13 @@ export function SpanOperationTable({
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
-  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]) ?? '';
 
   const searchQuery = new MutableSearch([
     // Exclude root level spans because they're comprised of nested operations
@@ -88,14 +83,14 @@ export function SpanOperationTable({
     'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
     'has:ttid',
-    `${SpanMetricsField.APP_START_TYPE}:${
+    `${SpanFields.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
-    `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
-    ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
-    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    `${SpanFields.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
+    ...(spanOp ? [`${SpanFields.SPAN_OP}:${spanOp}`] : []),
+    ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
     ...(subregions.length > 0
-      ? [`${SpanMetricsField.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
+      ? [`${SpanFields.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
       : []),
   ]);
 
@@ -122,8 +117,8 @@ export function SpanOperationTable({
         SPAN_OP,
         SPAN_GROUP,
         SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
         `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
         `sum(${SPAN_SELF_TIME})`,
       ],
@@ -136,11 +131,11 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
       'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -154,15 +149,15 @@ export function SpanOperationTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      const label = row[SpanMetricsField.SPAN_DESCRIPTION];
+      const label = row[SpanFields.SPAN_DESCRIPTION];
 
       const query = {
         ...location.query,
         transaction,
-        spanOp: row[SpanMetricsField.SPAN_OP],
-        spanGroup: row[SpanMetricsField.SPAN_GROUP],
-        spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
-        appStartType: row[SpanMetricsField.APP_START_TYPE],
+        spanOp: row[SpanFields.SPAN_OP],
+        spanGroup: row[SpanFields.SPAN_GROUP],
+        spanDescription: row[SpanFields.SPAN_DESCRIPTION],
+        appStartType: row[SpanFields.APP_START_TYPE],
       };
 
       return (
@@ -254,8 +249,8 @@ export function SpanOperationTable({
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
           `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};

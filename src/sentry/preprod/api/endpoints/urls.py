@@ -6,17 +6,24 @@ from .project_installable_preprod_artifact_download import (
 )
 from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAssembleGenericEndpoint
 from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
+from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
 from .project_preprod_artifact_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
+from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
 
 preprod_urlpatterns = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-preprod-artifact-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
+        ProjectPreprodArtifactCheckForUpdatesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-check-for-updates",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
@@ -27,6 +34,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/build-details/$",
         ProjectPreprodBuildDetailsEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/install-details/$",
+        ProjectPreprodInstallDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-install-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",

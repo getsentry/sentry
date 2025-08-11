@@ -25,7 +25,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -63,16 +63,6 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: Array<SelectValue<string>> = [
-  {label: t('My Dashboards'), value: 'mydashboards'},
-  {label: t('Dashboard Name (A-Z)'), value: 'title'},
-  {label: t('Dashboard Name (Z-A)'), value: '-title'},
-  {label: t('Date Created (Newest)'), value: '-dateCreated'},
-  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-  {label: t('Most Popular'), value: 'mostPopular'},
-  {label: t('Recently Viewed'), value: 'recentlyViewed'},
-];
-
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
@@ -98,6 +88,47 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
     : GRID;
 }
 
+function getSortOptions({
+  organization,
+  dashboardsLayout,
+}: {
+  dashboardsLayout: DashboardsLayout;
+  organization: Organization;
+}) {
+  return [
+    ...(!organization.features.includes('dashboards-starred-reordering') ||
+    dashboardsLayout === GRID
+      ? [{label: t('My Dashboards'), value: 'mydashboards'}]
+      : []),
+    {label: t('Dashboard Name (A-Z)'), value: 'title'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'},
+    {label: t('Date Created (Newest)'), value: '-dateCreated'},
+    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    {label: t('Most Popular'), value: 'mostPopular'},
+    ...(organization.features.includes('dashboards-starred-reordering')
+      ? [{label: t('Most Starred'), value: 'mostFavorited'}]
+      : []),
+    {label: t('Recently Viewed'), value: 'recentlyViewed'},
+  ];
+}
+
+function getDefaultSort({
+  organization,
+  dashboardsLayout,
+}: {
+  dashboardsLayout: DashboardsLayout;
+  organization: Organization;
+}) {
+  if (
+    organization.features.includes('dashboards-starred-reordering') &&
+    dashboardsLayout === TABLE
+  ) {
+    return 'recentlyViewed';
+  }
+
+  return 'mydashboards';
+}
+
 function ManageDashboards() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -117,6 +148,11 @@ function ManageDashboards() {
   const [{rowCount, columnCount}, setGridSize] = useState({
     rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
     columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
+  });
+
+  const sortOptions = getSortOptions({
+    organization,
+    dashboardsLayout,
   });
 
   const {
@@ -216,9 +252,46 @@ function ManageDashboards() {
     };
   }, [columnCount, dashboards?.length, dashboardsPageLinks, refetchDashboards, rowCount]);
 
+  useEffect(() => {
+    const urlSort = decodeScalar(location.query.sort);
+    const defaultSort = getDefaultSort({
+      organization,
+      dashboardsLayout,
+    });
+    if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
+      // The sort option is not valid, so we need to set the default sort
+      // in the URL
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, sort: defaultSort},
+      });
+    }
+  }, [
+    dashboardsLayout,
+    location.pathname,
+    location.query,
+    navigate,
+    organization,
+    sortOptions,
+  ]);
+
   function getActiveSort() {
-    const urlSort = decodeScalar(location.query.sort, 'mydashboards');
-    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
+    const defaultSort = getDefaultSort({
+      organization,
+      dashboardsLayout,
+    });
+    const urlSort = decodeScalar(location.query.sort, defaultSort);
+
+    if (urlSort) {
+      // Check if the URL sort is valid
+      const foundSort = sortOptions.find(item => item.value === urlSort);
+      if (foundSort) {
+        return foundSort;
+      }
+    }
+
+    // If it is not valid, try the default sort, and only if that is not valid, use the first option
+    return sortOptions.find(item => item.value === defaultSort) || sortOptions[0];
   }
 
   function handleSearch(query: string) {
@@ -316,9 +389,10 @@ function ManageDashboards() {
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort!.value}
-          options={SORT_OPTIONS}
+          options={sortOptions}
           onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"
+          data-test-id="sort-by-select"
         />
       </StyledActions>
     );
@@ -328,7 +402,9 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );

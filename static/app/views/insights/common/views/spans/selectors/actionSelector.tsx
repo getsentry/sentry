@@ -13,9 +13,9 @@ import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEvent
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_ACTION} = SpanMetricsField;
+const {SPAN_ACTION} = SpanFields;
 
 type Props = {
   moduleName: ModuleName;
@@ -129,7 +129,6 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mobile-ui': t('Action'),
   'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
-  ai: 'Action',
   agents: t('Action'),
   mcp: t('Action'),
   sessions: t('Action'),

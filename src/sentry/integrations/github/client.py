@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
@@ -14,6 +14,7 @@ from sentry.integrations.github.blame import (
     create_blame_query,
     extract_commits_from_blame_response,
     generate_file_path_mapping,
+    is_graphql_response,
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
@@ -30,7 +31,6 @@ from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
-from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -116,6 +116,10 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    class AccessTokenData(TypedDict):
+        access_token: str
+        permissions: dict[str, str] | None
+
     def _get_installation_id(self) -> str:
         """
         Returns the Github App installation identifier.
@@ -133,7 +137,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def _refresh_access_token(self) -> str | None:
+    def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -148,18 +152,29 @@ class GithubProxyClient(IntegrationProxyClient):
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-        integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
+        permissions = data.get("permissions")
+        integration.metadata.update(
+            {
+                "access_token": access_token,
+                "expires_at": expires_at,
+                "permissions": permissions,
+            }
+        )
         integration.save()
         logger.info(
             "token.refresh_end",
             extra={
                 "new_expires_at": integration.metadata.get("expires_at"),
+                "new_permissions": integration.metadata.get("permissions"),
                 "integration_id": integration.id,
             },
         )
 
         self.integration = integration
-        return access_token
+        return {
+            "access_token": access_token,
+            "permissions": permissions,
+        }
 
     @control_silo_function
     def _get_token(self, prepared_request: PreparedRequest) -> str | None:
@@ -184,29 +199,38 @@ class GithubProxyClient(IntegrationProxyClient):
             return jwt
 
         # The rest should use access tokens...
-        return self.get_access_token()
+        metadata = self.get_access_token()
+        if not metadata:
+            return None
+        return metadata["access_token"]
 
     @control_silo_function
-    def get_access_token(self) -> str | None:
+    def get_access_token(self) -> AccessTokenData | None:
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
         is_expired = (
-            bool(expires_at) and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
+            expires_at is not None and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
         )
         should_refresh = not access_token or not expires_at or is_expired
 
         if should_refresh:
-            access_token = self._refresh_access_token()
+            return self._refresh_access_token()
 
-        return access_token
+        if access_token:
+            return {
+                "access_token": access_token,
+                "permissions": self.integration.metadata.get("permissions"),
+            }
+
+        return None
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         integration: RpcIntegration | Integration | None = None
         if hasattr(self, "integration"):
             integration = self.integration
-        elif hasattr(self, "org_integration_id"):
+        elif self.org_integration_id is not None:
             integration = Integration.objects.filter(
                 organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
@@ -406,7 +430,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self.get_with_pagination("/installation/repositories", response_key="repositories")
+        return self._get_with_pagination("/installation/repositories", response_key="repositories")
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -421,9 +445,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
-        return self.get_with_pagination(f"/repos/{repo}/assignees")
+        return self._get_with_pagination(f"/repos/{repo}/assignees")
 
-    def get_with_pagination(
+    def _get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
     ) -> list[Any]:
         """
@@ -525,7 +549,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
+        return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
@@ -556,7 +580,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
-    ) -> Sequence[FileBlameInfo]:
+    ) -> list[FileBlameInfo]:
         log_info = {
             **extra,
             "provider": IntegrationProviderSlug.GITHUB,
@@ -609,7 +633,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             else:
                 self.set_cache(cache_key, response, 60)
 
-        if not isinstance(response, MappingApiResponse):
+        if not is_graphql_response(response):
             raise ApiError("Response is not JSON")
 
         errors = response.get("errors", [])
@@ -638,6 +662,10 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         )
 
 
+class _IntegrationIdParams(TypedDict, total=False):
+    integration_id: int
+
+
 class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
@@ -647,7 +675,7 @@ class GitHubApiClient(GitHubBaseClient):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
-        kwargs = {}
+        kwargs: _IntegrationIdParams = {}
         if hasattr(self.integration, "id"):
             kwargs["integration_id"] = integration.id
 

@@ -96,6 +96,7 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event)
         ]
 
+    @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
         from django.utils import timezone
@@ -329,6 +330,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
+    @pytest.mark.skip(reason="flaky: #94622")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """

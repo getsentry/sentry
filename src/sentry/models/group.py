@@ -29,11 +29,11 @@ from sentry.db.models import (
     BoundedIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
@@ -60,6 +60,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
@@ -405,7 +406,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_groups_by_external_issue(
         self,
-        integration: RpcIntegration,
+        integration: Integration | RpcIntegration,
         organizations: Iterable[Organization],
         external_issue_key: str | None,
     ) -> QuerySet[Group]:
@@ -611,9 +612,7 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
-        blank=True, null=True
-    )
+    data = LegacyTextJSONField(null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(
         default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
@@ -647,7 +646,7 @@ class Group(Model):
 
     __repr__ = sane_repr("project_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"({self.times_seen}) {self.title}"
 
     def save(self, *args, **kwargs):
@@ -712,9 +711,6 @@ class Group(Model):
 
     def is_unresolved(self):
         return self.get_status() == GroupStatus.UNRESOLVED
-
-    # TODO(dcramer): remove in 9.0 / after plugins no long ref
-    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED

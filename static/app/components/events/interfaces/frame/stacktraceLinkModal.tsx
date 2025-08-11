@@ -7,9 +7,8 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -174,7 +173,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <Alert type="error" showIcon>
+            <Alert type="error">
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',

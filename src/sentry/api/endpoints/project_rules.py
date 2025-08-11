@@ -27,6 +27,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
@@ -692,7 +693,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Return a list of active issue alert rules bound to a project.
 
@@ -706,11 +707,15 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             status=ObjectStatus.ACTIVE,
         ).select_related("project")
 
+        expand = request.GET.getlist("expand", ["lastTriggered"])
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, RuleSerializer(expand=expand, project_slug=project.slug)
+            ),
         )
 
     @extend_schema(

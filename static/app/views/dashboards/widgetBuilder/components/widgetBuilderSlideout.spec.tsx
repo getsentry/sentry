@@ -32,7 +32,9 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
@@ -549,7 +551,10 @@ describe('WidgetBuilderSlideout', () => {
 
   it('should show deprecation alert when flag enabled', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
     });
     jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
@@ -584,9 +589,11 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(
       await screen.findByText(
-        'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
       )
     ).toBeInTheDocument();
+
+    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
@@ -624,9 +631,12 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(
         screen.queryByText(
-          'Transaction widgets are being deprecated. Please use the spans dataset moving forward.'
+          /You may have limited functionality due to the ongoing migration of transactions to spans/i
         )
       ).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import type {
@@ -49,7 +49,7 @@ const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
 const getManualInstallSnippet = (params: Params) => {
-  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '9.6.0');
   return `dependencies:
   sentry_flutter: ^${version}`;
 };
@@ -64,6 +64,19 @@ Future<void> main() async {
       // Adds request headers and IP for users,
       // visit: https://docs.sentry.io/platforms/dart/data-management/data-collected/ for more info
       options.sendDefaultPii = true;${
+        params.isLogsSelected
+          ? `
+      // Enable logs to be sent to Sentry
+      options.enableLogs = true;`
+          : ''
+      }${
+        params.isReplaySelected
+          ? `
+      // Set sessionSampleRate to 0.1 to capture 10% of sessions and onErrorSampleRate to 1.0 to capture 100% of errors.
+      options.replay.sessionSampleRate = 0.1;
+      options.replay.onErrorSampleRate = 1.0;`
+          : ''
+      }${
         params.isPerformanceSelected
           ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -76,13 +89,6 @@ Future<void> main() async {
       // The sampling rate for profiling is relative to tracesSampleRate
       // Setting to 1.0 will profile 100% of sampled transactions:
       options.profilesSampleRate = 1.0;`
-          : ''
-      }${
-        params.isReplaySelected
-          ? `
-      // Set sessionSampleRate to 0.1 to capture 10% of sessions and onErrorSampleRate to 1.0 to capture 100% of errors.
-      options.replay.sessionSampleRate = 0.1;
-      options.replay.onErrorSampleRate = 1.0;`
           : ''
       }
     },
@@ -103,14 +109,25 @@ const configureAdditionalInfo = tct(
   }
 );
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `
+    // Send a log before throwing the error
+    Sentry.logger.info("User triggered test error button", {
+      'action': SentryLogAttribute.string('test_error_button_click'),
+    });`
+    : '';
+  return `
+import 'package:sentry/sentry.dart';
+
 child: ElevatedButton(
-  onPressed: () {
+  onPressed: () {${logsCode}
     throw StateError('This is test exception');
   },
   child: const Text('Verify Sentry Setup'),
 )
 `;
+};
 
 const getFeedbackConfigureSnippet = () => `
 // The example uses the NavigatorState to present the widget. Adapt as needed to your navigation stack.
@@ -307,7 +324,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 additionalInfo: params.isPerformanceSelected ? (
                   <Fragment>
                     <p>{configureAdditionalInfo}</p>
-                    <Alert type="info">
+                    <Alert type="info" showIcon={false}>
                       {t(
                         'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                       )}
@@ -336,7 +353,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'Dart',
                     value: 'dart',
                     language: 'dart',
-                    code: getVerifySnippet(),
+                    code: getVerifySnippet(params),
                   },
                 ],
               },
@@ -373,29 +390,43 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               ]
             : []),
         ],
-  nextSteps: () => [
-    {
-      name: t('Upload Debug Symbols'),
-      description: t(
-        'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
-    },
-    {
-      name: t('Distributed Tracing'),
-      description: t(
-        'Connect all your services by configuring your endpoints in the Sentry init.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
-    },
-    {
-      name: t('Connect your Git Repo'),
-      description: t(
-        'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
-      ),
-      link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
-    },
-  ],
+  nextSteps: params => {
+    const steps = [
+      {
+        name: t('Upload Debug Symbols'),
+        description: t(
+          'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
+      },
+      {
+        name: t('Distributed Tracing'),
+        description: t(
+          'Connect all your services by configuring your endpoints in the Sentry init.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
+      },
+      {
+        name: t('Connect your Git Repo'),
+        description: t(
+          'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
+        ),
+        link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        name: t('Structured Logs'),
+        description: t(
+          'Learn how to send structured logs to Sentry and view them alongside your errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/dart/guides/flutter/logs/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {

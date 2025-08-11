@@ -27,7 +27,10 @@ export function useOrganizationSeerSetup(
     'staleTime'
   > = {}
 ) {
-  const orgSlug = useOrganization().slug;
+  const organization = useOrganization();
+  const orgSlug = organization.slug;
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const queryData = useApiQuery<OrganizationSeerSetupResponse>(
     makeOrganizationSeerSetupQueryKey(orgSlug),
@@ -44,6 +47,7 @@ export function useOrganizationSeerSetup(
       hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
       hasScannerQuota: Boolean(queryData.data?.billing?.hasScannerQuota),
     },
+    areAiFeaturesAllowed,
     setupAcknowledgement: {
       orgHasAcknowledged: Boolean(
         queryData.data?.setupAcknowledgement?.orgHasAcknowledged

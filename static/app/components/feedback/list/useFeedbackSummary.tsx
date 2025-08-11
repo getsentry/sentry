@@ -34,9 +34,7 @@ export default function useFeedbackSummary(): {
     ],
     {
       staleTime: 5000,
-      enabled:
-        Boolean(normalizedDateRange) &&
-        organization.features.includes('user-feedback-ai-summaries'),
+      enabled: Boolean(normalizedDateRange),
       retry: 1,
     }
   );

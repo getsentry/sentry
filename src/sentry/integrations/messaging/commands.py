@@ -46,7 +46,7 @@ class CommandSlug:
         cmd_tokens = tuple(token.casefold() for token in cmd_prefix)
         return self.tokens == cmd_tokens
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         joined_tokens = " ".join(self.tokens)
         return f"{type(self).__name__}({joined_tokens!r})"
 

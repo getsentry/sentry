@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useRef} from 'react';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
@@ -21,7 +21,6 @@ import {
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
@@ -40,17 +39,17 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
-import {EmptyStateText} from 'sentry/views/traces/styles';
+import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
   allowPagination?: boolean;
+  embedded?: boolean;
   numberAttributes?: TagCollection;
-  showHeader?: boolean;
   stringAttributes?: TagCollection;
 };
 
 export function LogsTable({
-  showHeader = true,
+  embedded = false,
   allowPagination = true,
   stringAttributes,
   numberAttributes,
@@ -58,7 +57,6 @@ export function LogsTable({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
-  const isTableFrozen = useLogsIsTableFrozen();
 
   const {data, isError, isPending, pageLinks, meta} = useLogsPageData().logsQueryResult;
 
@@ -83,10 +81,10 @@ export function LogsTable({
         ref={tableRef}
         style={initialTableStyles}
         data-test-id="logs-table"
-        hideBorder={isTableFrozen}
-        showVerticalScrollbar={isTableFrozen}
+        hideBorder={embedded}
+        showVerticalScrollbar={embedded}
       >
-        {showHeader ? (
+        {embedded ? null : (
           <TableHead>
             <LogTableRow>
               <FirstTableHeadCell isFirst align="left">
@@ -113,8 +111,8 @@ export function LogsTable({
                     isFirst={index === 0}
                   >
                     <TableHeadCellContent
-                      onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
-                      isFrozen={isTableFrozen}
+                      onClick={embedded ? undefined : () => setSortBys([{field}])}
+                      isFrozen={embedded}
                     >
                       <Tooltip showOnlyOnOverflow title={headerLabel}>
                         {headerLabel}
@@ -143,8 +141,8 @@ export function LogsTable({
               })}
             </LogTableRow>
           </TableHead>
-        ) : null}
-        <LogTableBody showHeader={showHeader}>
+        )}
+        <LogTableBody showHeader={!embedded}>
           {isPending && (
             <TableStatus>
               <LoadingIndicator />
@@ -179,6 +177,7 @@ export function LogsTable({
               dataRow={row}
               meta={meta}
               highlightTerms={highlightTerms}
+              embedded={embedded}
               sharedHoverTimeoutRef={sharedHoverTimeoutRef}
               key={index}
             />

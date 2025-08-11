@@ -92,7 +92,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The core replay data
    */
-  replay: ReplayReader | null;
 
   /**
    * Restart the replay
@@ -100,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
@@ -134,7 +133,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isPlaying: false,
   isVideoReplay: false,
   removeHighlight: () => {},
-  replay: null,
   restart: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
@@ -338,7 +336,7 @@ export function Provider({
           return;
         }
 
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+        if (replayerRef.current.iframe.contentDocument?.body?.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }
@@ -620,7 +618,6 @@ export function Provider({
           isFinished,
           isPlaying,
           removeHighlight,
-          replay,
           restart,
           setCurrentTime,
           togglePlayPause,

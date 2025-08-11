@@ -267,9 +267,10 @@ class OAuthLoginView:
 
         pipeline.bind_state("request_token", request_token)
         if not request_token.get("oauth_token"):
+            data_keys = list(request_token.keys())
             logger.info(
                 "identity.jira-server.oauth-token",
-                extra={"url": config.get("url")},
+                extra={"url": config.get("url"), "data_keys": data_keys},
             )
             return pipeline.error("Missing oauth_token")
 

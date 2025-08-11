@@ -20,7 +20,7 @@ import {MetricReadout} from 'sentry/views/insights/common/components/metricReado
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -30,12 +30,11 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
   SpanFields,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -83,7 +82,7 @@ export function SpanSamplesContainer({
     });
   }
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };

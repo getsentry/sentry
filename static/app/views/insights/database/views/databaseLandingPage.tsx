@@ -1,5 +1,6 @@
 import React from 'react';
 
+import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
@@ -35,7 +36,7 @@ import {
   DEFAULT_DURATION_AGGREGATE,
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -55,7 +56,7 @@ export function DatabaseLandingPage() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
   // If there is no query parameter for the system, retrieve the current value from the hook instead
-  const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
+  const systemQueryParam = decodeScalar(location.query?.[SpanFields.SPAN_SYSTEM]);
   const {selectedSystem} = useSystemSelectorOptions();
 
   const system = systemQueryParam ?? selectedSystem;
@@ -187,7 +188,7 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-function AlertBanner(props: any) {
+function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
   return (
     <ModuleLayout.Full>
       <Alert.Container>

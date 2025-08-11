@@ -54,7 +54,7 @@ def get_autofix_integration_setup_problems(
     return "integration_missing"
 
 
-def get_repos_and_access(project: Project) -> list[dict]:
+def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     """
     Gets the repos that would be indexed for the given project from the code mappings, and checks if we have write access to them.
 
@@ -73,6 +73,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
         body = orjson.dumps(
             {
                 "repo": repo,
+                "group_id": group_id,
             }
         )
 
@@ -126,7 +127,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
 
         write_integration_check = None
         if request.query_params.get("check_write_access", False):
-            repos = get_repos_and_access(group.project)
+            repos = get_repos_and_access(group.project, group.id)
             write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
             write_integration_check = {
                 "ok": write_access_ok,

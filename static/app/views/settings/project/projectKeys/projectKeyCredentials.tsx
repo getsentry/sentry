@@ -1,9 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +15,7 @@ type Props = {
   showDsn?: boolean;
   showDsnPublic?: boolean;
   showMinidump?: boolean;
+  showOtlp?: boolean;
   showProjectId?: boolean;
   showPublicKey?: boolean;
   showSecretKey?: boolean;
@@ -32,6 +32,7 @@ function ProjectKeyCredentials({
   showProjectId = false,
   showPublicKey = false,
   showSecretKey = false,
+  showOtlp = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
@@ -95,6 +96,38 @@ function ProjectKeyCredentials({
             })}
           </TextCopyInput>
         </FieldGroup>
+      )}
+
+      {showOtlp && (
+        <Fragment>
+          <FieldGroup
+            label={t('OTLP Traces Endpoint')}
+            help={t(`Set this URL as your OTLP exporter's trace endpoint.`)}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
+              {getDynamicText({
+                value: data.dsn.otlp_traces,
+                fixed: '__OTLP_ENDPOINT__',
+              })}
+            </TextCopyInput>
+          </FieldGroup>
+
+          <FieldGroup
+            label={t('OTLP Traces Endpoint Headers')}
+            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
+              {getDynamicText({
+                value: `x-sentry-auth=sentry sentry_key=${data.public}`,
+                fixed: '__OTLP_ENDPOINT_HEADERS__',
+              })}
+            </TextCopyInput>
+          </FieldGroup>
+        </Fragment>
       )}
 
       {showSecurityEndpoint && (

@@ -56,7 +56,12 @@ interface State {
 }
 
 class MetricAlertDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
+  state: State = {
+    isLoading: false,
+    hasError: false,
+    error: null,
+    selectedIncident: null,
+  };
 
   componentDidMount() {
     const {api, organization} = this.props;
@@ -243,7 +248,7 @@ class MetricAlertDetails extends Component<Props, State> {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
@@ -274,9 +279,7 @@ class MetricAlertDetails extends Component<Props, State> {
       >
         {warning && (
           <Alert.Container>
-            <Alert type="warning" showIcon>
-              {warning}
-            </Alert>
+            <Alert type="warning">{warning}</Alert>
           </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />

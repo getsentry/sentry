@@ -103,6 +103,10 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('count()')).toBeInTheDocument();
     expect(within(row).getByText('event.type:error')).toBeInTheDocument();
     expect(within(row).getByText('>10% high')).toBeInTheDocument();
+
+    // Last issue
+    expect(within(row).getByText('RequestError')).toBeInTheDocument();
+    expect(within(row).getByText('Last seen')).toBeInTheDocument();
   });
 
   it('displays connected automations', async function () {
@@ -162,13 +166,38 @@ describe('DetectorsList', function () {
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
-      expect(options[1]).toHaveTextContent('metric_issue');
-      expect(options[2]).toHaveTextContent('uptime_subscription');
-      expect(options[3]).toHaveTextContent('uptime_domain_failure');
+      expect(options[1]).toHaveTextContent('metric');
+      expect(options[2]).toHaveTextContent('cron');
+      expect(options[3]).toHaveTextContent('uptime');
       await userEvent.click(screen.getByText('error'));
 
       await screen.findByText('Error Detector');
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
+    });
+
+    it('can filter by assignee', async function () {
+      const testUser = UserFixture({id: '2', email: 'test@example.com'});
+      const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [MetricDetectorFixture({name: 'Assigned Detector', owner: testUser.id})],
+        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+      });
+
+      render(<DetectorsList />, {organization});
+      await screen.findByText('Detector 1');
+
+      // Click through menus to select assignee
+      const searchInput = await screen.findByRole('combobox', {
+        name: 'Add a search term',
+      });
+      await userEvent.type(searchInput, 'assignee:test@example.com');
+
+      // It takes two enters. One to enter the search term, and one to submit the search.
+      await userEvent.keyboard('{enter}');
+      await userEvent.keyboard('{enter}');
+
+      await screen.findByText('Assigned Detector');
+      expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
     });
 
     it('can sort the table', async function () {
@@ -179,12 +208,12 @@ describe('DetectorsList', function () {
       const {router} = render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');
 
-      // Default sort is connectedWorkflows descending
+      // Default sort is latestGroup descending
       expect(mockDetectorsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            sortBy: '-connectedWorkflows',
+            sortBy: '-latestGroup',
           }),
         })
       );

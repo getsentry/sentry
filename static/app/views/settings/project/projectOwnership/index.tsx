@@ -5,10 +5,10 @@ import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
@@ -171,7 +171,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       />
       {isCodeownersError && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             {t(
               "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
             )}
@@ -251,7 +251,9 @@ export default function ProjectOwnership({project}: {project: Project}) {
         </Form>
       ) : (
         <Alert.Container>
-          <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+          <Alert type="error" showIcon={false}>
+            {t('There was an error issue owner settings.')}
+          </Alert>
         </Alert.Container>
       )}
     </SentryDocumentTitle>

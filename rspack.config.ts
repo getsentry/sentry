@@ -24,6 +24,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -203,12 +205,22 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
         ],
         [
           'swc-plugin-component-annotate',
-          {
-            'annotate-fragments': false,
-            'component-attr': 'data-sentry-component',
-            'element-attr': 'data-sentry-element',
-            'source-file-attr': 'data-sentry-source-file',
-          },
+          Object.assign(
+            {},
+            {
+              'annotate-fragments': false,
+              'component-attr': 'data-sentry-component',
+              'element-attr': 'data-sentry-element',
+              'source-file-attr': 'data-sentry-source-file',
+            },
+            // We don't want to add source path attributes in production
+            // as it will unnecessarily bloat the bundle size
+            IS_PRODUCTION
+              ? {}
+              : {
+                  'source-path-attr': 'data-sentry-source-path',
+                }
+          ),
         ],
       ],
     },
@@ -296,6 +308,7 @@ const appConfig: Configuration = {
             loader: '@mdx-js/loader',
             options: {
               remarkPlugins: [
+                remarkUnwrapMdxParagraphs,
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
@@ -471,6 +484,8 @@ const appConfig: Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      ui: path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),

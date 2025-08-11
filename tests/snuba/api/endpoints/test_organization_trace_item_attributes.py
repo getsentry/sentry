@@ -55,11 +55,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     feature_flags = {"organizations:ourlogs-enabled": True}
     item_type = SupportedTraceItemType.LOGS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -68,12 +68,12 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_substring_matching_logs(self):
+    def test_substring_matching_logs(self) -> None:
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -121,7 +121,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "another.attribute" not in keys
         assert "different.attr" not in keys
 
-    def test_all_attributes(self):
+    def test_all_attributes(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -143,7 +143,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "test.attribute2" in keys
         assert "severity" in keys
 
-    def test_body_attribute(self):
+    def test_body_attribute(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -161,7 +161,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "tags[message,string]"}
 
-    def test_disallowed_attributes(self):
+    def test_disallowed_attributes(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -181,7 +181,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
-    def test_attribute_collision(self):
+    def test_attribute_collision(self) -> None:
         logs = [
             self.create_ourlog(
                 organization=self.organization,
@@ -206,16 +206,16 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
-    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
+    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
 ):
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -224,12 +224,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_tags_list_str(self):
+    def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -272,7 +272,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         )
 
-    def test_tags_list_nums(self):
+    def test_tags_list_nums(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -327,7 +327,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         ]
 
     @override_options({"explore.trace-items.keys.max": 3})
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -433,7 +433,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         )
 
-    def test_tags_list_sentry_conventions(self):
+    def test_tags_list_sentry_conventions(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -488,7 +488,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         )
 
-    def test_attribute_collision(self):
+    def test_attribute_collision(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -520,6 +520,43 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
             {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
         ]
+
+    def test_sentry_internal_attributes(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            "normal_attr": "normal_value",
+                            "__sentry_internal_span_buffer_outcome": "different",
+                            "__sentry_internal_test": "internal_value",
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" not in attribute_names
+        assert "__sentry_internal_test" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" in attribute_names
+        assert "__sentry_internal_test" in attribute_names
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):
@@ -558,11 +595,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
     item_type = SupportedTraceItemType.LOGS
     feature_flags = {"organizations:ourlogs-enabled": True}
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -571,12 +608,12 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_attribute_values(self):
+    def test_attribute_values(self) -> None:
         logs = [
             self.create_ourlog(
                 extra_data={"body": "log message 1"},
@@ -615,11 +652,11 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self):
+    def test_invalid_item_type(self) -> None:
         response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -628,12 +665,12 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_tags_keys(self):
+    def test_tags_keys(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -680,7 +717,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete(self):
+    def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -728,7 +765,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring(self):
+    def test_transaction_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -768,7 +805,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -808,7 +845,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete(self):
+    def test_tags_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -857,7 +894,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_substring(self):
+    def test_tags_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -898,7 +935,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_substring_with_asterisks(self):
+    def test_tags_keys_autocomplete_substring_with_asterisks(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -939,7 +976,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_noop(self):
+    def test_tags_keys_autocomplete_noop(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -980,7 +1017,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert response.data == [], key
 
-    def test_tags_keys_autocomplete_project(self):
+    def test_tags_keys_autocomplete_project(self) -> None:
         base_id = 9223372036854775000
         self.create_project(id=base_id + 100, name="foo")
         self.create_project(id=base_id + 299, name="bar")
@@ -1094,7 +1131,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_tags_keys_autocomplete_span_status(self):
+    def test_tags_keys_autocomplete_span_status(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for status in ["ok", "internal_error", "invalid_argument"]:
             self.store_segment(
@@ -1160,7 +1197,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_measurements_autocomplete(self):
+    def test_measurements_autocomplete(self) -> None:
         keys = [
             "measurements.app_start_cold",
             "measurements.app_start_warm",
@@ -1208,7 +1245,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             assert response.status_code == 200, response.data
             assert response.data == []
 
-    def test_boolean_autocomplete(self):
+    def test_boolean_autocomplete(self) -> None:
         keys = ["is_transaction"]
         self.project
         for key in keys:
@@ -1237,7 +1274,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         "sentry.api.endpoints.organization_trace_item_attributes.TraceItemAttributeValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    def test_invalid_query(self, mock_executor_2):
+    def test_invalid_query(self, mock_executor_2: mock.MagicMock) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,
@@ -1258,7 +1295,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 400, response.data
 
     @override_options({"explore.trace-items.values.max": 2})
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz", "qux"]:
             self.store_segment(
@@ -1359,7 +1396,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-    def test_autocomplete_release_semver_attributes(self):
+    def test_autocomplete_release_semver_attributes(self) -> None:
         release_1 = self.create_release(version="foo@1.2.3+121")
         release_2 = self.create_release(version="qux@2.2.4+122")
         self.store_spans(
@@ -1500,3 +1537,12 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             }
             for version in ["121", "122"]
         ]
+
+    def test_autocomplete_timestamp(self) -> None:
+        self.store_spans(
+            [self.create_span(start_ts=before_now(days=0, minutes=10))],
+            is_eap=True,
+        )
+        response = self.do_request(key="timestamp", query={"substringMatch": "20"})
+        assert response.status_code == 200
+        assert response.data == []

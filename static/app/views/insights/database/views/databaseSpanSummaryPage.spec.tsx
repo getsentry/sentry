@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -21,7 +20,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table', 'insights-initial-modules'],
+    features: ['insights-initial-modules'],
   });
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
@@ -186,10 +185,15 @@ describe('DatabaseSpanSummaryPage', function () {
       ],
     });
 
-    render(
-      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization, deprecatedRouterMocks: true}
-    );
+    render(<DatabaseSpanSummaryPage />, {
+      organization,
+      initialRouterConfig: {
+        route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
+        },
+      },
+    });
 
     // Metrics ribbon
     expect(eventsRequestMock).toHaveBeenNthCalledWith(
@@ -201,15 +205,10 @@ describe('DatabaseSpanSummaryPage', function () {
           dataset: 'spans',
           environment: [],
           field: [
-            'span.op',
-            'span.description',
-            'span.action',
-            'span.domain',
-            'count()',
+            'sentry.normalized_description',
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'http_response_count(5)',
           ],
           per_page: 50,
           project: [],
@@ -261,7 +260,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -288,7 +288,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -299,7 +300,6 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.insights.database.summary-duration-chart',
-          sampling: undefined,
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',

@@ -1,6 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
@@ -269,15 +268,22 @@ export const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -288,7 +294,10 @@ sentry_sdk.init(
     # of transactions for tracing.
     traces_sample_rate=1.0,
 )`,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
             {
               linkTracingOptions: (
@@ -309,22 +318,30 @@ sentry_sdk.init(
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        },
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'You have the option to manually construct a transaction using [link:custom instrumentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
@@ -398,24 +415,6 @@ export const featureFlagOnboarding: OnboardingConfig = {
 };
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <Alert type="info">
-      {tct(
-        'Agent Monitoring is currently in beta with support for [openai:OpenAI Agents SDK] and [vercelai:Vercel AI SDK]. If you are using something else, you can use [manual:manual instrumentation].',
-        {
-          vercelai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
-          ),
-          openai: (
-            <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
-          ),
-          manual: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/#manual-instrumentation" />
-          ),
-        }
-      )}
-    </Alert>
-  ),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -423,8 +422,8 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
       configurations: getPythonInstallConfig(),
     },
   ],
-  configure: (params: Params) => [
-    {
+  configure: (params: Params) => {
+    const openaiAgentsStep = {
       type: StepType.CONFIGURE,
       description: tct(
         'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
@@ -447,6 +446,7 @@ from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
@@ -457,12 +457,145 @@ sentry_sdk.init(
             },
           ],
         },
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+# Example Agents SDK usage (replace with your actual calls)
+class MyAgent:
+    def __init__(self, name: str, model_provider: str, model: str):
+        self.name = name
+        self.model_provider = model_provider
+        self.model = model
+
+    def run(self):
+        # Your agent logic here
+        return {"output": "Hello from agent"}
+
+my_agent = MyAgent(
+    name="Weather Agent",
+    model_provider="openai",
+    model="o3-mini",
+)
+
+result = my_agent.run()
+print(result)
+`,
+            },
+          ],
+        },
       ],
       additionalInfo: t(
         'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
       ),
-    },
-  ],
+    };
+
+    const openaiSdkStep = {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Import and initialize the Sentry SDK with the [code:OpenAIIntegration] to instrument the OpenAI SDK:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import sentry_sdk
+from sentry_sdk.integrations.openai import OpenAIIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
+            },
+          ],
+        },
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+from openai import OpenAI
+
+client = OpenAI()
+response = client.responses.create(
+    model="gpt-4o-mini",
+    input="Tell me a joke",
+)
+print(response)
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const manualStep = {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you are not using a supported SDK integration, you can instrument your AI calls manually. See [link:manual instrumentation docs] for details.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: `
+import json
+import sentry_sdk
+
+sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)
+
+# Invoke Agent span
+with sentry_sdk.start_span(op="gen_ai.invoke_agent", name="invoke_agent Weather Agent") as span:
+    span.set_data("gen_ai.operation.name", "invoke_agent")
+    span.set_data("gen_ai.system", "openai")
+    span.set_data("gen_ai.request.model", "o3-mini")
+    span.set_data("gen_ai.agent.name", "Weather Agent")
+    span.set_data("gen_ai.response.text", json.dumps(["Hello World"]))
+
+# AI Client span
+with sentry_sdk.start_span(op="gen_ai.chat", name="chat o3-mini") as span:
+    span.set_data("gen_ai.operation.name", "chat")
+    span.set_data("gen_ai.system", "openai")
+    span.set_data("gen_ai.request.model", "o3-mini")
+    span.set_data("gen_ai.request.message", json.dumps([{"role": "user", "content": "Tell me a joke"}]))
+    span.set_data("gen_ai.response.text", json.dumps(["joke..."]))
+`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    if (selected === 'openai') {
+      return [openaiSdkStep];
+    }
+    if (selected === 'manual') {
+      return [manualStep];
+    }
+    return [openaiAgentsStep];
+  },
   verify: () => [],
 };
 

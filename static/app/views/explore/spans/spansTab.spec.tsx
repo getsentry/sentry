@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,9 +14,22 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
+
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          {children}
+        </TraceItemAttributeProvider>
+      </PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
+}
 
 jest.mock('sentry/utils/analytics');
 
@@ -92,11 +107,9 @@ describe('SpansTabContent', function () {
 
   it('should fire analytics once per change', async function () {
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <SpansTabContent datePageFilterProps={datePageFilterProps} />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      </Wrapper>,
       {organization}
     );
 
@@ -138,11 +151,9 @@ describe('SpansTabContent', function () {
     }
 
     render(
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <Component />
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>,
+      <Wrapper>
+        <Component />
+      </Wrapper>,
       {organization}
     );
 
@@ -179,7 +190,7 @@ describe('SpansTabContent', function () {
       'timestamp',
       'project',
     ]);
-  });
+  }, 20_000);
 
   describe('schema hints', function () {
     let spies: jest.SpyInstance[];
@@ -190,11 +201,11 @@ describe('SpansTabContent', function () {
         .mockImplementation(type => {
           switch (type) {
             case 'number':
-              return {tags: mockNumberTags, isLoading: false};
+              return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};
             case 'string':
-              return {tags: mockStringTags, isLoading: false};
+              return {tags: mockStringTags, isLoading: false, secondaryAliases: {}};
             default:
-              return {tags: {}, isLoading: false};
+              return {tags: {}, isLoading: false, secondaryAliases: {}};
           }
         });
 
@@ -242,9 +253,14 @@ describe('SpansTabContent', function () {
     });
 
     it('should show hints', function () {
-      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
-      });
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {
+          organization,
+        }
+      );
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
       expect(screen.getByText('stringTag2')).toBeInTheDocument();

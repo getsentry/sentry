@@ -18,9 +18,9 @@ from google.api_core.exceptions import TooManyRequests
 from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
-from sentry.utils.storage import measure_storage_put
 
 logger = logging.getLogger()
 
@@ -194,8 +194,11 @@ class SimpleStorageBlob:
     def get(self, key: str) -> bytes | None:
         try:
             storage = get_storage(self._make_storage_options())
-            blob = storage.open(key)
-            result = blob.read()
+            with measure_storage_operation("get", "replays") as metric_emitter:
+                blob = storage.open(key)
+                result = blob.read()
+                if result:
+                    metric_emitter.record_compressed_size(len(result), "gzip")
             blob.close()
         except Exception as e:
             logger.warning("Storage GET error: %s", repr(e))
@@ -207,7 +210,7 @@ class SimpleStorageBlob:
     def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
-            with measure_storage_put(len(value), "replays", "gzip"):
+            with measure_storage_operation("put", "replays", None, len(value), "gzip"):
                 storage.save(key, BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
@@ -216,7 +219,8 @@ class SimpleStorageBlob:
     @metrics.wraps("replays.lib.storage.SimpleStorageBlob.delete")
     def delete(self, key: str) -> None:
         storage = get_storage(self._make_storage_options())
-        storage.delete(key)
+        with measure_storage_operation("delete", "replays"):
+            storage.delete(key)
 
     def initialize_client(self):
         storage = get_storage(self._make_storage_options())

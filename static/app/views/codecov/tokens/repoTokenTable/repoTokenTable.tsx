@@ -8,13 +8,12 @@ import {renderTableBody} from 'sentry/views/codecov/tokens/repoTokenTable/tableB
 import {renderTableHeader} from 'sentry/views/codecov/tokens/repoTokenTable/tableHeader';
 
 type RepoTokenTableResponse = {
-  createdAt: string;
   name: string;
   token: string;
 };
 
-export type Row = Pick<RepoTokenTableResponse, 'name' | 'token' | 'createdAt'>;
-export type Column = GridColumnHeader<'name' | 'token' | 'createdAt' | 'regenerateToken'>;
+export type Row = RepoTokenTableResponse;
+export type Column = GridColumnHeader<'name' | 'token' | 'regenerateToken'>;
 
 type ValidField = (typeof SORTABLE_FIELDS)[number];
 
@@ -27,16 +26,15 @@ export type ValidSort = Sort & {
 };
 
 const COLUMNS_ORDER: Column[] = [
-  {key: 'name', name: t('Repository Name'), width: 350},
-  {key: 'token', name: t('Token'), width: 275},
-  {key: 'createdAt', name: t('Created Date'), width: COL_WIDTH_UNDEFINED},
+  {key: 'name', name: t('Repository Name'), width: COL_WIDTH_UNDEFINED},
+  {key: 'token', name: t('Token'), width: COL_WIDTH_UNDEFINED},
   {key: 'regenerateToken', name: '', width: 100},
 ];
 
-export const SORTABLE_FIELDS = ['name', 'createdAt'] as const;
+export const SORTABLE_FIELDS = ['name'] as const;
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'createdAt',
+  field: 'name',
   kind: 'desc',
 };
 

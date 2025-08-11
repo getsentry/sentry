@@ -46,7 +46,7 @@ def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> Outp
     return OutputSpan(
         payload={
             "data": {
-                "__sentry_internal_span_buffer_outcome": "different",
+                "sentry._internal.span_buffer_segment_id_outcome": "different",
             },
             "span_id": span_id.decode("ascii"),
             "segment_id": segment_id.decode("ascii"),
@@ -170,7 +170,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
         )
     ),
 )
-def test_basic(buffer: SpansBuffer, spans):
+def test_basic(buffer: SpansBuffer, spans) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -240,7 +240,7 @@ def test_basic(buffer: SpansBuffer, spans):
         )
     ),
 )
-def test_deep(buffer: SpansBuffer, spans):
+def test_deep(buffer: SpansBuffer, spans) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -317,7 +317,7 @@ def test_deep(buffer: SpansBuffer, spans):
         )
     ),
 )
-def test_deep2(buffer: SpansBuffer, spans):
+def test_deep2(buffer: SpansBuffer, spans) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -387,7 +387,7 @@ def test_deep2(buffer: SpansBuffer, spans):
         )
     ),
 )
-def test_parent_in_other_project(buffer: SpansBuffer, spans):
+def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -463,7 +463,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
         ]
     ),
 )
-def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans):
+def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -504,7 +504,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert_clean(buffer.client)
 
 
-def test_flush_rebalance(buffer: SpansBuffer):
+def test_flush_rebalance(buffer: SpansBuffer) -> None:
     spans = [
         Span(
             payload=_payload("a" * 16),
@@ -539,7 +539,7 @@ def test_flush_rebalance(buffer: SpansBuffer):
 
 
 @pytest.mark.parametrize("compression_level", [-1, 0])
-def test_compression_functionality(compression_level):
+def test_compression_functionality(compression_level) -> None:
     """Test that compression is working correctly at various compression levels."""
     with override_options({**DEFAULT_OPTIONS, "spans.buffer.compression.level": compression_level}):
         buffer = SpansBuffer(assigned_shards=list(range(32)))
@@ -609,7 +609,7 @@ def test_compression_functionality(compression_level):
         assert_clean(buffer.client)
 
 
-def test_max_segment_spans_limit(buffer: SpansBuffer):
+def test_max_segment_spans_limit(buffer: SpansBuffer) -> None:
     batch1 = [
         Span(
             payload=_payload("c" * 16),
@@ -671,3 +671,31 @@ def test_max_segment_spans_limit(buffer: SpansBuffer):
     # NB: We currently accept that we leak redirect keys when we limit segments.
     # buffer.done_flush_segments(rv)
     # assert_clean(buffer.client)
+
+
+def test_kafka_slice_id(buffer: SpansBuffer) -> None:
+    with override_options(DEFAULT_OPTIONS):
+        buffer = SpansBuffer(assigned_shards=list(range(1)), slice_id=2)
+
+        queue_key = buffer._get_queue_key(0)
+        assert queue_key == b"span-buf:q:2-0"
+
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id=None,
+                project_id=1,
+                is_segment_span=True,
+                end_timestamp_precise=1700000000.0,
+            )
+        ]
+
+        process_spans(spans, buffer, now=0)
+
+        assert buffer.client.keys("span-buf:q:*") == [queue_key]
+
+        segments = buffer.flush_segments(now=11)
+        buffer.done_flush_segments(segments)
+        assert_clean(buffer.client)

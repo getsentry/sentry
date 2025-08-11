@@ -1,8 +1,8 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -29,17 +29,17 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 const SDK_UPDATE_ALERT = (
   <Fragment>
@@ -69,7 +69,7 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {error: cacheMissRateError} = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),

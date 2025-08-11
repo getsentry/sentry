@@ -2,8 +2,8 @@ import React, {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -49,7 +49,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 export function HTTPDomainSummaryPage() {
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
@@ -69,7 +69,7 @@ export function HTTPDomainSummaryPage() {
       domain: decodeScalar,
       [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
       [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
     },
   });
@@ -88,8 +88,8 @@ export function HTTPDomainSummaryPage() {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
         `${SpanFunction.EPM}()`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -154,7 +154,7 @@ export function HTTPDomainSummaryPage() {
           <Layout.Main fullWidth>
             {domain === '' && (
               <Alert.Container>
-                <Alert type="info">
+                <Alert type="info" showIcon={false}>
                   {tct(
                     '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                     {
@@ -188,9 +188,7 @@ export function HTTPDomainSummaryPage() {
 
                     <MetricReadout
                       title={DataTitles.avg}
-                      value={
-                        domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
-                      }
+                      value={domainMetrics?.[0]?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areDomainMetricsLoading}
                     />

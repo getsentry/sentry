@@ -17,13 +17,13 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
 import {
   useTraceItemNumberAttributes,
@@ -296,7 +296,7 @@ export function Visualize() {
 
   return (
     <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap={space(1)} align="flex-end">
+      <Flex gap="md" align="end">
         <FieldContainer>
           <div>
             <Tooltip
@@ -364,14 +364,14 @@ export function Visualize() {
 
       {/* Only show filter inline when no additional parameters */}
       {!hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
+        <Flex flex={1} gap="md">
           <DetectorQueryFilterBuilder />
         </Flex>
       )}
 
       {/* Show filter on separate row when parameters are visible */}
       {hasVisibleParameters && (
-        <Flex flex={1} gap={space(1)}>
+        <Flex flex={1} gap="md">
           <DetectorQueryFilterBuilder />
         </Flex>
       )}

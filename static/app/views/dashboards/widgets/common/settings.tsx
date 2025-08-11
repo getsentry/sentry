@@ -12,6 +12,7 @@ export const PLOTTABLE_TIME_SERIES_VALUE_TYPES = [
   'size',
   'rate',
   'score',
+  'currency',
 ] as const;
 
 export const MIN_WIDTH = 110;

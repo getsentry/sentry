@@ -10,74 +10,11 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = False
     view = "sentry-api-0-organization-spans-fields"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-
-    def do_request(self, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer"]
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self):
-        response = self.do_request(features=[])
-        assert response.status_code == 404, response.data
-
-    def test_no_project(self):
-        response = self.do_request()
-        assert response.status_code == 200, response.data
-        assert response.data == []
-
-    def test_tags_list_str(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                tags={tag: tag},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(features=features)
-            assert response.status_code == 200, response.data
-            assert sorted(
-                response.data,
-                key=itemgetter("key"),
-            ) == sorted(
-                [
-                    {"key": "bar", "name": "Bar"},
-                    {"key": "baz", "name": "Baz"},
-                    {"key": "foo", "name": "Foo"},
-                ],
-                key=itemgetter("key"),
-            )
-
-
-class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
-    is_eap = True
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
@@ -100,7 +37,16 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 **kwargs,
             )
 
-    def test_tags_list_str(self):
+    def test_no_feature(self) -> None:
+        response = self.do_request(features=[])
+        assert response.status_code == 404, response.data
+
+    def test_no_project(self) -> None:
+        response = self.do_request()
+        assert response.status_code == 200, response.data
+        assert response.data == []
+
+    def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -114,7 +60,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         for features in [
@@ -141,7 +87,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 key=itemgetter("key"),
             )
 
-    def test_tags_list_nums(self):
+    def test_tags_list_nums(self) -> None:
         for tag in [
             "foo",
             "bar",
@@ -164,7 +110,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         for features in [
@@ -199,16 +145,21 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = False
     view = "sentry-api-0-organization-spans-fields-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
+
+        if query is None:
+            query = {}
+        query["dataset"] = "spans"
+        query["type"] = "string"
+
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -223,16 +174,16 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 **kwargs,
             )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request("tag", features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request("tag")
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    def test_tags_keys(self):
+    def test_tags_keys(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -247,7 +198,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         response = self.do_request("tag")
@@ -279,7 +230,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete(self):
+    def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -293,7 +244,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "transaction"
@@ -327,7 +278,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring(self):
+    def test_transaction_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -341,7 +292,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "transaction"
@@ -367,7 +318,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -381,7 +332,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "transaction"
@@ -407,7 +358,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete(self):
+    def test_tags_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -422,7 +373,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "tag"
@@ -456,7 +407,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_substring(self):
+    def test_tags_keys_autocomplete_substring(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -471,7 +422,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "tag"
@@ -497,7 +448,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_substring_with_asterisks(self):
+    def test_tags_keys_autocomplete_substring_with_asterisks(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -512,7 +463,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         key = "tag"
@@ -538,7 +489,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_noop(self):
+    def test_tags_keys_autocomplete_noop(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -553,7 +504,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         for key in [
@@ -579,7 +530,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert response.data == [], key
 
-    def test_tags_keys_autocomplete_project(self):
+    def test_tags_keys_autocomplete_project(self) -> None:
         base_id = 9223372036854775000
         self.create_project(id=base_id + 100, name="foo")
         self.create_project(id=base_id + 299, name="bar")
@@ -693,7 +644,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete_span_status(self):
+    def test_tags_keys_autocomplete_span_status(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for status in ["ok", "internal_error", "invalid_argument"]:
             self.store_segment(
@@ -706,7 +657,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=self.is_eap,
+                is_eap=True,
             )
 
         response = self.do_request("span.status")
@@ -759,7 +710,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_measurements_autocomplete(self):
+    def test_measurements_autocomplete(self) -> None:
         keys = [
             "measurements.app_start_cold",
             "measurements.app_start_warm",
@@ -811,11 +762,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         "sentry.api.endpoints.organization_spans_fields.EAPSpanFieldValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    @mock.patch(
-        "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
-        side_effect=InvalidSearchQuery,
-    )
-    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+    def test_invalid_query(self, mock_executor: mock.MagicMock) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,
@@ -829,40 +776,13 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self.do_request("tag")
         assert response.status_code == 400, response.data
 
-
-class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
-    is_eap = True
-
-    def do_request(self, key: str, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer"]
-
-        if query is None:
-            query = {}
-        query["dataset"] = "spans"
-        query["type"] = "string"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "key": key,
-                    },
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_boolean_autocomplete(self):
+    def test_boolean_autocomplete(self) -> None:
         keys = ["is_transaction"]
         self.project
         for key in keys:

@@ -9,7 +9,6 @@ export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
   return dismissed ? null : (
     <Alert
       type="info"
-      showIcon
       trailingItems={
         <Button
           aria-label="Dismiss banner"

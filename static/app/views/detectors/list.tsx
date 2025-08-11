@@ -11,7 +11,6 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,14 +21,14 @@ import DetectorListTable from 'sentry/views/detectors/components/detectorListTab
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {
     sort: sorts,
@@ -42,21 +41,24 @@ export default function DetectorsList() {
       cursor: decodeScalar,
     },
   });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedWorkflows'};
+  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
 
   const {
     data: detectors,
-    isPending,
+    isLoading,
     isError,
     isSuccess,
     getResponseHeader,
-  } = useDetectorsQuery({
-    cursor,
-    query,
-    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-    projects: selection.projects,
-    limit: DETECTOR_LIST_PAGE_LIMIT,
-  });
+  } = useDetectorsQuery(
+    {
+      cursor,
+      query,
+      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      projects: selection.projects,
+      limit: DETECTOR_LIST_PAGE_LIMIT,
+    },
+    {enabled: isReady}
+  );
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -66,7 +68,7 @@ export default function DetectorsList() {
           <div>
             <DetectorListTable
               detectors={detectors ?? []}
-              isPending={isPending}
+              isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
@@ -100,7 +102,7 @@ function TableHeader() {
   };
 
   return (
-    <Flex gap={space(2)}>
+    <Flex gap="xl">
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
         <DetectorSearch initialQuery={query} onSearch={onSearch} />
@@ -123,7 +125,7 @@ function Actions() {
     <Fragment>
       <LinkButton
         to={{
-          pathname: `${makeMonitorBasePathname(organization.slug)}new/`,
+          pathname: makeMonitorCreatePathname(organization.slug),
           query: project ? {project} : undefined,
         }}
         priority="primary"

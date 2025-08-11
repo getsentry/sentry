@@ -4,16 +4,9 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-export const STARFISH_AGGREGATION_FIELDS: Record<
-  SpanFunction,
-  FieldDefinition & {defaultOutputType: AggregationOutputType}
+export const STARFISH_AGGREGATION_FIELDS: Partial<
+  Record<SpanFunction, FieldDefinition & {defaultOutputType: AggregationOutputType}>
 > = {
-  [SpanFunction.SPS]: {
-    desc: t('Spans per second'),
-    kind: FieldKind.FUNCTION,
-    defaultOutputType: 'number',
-    valueType: FieldValueType.NUMBER,
-  },
   [SpanFunction.EPM]: {
     desc: t('Events per second'),
     kind: FieldKind.FUNCTION,

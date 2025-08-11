@@ -9,12 +9,12 @@ from sentry.sentry_apps.utils.alert_rule_action import raise_alert_rule_action_r
 
 
 def trigger_sentry_app_action_creators_for_issues(
-    actions: Sequence[Mapping[str, Any]]
+    actions: Sequence[Mapping[str, Any]],
 ) -> str | None:
     created = None
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
-        if not action.get("id") in SENTRY_APP_ACTIONS:
+        if action.get("id") not in SENTRY_APP_ACTIONS:
             continue
 
         result = app_service.trigger_sentry_app_action_creators(

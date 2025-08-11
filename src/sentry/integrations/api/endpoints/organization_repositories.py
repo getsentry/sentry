@@ -16,6 +16,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -39,7 +40,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Repositories
         ```````````````````````````````````

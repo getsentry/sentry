@@ -237,25 +237,11 @@ type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
 };
 
 export type PerCategoryOnDemandBudget = {
-  attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
-  // TODO(data categories): BIL-958
   budgets: Partial<Record<DataCategory, number>>;
-  errorsBudget: number;
-  replaysBudget: number;
-  transactionsBudget: number;
-  logBytesBudget?: number;
-  monitorSeatsBudget?: number;
-  profileDurationBudget?: number;
-  profileDurationUIBudget?: number;
-  uptimeBudget?: number;
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
-  attachmentSpendUsed: number;
-  errorSpendUsed: number;
-  transactionSpendUsed: number;
-  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 

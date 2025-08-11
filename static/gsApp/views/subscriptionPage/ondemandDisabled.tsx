@@ -28,7 +28,7 @@
 import {NavLink} from 'react-router-dom';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 
 import {PlanTier, type Subscription} from 'getsentry/types';
@@ -60,7 +60,7 @@ function OnDemandDisabled({subscription}: Props) {
 
   return (
     <Alert.Container>
-      <Alert type="error" data-test-id="ondemand-disabled-alert">
+      <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
         <span>
           {tct(
             "[Name] billing is disabled for your organization due to an unpaid [lowercase_name] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",

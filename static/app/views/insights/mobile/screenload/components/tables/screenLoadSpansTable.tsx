@@ -3,9 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
@@ -39,10 +38,9 @@ import {
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
 type Props = {
   primaryRelease?: string;
@@ -65,7 +63,7 @@ export function ScreenLoadSpansTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
-  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const {hasTTFD, isPending: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
@@ -76,7 +74,7 @@ export function ScreenLoadSpansTable({
       `transaction:${transaction}`,
       'has:span.description',
       ...(spanOp
-        ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+        ? [`${SpanFields.SPAN_OP}:${spanOp}`]
         : [`span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`]),
     ]);
 
@@ -110,8 +108,8 @@ export function ScreenLoadSpansTable({
         SPAN_OP,
         SPAN_GROUP,
         SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
         'ttid_contribution_rate()',
         'ttfd_contribution_rate()',
         'count()',
@@ -127,11 +125,11 @@ export function ScreenLoadSpansTable({
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
       'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -143,13 +141,13 @@ export function ScreenLoadSpansTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      const label = row[SpanMetricsField.SPAN_DESCRIPTION];
+      const label = row[SpanFields.SPAN_DESCRIPTION];
 
       const query = {
         ...location.query,
         transaction,
-        spanGroup: row[SpanMetricsField.SPAN_GROUP],
-        spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
+        spanGroup: row[SpanFields.SPAN_GROUP],
+        spanDescription: row[SpanFields.SPAN_DESCRIPTION],
       };
 
       return (
@@ -353,8 +351,8 @@ export function ScreenLoadSpansTable({
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),
