@@ -370,6 +370,37 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
     UserNotificationSettingsProvidersEndpoint,
 )
 from sentry.preprod.api.endpoints import urls as preprod_urls
+from sentry.releases.endpoints.organization_release_assemble import (
+    OrganizationReleaseAssembleEndpoint,
+)
+from sentry.releases.endpoints.organization_release_commits import (
+    OrganizationReleaseCommitsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_details import (
+    OrganizationReleaseDetailsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_file_details import (
+    OrganizationReleaseFileDetailsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
+from sentry.releases.endpoints.organization_release_health_data import (
+    OrganizationReleaseHealthDataEndpoint,
+)
+from sentry.releases.endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
+from sentry.releases.endpoints.organization_releases import (
+    OrganizationReleasesEndpoint,
+    OrganizationReleasesStatsEndpoint,
+)
+from sentry.releases.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from sentry.releases.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
+from sentry.releases.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from sentry.releases.endpoints.project_release_files import ProjectReleaseFilesEndpoint
+from sentry.releases.endpoints.project_release_repositories import ProjectReleaseRepositories
+from sentry.releases.endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
+from sentry.releases.endpoints.project_release_stats import ProjectReleaseStatsEndpoint
+from sentry.releases.endpoints.project_releases import ProjectReleasesEndpoint
+from sentry.releases.endpoints.project_releases_token import ProjectReleasesTokenEndpoint
+from sentry.releases.endpoints.release_deploys import ReleaseDeploysEndpoint
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -657,17 +688,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
-from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
-from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
-from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
-from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
-from .endpoints.organization_release_health_data import OrganizationReleaseHealthDataEndpoint
-from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
-from .endpoints.organization_releases import (
-    OrganizationReleasesEndpoint,
-    OrganizationReleasesStatsEndpoint,
-)
 from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
@@ -711,15 +731,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
-from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
-from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
-from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
-from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from .endpoints.project_release_repositories import ProjectReleaseRepositories
-from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
-from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
-from .endpoints.project_releases import ProjectReleasesEndpoint
-from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
@@ -754,7 +765,6 @@ from .endpoints.relay import (
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
 )
-from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint

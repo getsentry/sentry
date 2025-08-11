@@ -6,9 +6,9 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.release import Release
+from sentry.releases.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
