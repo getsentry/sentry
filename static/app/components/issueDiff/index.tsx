@@ -6,6 +6,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
@@ -40,6 +41,7 @@ type Props = {
 
 type State = {
   baseEvent: string[];
+  diffType: 'lines' | 'words';
   loading: boolean;
   targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
@@ -49,13 +51,11 @@ class IssueDiff extends Component<Props, State> {
   static defaultProps: DefaultProps = defaultProps;
 
   state: State = {
-    loading: true,
     baseEvent: [],
-    targetEvent: [],
-
-    // `SplitDiffAsync` is an async-loaded component
-    // This will eventually contain a reference to the exported component from `./splitDiff`
+    diffType: 'lines',
+    loading: true,
     SplitDiffAsync: undefined,
+    targetEvent: [],
   };
 
   componentDidMount() {
@@ -160,22 +160,40 @@ class IssueDiff extends Component<Props, State> {
 
   render() {
     const {className} = this.props;
-    const {SplitDiffAsync: DiffComponent, loading, baseEvent, targetEvent} = this.state;
+    const {
+      SplitDiffAsync: DiffComponent,
+      loading,
+      baseEvent,
+      targetEvent,
+      diffType,
+    } = this.state;
 
     return (
-      <StyledIssueDiff className={className} loading={loading}>
-        {loading && <LoadingIndicator />}
-        {!loading &&
-          DiffComponent &&
-          baseEvent.map((value, i) => (
-            <DiffComponent
-              key={i}
-              base={value}
-              target={targetEvent[i] ?? ''}
-              type="words"
-            />
-          ))}
-      </StyledIssueDiff>
+      <Container>
+        <SegmentedControlContainer>
+          <SegmentedControl
+            value={diffType}
+            onChange={value => this.setState({diffType: value as 'lines' | 'words'})}
+            size="xs"
+          >
+            <SegmentedControl.Item key="lines">{t('Lines')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="words">{t('Words')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </SegmentedControlContainer>
+        <StyledIssueDiff className={className} loading={loading}>
+          {loading && <LoadingIndicator />}
+          {!loading &&
+            DiffComponent &&
+            baseEvent.map((value, i) => (
+              <DiffComponent
+                key={i}
+                base={value}
+                target={targetEvent[i] ?? ''}
+                type={diffType}
+              />
+            ))}
+        </StyledIssueDiff>
+      </Container>
     );
   }
 }
@@ -202,4 +220,17 @@ const StyledIssueDiff = styled('div', {
       justify-content: center;
       align-items: center;
     `};
+`;
+
+const SegmentedControlContainer = styled('div')`
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  top: -${space(1)};
+  right: ${space(1)};
+  z-index: 1;
+`;
+
+const Container = styled('div')`
+  position: relative;
 `;
