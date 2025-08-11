@@ -2,7 +2,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 
 interface DiscoverSplitAlertProps {
   widget: Widget;

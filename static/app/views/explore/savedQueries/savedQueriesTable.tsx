@@ -24,9 +24,9 @@ import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
+  useGetSavedQueries,
   type SavedQuery,
   type SortOption,
-  useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';

@@ -1,12 +1,13 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
+import path, {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {resolve} from 'node:path'; // Added for module check
+
+import {po} from 'gettext-parser';
+import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
+// Added for module check
 
 import {glob} from 'tinyglobby';
 import ts from 'typescript';
-import {po} from 'gettext-parser';
-import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
 
 const FUNCTION_NAMES: Record<string, string[]> = {
   gettext: ['msgid'],

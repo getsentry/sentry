@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 import {
   Navigate,
-  type NavigateProps,
   Outlet,
-  type RouteObject,
   useOutletContext,
+  type NavigateProps,
+  type RouteObject,
 } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 

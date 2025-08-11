@@ -6,9 +6,9 @@ import {ALL_BRANCHES} from 'sentry/components/codecov/branchSelector/branchSelec
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {
   fetchDataQuery,
+  useInfiniteQuery,
   type InfiniteData,
   type QueryKeyEndpointOptions,
-  useInfiniteQuery,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {

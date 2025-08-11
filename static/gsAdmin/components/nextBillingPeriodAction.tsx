@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/deprecatedforms/form';
 import useApi from 'sentry/utils/useApi';
 

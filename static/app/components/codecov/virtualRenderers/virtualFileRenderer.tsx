@@ -5,8 +5,8 @@ import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
 import {ColorBar} from 'sentry/components/codecov/virtualRenderers/colorBar';
 import {
-  type CoverageMap,
   LINE_HEIGHT,
+  type CoverageMap,
 } from 'sentry/components/codecov/virtualRenderers/constants';
 import {
   LineNumber,

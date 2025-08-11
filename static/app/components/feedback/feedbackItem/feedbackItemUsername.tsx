@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useCallback, useId} from 'react';
+import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';

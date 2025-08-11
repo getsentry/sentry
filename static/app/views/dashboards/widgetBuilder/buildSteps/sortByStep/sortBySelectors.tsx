@@ -24,8 +24,8 @@ import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {
-  type SortDirection,
   sortDirections,
+  type SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
