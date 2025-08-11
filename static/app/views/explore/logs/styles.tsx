@@ -113,6 +113,9 @@ export const LogDetailTableActionsCell = styled(TableBodyCell)`
 export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
   gap: ${space(1)};
+  & button {
+    font-weight: ${p => p.theme.fontWeight.normal};
+  }
 `;
 
 export const DetailsWrapper = styled('tr')`
