@@ -31,6 +31,7 @@ class EnsureCronDetectorTest(TestCase):
         assert detector
         ensure_cron_detector(self.monitor)
         detector_after = get_detector_for_monitor(self.monitor)
+        assert detector_after is not None
         assert detector.id == detector_after.id
 
     def test_with_owner_user(self):
