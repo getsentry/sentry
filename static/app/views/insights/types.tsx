@@ -513,7 +513,7 @@ export enum ErrorField {
   TITLE = 'title',
 }
 
-export enum ErrorFunction {
+enum ErrorFunction {
   COUNT = 'count',
 }
 
@@ -522,7 +522,7 @@ type ErrorNumberFields = ErrorField.ISSUE;
 
 type NoArgErrorFunction = ErrorFunction.COUNT;
 
-export type ErrorResponseRaw = {
+type ErrorResponseRaw = {
   [Property in ErrorStringFields as `${Property}`]: string;
 } & {
   [Property in ErrorNumberFields as `${Property}`]: number;

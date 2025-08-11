@@ -4,6 +4,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {useErrors} from 'sentry/views/insights/common/queries/useDiscover';
+import {ErrorField} from 'sentry/views/insights/types';
 
 const columns: TabularColumn[] = [
   {key: 'issue', sortable: false},
@@ -14,7 +15,7 @@ const columns: TabularColumn[] = [
 export function OverviewIssuesWidget() {
   const {data, meta, isLoading} = useErrors(
     {
-      fields: ['issue', 'title', 'count()'],
+      fields: [ErrorField.ISSUE, ErrorField.TITLE, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       limit: 6,
     },
