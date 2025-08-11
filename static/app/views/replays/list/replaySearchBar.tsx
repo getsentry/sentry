@@ -26,6 +26,9 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
 
+// copied from static/app/components/events/contexts/knownContext/user.tsx
+const EMAIL_PATTERN = /[^@]+@[^\.]+\..+/;
+
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(key => [
@@ -211,6 +214,7 @@ function ReplaySearchBar(props: Props) {
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_PATTERN}]}
       initialQuery={props.query ?? props.defaultQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}
