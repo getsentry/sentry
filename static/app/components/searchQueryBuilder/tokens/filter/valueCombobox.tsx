@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
+import type {ComboBoxState} from '@react-stately/combobox';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -811,8 +812,10 @@ export function SearchQueryBuilderValueCombobox({
     ]
   );
 
+  const keyUpCounter = useRef(0);
+  const keyDownCounter = useRef(0);
   const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+    (e: KeyboardEvent, {state}: {state: ComboBoxState<SelectOptionWithKey<string>>}) => {
       // Default combobox behavior stops events from propagating outside of input
       // Certain keys like ctrl+z should be handled handled in useQueryBuilderGrid()
       // so we need to continue propagation for those.
@@ -823,6 +826,62 @@ export function SearchQueryBuilderValueCombobox({
       // If there's nothing in the input and we hit a delete key, we should focus the filter
       if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
         onDelete();
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const firstKey = state.collection.getFirstKey();
+        if (firstKey === null) return;
+
+        const lastKey = state.collection.getLastKey();
+        const secondKey = state.collection.getKeyAfter(firstKey);
+        const currentKey = state.selectionManager.focusedKey;
+
+        if (currentKey === secondKey) {
+          keyUpCounter.current++;
+          keyDownCounter.current++;
+
+          if (keyUpCounter.current >= 2) {
+            keyUpCounter.current = 0;
+            state.selectionManager.setFocusedKey(state.collection.getLastKey());
+          }
+        }
+        // Case when user goes from input to last item
+        else if (currentKey === lastKey && keyDownCounter.current === 0) {
+          keyDownCounter.current = 2;
+        } else {
+          keyUpCounter.current = 0;
+          keyDownCounter.current = 0;
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const firstKey = state.collection.getFirstKey();
+        if (firstKey === null) return;
+
+        const lastKey = state.collection.getLastKey();
+        const secondKey = state.collection.getKeyAfter(firstKey);
+        const currentKey = state.selectionManager.focusedKey;
+
+        if (currentKey === lastKey) {
+          keyUpCounter.current++;
+          keyDownCounter.current++;
+
+          if (keyDownCounter.current >= 2) {
+            keyDownCounter.current = 0;
+            state.selectionManager.setFocusedKey(secondKey);
+          }
+        }
+        // case when user goes from input to first item
+        else if (currentKey === firstKey) {
+          keyUpCounter.current = 2;
+        } else {
+          keyUpCounter.current = 0;
+          keyDownCounter.current = 0;
+        }
+        return;
       }
     },
     [onDelete]
