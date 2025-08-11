@@ -26,7 +26,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const {projects: outdatedProjects, isFetching: areOutdatedProjectsFetching} =
+  const {projects: outdatedProjects, isPending: areOutdatedProjectsPending} =
     useOutdatedSDKProjects({
       projectId: selectedProjectIds,
       enabled: pageFilterIsReady && !isDataAvailable,
@@ -37,14 +37,14 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       projectId: selectedProjectIds,
     });
 
-  const isDataFetching = areOutdatedProjectsFetching || areDenylistProjectsFetching;
+  const isDataFetching = areOutdatedProjectsPending || areDenylistProjectsFetching;
 
   if (isDataFetching) {
     return null;
   }
 
   const hasAnyProblematicProjects =
-    (!areOutdatedProjectsFetching && outdatedProjects.length > 0) ||
+    (!areOutdatedProjectsPending && outdatedProjects.length > 0) ||
     (!areDenylistProjectsFetching && denylistedProjects.length > 0);
 
   if (isDataAvailable && !hasAnyProblematicProjects) {
