@@ -246,6 +246,7 @@ class SQLInjectionDetector(PerformanceDetector):
             description[:6].upper() != "SELECT"
             or "WHERE" not in description.upper()
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+            or re.search(r"&[A-Za-z_][A-Za-z0-9_]*", description)
         ):
             return False
 
